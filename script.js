@@ -181,9 +181,53 @@ const events = [
   ["Knockout", "New Perspective", "48000020", "Ends in 11h 22m"]
 ];
 
+const leaderboardPlayers = [
+  { name: "Elox", tag: "#LGVY0QGP9", club: "FR", region: "FR", icon: "player_icon_spike.png", level: 80, trophies: 299971, season: "+4,806" },
+  { name: "prostislavv", tag: "#JGCCGY80", club: "Rost Aura", region: "RU", icon: "player_icon_07.png", level: 79, trophies: 289122, season: "+3,944" },
+  { name: "Netty", tag: "#QVLRCJQ00", club: "Heaven", region: "RU", icon: "player_icon_piper.png", level: 78, trophies: 270433, season: "+3,211" },
+  { name: "Ties", tag: "#29C8PULJ9", club: "Heaven", region: "NL", icon: "player_icon_bo.png", level: 77, trophies: 262903, season: "+2,998" },
+  { name: "Mikee", tag: "#8LQCUYPYL", club: "Kita H1", region: "IT", icon: "player_icon_brock.png", level: 76, trophies: 256142, season: "+2,746" },
+  { name: "xGoldKenzo", tag: "#2PLY88L00", club: "Virtix Esport", region: "IT", icon: "player_icon_primo.png", level: 75, trophies: 252644, season: "+2,506" },
+  { name: "javvi", tag: "#9G2VGJGUY", club: "No Club", region: "ES", icon: "player_icon_nita.png", level: 75, trophies: 251431, season: "+2,411" },
+  { name: "Kaso", tag: "#9PVU00U2P", club: "Kaso", region: "DE", icon: "player_icon_mike.png", level: 74, trophies: 251032, season: "+2,390" },
+  { name: "RedeX", tag: "#9CCLU0UJC", club: "Heaven", region: "EU", icon: "player_icon_bull.png", level: 74, trophies: 249351, season: "+2,184" },
+  { name: "NevoxCru", tag: "#28RLUU2LC", club: "Heaven", region: "FR", icon: "player_icon_poco.png", level: 73, trophies: 247927, season: "+2,031" },
+  { name: "ToniMxf", tag: "#YQ9JVYV", club: "StarsMxf", region: "MX", icon: "player_icon_shelly.png", level: 73, trophies: 247448, season: "+1,944" },
+  { name: "mxrf76", tag: "#YPP02G9L", club: "Heaven Cloud", region: "DE", icon: "player_icon_jess.png", level: 72, trophies: 242423, season: "+1,802" }
+];
+
+const leaderboardBrawlers = [
+  { brawler: "Crow", id: 16000012, rarity: "Legendary", player: "RedeX", tag: "#9CCLU0UJC", trophies: 3894, winRate: "64%", map: "Kaboom Canyon" },
+  { brawler: "Sirius", id: 16000102, rarity: "Ultra Legendary", player: "Elox", tag: "#LGVY0QGP9", trophies: 3812, winRate: "66%", map: "Open Business" },
+  { brawler: "Bolt", id: 16000106, rarity: "Epic", player: "javvi", tag: "#9G2VGJGUY", trophies: 3746, winRate: "62%", map: "Pinball Dreams" },
+  { brawler: "Spike", id: 16000005, rarity: "Legendary", player: "Netty", tag: "#QVLRCJQ00", trophies: 3698, winRate: "61%", map: "Undermine" },
+  { brawler: "Piper", id: 16000015, rarity: "Epic", player: "xGoldKenzo", tag: "#2PLY88L00", trophies: 3611, winRate: "59%", map: "Shooting Star" },
+  { brawler: "Mortis", id: 16000011, rarity: "Mythic", player: "Kaso", tag: "#9PVU00U2P", trophies: 3560, winRate: "58%", map: "Hard Rock Mine" },
+  { brawler: "Starr Nova", id: 16000105, rarity: "Mythic", player: "Mikee", tag: "#8LQCUYPYL", trophies: 3528, winRate: "63%", map: "New Perspective" },
+  { brawler: "Damian", id: 16000104, rarity: "Mythic", player: "Ties", tag: "#29C8PULJ9", trophies: 3486, winRate: "60%", map: "Center Stage" }
+];
+
+const leaderboardClubs = [
+  { name: "Heaven", tag: "#808VR8JGR", badge: "8000038.png", members: "30/30", trophies: 6398691, average: 213290, region: "Global" },
+  { name: "CODE: LENAIN", tag: "#80JCJU9L0", badge: "8000029.png", members: "30/30", trophies: 6153865, average: 205129, region: "Global" },
+  { name: "Heaven Cloud", tag: "#CV220C02", badge: "8000047.png", members: "30/30", trophies: 5749395, average: 191646, region: "Global" },
+  { name: "@toxicgenie", tag: "#828RU9YQG", badge: "8000041.png", members: "30/30", trophies: 5419232, average: 180641, region: "Global" },
+  { name: "Reconic", tag: "#2JQJRCU2", badge: "8000057.png", members: "30/30", trophies: 5332804, average: 177760, region: "EU" },
+  { name: "Virtix Esport", tag: "#2P8CVCQ0", badge: "8000022.png", members: "30/30", trophies: 5204176, average: 173472, region: "EU" },
+  { name: "Dutch Empire", tag: "#9Y88V8R", badge: "8000033.png", members: "30/30", trophies: 5079122, average: 169304, region: "NL" },
+  { name: "Brawl Union", tag: "#YVL8QQ", badge: "8000019.png", members: "30/30", trophies: 4998840, average: 166628, region: "BE" }
+];
+
 const brawlerGrid = document.querySelector("#brawler-grid");
 const membersTable = document.querySelector("#members-table");
 const leaderboard = document.querySelector("#leaderboard");
+const leaderboardPlayersTable = document.querySelector("#leaderboard-players");
+const leaderboardBrawlersTable = document.querySelector("#leaderboard-brawlers");
+const leaderboardClubsTable = document.querySelector("#leaderboard-clubs");
+const leaderboardTabs = document.querySelectorAll(".leaderboard-tabs button");
+const leaderboardPanels = document.querySelectorAll(".leaderboard-panel");
+const featuredChart = document.querySelector("#featured-chart");
+const leaderboardBrawlerChips = document.querySelector("#leaderboard-brawler-chips");
 const searchInput = document.querySelector("#search-input");
 const searchForm = document.querySelector("#search-form");
 const featuredBrawler = document.querySelector("#featured-brawler");
@@ -201,6 +245,13 @@ function trophies(value) {
 
 function cdnImage(path) {
   return `${cdn}/${path}`;
+}
+
+function rankClass(index) {
+  if (index === 0) return "gold";
+  if (index === 1) return "silver";
+  if (index === 2) return "bronze";
+  return "";
 }
 
 if (featuredBrawler) {
@@ -322,6 +373,111 @@ if (leaderboard) {
     </tr>
   `).join("");
 }
+
+if (leaderboardPlayersTable) {
+  leaderboardPlayersTable.innerHTML = leaderboardPlayers.map((player, index) => `
+    <tr class="jumpc" data-href="./players/">
+      <td class="rank-cell"><span class="topbox ${rankClass(index)}">${index + 1}</span></td>
+      <td class="avatar-cell"><img class="member-icon" src="./assets/img/thumbnails/high/${player.icon}" alt="${player.name} avatar"></td>
+      <td class="level-cell"><div class="exp-star">${player.level}</div></td>
+      <td>
+        <div class="leaderboard-row-main">
+          <div>
+            <div class="member-name">${player.name}</div>
+            <span class="member-band">${player.tag} · ${player.club}</span>
+          </div>
+          <div class="leaderboard-row-meta">
+            <span>${player.region}</span>
+            <strong>${player.season}</strong>
+          </div>
+        </div>
+      </td>
+      <td class="score-cell"><span>${trophies(player.trophies)}</span><img class="pl_icon" src="./assets/img/icons/genicon_trophy.png" alt="trophy"></td>
+    </tr>
+  `).join("");
+}
+
+if (leaderboardBrawlersTable) {
+  leaderboardBrawlersTable.innerHTML = leaderboardBrawlers.map((entry, index) => `
+    <tr class="jumpc" data-href="./players/">
+      <td class="rank-cell"><span class="topbox ${rankClass(index)}">${index + 1}</span></td>
+      <td class="avatar-cell"><img class="member-icon brawler-leader-icon" src="${cdnImage(`brawlers/borders/${entry.id}.png`)}" alt="${entry.brawler}"></td>
+      <td>
+        <div class="leaderboard-row-main">
+          <div>
+            <div class="member-name">${entry.brawler}</div>
+            <span class="member-band">${entry.rarity} · ${entry.player} ${entry.tag}</span>
+          </div>
+          <div class="leaderboard-row-meta">
+            <span>${entry.map}</span>
+            <strong>${entry.winRate}</strong>
+          </div>
+        </div>
+      </td>
+      <td class="score-cell"><span>${trophies(entry.trophies)}</span><img class="pl_icon" src="./assets/img/icons/genicon_trophy.png" alt="trophy"></td>
+    </tr>
+  `).join("");
+}
+
+if (leaderboardClubsTable) {
+  leaderboardClubsTable.innerHTML = leaderboardClubs.map((club, index) => `
+    <tr class="jumpc" data-href="./bands/">
+      <td class="rank-cell"><span class="topbox ${rankClass(index)}">${index + 1}</span></td>
+      <td class="avatar-cell"><img class="member-icon club-leader-icon" src="${cdnImage(`club-badges/regular/${club.badge}`)}" alt="${club.name} badge"></td>
+      <td>
+        <div class="leaderboard-row-main">
+          <div>
+            <div class="member-name">${club.name}</div>
+            <span class="member-band">${club.tag} · ${club.members} members</span>
+          </div>
+          <div class="leaderboard-row-meta">
+            <span>${club.region}</span>
+            <strong>${trophies(club.average)} avg</strong>
+          </div>
+        </div>
+      </td>
+      <td class="score-cell"><span>${trophies(club.trophies)}</span><img class="pl_icon" src="./assets/img/icons/genicon_trophy.png" alt="trophy"></td>
+    </tr>
+  `).join("");
+}
+
+if (featuredChart) {
+  const leader = leaderboardBrawlers[0];
+  featuredChart.innerHTML = `
+    <img src="${cdnImage(`brawlers/model/${leader.id}.png`)}" alt="${leader.brawler}">
+    <div>
+      <strong>${leader.brawler}</strong>
+      <span>${leader.player} leads with ${trophies(leader.trophies)} trophies.</span>
+      <span>${leader.winRate} mock win rate on ${leader.map}.</span>
+    </div>
+  `;
+}
+
+if (leaderboardBrawlerChips) {
+  leaderboardBrawlerChips.innerHTML = leaderboardBrawlers.map((entry) => `
+    <button type="button" data-board="brawlers">
+      <img src="${cdnImage(`brawlers/borders/${entry.id}.png`)}" alt="">
+      <span>${entry.brawler}</span>
+    </button>
+  `).join("");
+}
+
+function activateBoard(board) {
+  leaderboardTabs.forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.board === board);
+  });
+  leaderboardPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.panel === board);
+  });
+}
+
+leaderboardTabs.forEach((tab) => {
+  tab.addEventListener("click", () => activateBoard(tab.dataset.board));
+});
+
+document.querySelectorAll(".brawler-chip-list button").forEach((button) => {
+  button.addEventListener("click", () => activateBoard(button.dataset.board));
+});
 
 if (searchForm && searchInput) {
   searchForm.addEventListener("submit", (event) => {

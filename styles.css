@@ -813,8 +813,195 @@ section.leaderboard {
   line-height: 34px;
 }
 
+.leaderboard-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  gap: 22px;
+  align-items: end;
+  padding: 8px 0 20px;
+}
+
+.leaderboard-hero h1 {
+  margin: 0;
+  color: #fff;
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 46px;
+  line-height: 1;
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.22);
+}
+
+.leaderboard-hero p {
+  max-width: 680px;
+  margin: 12px 0 0;
+  color: #18334a;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.leaderboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.leaderboard-metrics div,
+.side-panel {
+  border: 1px solid #d6e2eb;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.leaderboard-metrics div {
+  min-height: 92px;
+  padding: 13px 10px;
+  text-align: center;
+}
+
+.leaderboard-metrics strong {
+  display: block;
+  color: var(--navy);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.leaderboard-metrics span {
+  display: block;
+  margin-top: 7px;
+  color: #52616c;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.leaderboard-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.leaderboard-tabs button,
+.brawler-chip-list button {
+  border: 0;
+  border-radius: 3px;
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.leaderboard-tabs button {
+  min-height: 42px;
+  padding: 0 16px;
+  background: #fff;
+  color: var(--navy);
+  text-transform: uppercase;
+  box-shadow: 0 4px 0 rgba(8, 68, 124, 0.14);
+}
+
+.leaderboard-tabs button.active {
+  background: var(--gold);
+  color: #503700;
+}
+
+.leaderboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 18px;
+  align-items: start;
+}
+
+.leaderboard-panel {
+  display: none;
+}
+
+.leaderboard-panel.active {
+  display: block;
+}
+
+.leaderboard-panel .board-header {
+  margin-top: 0;
+}
+
+.leaderboard-side {
+  display: grid;
+  gap: 14px;
+}
+
+.side-panel {
+  padding: 14px;
+}
+
+.featured-chart {
+  display: grid;
+  grid-template-columns: 95px 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 126px;
+}
+
+.featured-chart img {
+  width: 95px;
+  height: 110px;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.featured-chart strong {
+  display: block;
+  color: var(--ink);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 20px;
+}
+
+.featured-chart span,
+.ranking-notes li {
+  display: block;
+  color: #52616c;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.brawler-chip-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.brawler-chip-list button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 6px 8px;
+  background: #eef6fc;
+  color: var(--navy);
+  text-align: left;
+}
+
+.brawler-chip-list button:hover {
+  background: #dff1ff;
+}
+
+.brawler-chip-list img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.ranking-notes {
+  padding-left: 18px;
+  margin: 8px 0 0;
+}
+
+.ranking-notes li + li {
+  margin-top: 7px;
+}
+
 .troph_icon,
-.card_icon {
+.card_icon,
+.club_icon {
   float: left;
   width: 34px;
   height: 34px;
@@ -829,6 +1016,10 @@ section.leaderboard {
   border: 4px solid #fff;
   border-radius: 50%;
   background: url("./assets/img/heroes/high/hero_icon_crow.png") center / cover no-repeat;
+}
+
+.club_icon {
+  background-image: url("./assets/img/bands/high/clan_badge_04_04.png");
 }
 
 .table {
@@ -851,6 +1042,34 @@ section.leaderboard {
   vertical-align: middle;
 }
 
+.enhanced-table td {
+  padding: 10px 8px;
+}
+
+.rank-cell,
+.avatar-cell,
+.level-cell {
+  width: 42px;
+}
+
+.score-cell {
+  width: 165px;
+  color: var(--navy);
+  font-size: 19px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.score-cell span {
+  vertical-align: middle;
+}
+
+.score-cell img {
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
 .topbox {
   display: inline-grid;
   place-items: center;
@@ -861,11 +1080,35 @@ section.leaderboard {
   font-weight: 700;
 }
 
+.topbox.gold {
+  background: #ffcf2f;
+  color: #593d00;
+}
+
+.topbox.silver {
+  background: #c9d6df;
+  color: #2c3e50;
+}
+
+.topbox.bronze {
+  background: #c98044;
+}
+
 .pl_icon,
 .member-icon {
   width: 35px;
   height: 35px;
   object-fit: contain;
+}
+
+.brawler-leader-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.club-leader-icon {
+  width: 42px;
+  height: 46px;
 }
 
 .exp-star {
@@ -888,6 +1131,30 @@ section.leaderboard {
 .member-band {
   color: var(--navy);
   font-weight: 700;
+}
+
+.leaderboard-row-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.leaderboard-row-meta {
+  color: #52616c;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.leaderboard-row-meta span,
+.leaderboard-row-meta strong {
+  display: block;
+}
+
+.leaderboard-row-meta strong {
+  color: var(--green);
 }
 
 .member-score {
@@ -967,7 +1234,9 @@ footer {
 
 @media (max-width: 780px) {
   .hero-grid,
-  .dashboard-grid {
+  .dashboard-grid,
+  .leaderboard-hero,
+  .leaderboard-layout {
     grid-template-columns: 1fr;
   }
 
@@ -982,6 +1251,10 @@ footer {
   .source-line {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .leaderboard-side {
+    grid-template-columns: 1fr 1fr;
   }
 
   .navbar-brand,
@@ -1064,6 +1337,75 @@ footer {
 
   .event-card .timer {
     grid-column: 2;
+  }
+
+  .leaderboard-hero h1 {
+    font-size: 38px;
+  }
+
+  .leaderboard-metrics,
+  .leaderboard-side,
+  .brawler-chip-list {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard-tabs button {
+    flex: 1 1 30%;
+  }
+
+  .enhanced-table,
+  .enhanced-table tbody,
+  .enhanced-table tr,
+  .enhanced-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .enhanced-table tr {
+    position: relative;
+    min-height: 116px;
+    padding: 10px 10px 10px 92px;
+    border-top: 1px solid #d5e2ec;
+  }
+
+  .enhanced-table td {
+    padding: 0;
+    border-top: 0;
+  }
+
+  .enhanced-table .rank-cell {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 35px;
+  }
+
+  .enhanced-table .avatar-cell {
+    position: absolute;
+    top: 54px;
+    left: 10px;
+    width: 42px;
+  }
+
+  .enhanced-table .level-cell {
+    position: absolute;
+    top: 54px;
+    left: 54px;
+    width: 30px;
+  }
+
+  .leaderboard-row-main {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .leaderboard-row-meta {
+    text-align: left;
+  }
+
+  .score-cell {
+    margin-top: 8px;
+    text-align: left;
   }
 
   .stat-row {
