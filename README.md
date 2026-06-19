@@ -12,6 +12,8 @@ Source material found on this machine:
 
 This demo intentionally uses local static data and copied assets. It does not call the old `harmiox.com:3000` API or require PHP.
 
+The root page now also uses current Brawl Stars art from the GitHub-backed Brawlify CDN. See `ASSET_SOURCES.md` for source URLs, folder patterns, and the mock-data boundary.
+
 Static route mapping:
 
 - `/` mirrors `index.php`

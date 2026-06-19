@@ -7,6 +7,7 @@
     <title>Brawl Stats - I/O</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet">
+    <link rel="icon" href="./assets/img/bs-stats.png">
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body id="page-top" class="index">
@@ -41,8 +42,69 @@
       </div>
     </nav>
     <main id="maincontent" tabindex="-1">
-      <section class="home-page">
-        <div class="container home-message">Coming Soon!</div>
+      <section class="home-hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <div class="eyebrow">Fan-made stats mockup</div>
+            <h1>BrawlStats.io</h1>
+            <p>Track player profiles, club rosters, active events, and brawler meta snapshots with a modern static demo built from current Brawl Stars asset sources.</p>
+            <form id="search-form" class="hero-search" data-target="players">
+              <input id="search-input" type="text" class="tag-search-input" placeholder="Search player tag or club tag">
+              <button class="tag-search-button" aria-label="Search"><span class="tag-search-span">⌕</span></button>
+            </form>
+            <div class="hero-actions">
+              <a class="button primary" href="./players/">View Player</a>
+              <a class="button" href="./leaderboards/">Leaderboards</a>
+            </div>
+          </div>
+          <div class="hero-panel">
+            <div class="featured-brawler" id="featured-brawler"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="demo-section">
+        <div class="container">
+          <div class="section-title">
+            <span class="eyebrow">Live mock data</span>
+            <h2>Newest brawlers</h2>
+          </div>
+          <div class="modern-brawler-grid" id="modern-brawler-grid"></div>
+        </div>
+      </section>
+
+      <section class="demo-section split-band">
+        <div class="container dashboard-grid">
+          <div class="demo-panel">
+            <div class="section-title compact">
+              <span class="eyebrow">Current rotation</span>
+              <h2>Events</h2>
+            </div>
+            <div class="event-list" id="event-list"></div>
+          </div>
+          <div class="demo-panel">
+            <div class="section-title compact">
+              <span class="eyebrow">Club snapshot</span>
+              <h2>The bois</h2>
+            </div>
+            <div class="club-snapshot">
+              <img src="https://cdn.brawlify.com/club-badges/regular/8000038.png" alt="Club badge">
+              <div>
+                <strong>#9PJC2</strong>
+                <span>48/50 members</span>
+                <span>1,246,380 trophies</span>
+              </div>
+            </div>
+            <table class="table compact-table"><tbody id="home-leaderboard"></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <section class="demo-section source-band">
+        <div class="container source-line">
+          <p>Asset source: Brawlify/CDN on GitHub, served through cdn.brawlify.com. Static data is mock demo content and is not affiliated with Supercell.</p>
+          <a class="button" href="https://github.com/Brawlify/CDN">View asset repo</a>
+        </div>
       </section>
     </main>
     <footer>
@@ -64,5 +126,6 @@
         </div>
       </div>
     </footer>
+    <script src="./script.js"></script>
   </body>
 </html>
