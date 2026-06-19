@@ -48,6 +48,52 @@
           <button type="button" data-board="clubs">Clubs</button>
         </div>
 
+        <div class="leaderboard-controls">
+          <div>
+            <span class="control-label">Region</span>
+            <div class="region-switch" id="leaderboard-regions" aria-label="Region filter"></div>
+          </div>
+          <label>
+            <span class="control-label">Sort</span>
+            <select id="leaderboard-sort">
+              <option value="trophies">Trophies</option>
+              <option value="gain">Season gain</option>
+              <option value="trend">Rank movement</option>
+              <option value="winRate">Win rate</option>
+              <option value="average">Average trophies</option>
+            </select>
+          </label>
+          <label>
+            <span class="control-label">Rarity</span>
+            <select id="leaderboard-rarity">
+              <option value="all">All rarities</option>
+              <option value="Ultra Legendary">Ultra Legendary</option>
+              <option value="Legendary">Legendary</option>
+              <option value="Mythic">Mythic</option>
+              <option value="Epic">Epic</option>
+            </select>
+          </label>
+          <div class="board-status" id="leaderboard-status">Updated 4 min ago</div>
+        </div>
+
+        <div class="leaderboard-stat-grid" id="leaderboard-stats"></div>
+
+        <div class="compare-panel" id="compare-panel">
+          <div>
+            <span class="eyebrow">Player compare</span>
+            <strong id="compare-title">Compare top pushers</strong>
+          </div>
+          <label>
+            <span class="control-label">Player A</span>
+            <select id="compare-a"></select>
+          </label>
+          <label>
+            <span class="control-label">Player B</span>
+            <select id="compare-b"></select>
+          </label>
+          <div class="compare-result" id="compare-result"></div>
+        </div>
+
         <div class="leaderboard-layout">
           <div class="leaderboard-main">
             <article class="leaderboard-panel active" data-panel="players">
@@ -85,6 +131,8 @@
             </div>
           </aside>
         </div>
+
+        <div class="detail-drawer" id="leaderboard-detail" aria-live="polite"></div>
       </div>
     </section>
     <footer>

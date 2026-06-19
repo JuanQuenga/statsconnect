@@ -8,6 +8,7 @@
     <title>Brawl Stats - I/O</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet">
+    <link rel="icon" href="./assets/img/bs-stats.png">
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body id="page-top" class="index player-page">
@@ -55,28 +56,48 @@
     </header>
     <section class="player-profile">
       <div class="container profile">
-        <div class="row profile-row">
-          <div class="profile-main">
-            <div class="user">
-              <img src="./assets/img/thumbnails/high/player_icon_spike.png" alt="avatar" class="avatar">
-              <div class="info">
-                <div class="name">Harmiox</div>
-                <div class="tag">#2PPJ9</div>
-              </div>
+        <div class="profile-hero-panel">
+          <div class="user">
+            <img src="./assets/img/thumbnails/high/player_icon_spike.png" alt="avatar" class="avatar">
+            <div class="info">
+              <span class="eyebrow">Player profile mock</span>
+              <div class="name">Harmiox</div>
+              <div class="tag">#2PPJ9 · Global rank #1842</div>
             </div>
           </div>
-          <div class="profile-band">
-            <a class="link" href="./bands/">
-              <div class="band jump">
-                <div class="info">
-                  <span class="name">The bois</span>
-                  <span class="tag">#9PJC2</span>
-                </div>
-                <img src="./assets/img/bands/high/clan_badge_04_04.png" alt="badge" class="icon">
-              </div>
-            </a>
+          <a class="profile-club-card jump" href="./bands/">
+            <img src="https://cdn.brawlify.com/club-badges/regular/8000038.png" alt="club badge">
+            <div>
+              <span class="control-label">Club</span>
+              <strong>The bois</strong>
+              <p>#9PJC2 · 48/50 members</p>
+            </div>
+          </a>
+        </div>
+
+        <div class="player-snapshot-grid">
+          <div>
+            <span>Current trophies</span>
+            <strong>4,892</strong>
+            <p>+184 this season</p>
+          </div>
+          <div>
+            <span>Highest trophies</span>
+            <strong>5,104</strong>
+            <p>Personal best</p>
+          </div>
+          <div>
+            <span>3v3 victories</span>
+            <strong>812</strong>
+            <p>54% mock win rate</p>
+          </div>
+          <div>
+            <span>Solo victories</span>
+            <strong>168</strong>
+            <p>Showdown specialist</p>
           </div>
         </div>
+
         <div class="row xp-bar">
           <div class="xp">
             <div class="bar">
@@ -86,11 +107,29 @@
             </div>
           </div>
         </div>
-        <div class="row stat-row">
-          <div class="stat"><img src="./assets/img/icons/genicon_trophy.png" alt="trophy"><span>4892</span><p>Trophies</p></div>
-          <div class="stat"><img src="./assets/img/icons/genicon_trophy.png" alt="trophy"><span>5104</span><p>Highest Trophies</p></div>
-          <div class="stat"><img src="./assets/img/icons/star.png" alt="star"><span>812</span><p>Victories</p></div>
-          <div class="stat"><img src="./assets/img/icons/00-mode2-showdown.png" alt="survival"><span>168</span><p>Survival Victories</p></div>
+
+        <div class="profile-dashboard">
+          <div class="profile-panel">
+            <span class="eyebrow">Recent battle log</span>
+            <div class="battle-list">
+              <div><strong>Gem Grab</strong><span>Undermine · Victory · +8 trophies</span></div>
+              <div><strong>Brawl Ball</strong><span>Pinball Dreams · Victory · +7 trophies</span></div>
+              <div><strong>Knockout</strong><span>New Perspective · Defeat · -5 trophies</span></div>
+            </div>
+          </div>
+          <div class="profile-panel">
+            <span class="eyebrow">Best modes</span>
+            <div class="mode-bars">
+              <div><span>Gem Grab</span><strong style="width:74%"></strong></div>
+              <div><span>Brawl Ball</span><strong style="width:68%"></strong></div>
+              <div><span>Showdown</span><strong style="width:55%"></strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title compact profile-section-title">
+          <span class="eyebrow">Brawler roster</span>
+          <h2>Top brawlers</h2>
         </div>
         <div class="row">
           <div class="brawlers" id="brawler-grid"></div>

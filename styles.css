@@ -534,6 +534,25 @@ section.leaderboard {
   background: rgba(255, 255, 255, 0.82);
 }
 
+.profile-hero-panel,
+.club-hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(8, 68, 124, 0.9), rgba(24, 188, 156, 0.78)),
+    url("https://cdn.brawlify.com/maps/regular/15000000.png") center / cover;
+  box-shadow: 0 8px 0 rgba(8, 68, 124, 0.14);
+}
+
+.profile-hero-panel .user,
+.club-hero-panel .band-main {
+  color: #fff;
+}
+
 .profile-main {
   float: left;
   width: 55%;
@@ -556,6 +575,11 @@ section.leaderboard {
   width: 92px;
   height: 92px;
   margin-right: 14px;
+}
+
+.profile-hero-panel .avatar {
+  width: 104px;
+  height: 104px;
 }
 
 .user .name,
@@ -600,6 +624,154 @@ section.leaderboard {
 .band .icon {
   width: 62px;
   height: 62px;
+}
+
+.profile-club-card,
+.club-season-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 104px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.profile-club-card img {
+  width: 74px;
+  height: 82px;
+  object-fit: contain;
+}
+
+.profile-club-card strong,
+.club-season-card strong {
+  display: block;
+  color: var(--ink);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 22px;
+}
+
+.profile-club-card p,
+.club-season-card p {
+  margin: 3px 0 0;
+  color: #52616c;
+  font-weight: 700;
+}
+
+.player-snapshot-grid,
+.club-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.player-snapshot-grid div,
+.club-stat-grid div,
+.profile-panel {
+  border: 1px solid #d6e2eb;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.player-snapshot-grid div,
+.club-stat-grid div {
+  min-height: 98px;
+  padding: 13px;
+}
+
+.player-snapshot-grid span,
+.club-stat-grid span {
+  display: block;
+  color: #52616c;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.player-snapshot-grid strong,
+.club-stat-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--navy);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 25px;
+}
+
+.player-snapshot-grid p,
+.club-stat-grid p {
+  margin: 4px 0 0;
+  color: #52616c;
+  font-weight: 700;
+}
+
+.profile-dashboard,
+.club-dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.profile-panel {
+  padding: 14px;
+}
+
+.battle-list {
+  display: grid;
+  gap: 8px;
+}
+
+.battle-list div {
+  padding: 9px 10px;
+  border-radius: 4px;
+  background: #eef6fc;
+}
+
+.battle-list strong {
+  display: block;
+  color: var(--ink);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.battle-list span {
+  color: #52616c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mode-bars {
+  display: grid;
+  gap: 11px;
+}
+
+.mode-bars div {
+  position: relative;
+  min-height: 28px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #d7e5ef;
+}
+
+.mode-bars span {
+  position: relative;
+  z-index: 2;
+  display: block;
+  padding-left: 9px;
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.mode-bars strong {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+}
+
+.profile-section-title {
+  margin-top: 8px;
 }
 
 .xp-bar {
@@ -686,9 +858,96 @@ section.leaderboard {
 }
 
 .brawlers {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.player-brawler-card {
+  overflow: hidden;
+  border: 1px solid #d6e2eb;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 5px 0 rgba(8, 68, 124, 0.13);
+}
+
+.player-brawler-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 176px;
+  background: linear-gradient(145deg, #dff8ff, #ffffff);
+}
+
+.player-brawler-art img {
+  width: min(92%, 170px);
+  height: 166px;
+  object-fit: contain;
+}
+
+.level-badge {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffcf2f;
+  color: #593d00;
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+}
+
+.player-brawler-body {
   display: flex;
-  flex-wrap: wrap;
-  gap: 13px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+}
+
+.player-brawler-body h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+}
+
+.player-brawler-body span,
+.player-brawler-foot span {
+  color: #52616c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.player-brawler-score {
+  text-align: right;
+}
+
+.player-brawler-score strong {
+  display: block;
+  color: var(--navy);
+  font-size: 18px;
+}
+
+.player-brawler-score img {
+  width: 20px;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.player-brawler-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  background: #eef6fc;
+}
+
+.player-brawler-foot strong {
+  color: var(--green);
 }
 
 .frame {
@@ -905,6 +1164,137 @@ section.leaderboard {
   color: #503700;
 }
 
+.leaderboard-controls,
+.compare-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 160px 170px auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #d6e2eb;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.control-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.region-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.region-switch button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #c8d9e6;
+  border-radius: 3px;
+  background: #fff;
+  color: var(--navy);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.region-switch button.active {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+
+.leaderboard-controls select,
+.compare-panel select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #c8d9e6;
+  border-radius: 3px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.board-status {
+  min-height: 36px;
+  padding: 9px 10px;
+  border-radius: 3px;
+  background: #eef6fc;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.leaderboard-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.leaderboard-stat-grid div {
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid #d6e2eb;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.leaderboard-stat-grid span,
+.detail-grid span {
+  display: block;
+  color: #52616c;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.leaderboard-stat-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--navy);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 18px;
+}
+
+.leaderboard-stat-grid p,
+.compare-result p {
+  margin: 4px 0 0;
+  color: #52616c;
+  font-size: 13px;
+}
+
+.compare-panel {
+  grid-template-columns: minmax(180px, 1fr) 160px 160px minmax(240px, 1.2fr);
+}
+
+.compare-panel > div:first-child strong,
+.compare-result strong {
+  display: block;
+  color: var(--ink);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.compare-result {
+  min-height: 58px;
+  padding: 9px 10px;
+  border-radius: 3px;
+  background: #eef6fc;
+}
+
+.compare-result span {
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .leaderboard-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 310px;
@@ -965,7 +1355,6 @@ section.leaderboard {
 
 .brawler-chip-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
@@ -980,6 +1369,11 @@ section.leaderboard {
   text-align: left;
 }
 
+.brawler-chip-list button.active {
+  background: var(--gold);
+  color: #503700;
+}
+
 .brawler-chip-list button:hover {
   background: #dff1ff;
 }
@@ -988,6 +1382,19 @@ section.leaderboard {
   width: 26px;
   height: 26px;
   object-fit: contain;
+}
+
+.chip-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.chip-group strong {
+  grid-column: 1 / -1;
+  color: var(--ink);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
 }
 
 .ranking-notes {
@@ -1157,6 +1564,104 @@ section.leaderboard {
   color: var(--green);
 }
 
+.trend {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 6px;
+  margin-left: 5px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  line-height: 20px;
+}
+
+.trend.up {
+  background: #12a955;
+}
+
+.trend.down {
+  background: #d44950;
+}
+
+.trend.flat {
+  background: #7d8b95;
+}
+
+.empty-row td {
+  padding: 24px;
+  color: #52616c;
+  font-weight: 700;
+  text-align: center;
+}
+
+.detail-drawer {
+  display: none;
+  position: relative;
+  grid-template-columns: 150px 1fr;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #d6e2eb;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 0 rgba(8, 68, 124, 0.12);
+}
+
+.detail-drawer.active {
+  display: grid;
+}
+
+.detail-drawer > img {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+}
+
+.detail-drawer h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.detail-drawer p {
+  margin: 6px 0 12px;
+  color: #52616c;
+  font-weight: 700;
+}
+
+.detail-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.detail-grid div {
+  padding: 10px;
+  border-radius: 5px;
+  background: #eef6fc;
+}
+
+.detail-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--navy);
+}
+
 .member-score {
   float: right;
   font-size: 18px;
@@ -1236,7 +1741,11 @@ footer {
   .hero-grid,
   .dashboard-grid,
   .leaderboard-hero,
-  .leaderboard-layout {
+  .leaderboard-layout,
+  .profile-hero-panel,
+  .club-hero-panel,
+  .profile-dashboard,
+  .club-dashboard {
     grid-template-columns: 1fr;
   }
 
@@ -1255,6 +1764,20 @@ footer {
 
   .leaderboard-side {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .leaderboard-controls,
+  .compare-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .board-status,
+  .compare-result {
+    grid-column: 1 / -1;
+  }
+
+  .leaderboard-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .navbar-brand,
@@ -1291,6 +1814,12 @@ footer {
   }
 
   .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-snapshot-grid,
+  .club-stat-grid,
+  .brawlers {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1345,8 +1874,25 @@ footer {
 
   .leaderboard-metrics,
   .leaderboard-side,
-  .brawler-chip-list {
+  .brawler-chip-list,
+  .leaderboard-controls,
+  .compare-panel,
+  .detail-drawer,
+  .player-snapshot-grid,
+  .club-stat-grid,
+  .brawlers {
     grid-template-columns: 1fr;
+  }
+
+  .leaderboard-stat-grid,
+  .detail-grid,
+  .chip-group {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-drawer > img {
+    width: 110px;
+    height: 110px;
   }
 
   .leaderboard-tabs button {
@@ -1412,8 +1958,12 @@ footer {
     grid-template-columns: 1fr;
   }
 
-  .frame {
-    width: calc(50% - 7px);
+  .player-brawler-art {
+    min-height: 190px;
+  }
+
+  .player-brawler-art img {
+    height: 180px;
   }
 
   .member-score {

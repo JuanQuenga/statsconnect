@@ -8,6 +8,7 @@
     <title>Brawl Stats - I/O</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet">
+    <link rel="icon" href="./assets/img/bs-stats.png">
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body id="page-top" class="index band-page-body">
@@ -28,13 +29,51 @@
     </header>
     <section class="band-page">
       <div class="container">
-        <div class="row"><div class="band-main"><img src="./assets/img/bands/high/clan_badge_04_04.png" alt="icon" class="band-icon"><div class="band-info"><div class="name">The bois</div><div class="tag">#9PJC2</div></div></div></div>
-        <div class="row band-desc"><span class="description">Casual push crew. Donate, play clean, keep trophies moving.</span></div>
-        <div class="row stat-row">
-          <div class="stat"><img src="./assets/img/icons/genicon_trophy.png" alt="trophy"><span>41280</span><p>Trophies</p></div>
-          <div class="stat"><img src="./assets/img/icons/genicon_trophy.png" alt="trophy"><span>2000</span><p>Required Trophies</p></div>
+        <div class="club-hero-panel">
+          <div class="band-main">
+            <img src="https://cdn.brawlify.com/club-badges/regular/8000038.png" alt="club badge" class="band-icon">
+            <div class="band-info">
+              <span class="eyebrow">Club profile mock</span>
+              <div class="name">The bois</div>
+              <div class="tag">#9PJC2 · Invite only</div>
+            </div>
+          </div>
+          <div class="club-season-card">
+            <span class="control-label">Season pace</span>
+            <strong>+18,420</strong>
+            <p>Projected top 5% local club</p>
+          </div>
         </div>
-        <div class="board-header"><div class="troph_icon"></div>Members(12/50)</div>
+
+        <div class="row band-desc"><span class="description">Casual push crew. Donate, play clean, keep trophies moving.</span></div>
+
+        <div class="club-stat-grid">
+          <div><span>Total trophies</span><strong>41,280</strong><p>+1,842 weekly</p></div>
+          <div><span>Required trophies</span><strong>2,000</strong><p>Open to active players</p></div>
+          <div><span>Members</span><strong>12/50</strong><p>38 spots available</p></div>
+          <div><span>Average</span><strong>3,440</strong><p>Roster trophy avg</p></div>
+        </div>
+
+        <div class="club-dashboard">
+          <div class="profile-panel">
+            <span class="eyebrow">Top movers</span>
+            <div class="battle-list">
+              <div><strong>Harmiox</strong><span>+312 trophies · Crow push</span></div>
+              <div><strong>Juan</strong><span>+244 trophies · Spike push</span></div>
+              <div><strong>Maffie</strong><span>+198 trophies · Piper push</span></div>
+            </div>
+          </div>
+          <div class="profile-panel">
+            <span class="eyebrow">Club focus</span>
+            <div class="mode-bars">
+              <div><span>Club League</span><strong style="width:82%"></strong></div>
+              <div><span>Ranked push</span><strong style="width:64%"></strong></div>
+              <div><span>Event rotation</span><strong style="width:58%"></strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="board-header"><div class="troph_icon"></div>Members · mock roster</div>
         <table class="table"><tbody id="members-table"></tbody></table>
       </div>
     </section>
