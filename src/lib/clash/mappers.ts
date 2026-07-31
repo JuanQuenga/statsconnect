@@ -1,4 +1,4 @@
-import type { Battle, Card, Chest, Clan, ClanMember, Player } from "@/lib/mock-data";
+import type { Battle, Card, Chest, Clan, ClanMember, PathOfLegendsResult, Player } from "@/lib/mock-data";
 import {
   arenaImage,
   badgeImage,
@@ -16,6 +16,8 @@ import type {
   ApiCardList,
   ApiChestList,
   ApiClan,
+  ApiPlayer,
+  ApiPlayerLeagueStats,
   CardsPayload,
   ClanBundlePayload,
   PlayerBundlePayload
@@ -91,13 +93,36 @@ function mapChestList(payload: ApiChestList): Chest[] {
   });
 }
 
+/**
+ * Supercell sends a season result as `{}` (every field absent) when a player
+ * has no result for that snapshot — e.g. `bestPathOfLegendSeasonResult` on an
+ * account that has never touched Path of Legends. Treat an all-absent result
+ * as no result at all, so callers can tell "never played" apart from
+ * "played, but the API withheld the numbers."
+ */
+function mapPathOfLegendsResult(result?: ApiPlayerLeagueStats): PathOfLegendsResult | undefined {
+  if (!result) return undefined;
+  if (result.trophies === undefined && result.bestTrophies === undefined && result.rank == null) return undefined;
+  return { trophies: result.trophies, bestTrophies: result.bestTrophies, rank: result.rank ?? null };
+}
+
+function mapPathOfLegends(source: ApiPlayer): Player["pathOfLegends"] {
+  const current = mapPathOfLegendsResult(source.currentPathOfLegendSeasonResult);
+  const last = mapPathOfLegendsResult(source.lastPathOfLegendSeasonResult);
+  const best = mapPathOfLegendsResult(source.bestPathOfLegendSeasonResult);
+  // All three snapshots come back empty for a player who has never queued
+  // Path of Legends — drop the section entirely rather than render zeros.
+  if (!current && !last && !best) return undefined;
+  return { current, last, best };
+}
+
 export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
   const source = payload.player.data;
   const currentDeck = source.currentDeck?.map(mapCard) ?? [];
   const allCards = source.cards?.map(mapCard) ?? currentDeck;
   const favoriteCard = mapCard(source.currentFavouriteCard ?? source.currentDeck?.[0]);
 
-  const pathOfLegends = source.currentPathOfLegendSeasonResult;
+  const pathOfLegends = mapPathOfLegends(source);
 
   return {
     tag: source.tag.replace(/^#/, ""),
@@ -110,9 +135,7 @@ export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
     clan: source.clan?.name ?? "No clan",
     clanTag: source.clan?.tag?.replace(/^#/, ""),
     clanBadge: source.clan ? badgeImage(source.clan.badgeId, source.clan.badgeUrls) : undefined,
-    pathOfLegends: pathOfLegends
-      ? { trophies: pathOfLegends.trophies ?? 0, bestTrophies: pathOfLegends.bestTrophies ?? 0, rank: pathOfLegends.rank ?? null }
-      : undefined,
+    pathOfLegends,
     supportCards: source.currentDeckSupportCards?.map(mapCard) ?? [],
     favoriteCard,
     stats: {

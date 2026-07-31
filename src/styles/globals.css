@@ -1150,6 +1150,13 @@ button { cursor: pointer; }
   stroke: white;
 }
 
+/* Earlier observed snapshots, dimmer than the current-value circle so the
+   latest point still reads as "here and now" among the discrete dots. */
+.chart-dot {
+  fill: rgba(255, 255, 255, .5);
+  stroke: rgba(255, 255, 255, .5);
+}
+
 .grid-line {
   stroke: rgba(71, 98, 140, .18);
   stroke-dasharray: 5 7;
@@ -1278,6 +1285,26 @@ button { cursor: pointer; }
 .progress-item span {
   color: white;
 }
+
+.pol-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 36px;
+}
+
+.pol-card {
+  min-height: 96px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  border-left: 1px dashed var(--line-soft);
+  border-right: 1px dashed var(--line-soft);
+}
+
+.pol-label { color: #9aacca; font: 12px Arial, sans-serif; text-transform: uppercase; }
+.pol-card strong { font-size: 26px; }
+.pol-card > span:last-child { color: #6f86aa; font: 12px Arial, sans-serif; }
 
 .progress-track {
   width: 120px;

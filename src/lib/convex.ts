@@ -11,10 +11,12 @@ import type {
   PipelineStatusPayload,
   PlayerBundlePayload,
   PlayerSearchPayload,
+  ProfileHistoryPoint,
   RankingKind,
   RankingsPayload,
   TopCardsPayload,
   TopDecksPayload,
+  TopTowerTroopsPayload,
   TournamentsPayload
 } from "@/lib/clash/types";
 import type { MetaMode } from "@/lib/clash/battles";
@@ -96,6 +98,12 @@ export const topCardsQuery = makeFunctionReference<
   TopCardsPayload
 >("meta:topCards");
 
+export const topTowerTroopsQuery = makeFunctionReference<
+  "query",
+  { mode: MetaMode; windowDays?: number; limit?: number },
+  TopTowerTroopsPayload
+>("meta:topTowerTroops");
+
 export const deckMetaQuery = makeFunctionReference<
   "query",
   { deckHash: string; mode: MetaMode; windowDays?: number },
@@ -113,6 +121,14 @@ export const searchPlayersQuery = makeFunctionReference<
 export const directorySizeQuery = makeFunctionReference<"query", Record<string, never>, number>(
   "players:directorySize"
 );
+
+// --- Profile history --------------------------------------------------
+
+export const profileHistoryQuery = makeFunctionReference<
+  "query",
+  { kind: "player" | "clan"; tag: string },
+  ProfileHistoryPoint[]
+>("cache:history");
 
 export const seedTagMutation = makeFunctionReference<
   "mutation",

@@ -12,7 +12,7 @@ import { cardSlug } from "@/lib/clash/cards";
 import { averageElixir, copyDeckLink, variantArt, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardCatalog } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/mock-data";
-import { isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
+import { isConvexConfigured, topCardsQuery, topDecksQuery, topTowerTroopsQuery } from "@/lib/convex";
 
 /**
  * The public face of the battle-log pipeline.
@@ -46,6 +46,7 @@ function MetaReport() {
   const byId = useCardCatalog();
   const decks = useQuery(topDecksQuery, { mode, windowDays, limit: 30 });
   const cards = useQuery(topCardsQuery, { mode, windowDays, limit: 40 });
+  const towerTroops = useQuery(topTowerTroopsQuery, { mode, windowDays, limit: 40 });
 
   const sample = cards?.decksObserved ?? 0;
 
@@ -99,6 +100,13 @@ function MetaReport() {
 
         <TopDecks decks={decks?.decks} byId={byId} mode={mode} windowDays={windowDays} />
         <TopCards cards={cards?.cards} sample={sample} byId={byId} mode={mode} windowDays={windowDays} />
+        <TopTowerTroops
+          towerTroops={towerTroops?.towerTroops}
+          sample={towerTroops?.decksObserved ?? 0}
+          byId={byId}
+          mode={mode}
+          windowDays={windowDays}
+        />
       </div>
     </Layout>
   );
@@ -138,6 +146,23 @@ function NotEnoughData({ mode, windowDays }: { mode: MetaMode; windowDays: numbe
     <p className="empty-results">
       Not enough {modeLabel(mode)} battles in the last {windowDays === 1 ? "24 hours" : `${windowDays} days`} to publish
       a ranking. Clash Crown does not print numbers it cannot source.
+    </p>
+  );
+}
+
+/**
+ * Tower Troop tracking shipped after the rest of the meta report, and the
+ * existing 30 days of aggregates were built without it — there is nothing to
+ * backfill. So an empty table here is not "thin sample", it is "collection
+ * only just started"; say that instead of reusing NotEnoughData's wording,
+ * which would wrongly imply battles were happening but too few of them.
+ */
+function TowerTroopsStarting({ mode, windowDays }: { mode: MetaMode; windowDays: number }) {
+  return (
+    <p className="empty-results">
+      Tower Troop tracking just started — Clash Crown only began recording which one each side played, so there is no
+      history to backfill. Check back as {modeLabel(mode)} battles accumulate over the next{" "}
+      {windowDays === 1 ? "24 hours" : `${windowDays} days`}. Clash Crown does not print numbers it cannot source.
     </p>
   );
 }
@@ -294,6 +319,69 @@ function TopCards({
                 badge={card?.image ?? UNKNOWN_CARD_IMAGE}
                 badgeFallback={UNKNOWN_CARD_IMAGE}
                 sub={card ? `${card.rarity} · ${card.elixir} elixir` : "Not in the catalog"}
+              />
+            </td>
+            <td>{row.uses.toLocaleString()}</td>
+            <td className={rateClass(row.winRate)}>{pct(row.winRate)}</td>
+            <td>
+              <span className="usage-bar" aria-hidden="true">
+                <i style={{ width: `${Math.min(100, row.usageRate * 100)}%` }} />
+              </span>
+              {pct(row.usageRate)}
+            </td>
+          </tr>
+        );
+      })}
+    </TableShell>
+  );
+}
+
+// --- Tower Troops -----------------------------------------------------------
+
+function TopTowerTroops({
+  towerTroops,
+  sample,
+  byId,
+  mode,
+  windowDays
+}: {
+  towerTroops?: Array<{ towerCardId: number; uses: number; winRate: number; usageRate: number }>;
+  sample: number;
+  byId: Map<number, Card>;
+  mode: MetaMode;
+  windowDays: number;
+}) {
+  if (!towerTroops?.length) {
+    return (
+      <section className="profile-section">
+        <div className="section-heading">
+          <h2>Top Tower Troops</h2>
+        </div>
+        {towerTroops ? <TowerTroopsStarting mode={mode} windowDays={windowDays} /> : <p className="empty-results">Loading…</p>}
+      </section>
+    );
+  }
+
+  return (
+    <TableShell
+      title="Top Tower Troops"
+      head={["#", "Tower Troop", "Games", "Win rate", "Usage"]}
+      note={`Usage is the share of the ${Math.round(sample).toLocaleString()} decks observed with a Tower Troop recorded that used it. That sample only counts from when this table shipped, so it will keep growing.`}
+    >
+      {towerTroops.map((row, index) => {
+        const card = byId.get(row.towerCardId);
+        return (
+          <tr key={row.towerCardId}>
+            <td>
+              <RankCell rank={index + 1} />
+            </td>
+            <td>
+              <EntityCell
+                href={card ? `/cards/${cardSlug(card.name)}` : undefined}
+                name={card?.name ?? `Tower Troop ${row.towerCardId}`}
+                badge={card?.image ?? UNKNOWN_CARD_IMAGE}
+                badgeFallback={UNKNOWN_CARD_IMAGE}
+                sub={card ? card.rarity : "Not in the catalog"}
               />
             </td>
             <td>{row.uses.toLocaleString()}</td>

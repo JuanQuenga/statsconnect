@@ -14,6 +14,8 @@ const RETENTION_DAYS = 30;
 /** Battle logs only go back 25 battles, so dedup keys older than this are dead weight. */
 const SEEN_BATTLE_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
 const RANKING_WINDOWS = [1, 7] as const;
+/** Matches the deck ranking's CLASH_MIN_DECK_USES default in `crawler.ts`. */
+const MIN_TOWER_USES = 5;
 
 const observation = v.object({
   fingerprint: v.string(),
@@ -173,6 +175,10 @@ export const ingestBattles = internalMutation({
     };
     const deckDeltas = new Map<string, DeckDelta>();
     const cardDeltas = new Map<string, { day: number; mode: MetaMode; cardId: number; uses: number; wins: number }>();
+    const towerDeltas = new Map<
+      string,
+      { day: number; mode: MetaMode; towerCardId: number; uses: number; wins: number }
+    >();
 
     for (const item of accepted) {
       const day = dayKey(item.battleTime);
@@ -199,6 +205,17 @@ export const ingestBattles = internalMutation({
         card.uses += 1;
         card.wins += item.won ? 1 : 0;
         cardDeltas.set(cardKey, card);
+      }
+
+      // Older battle logs and reconnects can lack a Tower Troop reading
+      // entirely; skip rather than folding it under a sentinel id so the
+      // aggregate never counts a troop that was never observed.
+      if (item.towerCardId !== undefined) {
+        const towerKey = `${day}:${mode}:${item.towerCardId}`;
+        const tower = towerDeltas.get(towerKey) ?? { day, mode, towerCardId: item.towerCardId, uses: 0, wins: 0 };
+        tower.uses += 1;
+        tower.wins += item.won ? 1 : 0;
+        towerDeltas.set(towerKey, tower);
       }
     }
 
@@ -231,6 +248,18 @@ export const ingestBattles = internalMutation({
 
       if (existing) await ctx.db.patch(existing._id, { uses: existing.uses + delta.uses, wins: existing.wins + delta.wins });
       else await ctx.db.insert("cardStats", delta);
+    }
+
+    for (const delta of towerDeltas.values()) {
+      const existing = await ctx.db
+        .query("towerStats")
+        .withIndex("by_day_and_mode_and_tower", (q) =>
+          q.eq("day", delta.day).eq("mode", delta.mode).eq("towerCardId", delta.towerCardId)
+        )
+        .unique();
+
+      if (existing) await ctx.db.patch(existing._id, { uses: existing.uses + delta.uses, wins: existing.wins + delta.wins });
+      else await ctx.db.insert("towerStats", delta);
     }
 
     await bump(ctx, "battlesIngested", fresh.length);
@@ -318,6 +347,12 @@ export const pruneBatch = internalMutation({
       .take(256);
     for (const row of staleCards) await ctx.db.delete(row._id);
 
+    const staleTowers = await ctx.db
+      .query("towerStats")
+      .withIndex("by_day", (q) => q.lt("day", dayCutoff))
+      .take(256);
+    for (const row of staleTowers) await ctx.db.delete(row._id);
+
     const logCutoff = Date.now() - 7 * 86_400_000;
     const staleLogs = await ctx.db
       .query("apiFetchLogs")
@@ -331,7 +366,8 @@ export const pruneBatch = internalMutation({
       .take(256);
     for (const row of staleRuns) await ctx.db.delete(row._id);
 
-    const deleted = staleSeen.length + staleDecks.length + staleCards.length + staleLogs.length + staleRuns.length;
+    const deleted =
+      staleSeen.length + staleDecks.length + staleCards.length + staleTowers.length + staleLogs.length + staleRuns.length;
     return { deleted, more: deleted > 0 };
   }
 });
@@ -462,6 +498,54 @@ export const topCards = query({
       .slice(0, Math.min(args.limit ?? 40, 200));
 
     return { windowDays, decksObserved, cards };
+  }
+});
+
+/**
+ * Same shape and windowing as `topCards`, but for the Tower Troop a side
+ * brought rather than one of the eight deck cards. This table only started
+ * filling in once the fold above shipped, so `decksObserved` here can be far
+ * smaller than the card table's for the same window — that is the honest
+ * sample size, not a bug.
+ */
+export const topTowerTroops = query({
+  args: { mode: metaMode, windowDays: v.optional(v.number()), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const windowDays = Math.min(Math.max(args.windowDays ?? 7, 1), RETENTION_DAYS);
+    const totals = new Map<number, { towerCardId: number; uses: number; wins: number }>();
+    let decksObserved = 0;
+
+    for (const day of dayKeysBack(windowDays)) {
+      const rows = await ctx.db
+        .query("towerStats")
+        .withIndex("by_day_and_mode_and_tower", (q) => q.eq("day", day).eq("mode", args.mode))
+        .take(400);
+      for (const row of rows) {
+        const entry = totals.get(row.towerCardId) ?? { towerCardId: row.towerCardId, uses: 0, wins: 0 };
+        entry.uses += row.uses;
+        entry.wins += row.wins;
+        totals.set(row.towerCardId, entry);
+      }
+      // A deck names exactly one Tower Troop, not eight cards, so summed uses
+      // already are the deck count — no /8 like topCards' decksObserved.
+      decksObserved += rows.reduce((total, row) => total + row.uses, 0);
+    }
+
+    const towerTroops = [...totals.values()]
+      // Same five-use floor the deck ranking uses. There are only a handful of
+      // Tower Troops, so this clears within minutes of the first crawl — but
+      // without it the table's first render would publish a 100% win rate off
+      // a single battle, which is the one thing this page will not do.
+      .filter((entry) => entry.uses >= MIN_TOWER_USES)
+      .map((entry) => ({
+        ...entry,
+        winRate: entry.uses ? entry.wins / entry.uses : 0,
+        usageRate: decksObserved ? entry.uses / decksObserved : 0
+      }))
+      .sort((a, b) => b.uses - a.uses)
+      .slice(0, Math.min(args.limit ?? 40, 200));
+
+    return { windowDays, decksObserved, towerTroops };
   }
 });
 

@@ -400,6 +400,20 @@ export type TopCardsPayload = {
   cards: RankedCard[];
 };
 
+export type RankedTowerTroop = {
+  towerCardId: number;
+  uses: number;
+  wins: number;
+  winRate: number;
+  usageRate: number;
+};
+
+export type TopTowerTroopsPayload = {
+  windowDays: number;
+  decksObserved: number;
+  towerTroops: RankedTowerTroop[];
+};
+
 export type DeckMetaPayload = {
   windowDays: number;
   uses: number;
@@ -425,4 +439,21 @@ export type PlayerSearchPayload = {
   /** Set when the input could itself be a tag, which is offered as its own result. */
   tag: string | null;
   players: DirectoryHit[];
+};
+
+// --- Profile history --------------------------------------------------
+
+/**
+ * One row from `convex/cache.ts`'s `profileHistory` table: a snapshot taken
+ * the moment someone loaded this profile and the tracked value had moved
+ * since the last snapshot. `recordedAt` is an epoch-ms `Date.now()` value,
+ * not an API date string, and the gaps between rows are however long it took
+ * for someone to look at this profile again — not a fixed polling interval.
+ */
+export type ProfileHistoryPoint = {
+  kind: "player" | "clan";
+  tag: string;
+  name: string;
+  value: number;
+  recordedAt: number;
 };

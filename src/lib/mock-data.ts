@@ -36,6 +36,18 @@ export type Chest = {
   image: string;
 };
 
+/**
+ * One of the three Path of Legends snapshots Supercell exposes on a player
+ * profile. `trophies` is absent (not 0) when the player has no result for
+ * that snapshot; `rank` is frequently null even when trophies are present,
+ * since Supercell only ranks a slice of the ladder.
+ */
+export type PathOfLegendsResult = {
+  trophies?: number;
+  bestTrophies?: number;
+  rank?: number | null;
+};
+
 export type Player = {
   tag: string;
   name: string;
@@ -47,7 +59,17 @@ export type Player = {
   clan: string;
   clanTag?: string;
   clanBadge?: string;
-  pathOfLegends?: { trophies: number; bestTrophies: number; rank: number | null };
+  /**
+   * The only three Path of Legends snapshots the API returns: the season in
+   * progress, the one before it, and this player's best season ever. Not a
+   * season history — Supercell doesn't expose one. Absent entirely when the
+   * player has never played Path of Legends, never a row of zeros.
+   */
+  pathOfLegends?: {
+    current?: PathOfLegendsResult;
+    last?: PathOfLegendsResult;
+    best?: PathOfLegendsResult;
+  };
   favoriteCard: Card;
   stats: Record<string, string>;
   deck: Card[];

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
-import { BattleHistory, CardCollection, ChestList, DeckOverview, PlayerHero, PlayerStats, PlayerTabs, ProgressionChart, type PlayerTab } from "@/components/portfolio/PlayerSections";
+import { BattleHistory, CardCollection, ChestList, DeckOverview, PathOfLegendsSeasons, PlayerHero, PlayerStats, PlayerTabs, ProgressionChart, type PlayerTab } from "@/components/portfolio/PlayerSections";
 import { player as mockPlayer, type Player } from "@/lib/mock-data";
 import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
 import { mapPlayerBundle } from "@/lib/clash/mappers";
@@ -55,7 +55,13 @@ function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undef
       <div className="profile-page">
         <PlayerHero player={player} />
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
-        {activeTab === "Statistics" ? <><PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} /><ProgressionChart player={player} /></> : null}
+        {activeTab === "Statistics" ? (
+          <>
+            <PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} />
+            <ProgressionChart player={player} />
+            <PathOfLegendsSeasons player={player} />
+          </>
+        ) : null}
         {activeTab === "Battles" ? <BattleHistory battles={player.battles} /> : null}
         {activeTab === "Decks" ? <DeckOverview cards={player.deck} supportCards={player.supportCards} /> : null}
         {activeTab === "Cards" ? <CardCollection cards={player.cards} /> : null}

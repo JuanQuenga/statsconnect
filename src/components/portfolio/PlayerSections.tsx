@@ -1,9 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import { useQuery } from "convex/react";
 import { RefreshCcw } from "lucide-react";
 import { variantArt } from "@/lib/clash/assets";
 import { cardSlug } from "@/lib/clash/cards";
-import type { Battle, Card, Chest, Player } from "@/lib/mock-data";
+import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
+import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
+import type { ProfileHistoryPoint } from "@/lib/clash/types";
 
 const tabItems = [
   { label: "Statistics", icon: "/images/icons/trophy.png" },
@@ -42,10 +45,10 @@ export function PlayerHero({ player }: { player: Player }) {
           <Image src={player.arenaImage} alt="" width={20} height={20} />
           {player.arena}
         </span>
-        {player.pathOfLegends ? (
+        {player.pathOfLegends?.current?.trophies !== undefined ? (
           <span className="status-chip">
-            Path of Legends · {player.pathOfLegends.trophies.toLocaleString()}
-            {player.pathOfLegends.rank ? ` · #${player.pathOfLegends.rank.toLocaleString()}` : ""}
+            Path of Legends · {player.pathOfLegends.current.trophies.toLocaleString()}
+            {player.pathOfLegends.current.rank ? ` · #${player.pathOfLegends.current.rank.toLocaleString()}` : ""}
           </span>
         ) : null}
         {player.clanTag ? (
@@ -103,6 +106,45 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
 function statIcon(icon: string | undefined, arenaImage: string) {
   if (!icon) return "/images/icons/trophy.png";
   return icon === "arena" ? arenaImage : icon;
+}
+
+/**
+ * This season, last season, and this player's personal best — the only three
+ * Path of Legends snapshots Supercell exposes. Not a season history, so the
+ * copy here never implies one. Absent entirely (see `mapPathOfLegends`) for a
+ * player who has never queued Path of Legends.
+ */
+export function PathOfLegendsSeasons({ player }: { player: Player }) {
+  const seasons = player.pathOfLegends;
+  if (!seasons) return null;
+
+  const rows: Array<{ label: string; result?: PathOfLegendsResult }> = [
+    { label: "This season", result: seasons.current },
+    { label: "Last season", result: seasons.last },
+    { label: "Personal best", result: seasons.best }
+  ];
+
+  return (
+    <section className="profile-section">
+      <div className="section-heading compact-heading">
+        <span className="filter-button static">Path of Legends</span>
+        <h2>Season Comparison</h2>
+        <span />
+      </div>
+      <div className="pol-columns">
+        {rows.map(({ label, result }) => (
+          <div key={label} className="pol-card">
+            <span className="pol-label">{label}</span>
+            <strong>{result?.trophies !== undefined ? result.trophies.toLocaleString() : "—"}</strong>
+            <span>{result?.rank ? `#${result.rank.toLocaleString()}` : "Unranked"}</span>
+          </div>
+        ))}
+      </div>
+      <p className="table-note">
+        These are the only three Path of Legends snapshots the API returns — not a full season history.
+      </p>
+    </section>
+  );
 }
 
 export function BattleHistory({ battles }: { battles: Battle[] }) {
@@ -185,7 +227,117 @@ function updatedLabel(fetchedAt?: number) {
   return minutes < 1 ? "updated just now" : `updated ${minutes}m ago`;
 }
 
+/**
+ * Below this many real snapshots, the observed curve is mostly empty space —
+ * a couple of dots tell a visitor less than the battle-derived guess does —
+ * so the fallback wins until there's enough history to actually show a shape.
+ */
+const MIN_OBSERVED_POINTS = 4;
+
+/**
+ * Trophy chart for the Statistics tab. Prefers the real, visit-triggered
+ * snapshots Convex has recorded for this player (`convex/cache.ts`'s
+ * `history` query) and only falls back to a battle-derived guess when there
+ * isn't enough observed history to plot.
+ *
+ * `useQuery` needs the Convex provider `_app.tsx` only mounts when
+ * `isConvexConfigured` (same constraint as `useCardCatalog.ts`), so the
+ * branch that calls it is a separate component chosen here rather than a
+ * conditional hook call.
+ */
 export function ProgressionChart({ player }: { player: Player }) {
+  if (isConvexConfigured) return <ProgressionChartWithHistory player={player} />;
+  return <InferredProgressionChart player={player} />;
+}
+
+function ProgressionChartWithHistory({ player }: { player: Player }) {
+  const history = useQuery(profileHistoryQuery, { kind: "player", tag: player.tag });
+  if (history && history.length >= MIN_OBSERVED_POINTS) return <ObservedProgressionChart history={history} />;
+  return <InferredProgressionChart player={player} />;
+}
+
+function formatSnapshotDate(recordedAt: number) {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(recordedAt));
+}
+
+function formatObservationWindow(spanMs: number) {
+  const days = spanMs / 86_400_000;
+  if (days < 1) return "under a day";
+  const rounded = Math.round(days);
+  return `${rounded} day${rounded === 1 ? "" : "s"}`;
+}
+
+/**
+ * Plots the real snapshots Convex recorded for this profile. Each one was
+ * taken the moment somebody viewed it and the trophy count had moved since
+ * the last view, so the gaps between points are however long it took for
+ * someone to look again — irregular and not meaningful. That's why this
+ * draws discrete dots only: no connecting line, no fill, nothing that would
+ * suggest a known value (or a known rise/fall) between two observations.
+ */
+function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] }) {
+  const values = history.map((point) => point.value);
+  const times = history.map((point) => point.recordedAt);
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const range = Math.max(1, maximum - minimum);
+  const earliest = Math.min(...times);
+  const mostRecent = Math.max(...times);
+  const timeRange = Math.max(1, mostRecent - earliest);
+
+  const coordinates = history.map((point) => ({
+    x: history.length === 1 ? 470 : 22 + ((point.recordedAt - earliest) / timeRange) * 898,
+    y: 210 - ((point.value - minimum) / range) * 170,
+    value: point.value
+  }));
+  const latest = coordinates.at(-1) ?? { x: 470, y: 125, value: values.at(-1) ?? 0 };
+
+  return (
+    <section className="profile-section chart-section">
+      <div className="section-heading">
+        <FilterButton label="Observed" />
+        <h2>Trophy Activity</h2>
+        <span className="chart-range">
+          {history.length} snapshots · {formatObservationWindow(mostRecent - earliest)}
+        </span>
+      </div>
+      <div className="line-chart">
+        <div className="y-axis">
+          <Image src="/images/icons/trophy.png" alt="" width={24} height={24} />
+          <span>{maximum.toLocaleString()}</span><span>{Math.round((maximum + minimum) / 2).toLocaleString()}</span><span>{minimum.toLocaleString()}</span>
+        </div>
+        <svg viewBox="0 0 930 250" aria-label="Observed trophy snapshots, plotted as discrete points">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <line key={index} x1={70 + index * 86} x2={70 + index * 86} y1="18" y2="205" className="grid-line" />
+          ))}
+          {coordinates.slice(0, -1).map((point, index) => (
+            <circle key={index} cx={point.x} cy={point.y} r="5" className="chart-dot" />
+          ))}
+          <circle cx={latest.x} cy={latest.y} r="8" />
+          <foreignObject x={Math.max(0, Math.min(820, latest.x - 50))} y={Math.max(0, latest.y - 58)} width="110" height="42">
+            <div className="chart-popover"><Image src="/images/icons/trophy.png" alt="" width={21} height={21} />{latest.value}</div>
+          </foreignObject>
+        </svg>
+        <div className="x-axis">
+          <span>{formatSnapshotDate(earliest)}</span>
+          <span>{formatSnapshotDate(mostRecent)}</span>
+        </div>
+      </div>
+      <p className="table-note">
+        Each dot is a snapshot recorded when someone viewed this profile and the trophy count had changed since
+        the last view — not continuous tracking, so the gaps between points don&apos;t show when a rise or fall
+        actually happened.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * Fallback curve, walking the last 10 battles' `trophyChange` deltas
+ * backwards from the current trophy count. This is a guess, not observed
+ * history, and the note under the chart says so.
+ */
+function InferredProgressionChart({ player }: { player: Player }) {
   const recentBattles = player.battles.slice(0, 10).reverse();
   const startingTrophies = player.trophies - recentBattles.reduce((total, battle) => total + battle.trophyChange, 0);
   const values = recentBattles.reduce<number[]>((points, battle) => {
@@ -208,7 +360,7 @@ export function ProgressionChart({ player }: { player: Player }) {
   return (
     <section className="profile-section chart-section">
       <div className="section-heading">
-        <FilterButton />
+        <FilterButton label="Inferred" />
         <h2>Trophy Activity</h2>
         <span className="chart-range">Last {recentBattles.length} battles</span>
       </div>
@@ -244,6 +396,10 @@ export function ProgressionChart({ player }: { player: Player }) {
           })}
         </div>
       </div>
+      <p className="table-note">
+        Inferred from this player&apos;s last {recentBattles.length} battles&apos; trophy changes — not observed
+        history.
+      </p>
     </section>
   );
 }
@@ -266,8 +422,8 @@ export function ChestList({ chests }: { chests: Chest[] }) {
   );
 }
 
-function FilterButton() {
+function FilterButton({ label = "Trophies" }: { label?: string } = {}) {
   return (
-    <span className="filter-button static">Trophies</span>
+    <span className="filter-button static">{label}</span>
   );
 }

@@ -118,6 +118,21 @@ export default defineSchema({
     .index("by_day_and_mode_and_card", ["day", "mode", "cardId"])
     .index("by_day", ["day"]),
 
+  /**
+   * Per-day Tower Troop aggregates. Mirrors cardStats exactly, but keyed on
+   * the Tower Troop a side brought to the battle instead of one of the eight
+   * deck cards — there is exactly one per observation, not eight.
+   */
+  towerStats: defineTable({
+    day: v.number(),
+    mode: metaMode,
+    towerCardId: v.number(),
+    uses: v.number(),
+    wins: v.number()
+  })
+    .index("by_day_and_mode_and_tower", ["day", "mode", "towerCardId"])
+    .index("by_day", ["day"]),
+
   /** Materialised deck leaderboard, recomputed by the rollup cron. */
   deckRankings: defineTable({
     windowDays: v.number(),
