@@ -4,6 +4,10 @@ export type Card = {
   elixir: number;
   rarity: "Common" | "Rare" | "Epic" | "Legendary" | "Champion";
   image: string;
+  /** Evolution art, when the card has an Evolution. Distinct art, not a recolour of `image`. */
+  evolutionImage?: string;
+  /** Hero art, when the card has a Hero. Also distinct art. */
+  heroImage?: string;
   /** Player-specific fields; absent on the global catalog. */
   level?: number;
   maxLevel?: number;

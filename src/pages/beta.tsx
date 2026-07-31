@@ -7,7 +7,7 @@ import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
-import { UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
+import { variantArt, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardCatalog } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/mock-data";
 import type { PipelineRun, PipelineStatusPayload } from "@/lib/clash/types";
@@ -230,11 +230,16 @@ function pct(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+/** Mirrors the deck thumb on /meta: a variant slot renders its own art. */
 function CardThumb({ card, id, evolved }: { card?: Card; id: number; evolved?: boolean }) {
+  const name = card?.name ?? `Card ${id}`;
+  const variant = evolved ? variantArt(card) : undefined;
+  const label = variant ? `${name} (${variant.label})` : name;
+  const marked = evolved && !variant;
   return (
-    <span className={evolved ? "beta-thumb beta-thumb-evo" : "beta-thumb"} title={card?.name ?? `Card ${id}`}>
-      {evolved ? <i className="evo-dot" aria-hidden="true" /> : null}
-      <CardArt src={card?.image ?? UNKNOWN_CARD_IMAGE} alt={card?.name ?? `Card ${id}`} width={46} height={56} />
+    <span className={marked ? "beta-thumb beta-thumb-evo" : "beta-thumb"} title={label}>
+      {marked ? <i className="evo-dot" aria-hidden="true" /> : null}
+      <CardArt src={variant?.src ?? card?.image ?? UNKNOWN_CARD_IMAGE} alt={label} width={46} height={56} />
     </span>
   );
 }

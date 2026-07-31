@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { RefreshCcw } from "lucide-react";
+import { variantArt } from "@/lib/clash/assets";
 import { cardSlug } from "@/lib/clash/cards";
 import type { Battle, Card, Chest, Player } from "@/lib/mock-data";
 
@@ -165,7 +166,7 @@ function MiniDeck({ cards }: { cards: Card[] }) {
 function CollectionCard({ card }: { card: Card }) {
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="collection-card">
-      {card.isEvolution ? <span className="evo-flag">EVO</span> : null}
+      {card.isEvolution ? <span className="evo-flag">{variantArt(card)?.label === "Hero" ? "HERO" : "EVO"}</span> : null}
       {card.level ? <i className="card-level">{card.level}{card.maxLevel ? `/${card.maxLevel}` : ""}</i> : null}
       <Image src={card.image} alt={card.name} width={82} height={100} />
       <strong>{card.name}</strong>

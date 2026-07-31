@@ -4,6 +4,8 @@ export type ApiIconUrls = {
   large?: string;
   /** Present on cards that have an Evolution, and on player cards once unlocked. */
   evolutionMedium?: string;
+  /** Present on the cards that have a Hero variant. Never reported per battle slot. */
+  heroMedium?: string;
 };
 
 export type ApiCard = {

@@ -9,7 +9,7 @@ import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell } from "@/components/portfolio/DataTable";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
-import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
+import { averageElixir, copyDeckLink, variantArt, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardCatalog } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/mock-data";
 import { isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
@@ -115,12 +115,20 @@ function rateClass(value: number) {
   return value >= 0.5 ? "decks-done" : "decks-none";
 }
 
+/**
+ * One card in a deck. An Evolution or Hero is its own artwork upstream, so a
+ * variant slot renders that art rather than the base card — the ring and dot are
+ * only needed when the card has no variant art to fall back on.
+ */
 function CardThumb({ card, id, evolved }: { card?: Card; id: number; evolved?: boolean }) {
   const name = card?.name ?? `Card ${id}`;
+  const variant = evolved ? variantArt(card) : undefined;
+  const label = variant ? `${name} (${variant.label})` : name;
+  const marked = evolved && !variant;
   return (
-    <span className={evolved ? "beta-thumb beta-thumb-evo" : "beta-thumb"} title={evolved ? `${name} (Evolution)` : name}>
-      {evolved ? <i className="evo-dot" aria-hidden="true" /> : null}
-      <CardArt src={card?.image ?? UNKNOWN_CARD_IMAGE} alt={name} width={46} height={56} />
+    <span className={marked ? "beta-thumb beta-thumb-evo" : "beta-thumb"} title={label}>
+      {marked ? <i className="evo-dot" aria-hidden="true" /> : null}
+      <CardArt src={variant?.src ?? card?.image ?? UNKNOWN_CARD_IMAGE} alt={label} width={46} height={56} />
     </span>
   );
 }

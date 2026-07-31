@@ -95,8 +95,10 @@ function CardDetail({ slug }: { slug: string }) {
                 <Image src="/images/icons/elixir.png" alt="" width={20} height={20} />
                 {card.elixir || "?"} elixir
               </span>
-              {card.canEvolve ? <span className="evo-chip">Evolution available</span> : null}
+              {card.evolutionImage ? <span className="evo-chip">Evolution available</span> : null}
+              {card.heroImage ? <span className="hero-chip">Hero available</span> : null}
             </div>
+            <CardVariants card={card} />
             <Link href={`/decks?include=${cardSlug(card.name)}`} className="pink-button">
               Build a deck with {card.name}
             </Link>
@@ -116,6 +118,32 @@ function CardDetail({ slug }: { slug: string }) {
         </section>
       </div>
     </Layout>
+  );
+}
+
+/**
+ * The card's other artwork. Evolutions and Heroes are drawn from scratch rather
+ * than reskinned, so the variants are worth showing rather than describing —
+ * and a Hero can only be shown here, because the API reports which cards have
+ * one but never which battle slot was played as one.
+ */
+function CardVariants({ card }: { card: Card }) {
+  const variants = [
+    card.evolutionImage ? { label: "Evolution", src: card.evolutionImage } : null,
+    card.heroImage ? { label: "Hero", src: card.heroImage } : null
+  ].filter((variant) => variant !== null);
+
+  if (!variants.length) return null;
+
+  return (
+    <div className="card-variants">
+      {variants.map((variant) => (
+        <figure key={variant.label}>
+          <CardArt src={variant.src} alt={`${card.name} (${variant.label})`} width={64} height={78} />
+          <figcaption>{variant.label}</figcaption>
+        </figure>
+      ))}
+    </div>
   );
 }
 

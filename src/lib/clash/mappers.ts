@@ -1,5 +1,14 @@
 import type { Battle, Card, Chest, Clan, ClanMember, Player } from "@/lib/mock-data";
-import { arenaImage, badgeImage, cardImage, chestImage, warLeague, UNKNOWN_CARD_IMAGE } from "./assets";
+import {
+  arenaImage,
+  badgeImage,
+  cardImage,
+  chestImage,
+  evolutionCardImage,
+  heroCardImage,
+  warLeague,
+  UNKNOWN_CARD_IMAGE
+} from "./assets";
 import { formatApiDate } from "./format";
 import type {
   ApiBattle,
@@ -31,6 +40,7 @@ export function mapCard(card?: ApiCard): Card {
   if (!card?.name) return FALLBACK_CARD;
 
   const evolutionLevel = card.evolutionLevel ?? 0;
+  const evolutionImage = evolutionCardImage(card);
 
   return {
     id: card.id,
@@ -38,13 +48,15 @@ export function mapCard(card?: ApiCard): Card {
     elixir: card.elixirCost ?? 0,
     rarity: rarityMap[card.rarity?.toLowerCase() ?? ""] ?? "Common",
     image: cardImage(card),
+    evolutionImage,
+    heroImage: heroCardImage(card),
     level: card.level,
     maxLevel: card.maxLevel,
     starLevel: card.starLevel,
     count: card.count,
     evolutionLevel,
     isEvolution: evolutionLevel > 0,
-    canEvolve: (card.maxEvolutionLevel ?? 0) > 0
+    canEvolve: Boolean(evolutionImage)
   };
 }
 

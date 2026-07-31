@@ -28,16 +28,56 @@ export function slugify(value: string) {
 }
 
 /**
+ * Evolution and Hero art. Both are wholly separate assets rather than the base
+ * card with a badge on it — their own frame, gem and pose — and a card has at
+ * most one of the two. `evolutionMedium` / `heroMedium` are the only trustworthy
+ * "this card has a variant" signals: `maxEvolutionLevel` is also set on the
+ * eleven Hero cards that have no Evolution at all, so reading it as "can evolve"
+ * is what put an EVO badge on Balloon, Bowler and Tombstone.
+ */
+export function evolutionCardImage(card: { iconUrls?: ApiIconUrls }): string | undefined {
+  return card.iconUrls?.evolutionMedium;
+}
+
+export function heroCardImage(card: { iconUrls?: ApiIconUrls }): string | undefined {
+  return card.iconUrls?.heroMedium;
+}
+
+/**
+ * The art for a slot the battle data marks as evolved.
+ *
+ * The API overloads `evolutionLevel` across both mechanics: a Hero slot also
+ * comes back with an evolution level, and Goblins, Balloon and the other nine
+ * Hero cards have no Evolution art to show for it. So an evolved slot means
+ * "played as its variant", and which variant that is follows from the art the
+ * card actually has.
+ */
+export function variantArt(card?: { evolutionImage?: string; heroImage?: string }):
+  | { src: string; label: "Evolution" | "Hero" }
+  | undefined {
+  if (card?.evolutionImage) return { src: card.evolutionImage, label: "Evolution" };
+  if (card?.heroImage) return { src: card.heroImage, label: "Hero" };
+  return undefined;
+}
+
+/**
  * Card art. Prefers the API's own icon URLs so the catalog is self-healing;
  * falls back to the vendored copy for demo data and any response that predates
  * `iconUrls`.
  */
-export function cardImage(card: { name?: string; iconUrls?: ApiIconUrls; evolutionLevel?: number }): string {
-  const evolved = (card.evolutionLevel ?? 0) > 0;
-  const fromApi = evolved ? card.iconUrls?.evolutionMedium ?? card.iconUrls?.medium : card.iconUrls?.medium;
-  if (fromApi) return fromApi;
+export function cardImage(card: {
+  name?: string;
+  iconUrls?: ApiIconUrls;
+  evolutionLevel?: number;
+}): string {
+  if ((card.evolutionLevel ?? 0) > 0) {
+    const variant = card.iconUrls?.evolutionMedium ?? card.iconUrls?.heroMedium;
+    if (variant) return variant;
+    if (card.name) return `/images/cards/${slugify(card.name)}-ev1.png`;
+  }
+  if (card.iconUrls?.medium) return card.iconUrls.medium;
   if (!card.name) return UNKNOWN_CARD_IMAGE;
-  return `/images/cards/${slugify(card.name)}${evolved ? "-ev1" : ""}.png`;
+  return `/images/cards/${slugify(card.name)}.png`;
 }
 
 /** Clan badge. `badgeUrls` is present on full clan responses; rankings give only `badgeId`. */

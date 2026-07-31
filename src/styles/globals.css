@@ -1858,6 +1858,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 .rarity-chip,
 .elixir-chip,
 .evo-chip,
+.hero-chip,
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -1878,6 +1879,19 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 .rarity-champion { background: rgba(255, 208, 74, .28); }
 .elixir-chip { background: rgba(199, 46, 199, .28); }
 .evo-chip { background: linear-gradient(90deg, rgba(122, 224, 255, .34), rgba(43, 143, 214, .34)); }
+.hero-chip { background: linear-gradient(90deg, rgba(255, 196, 84, .34), rgba(232, 138, 30, .34)); }
+
+/* Evolution and Hero art beside the base card, at a size that reads as "same
+   card, other artwork" rather than competing with the 180px hero image. */
+.card-variants { display: flex; gap: 14px; }
+.card-variants figure { display: grid; gap: 5px; justify-items: center; margin: 0; }
+.card-variants img { width: 64px; height: 78px; object-fit: contain; }
+.card-variants figcaption {
+  color: var(--muted);
+  font: 10px Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
 .status-inprogress,
 .status-inpreparation { background: rgba(87, 217, 138, .24); }
 .status-ended { background: rgba(122, 141, 168, .24); }
@@ -1974,9 +1988,10 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 .beta-thumb { position: relative; display: inline-flex; border-radius: 6px; }
 .beta-thumb img { width: 46px; height: 56px; object-fit: contain; }
 
-/* At 46px there is no room for a legible word, so an evolved card is marked
-   with a cyan ring and a corner dot instead. Same meaning as the EVO pill on
-   the card grid, just readable at this size. */
+/* Evolution art carries its own frame and gem, so an evolved slot needs no
+   marking. The cyan ring and corner dot are the fallback for the rare card whose
+   Evolution art has not resolved, where the base art alone would read as the
+   plain card. Same meaning as the EVO pill on the card grid, at 46px. */
 .beta-thumb-evo {
   background: rgba(122, 224, 255, .1);
   box-shadow: inset 0 0 0 2px #7ae0ff, 0 0 9px rgba(122, 224, 255, .4);
