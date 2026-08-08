@@ -107,6 +107,20 @@ export default defineSchema({
     .index("by_day_and_mode_and_deck", ["day", "mode", "deckHash"])
     .index("by_day", ["day"]),
 
+  /** Per-day ordered deck-vs-deck aggregates, from deckHash's perspective. */
+  matchupStats: defineTable({
+    day: v.number(),
+    deckHash: v.string(),
+    oppDeckHash: v.string(),
+    cardIds: v.array(v.number()),
+    oppCardIds: v.array(v.number()),
+    uses: v.number(),
+    wins: v.number()
+  })
+    .index("by_day_and_deck_hash_and_opp_deck_hash", ["day", "deckHash", "oppDeckHash"])
+    .index("by_day_and_deck_hash", ["day", "deckHash"])
+    .index("by_day", ["day"]),
+
   /** Per-day card aggregates. Small enough to sum directly in a query. */
   cardStats: defineTable({
     day: v.number(),
@@ -148,7 +162,8 @@ export default defineSchema({
     computedAt: v.number()
   })
     .index("by_window_and_mode_and_rank", ["windowDays", "mode", "rank"])
-    .index("by_window_and_mode", ["windowDays", "mode"]),
+    .index("by_window_and_mode", ["windowDays", "mode"])
+    .index("by_window_and_mode_and_computed_at", ["windowDays", "mode", "computedAt"]),
 
   /** One row per cron execution, so the beta page can show what the pipeline is doing. */
   pipelineRuns: defineTable({
