@@ -51,6 +51,7 @@
   --border: color-mix(in oklab, #8b9bb8 18%, transparent);
   --input: color-mix(in oklab, #8b9bb8 24%, transparent);
   --ring: #7eb0ff;
+  --surface-elevated: color-mix(in oklab, #151a22 92%, #7eb0ff 8%);
 }
 
 [data-game="clash-royale"] {
@@ -65,7 +66,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   html {
@@ -76,8 +77,16 @@
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
     background-attachment: fixed;
     background-image:
-      radial-gradient(ellipse 70% 45% at 5% -10%, color-mix(in oklab, #7eb0ff 12%, transparent), transparent 58%),
-      radial-gradient(ellipse 60% 40% at 100% 0%, color-mix(in oklab, #94a3b8 8%, transparent), transparent 55%),
+      radial-gradient(
+        ellipse 70% 45% at 5% -10%,
+        color-mix(in oklab, #7eb0ff 12%, transparent),
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 100% 0%,
+        color-mix(in oklab, #94a3b8 8%, transparent),
+        transparent 55%
+      ),
       linear-gradient(180deg, #0c0f14 0%, #0a0d12 100%);
   }
 
@@ -91,11 +100,80 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
+  ::selection {
+    background: color-mix(in oklab, #7eb0ff 35%, transparent);
+    color: #e8edf5;
+  }
+
   h1,
   h2,
   h3,
   .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.03em;
+  }
+
+  a {
+    @apply underline-offset-4 transition-colors;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground;
+  }
+
+  .content-column {
+    @apply mx-auto w-full max-w-7xl px-4 md:px-6;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-border/50 bg-card/40;
+  }
+
+  .fade-in {
+    animation: fade-in 420ms ease-out both;
+  }
+
+  .slide-up {
+    animation: slide-up 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
