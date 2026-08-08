@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Copy } from "lucide-react";
 import { Layout } from "@/components/portfolio/Layout";
+import { DeckMatchupPanel } from "@/components/MetaMatchups";
 import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell } from "@/components/portfolio/DataTable";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
@@ -204,6 +205,7 @@ function TopDecks({
   decks?: Array<{
     _id: string;
     rank: number;
+    deckHash: string;
     cardIds: number[];
     evolutionIds: number[];
     uses: number;
@@ -214,6 +216,8 @@ function TopDecks({
   mode: MetaMode;
   windowDays: number;
 }) {
+  const [expandedDeckHash, setExpandedDeckHash] = useState<string | null>(null);
+
   if (!decks) {
     return (
       <section className="profile-section">
@@ -245,7 +249,8 @@ function TopDecks({
       {decks.map((deck) => {
         const evolved = new Set(deck.evolutionIds);
         const elixir = averageElixir(deck.cardIds.map((id) => ({ elixirCost: byId.get(id)?.elixir })));
-        return (
+        const expanded = expandedDeckHash === deck.deckHash;
+        return [
           <tr key={deck._id}>
             <td>
               <RankCell rank={deck.rank} />
@@ -264,10 +269,27 @@ function TopDecks({
             <td className={rateClass(deck.winRate)}>{pct(deck.winRate)}</td>
             <td>{pct(deck.usageRate)}</td>
             <td>
-              <CopyDeckButton cardIds={deck.cardIds} />
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  type="button"
+                  className="meta-copy"
+                  aria-expanded={expanded}
+                  onClick={() => setExpandedDeckHash(expanded ? null : deck.deckHash)}
+                >
+                  {expanded ? "Hide" : "Matchups"}
+                </button>
+                <CopyDeckButton cardIds={deck.cardIds} />
+              </span>
             </td>
-          </tr>
-        );
+          </tr>,
+          expanded ? (
+            <tr key={`${deck._id}-matchups`}>
+              <td colSpan={7}>
+                <DeckMatchupPanel deckHash={deck.deckHash} byId={byId} />
+              </td>
+            </tr>
+          ) : null
+        ];
       })}
     </TableShell>
   );

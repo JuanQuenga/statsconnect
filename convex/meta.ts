@@ -3,7 +3,7 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import type { MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { crawlSource, metaMode } from "./schema";
-import { dayKey, dayKeysBack, type MetaMode } from "../src/lib/clash/battles";
+import { dayKey, dayKeysBack, type DeckObservation, type MetaMode } from "../src/lib/clash/battles";
 
 /**
  * Database half of the battle-log pipeline. Everything here runs in the default
@@ -16,6 +16,8 @@ const SEEN_BATTLE_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
 const RANKING_WINDOWS = [1, 7] as const;
 /** Matches the deck ranking's CLASH_MIN_DECK_USES default in `crawler.ts`. */
 const MIN_TOWER_USES = 5;
+const MIN_MATCHUP_USES = 5;
+const PROFILE_HISTORY_KEEP = 500;
 
 const observation = v.object({
   fingerprint: v.string(),
@@ -30,6 +32,18 @@ const observation = v.object({
   crowns: v.number(),
   opponentCrowns: v.number()
 });
+
+const matchupResult = v.object({
+  oppDeckHash: v.string(),
+  cardIds: v.array(v.number()),
+  uses: v.number(),
+  wins: v.number(),
+  winRate: v.number()
+});
+
+function isKnownDeck(cardIds: number[]) {
+  return cardIds.length === 8 && cardIds.every((cardId) => Number.isInteger(cardId) && cardId > 0);
+}
 
 export async function bump(ctx: MutationCtx, name: string, delta: number) {
   if (!delta) return;
@@ -179,6 +193,16 @@ export const ingestBattles = internalMutation({
       string,
       { day: number; mode: MetaMode; towerCardId: number; uses: number; wins: number }
     >();
+    type MatchupDelta = {
+      day: number;
+      deckHash: string;
+      oppDeckHash: string;
+      cardIds: number[];
+      oppCardIds: number[];
+      uses: number;
+      wins: number;
+    };
+    const matchupDeltas = new Map<string, MatchupDelta>();
 
     for (const item of accepted) {
       const day = dayKey(item.battleTime);
@@ -216,6 +240,41 @@ export const ingestBattles = internalMutation({
         tower.uses += 1;
         tower.wins += item.won ? 1 : 0;
         towerDeltas.set(towerKey, tower);
+      }
+    }
+
+    // Each fresh battle contributes both ordered perspectives exactly once.
+    // The parser normally guarantees two eight-card sides; keep the guard here
+    // as well so malformed or future observations never pollute the matchup table.
+    const observationsByBattle = new Map<string, DeckObservation[]>();
+    for (const item of accepted) {
+      const sides = observationsByBattle.get(item.fingerprint) ?? [];
+      sides.push(item);
+      observationsByBattle.set(item.fingerprint, sides);
+    }
+    for (const sides of observationsByBattle.values()) {
+      if (sides.length !== 2) continue;
+      const [left, right] = sides;
+      if (!isKnownDeck(left.cardIds) || !isKnownDeck(right.cardIds)) continue;
+
+      for (const [self, opponent] of [
+        [left, right],
+        [right, left]
+      ] as const) {
+        const day = dayKey(self.battleTime);
+        const matchupKey = `${day}:${self.deckHash}:${opponent.deckHash}`;
+        const matchup = matchupDeltas.get(matchupKey) ?? {
+          day,
+          deckHash: self.deckHash,
+          oppDeckHash: opponent.deckHash,
+          cardIds: self.cardIds,
+          oppCardIds: opponent.cardIds,
+          uses: 0,
+          wins: 0
+        };
+        matchup.uses += 1;
+        matchup.wins += self.won ? 1 : 0;
+        matchupDeltas.set(matchupKey, matchup);
       }
     }
 
@@ -260,6 +319,24 @@ export const ingestBattles = internalMutation({
 
       if (existing) await ctx.db.patch(existing._id, { uses: existing.uses + delta.uses, wins: existing.wins + delta.wins });
       else await ctx.db.insert("towerStats", delta);
+    }
+
+    for (const delta of matchupDeltas.values()) {
+      const existing = await ctx.db
+        .query("matchupStats")
+        .withIndex("by_day_and_deck_hash_and_opp_deck_hash", (q) =>
+          q.eq("day", delta.day).eq("deckHash", delta.deckHash).eq("oppDeckHash", delta.oppDeckHash)
+        )
+        .unique();
+
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          uses: existing.uses + delta.uses,
+          wins: existing.wins + delta.wins
+        });
+      } else {
+        await ctx.db.insert("matchupStats", delta);
+      }
     }
 
     await bump(ctx, "battlesIngested", fresh.length);
@@ -326,6 +403,7 @@ export const writeDeckRankings = internalMutation({
  */
 export const pruneBatch = internalMutation({
   args: {},
+  returns: v.object({ deleted: v.number(), more: v.boolean() }),
   handler: async (ctx) => {
     const seenCutoff = Date.now() - SEEN_BATTLE_RETENTION_MS;
     const staleSeen = await ctx.db
@@ -341,6 +419,12 @@ export const pruneBatch = internalMutation({
       .take(256);
     for (const row of staleDecks) await ctx.db.delete(row._id);
 
+    const staleMatchups = await ctx.db
+      .query("matchupStats")
+      .withIndex("by_day", (q) => q.lt("day", dayCutoff))
+      .take(256);
+    for (const row of staleMatchups) await ctx.db.delete(row._id);
+
     const staleCards = await ctx.db
       .query("cardStats")
       .withIndex("by_day", (q) => q.lt("day", dayCutoff))
@@ -352,6 +436,57 @@ export const pruneBatch = internalMutation({
       .withIndex("by_day", (q) => q.lt("day", dayCutoff))
       .take(256);
     for (const row of staleTowers) await ctx.db.delete(row._id);
+
+    const staleCache = await ctx.db
+      .query("apiCache")
+      .withIndex("by_expires_at", (q) => q.lt("expiresAt", Date.now()))
+      .take(256);
+    for (const row of staleCache) await ctx.db.delete(row._id);
+
+    let staleRankings = 0;
+    for (const windowDays of RANKING_WINDOWS) {
+      for (const mode of ["ladder", "pathOfLegends", "challenge", "tournament", "clanWar"] as const) {
+        const latest = await ctx.db
+          .query("deckRankings")
+          .withIndex("by_window_and_mode_and_computed_at", (q) =>
+            q.eq("windowDays", windowDays).eq("mode", mode)
+          )
+          .order("desc")
+          .first();
+        if (!latest) continue;
+
+        const superseded = await ctx.db
+          .query("deckRankings")
+          .withIndex("by_window_and_mode_and_computed_at", (q) =>
+            q.eq("windowDays", windowDays).eq("mode", mode).lt("computedAt", latest.computedAt)
+          )
+          .take(256);
+        for (const row of superseded) await ctx.db.delete(row._id);
+        staleRankings += superseded.length;
+      }
+    }
+
+    // The profile index groups snapshots by player, which lets us inspect a
+    // bounded candidate set and delete only the oldest rows beyond the cap.
+    const historyCandidates = await ctx.db
+      .query("profileHistory")
+      .withIndex("by_profile")
+      .take(PROFILE_HISTORY_KEEP + 1);
+    const profileKeys = new Set(historyCandidates.map((row) => `${row.kind}:${row.tag}`));
+    let staleHistory = 0;
+    for (const key of profileKeys) {
+      const separator = key.indexOf(":");
+      const kind = key.slice(0, separator) as "player" | "clan";
+      const tag = key.slice(separator + 1);
+      const snapshots = await ctx.db
+        .query("profileHistory")
+        .withIndex("by_profile", (q) => q.eq("kind", kind).eq("tag", tag))
+        .order("asc")
+        .take(PROFILE_HISTORY_KEEP + 256);
+      const excess = snapshots.slice(0, Math.max(0, snapshots.length - PROFILE_HISTORY_KEEP));
+      for (const row of excess) await ctx.db.delete(row._id);
+      staleHistory += excess.length;
+    }
 
     const logCutoff = Date.now() - 7 * 86_400_000;
     const staleLogs = await ctx.db
@@ -367,7 +502,16 @@ export const pruneBatch = internalMutation({
     for (const row of staleRuns) await ctx.db.delete(row._id);
 
     const deleted =
-      staleSeen.length + staleDecks.length + staleCards.length + staleTowers.length + staleLogs.length + staleRuns.length;
+      staleSeen.length +
+      staleDecks.length +
+      staleMatchups.length +
+      staleCards.length +
+      staleTowers.length +
+      staleCache.length +
+      staleRankings +
+      staleHistory +
+      staleLogs.length +
+      staleRuns.length;
     return { deleted, more: deleted > 0 };
   }
 });
@@ -461,6 +605,62 @@ export const topDecks = query({
       .withIndex("by_window_and_mode_and_rank", (q) => q.eq("windowDays", windowDays).eq("mode", args.mode))
       .take(Math.min(args.limit ?? 20, 100));
     return { windowDays, decks: rows };
+  }
+});
+
+/**
+ * Returns the strongest and weakest opponent decks for one deck over the
+ * fixed seven-day matchup window. Pair rows are already ordered by the deck
+ * being inspected, so each day is a bounded indexed read.
+ */
+export const deckMatchups = query({
+  args: { deckHash: v.string() },
+  returns: v.object({
+    windowDays: v.number(),
+    minUses: v.number(),
+    best: v.array(matchupResult),
+    worst: v.array(matchupResult)
+  }),
+  handler: async (ctx, args) => {
+    const totals = new Map<
+      string,
+      { oppDeckHash: string; cardIds: number[]; uses: number; wins: number }
+    >();
+
+    for (const day of dayKeysBack(7)) {
+      const rows = await ctx.db
+        .query("matchupStats")
+        .withIndex("by_day_and_deck_hash", (q) => q.eq("day", day).eq("deckHash", args.deckHash))
+        .take(1000);
+
+      for (const row of rows) {
+        const entry = totals.get(row.oppDeckHash) ?? {
+          oppDeckHash: row.oppDeckHash,
+          cardIds: row.oppCardIds,
+          uses: 0,
+          wins: 0
+        };
+        entry.uses += row.uses;
+        entry.wins += row.wins;
+        totals.set(row.oppDeckHash, entry);
+      }
+    }
+
+    const eligible = [...totals.values()]
+      .filter((entry) => entry.uses >= MIN_MATCHUP_USES)
+      .map((entry) => ({
+        ...entry,
+        winRate: entry.wins / entry.uses
+      }));
+    const byWinRate = (left: (typeof eligible)[number], right: (typeof eligible)[number]) =>
+      right.winRate - left.winRate || right.uses - left.uses;
+
+    return {
+      windowDays: 7,
+      minUses: MIN_MATCHUP_USES,
+      best: [...eligible].sort(byWinRate).slice(0, 3),
+      worst: [...eligible].sort((left, right) => byWinRate(right, left)).slice(0, 3)
+    };
   }
 });
 
