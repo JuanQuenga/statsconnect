@@ -33,6 +33,9 @@ export function SiteNav() {
           <span className="h-6 w-px bg-border" aria-hidden />
           <GameSwitcher hub={hub} />
           <div className="ml-auto flex items-center gap-1">
+            <Link to="/" className={navLink} activeOptions={{ exact: true }}>
+              Lobby
+            </Link>
             <Link to="/connect" className={navLink}>
               Connect
             </Link>
@@ -58,7 +61,15 @@ export function SiteNav() {
       {open ? (
         <div className="content-column space-y-2 border-t border-border/50 py-4 md:hidden">
           <GameSwitcher hub={hub} onNavigate={() => setOpen(false)} />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
+            <Link
+              to="/"
+              onClick={() => setOpen(false)}
+              className={navLink}
+              activeOptions={{ exact: true }}
+            >
+              Lobby
+            </Link>
             <Link
               to="/connect"
               onClick={() => setOpen(false)}

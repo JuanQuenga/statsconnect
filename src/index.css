@@ -327,6 +327,55 @@
     opacity: 0.16;
   }
 
+  /* Character render peeking from the tile edge — faded so copy stays readable. */
+  .tile-art {
+    position: absolute;
+    z-index: 0;
+    right: -6%;
+    bottom: -18%;
+    width: min(52%, 11.5rem);
+    height: auto;
+    max-height: 118%;
+    object-fit: contain;
+    object-position: right bottom;
+    pointer-events: none;
+    opacity: 0.42;
+    filter: drop-shadow(
+      0 0 18px color-mix(in oklab, var(--game-accent) 55%, transparent)
+    );
+    mask-image: linear-gradient(
+      115deg,
+      transparent 8%,
+      #000 38%,
+      #000 72%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      115deg,
+      transparent 8%,
+      #000 38%,
+      #000 72%,
+      transparent 100%
+    );
+  }
+
+  .tile-art-faded {
+    opacity: 0.18;
+    filter: drop-shadow(
+      0 0 12px color-mix(in oklab, var(--game-accent) 35%, transparent)
+    ) grayscale(0.25);
+  }
+
+  .tile:hover .tile-art,
+  .tile:focus-visible .tile-art {
+    opacity: 0.55;
+  }
+
+  .tile:hover .tile-art-faded,
+  .tile:focus-visible .tile-art-faded {
+    opacity: 0.28;
+  }
+
   /* ---- Ambient stage lighting ----------------------------------------- */
   .stage-light {
     @apply pointer-events-none fixed inset-0 overflow-hidden;

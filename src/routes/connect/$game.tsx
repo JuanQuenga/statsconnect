@@ -17,12 +17,15 @@ function ConnectGamePage() {
   const { game } = Route.useParams();
   if (!isGameId(game)) {
     return (
-      <section className="mx-auto max-w-xl text-center">
+      <section className="boot-in bevel bevel-lg mx-auto max-w-xl border border-border/60 bg-card/55 p-10 text-center backdrop-blur-sm">
         <p className="eyebrow">Unknown game</p>
-        <h1 className="mt-4 font-display text-3xl font-bold uppercase">
+        <h1 className="mt-4 font-display text-3xl font-bold uppercase tracking-tight">
           This game is not available
         </h1>
-        <Link to="/connect" className="mt-6 inline-block text-[var(--ambient)]">
+        <Link
+          to="/connect"
+          className="mt-6 inline-block font-display text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ambient)]"
+        >
           Choose a supported game
         </Link>
       </section>

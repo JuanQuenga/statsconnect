@@ -32,7 +32,9 @@ export function GameSwitcher({ hub, onNavigate }: { hub: HubState; onNavigate?: 
         <ChevronDown className="ml-auto size-4 text-muted-foreground" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuLabel>Games</DropdownMenuLabel>
+        <DropdownMenuLabel className="font-display text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          Games
+        </DropdownMenuLabel>
         {games.map((game) => {
           const profile = hub.profiles.find((entry) => entry.game === game.id);
           return profile ? (
