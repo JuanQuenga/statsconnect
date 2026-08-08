@@ -1,0 +1,295 @@
+.workspace {
+  display: grid;
+  gap: 26px;
+}
+
+.intro {
+  text-align: center;
+}
+
+.intro h1 {
+  margin: 4px 0 10px;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.intro p,
+.sourceNote {
+  color: #9aacca;
+  font: 13px/1.6 Arial, sans-serif;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+  margin-top: 26px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  color: #9aacca;
+  font: 12px Arial, sans-serif;
+  text-align: left;
+}
+
+.field input {
+  min-width: 0;
+  height: 46px;
+  border: 1px solid rgba(62, 88, 128, .48);
+  border-radius: 6px;
+  padding: 0 14px;
+  color: white;
+  background: rgba(8, 24, 44, .78);
+  outline: none;
+}
+
+.field input:focus {
+  border-color: rgba(238, 102, 239, .7);
+  box-shadow: 0 0 0 2px rgba(238, 102, 239, .12);
+}
+
+.error {
+  margin: 16px 0 0;
+  color: #ff9ab0;
+  font: 13px Arial, sans-serif;
+}
+
+.sourceNote {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.sourceNote strong {
+  color: white;
+}
+
+.comparison {
+  display: grid;
+  gap: 22px;
+}
+
+.playerHeads,
+.comparisonRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.playerHead {
+  min-width: 0;
+  padding: 22px 18px;
+  border: 1px solid rgba(62, 88, 128, .28);
+  border-radius: 8px;
+  text-align: center;
+  background: rgba(8, 24, 44, .72);
+}
+
+.playerHead h2 {
+  margin: 0 0 7px;
+  font-size: 23px;
+  line-height: 1.1;
+}
+
+.playerHead strong,
+.playerHead span {
+  display: block;
+}
+
+.playerHead strong {
+  color: #d9e4f5;
+  font: 12px Arial, sans-serif;
+}
+
+.playerHead span {
+  margin-top: 8px;
+  color: #9aacca;
+  font: 11px Arial, sans-serif;
+}
+
+.playerHead a {
+  color: inherit;
+}
+
+.playerHead a:hover {
+  color: #f0a2f2;
+}
+
+.vs {
+  color: #8ea2c4;
+  font: 700 12px Arial, sans-serif;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.metricPanel h2,
+.deckPanel h2 {
+  margin: 0 0 18px;
+  text-align: center;
+  font-size: 24px;
+}
+
+.comparisonRow {
+  min-height: 54px;
+  border-top: 1px solid rgba(62, 88, 128, .18);
+}
+
+.comparisonRow:first-of-type {
+  border-top: 0;
+}
+
+.value {
+  min-width: 0;
+  padding: 13px 16px;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.better {
+  color: #f0a2f2;
+  background: rgba(126, 44, 141, .25);
+  box-shadow: inset 0 0 0 1px rgba(238, 102, 239, .34);
+}
+
+.label {
+  color: #9aacca;
+  font: 11px Arial, sans-serif;
+  text-align: center;
+}
+
+.deckPanel {
+  overflow: hidden;
+}
+
+.deckHeads {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.deckHead {
+  color: #d9e4f5;
+  font-size: 17px;
+  text-align: center;
+}
+
+.deckHead span {
+  display: block;
+  margin-top: 4px;
+  color: #8ea2c4;
+  font: 11px Arial, sans-serif;
+}
+
+.decks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.deckColumn {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(62, 88, 128, .22);
+  border-radius: 8px;
+  background: rgba(8, 24, 44, .5);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.card {
+  position: relative;
+  min-width: 0;
+  padding: 7px 4px 6px;
+  border: 1px solid rgba(62, 88, 128, .18);
+  border-radius: 6px;
+  color: white;
+  background: rgba(15, 45, 82, .55);
+  text-align: center;
+}
+
+.card:hover {
+  border-color: rgba(238, 102, 239, .55);
+}
+
+.card :global(img) {
+  display: block;
+  width: 100%;
+  height: 82px;
+  object-fit: contain;
+}
+
+.card strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  font: 10px/1.2 Arial, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shared {
+  border-color: rgba(238, 102, 239, .62);
+  background: rgba(126, 44, 141, .25);
+}
+
+.sharedBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  padding: 3px 4px;
+  border-radius: 4px;
+  color: white;
+  background: #8d2e9d;
+  font: 700 7px Arial, sans-serif;
+  text-transform: uppercase;
+}
+
+.emptyDeck {
+  min-height: 150px;
+  display: grid;
+  place-content: center;
+  color: #8ea2c4;
+  font: 13px Arial, sans-serif;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .form,
+  .playerHeads,
+  .comparisonRow {
+    grid-template-columns: 1fr;
+  }
+
+  .form :global(.pink-button) {
+    justify-self: center;
+  }
+
+  .vs {
+    margin: -7px 0;
+  }
+
+  .comparisonRow {
+    gap: 5px;
+    padding: 10px 0;
+  }
+
+  .comparisonRow .label {
+    grid-row: 1;
+  }
+
+  .decks,
+  .deckHeads {
+    grid-template-columns: 1fr;
+  }
+}
