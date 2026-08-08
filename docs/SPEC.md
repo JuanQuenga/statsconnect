@@ -317,27 +317,31 @@ Tokens live only in Convex deployment env. No Brawlify key needed for icon URLs.
 
 ## 9. Visual direction
 
-- **Identity:** text-only StatsConnect wordmark; no game logos, no ClashCrown purple, no brawlstats gold/teal in hub chrome. Game art (badges, icons, card/brawler images) allowed **only inside** `/games/$game/...` content.
+**Concept: "arcade broadcast console."** The hub is a 10-foot UI — a smart-TV / game-console lobby, not a dashboard. Content sits on a dark stage; large focusable tiles replace list rows; statistics read like a scoreboard.
+
+- **Identity:** text-only StatsConnect wordmark plus a neutral geometric mark (`src/components/brand/Mark.tsx`: a beveled keycap with three ascending signal bars). No game logos and no game-branded colour in the hub chrome. Game art (badges, icons, card/brawler images) allowed **only inside** `/games/$game/...` content.
 - **Dark-first, single theme in v1** (no light mode). Tokens on `:root`:
 
 | Token | Value | Role |
 |---|---|---|
-| `--background` | `#0c0f14` | Page |
-| `--foreground` | `#e8edf5` | Text |
-| `--card` | `#151a22` | Surfaces |
-| `--muted` | `#1b2230` | Secondary surface |
-| `--muted-foreground` | `#8b96a8` | Supporting text |
-| `--border` | `color-mix(in oklab, #8b9bb8 18%, transparent)` | Hairlines |
-| `--primary` | `#7eb0ff` | Hub CTA/links (cool neutral blue) |
-| `--primary-foreground` | `#071018` | On-primary |
-| `--accent` | `#94a3b8` | Quiet slate accent |
-| `--destructive` | `#f07178` | Errors |
-| `--ring` | `#7eb0ff` | Focus |
+| `--background` | `#05070d` | Stage |
+| `--foreground` | `#eaf0fb` | Text |
+| `--card` | `#0c111c` | Panels |
+| `--muted` / `--secondary` | `#141b2b` | Secondary surface |
+| `--muted-foreground` | `#7d8aa3` | Supporting text |
+| `--border` | `color-mix(in oklab, #8ea3c4 16%, transparent)` | Hairlines |
+| `--primary` | `#5cc8ff` | Neutral hub accent |
+| `--destructive` | `#ff6b7a` | Errors |
+| `--ambient` / `--ambient-2` | `#5cc8ff` / `#7c8cff` | Live stage lighting (see below) |
 
-- **Per-game accents** scoped by `GameDashboardFrame` (`[data-game="clash-royale"] { --game-accent: #ee66ef; --game-accent-2: #1f93ff; }`, `[data-game="brawl-stars"] { --game-accent: #ffd166; --game-accent-2: #2dd4bf; }`) — used for stat highlights, tab underlines, progress bars inside dashboards only; never in the global nav.
-- **Type:** display `Outfit`, body `IBM Plex Sans`, Google Fonts in `index.html`; mapped via Tailwind 4 `@theme inline` (`--font-display`, `--font-sans`).
-- **Layout:** top nav + content column `mx-auto max-w-7xl px-4 py-10 md:px-6` + footer. Connected-games rows: `rounded-2xl border-border/50 bg-card/40`. Section eyebrows `text-xs uppercase tracking-[0.24em]`. Background: subtle fixed slate/blue radial gradients + light noise only.
-- **Motion:** 2–3 intentional fades/slides (hub board mount, connect success). No auto-rotating heroes.
+- **Ambient stage lighting (the signature trait):** `AmbientProvider` (`src/components/lobby/ambient.tsx`) tracks which game currently owns the screen. Focusing or hovering a game tile — or opening its dashboard — sets `data-ambient="<gameId>"` on the shell, and `[data-ambient="…"]` rewrites `--ambient` / `--ambient-2`. Three blurred colour pools behind the page (`.stage-light`) cross-fade over 900 ms, so the whole console changes colour with the selection. The stage keeps the last colour rather than snapping back on blur.
+- **Per-game accents** are unchanged and still scoped by `[data-game="…"]` (`clash-royale` → `#ee66ef` / `#1f93ff`, `brawl-stars` → `#ffd166` / `#2dd4bf`). They drive tile frames, stat values, tab state, and the ambient pools.
+- **Type:** display `Chakra Petch` (squared, techy — headings, buttons, labels), body `Barlow`, numerals `Barlow Condensed` via the `.numeric` utility (tabular, `line-height: 0.9`). Google Fonts in `index.html`; mapped through Tailwind 4 `@theme inline` (`--font-display`, `--font-sans`, `--font-numeric`).
+- **Chrome:** angular console plating instead of rounded cards. `.bevel` cuts the top-left and bottom-right corners via `clip-path`; `.bevel-sm` / `.bevel-lg` set the cut size. Surfaces are `.surface-card` / bordered `bg-card/60` with `backdrop-filter`. A faint machined grid (`.plated`) and a fixed film-grain overlay give the stage texture.
+- **Layout:** console top bar (mark, game switcher, channel links, live clock) + content column `mx-auto max-w-[1600px] px-5 md:px-10` + a bottom hint bar showing D-pad key legends and the Supercell disclaimer. Section headings use `Panel` (uppercase label, zero-padded count, hairline rule). Eyebrows are `.eyebrow` (`text-[11px] uppercase tracking-[0.32em]`).
+- **Focus is a first-class visual, not an afterthought.** `.tile` lifts 6 px, gains a 2 px accent frame (`::after`, clip-path matched to the bevel), reveals arcade corner brackets (`::before`), washes its interior in the game accent (`.tile-glow`), and throws an outer `drop-shadow` glow. Because `clip-path` swallows outlines and box-shadows, outer glow uses `filter: drop-shadow(...)` and brackets sit inside the bevel.
+- **Navigation:** `TileNav` gives lobby rows and grids D-pad behaviour — arrow keys move to the spatially nearest `[data-tile]` in the pressed direction rather than following tab order. Horizontal rows use the `.rail` snap scroller.
+- **Motion:** one orchestrated boot-in per screen (`.boot-in`, `.stagger` with 60–550 ms delays) plus the ambient cross-fade. Animations use `fill-mode: backwards` so they release `transform` and never block the focus lift. No auto-rotating heroes. Everything is disabled under `prefers-reduced-motion`.
 
 ## 10. Vercel
 

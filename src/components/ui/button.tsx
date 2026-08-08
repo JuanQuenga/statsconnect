@@ -3,25 +3,25 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+  "bevel bevel-sm inline-flex items-center justify-center gap-2 font-display font-semibold uppercase tracking-[0.14em] transition-[background-color,color,transform] duration-150 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[var(--ambient)] disabled:pointer-events-none disabled:opacity-45",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80",
+          "bg-[var(--ambient)] text-[#04121b] hover:brightness-110 shadow-[0_0_28px_-8px_var(--ambient)]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70",
+          "border border-border/70 bg-white/[0.05] text-foreground hover:bg-white/[0.1]",
         outline:
-          "border border-border bg-transparent text-foreground hover:bg-muted hover:border-border active:bg-muted/80",
-        ghost: "text-foreground hover:bg-muted active:bg-muted/80",
+          "border border-[var(--ambient)]/45 bg-transparent text-foreground hover:bg-[var(--ambient)]/12 hover:border-[var(--ambient)]",
+        ghost: "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
         destructive:
-          "bg-destructive text-primary-foreground hover:bg-destructive/90 active:bg-destructive/80",
+          "bg-destructive text-[#1a0409] hover:brightness-110",
       },
       size: {
-        default: "h-10 px-4",
-        sm: "h-8 px-3 text-xs",
-        lg: "h-12 px-6 text-base",
-        icon: "size-10",
+        default: "h-11 px-5 text-xs",
+        sm: "h-9 px-3.5 text-[11px]",
+        lg: "h-14 px-8 text-sm",
+        icon: "size-11 px-0 tracking-normal",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

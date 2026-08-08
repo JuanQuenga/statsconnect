@@ -23,7 +23,11 @@ export function GameDashboard({ profile }: { profile: ConnectedProfile }) {
   const stats = result.data;
   return (
     <GameDashboardFrame game={stats.game}>
-      <div className="flex justify-end">{result.cache.state === "stale" ? <Badge variant="secondary">Showing cached data</Badge> : result.cache.state === "stub" ? <Badge variant="secondary">Sample backend data</Badge> : null}</div>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="eyebrow">Signal</span>
+        <span className="h-px flex-1 bg-border" aria-hidden />
+        {result.cache.state === "stale" ? <Badge variant="secondary">Showing cached data</Badge> : result.cache.state === "stub" ? <Badge variant="secondary">Sample backend data</Badge> : <Badge variant="secondary">Live · {new Date(result.cache.fetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Badge>}
+      </div>
       <ProfileHero summary={stats.summary} />
       {stats.warnings.map((warning) => <PageStatus key={warning} tone="info">{warning}</PageStatus>)}
       {stats.game === "clash-royale" ? (

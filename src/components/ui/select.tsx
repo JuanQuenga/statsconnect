@@ -8,7 +8,7 @@ export function Select({
   return (
     <select
       className={cn(
-        "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+        "bevel bevel-sm h-11 w-full border border-input bg-background px-3 text-sm text-foreground transition-colors hover:border-[var(--ambient)]/50 focus-visible:border-[var(--ambient)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ambient)] disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}

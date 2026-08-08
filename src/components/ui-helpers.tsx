@@ -35,7 +35,7 @@ export function PageStatus({
       role={tone === "error" ? "alert" : "status"}
       aria-live={tone === "loading" ? "polite" : undefined}
       className={cn(
-        "flex items-start gap-3 rounded-xl border p-4 text-sm leading-relaxed",
+        "bevel bevel-sm flex items-start gap-3 border p-4 text-sm leading-relaxed",
         toneStyles[tone],
         className,
       )}
@@ -66,17 +66,17 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center rounded-2xl border border-dashed border-border/70 bg-card/35 px-6 py-10 text-center sm:px-8 sm:py-12",
+        "bevel bevel-lg flex flex-col items-center border border-dashed border-border/70 bg-card/35 px-6 py-12 text-center sm:px-8 sm:py-16",
         className,
       )}
     >
       <div
-        className="mb-4 flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground"
+        className="bevel bevel-sm mb-5 flex size-12 items-center justify-center border border-border/70 bg-white/[0.04] text-muted-foreground"
         aria-hidden
       >
         <Inbox className="size-5" />
       </div>
-      <h2 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
+      <h2 className="font-display text-2xl font-bold uppercase tracking-[0.06em] sm:text-3xl">
         {title}
       </h2>
       {detail ? (
@@ -105,20 +105,20 @@ export function LoadingState({
     >
       <span className="sr-only">{label}</span>
       <div className="space-y-3">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-9 w-2/3 max-w-md" />
+        <Skeleton className="h-3 w-28" />
+        <Skeleton className="h-12 w-2/3 max-w-md" />
         <Skeleton className="h-4 w-full max-w-lg" />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Skeleton className="h-24 rounded-2xl" />
-        <Skeleton className="h-24 rounded-2xl" />
-        <Skeleton className="h-24 rounded-2xl" />
-        <Skeleton className="h-24 rounded-2xl" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
       </div>
       <div className="space-y-3">
-        <Skeleton className="h-12 rounded-xl" />
-        <Skeleton className="h-12 rounded-xl" />
-        <Skeleton className="h-12 rounded-xl" />
+        <Skeleton className="h-14" />
+        <Skeleton className="h-14" />
+        <Skeleton className="h-14" />
       </div>
     </div>
   );
@@ -139,17 +139,17 @@ export function ErrorState({
     <div
       role="alert"
       className={cn(
-        "flex flex-col items-center rounded-2xl border border-destructive/35 bg-destructive/5 px-6 py-10 text-center sm:px-8",
+        "bevel bevel-lg flex flex-col items-center border border-destructive/35 bg-destructive/5 px-6 py-12 text-center sm:px-8",
         className,
       )}
     >
       <div
-        className="mb-4 flex size-11 items-center justify-center rounded-full bg-destructive/15 text-destructive"
+        className="bevel bevel-sm mb-5 flex size-12 items-center justify-center bg-destructive/15 text-destructive"
         aria-hidden
       >
         <AlertCircle className="size-5" />
       </div>
-      <h2 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+      <h2 className="font-display text-2xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-3xl">
         {title}
       </h2>
       {detail ? (

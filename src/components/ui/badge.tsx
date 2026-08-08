@@ -3,15 +3,15 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+  "bevel bevel-sm inline-flex items-center gap-1.5 px-2.5 py-1 font-display text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors",
   {
     variants: {
       variant: {
-        default: "bg-primary/15 text-primary",
-        secondary: "bg-muted text-muted-foreground",
+        default: "bg-[var(--game-accent)]/18 text-[var(--game-accent)]",
+        secondary: "border border-border/70 bg-white/[0.05] text-muted-foreground",
         outline: "border border-border text-foreground",
         success: "bg-emerald-400/15 text-emerald-300",
-        destructive: "bg-destructive/15 text-destructive",
+        destructive: "bg-destructive/18 text-destructive",
       },
     },
     defaultVariants: { variant: "default" },

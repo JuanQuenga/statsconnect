@@ -49,7 +49,7 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby="dialog-title"
         aria-describedby={description ? "dialog-description" : undefined}
-        className="fade-in w-full max-w-md rounded-2xl border border-border/60 bg-card p-5 shadow-2xl sm:p-6"
+        className="boot-in bevel bevel-lg w-full max-w-md border border-border/60 bg-card p-6 shadow-2xl sm:p-8"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">

@@ -14,7 +14,7 @@ import { dataClient } from "@/lib/data-client";
 import { normalizeTag } from "@/lib/tags";
 
 const itemClass =
-  "flex rounded-lg px-3 py-2 text-sm no-underline transition-colors hover:bg-muted focus:bg-muted focus:outline-none";
+  "bevel bevel-sm flex px-3 py-2.5 text-sm no-underline transition-colors hover:bg-white/[0.07] focus:bg-white/[0.07] focus:outline-none";
 
 export function GameSwitcher({ hub, onNavigate }: { hub: HubState; onNavigate?: () => void }) {
   const queryClient = useQueryClient();

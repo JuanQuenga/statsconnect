@@ -11,7 +11,7 @@ export function Table({
   ...props
 }: TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-border/50">
+    <div className="bevel bevel-sm w-full overflow-x-auto border border-border/60">
       <table
         className={cn("w-full min-w-[32rem] text-sm", className)}
         {...props}

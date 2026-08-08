@@ -155,7 +155,7 @@ export function DropdownMenuTrigger({
       aria-expanded={open}
       aria-controls={open ? menuId : undefined}
       className={cn(
-        "flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "bevel bevel-sm flex h-11 w-full cursor-pointer items-center gap-2 border border-border/60 bg-white/[0.03] px-3 font-display text-xs font-semibold uppercase tracking-[0.12em] text-foreground transition-colors hover:bg-white/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ambient)]",
         className,
       )}
       onClick={(event) => {
@@ -199,7 +199,7 @@ export function DropdownMenuContent({
       role="menu"
       aria-labelledby={triggerId}
       className={cn(
-        "absolute left-0 top-full z-50 mt-2 min-w-64 max-w-[min(100vw-2rem,20rem)] rounded-xl border border-border/60 bg-popover p-1.5 shadow-2xl sm:min-w-72",
+        "bevel absolute left-0 top-full z-50 mt-2 min-w-64 max-w-[min(100vw-2rem,22rem)] border border-border/60 bg-popover p-2 shadow-2xl sm:min-w-80",
         className,
       )}
       onClick={(event: ReactMouseEvent<HTMLDivElement>) => {
@@ -265,7 +265,7 @@ export function DropdownMenuItem({
       role="menuitem"
       tabIndex={-1}
       className={cn(
-        "w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted focus:bg-muted focus:outline-none",
+        "bevel bevel-sm w-full cursor-pointer px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-white/[0.07] focus:bg-white/[0.07] focus:outline-none",
         className,
       )}
       onKeyDown={(event) => {

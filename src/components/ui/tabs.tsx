@@ -17,7 +17,7 @@ export function Tabs<T extends string>({
     <div
       role="tablist"
       className={cn(
-        "flex gap-1 overflow-x-auto border-b border-border/70 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
@@ -32,9 +32,10 @@ export function Tabs<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onValueChange(item.value)}
             className={cn(
-              "relative shrink-0 rounded-t-md px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              selected &&
-                "text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[var(--game-accent,var(--primary))]",
+              "bevel bevel-sm relative shrink-0 border px-5 py-3 font-display text-xs font-semibold uppercase tracking-[0.18em] transition-colors",
+              selected
+                ? "border-[var(--game-accent)]/60 bg-[var(--game-accent)]/14 text-foreground"
+                : "border-border/60 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
             )}
           >
             {item.label}

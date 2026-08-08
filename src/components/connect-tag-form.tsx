@@ -49,18 +49,18 @@ export function ConnectTagForm({ game }: { game: GameId }) {
         <Card className="slide-up">
           <CardContent className="space-y-5 p-6">
             <div className="flex items-start gap-4">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="size-5" /></div>
-              <div className="min-w-0"><p className="eyebrow">Profile found</p><h2 className="mt-1 truncate font-display text-2xl font-semibold">{preview.data.display.name}</h2><p className="text-sm text-muted-foreground">{preview.data.playerTag}</p></div>
+              <div className="bevel bevel-sm flex size-12 shrink-0 items-center justify-center bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="size-5" /></div>
+              <div className="min-w-0"><p className="eyebrow text-emerald-300">Profile found</p><h2 className="mt-2 truncate font-display text-2xl font-bold uppercase tracking-tight">{preview.data.display.name}</h2><p className="font-numeric text-lg tracking-[0.14em] text-muted-foreground">{preview.data.playerTag}</p></div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {preview.data.display.headline ? <div className="rounded-xl bg-muted/55 p-4"><p className="text-xs text-muted-foreground">{preview.data.display.headline.label}</p><p className="mt-1 text-xl font-semibold">{preview.data.display.headline.value.toLocaleString()}</p></div> : null}
-              {preview.data.display.affiliation ? <div className="rounded-xl bg-muted/55 p-4"><p className="text-xs text-muted-foreground">Affiliation</p><p className="mt-1 truncate font-semibold">{preview.data.display.affiliation.name}</p></div> : null}
+              {preview.data.display.headline ? <div className="bevel bevel-sm border border-border/60 bg-black/30 p-4"><p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{preview.data.display.headline.label}</p><p className="numeric mt-2 text-4xl text-[var(--game-accent)]">{preview.data.display.headline.value.toLocaleString()}</p></div> : null}
+              {preview.data.display.affiliation ? <div className="bevel bevel-sm border border-border/60 bg-black/30 p-4"><p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Affiliation</p><p className="mt-2 truncate font-display text-xl font-semibold">{preview.data.display.affiliation.name}</p></div> : null}
             </div>
           </CardContent>
         </Card>
         {connectMutation.isError ? <PageStatus tone="error">{errorMessage(connectMutation.error)}</PageStatus> : null}
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={() => { setPreview(null); previewMutation.reset(); connectMutation.reset(); }}><ArrowLeft className="size-4" />Use another tag</Button>
+          <Button variant="secondary" onClick={() => { setPreview(null); previewMutation.reset(); connectMutation.reset(); }}><ArrowLeft className="size-4" />Use another tag</Button>
           <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : "Save & open dashboard"}<ArrowRight className="size-4" /></Button>
         </div>
       </div>
@@ -70,10 +70,10 @@ export function ConnectTagForm({ game }: { game: GameId }) {
   return (
     <form className="space-y-5" onSubmit={submitPreview} noValidate>
       <div>
-        <label htmlFor="player-tag" className="text-sm font-semibold">{gameName(game)} player tag</label>
-        <div className="mt-2 flex gap-2">
+        <label htmlFor="player-tag" className="eyebrow block">{gameName(game)} player tag</label>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Input id="player-tag" value={tag} onChange={(event) => { setTag(event.target.value); previewMutation.reset(); }} placeholder="#2PPGL9YL" autoCapitalize="characters" autoComplete="off" aria-describedby="tag-help tag-error" aria-invalid={Boolean(validation)} />
-          <Button type="submit" disabled={!tag || Boolean(validation) || previewMutation.isPending}>{previewMutation.isPending ? "Checking…" : "Check tag"}<Search className="size-4" /></Button>
+          <Button type="submit" size="lg" className="shrink-0" disabled={!tag || Boolean(validation) || previewMutation.isPending}>{previewMutation.isPending ? "Checking…" : "Check tag"}<Search className="size-4" /></Button>
         </div>
         <p id="tag-help" className="mt-2 text-xs leading-relaxed text-muted-foreground">Enter the player tag from the in-game profile. Spaces and a leading # are accepted.</p>
         {validation ? <p id="tag-error" className="mt-2 text-sm text-destructive">{validation}</p> : null}

@@ -22,46 +22,62 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-ambient: var(--ambient);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
-  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-numeric: "Barlow Condensed", "Barlow", ui-sans-serif, sans-serif;
 }
 
 :root {
   color-scheme: dark;
-  --radius: 0.75rem;
-  --background: #0c0f14;
-  --foreground: #e8edf5;
-  --card: #151a22;
-  --card-foreground: #e8edf5;
-  --popover: #151a22;
-  --popover-foreground: #e8edf5;
-  --primary: #7eb0ff;
-  --primary-foreground: #071018;
-  --secondary: #1b2230;
-  --secondary-foreground: #e8edf5;
-  --muted: #1b2230;
-  --muted-foreground: #8b96a8;
-  --accent: #94a3b8;
-  --accent-foreground: #071018;
-  --destructive: #f07178;
-  --border: color-mix(in oklab, #8b9bb8 18%, transparent);
-  --input: color-mix(in oklab, #8b9bb8 24%, transparent);
-  --ring: #7eb0ff;
-  --surface-elevated: color-mix(in oklab, #151a22 92%, #7eb0ff 8%);
+  --radius: 0.5rem;
+  --bevel: 16px;
+
+  --background: #05070d;
+  --foreground: #eaf0fb;
+  --card: #0c111c;
+  --card-foreground: #eaf0fb;
+  --popover: #0d1320;
+  --popover-foreground: #eaf0fb;
+  --primary: #5cc8ff;
+  --primary-foreground: #04121b;
+  --secondary: #141b2b;
+  --secondary-foreground: #eaf0fb;
+  --muted: #141b2b;
+  --muted-foreground: #7d8aa3;
+  --accent: #8ea3c4;
+  --accent-foreground: #04121b;
+  --destructive: #ff6b7a;
+  --border: color-mix(in oklab, #8ea3c4 16%, transparent);
+  --input: color-mix(in oklab, #8ea3c4 26%, transparent);
+  --ring: #5cc8ff;
+
+  /* The stage light. Overridden by [data-ambient] when a game tile takes focus. */
+  --ambient: #5cc8ff;
+  --ambient-2: #7c8cff;
+  /* Neutral fallback so a tile outside a dashboard still has an accent. */
+  --game-accent: #5cc8ff;
+  --game-accent-2: #7c8cff;
 }
 
-[data-game="clash-royale"] {
+[data-game="clash-royale"],
+[data-ambient="clash-royale"] {
   --game-accent: #ee66ef;
   --game-accent-2: #1f93ff;
+  --ambient: #ee66ef;
+  --ambient-2: #1f93ff;
 }
 
-[data-game="brawl-stars"] {
+[data-game="brawl-stars"],
+[data-ambient="brawl-stars"] {
   --game-accent: #ffd166;
   --game-accent-2: #2dd4bf;
+  --ambient: #ffd166;
+  --ambient-2: #2dd4bf;
 }
 
 @layer base {
@@ -74,35 +90,24 @@
   }
 
   body {
-    @apply min-h-screen bg-background font-sans text-foreground antialiased;
-    background-attachment: fixed;
-    background-image:
-      radial-gradient(
-        ellipse 70% 45% at 5% -10%,
-        color-mix(in oklab, #7eb0ff 12%, transparent),
-        transparent 58%
-      ),
-      radial-gradient(
-        ellipse 60% 40% at 100% 0%,
-        color-mix(in oklab, #94a3b8 8%, transparent),
-        transparent 55%
-      ),
-      linear-gradient(180deg, #0c0f14 0%, #0a0d12 100%);
+    @apply min-h-screen bg-background font-sans text-[15px] text-foreground antialiased;
+    font-feature-settings: "ss01", "cv01";
   }
 
-  body::before {
+  /* Film grain over the whole console. */
+  body::after {
     position: fixed;
-    z-index: 50;
+    z-index: 60;
     inset: 0;
     pointer-events: none;
     content: "";
-    opacity: 0.025;
+    opacity: 0.022;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   ::selection {
-    background: color-mix(in oklab, #7eb0ff 35%, transparent);
-    color: #e8edf5;
+    background: color-mix(in oklab, var(--ambient) 40%, transparent);
+    color: #ffffff;
   }
 
   h1,
@@ -110,15 +115,32 @@
   h3,
   .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.03em;
+    letter-spacing: -0.01em;
   }
 
   a {
     @apply underline-offset-4 transition-colors;
   }
 
+  /* 10-foot UI: focus must be unmissable from across the room. */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none;
+    outline: 2px solid var(--ambient);
+    outline-offset: 3px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in oklab, #8ea3c4 22%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -138,24 +160,239 @@
 
 @layer utilities {
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground;
+    @apply font-display text-[11px] font-semibold uppercase tracking-[0.32em] text-muted-foreground;
   }
 
   .content-column {
-    @apply mx-auto w-full max-w-7xl px-4 md:px-6;
+    @apply mx-auto w-full max-w-[1600px] px-5 md:px-10;
+  }
+
+  /* Numerals read like a broadcast scoreboard. */
+  .numeric {
+    font-family: var(--font-numeric);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    line-height: 0.9;
+  }
+
+  /* Angular console plating: top-left and bottom-right corners cut. */
+  .bevel {
+    clip-path: polygon(
+      var(--bevel) 0,
+      100% 0,
+      100% calc(100% - var(--bevel)),
+      calc(100% - var(--bevel)) 100%,
+      0 100%,
+      0 var(--bevel)
+    );
+  }
+
+  .bevel-sm {
+    --bevel: 9px;
+  }
+
+  .bevel-lg {
+    --bevel: 26px;
+  }
+
+  .panel {
+    @apply relative border border-border/60 bg-card/60;
+    backdrop-filter: blur(6px);
+  }
+
+  /* Faint machined grid, gives surfaces a console-plate texture. */
+  .plated {
+    background-image:
+      linear-gradient(color-mix(in oklab, #8ea3c4 4%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, #8ea3c4 4%, transparent) 1px, transparent 1px);
+    background-size: 46px 46px;
   }
 
   .surface-card {
-    @apply rounded-2xl border border-border/50 bg-card/40;
+    @apply relative border border-border/60 bg-card/60;
+    backdrop-filter: blur(6px);
+    clip-path: polygon(
+      var(--bevel) 0,
+      100% 0,
+      100% calc(100% - var(--bevel)),
+      calc(100% - var(--bevel)) 100%,
+      0 100%,
+      0 var(--bevel)
+    );
   }
 
+  /* ---- Focusable console tile ---------------------------------------- */
+  .tile {
+    @apply relative isolate block no-underline;
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      filter 220ms ease;
+  }
+
+  .tile:focus-visible,
+  .tile:hover {
+    transform: translateY(-6px);
+    z-index: 2;
+  }
+
+  /* clip-path swallows box-shadows, so the outer glow rides on a filter that
+     traces the bevelled silhouette instead. */
+  .tile:hover {
+    filter: drop-shadow(
+      0 14px 26px color-mix(in oklab, var(--game-accent) 22%, transparent)
+    );
+  }
+
+  .tile:focus-visible {
+    outline: none;
+    filter: drop-shadow(
+      0 0 22px color-mix(in oklab, var(--game-accent) 55%, transparent)
+    );
+  }
+
+  /* Inset accent frame — survives the parent's clip-path. */
+  .tile::after {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    border: 2px solid transparent;
+    transition: border-color 200ms ease;
+    clip-path: polygon(
+      var(--bevel) 0,
+      100% 0,
+      100% calc(100% - var(--bevel)),
+      calc(100% - var(--bevel)) 100%,
+      0 100%,
+      0 var(--bevel)
+    );
+  }
+
+  .tile:focus-visible::after,
+  .tile:hover::after {
+    border-color: color-mix(in oklab, var(--game-accent) 85%, transparent);
+  }
+
+  /* Arcade corner brackets, revealed on focus. They sit inside the bevel
+     because clip-path would cut anything hanging outside it. */
+  .tile::before {
+    position: absolute;
+    z-index: 4;
+    inset: 8px;
+    pointer-events: none;
+    content: "";
+    opacity: 0;
+    transition: opacity 200ms ease;
+    background-repeat: no-repeat;
+    background-image:
+      linear-gradient(var(--game-accent), var(--game-accent)),
+      linear-gradient(var(--game-accent), var(--game-accent)),
+      linear-gradient(var(--game-accent), var(--game-accent)),
+      linear-gradient(var(--game-accent), var(--game-accent));
+    background-size:
+      2px 26px,
+      26px 2px,
+      2px 26px,
+      26px 2px;
+    background-position:
+      right 0 top 0,
+      right 0 top 0,
+      left 0 bottom 0,
+      left 0 bottom 0;
+  }
+
+  .tile:focus-visible::before {
+    opacity: 1;
+  }
+
+  /* Interior sheen that washes the tile in its game's colour. */
+  .tile-glow {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    opacity: 0;
+    background: linear-gradient(
+      135deg,
+      var(--game-accent) 0%,
+      transparent 55%,
+      var(--game-accent-2) 130%
+    );
+    transition: opacity 260ms ease;
+  }
+
+  .tile:focus-visible .tile-glow,
+  .tile:hover .tile-glow {
+    opacity: 0.16;
+  }
+
+  /* ---- Ambient stage lighting ----------------------------------------- */
+  .stage-light {
+    @apply pointer-events-none fixed inset-0 overflow-hidden;
+    z-index: 0;
+  }
+
+  .stage-light > i {
+    @apply absolute block rounded-full;
+    filter: blur(110px);
+    transition:
+      background-color 900ms ease,
+      opacity 900ms ease;
+  }
+
+  .stage-horizon {
+    @apply pointer-events-none fixed inset-x-0 bottom-0 h-px;
+    z-index: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--ambient) 60%, transparent),
+      transparent
+    );
+    transition: background 900ms ease;
+  }
+
+  /* ---- Rails ---------------------------------------------------------- */
+  .rail {
+    @apply flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4;
+    scrollbar-width: none;
+    scroll-padding-inline: 1.25rem;
+  }
+
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .rail > * {
+    @apply snap-start;
+  }
+
+  /* ---- Motion --------------------------------------------------------- */
   .fade-in {
-    animation: fade-in 420ms ease-out both;
+    animation: fade-in 460ms ease-out backwards;
   }
 
   .slide-up {
-    animation: slide-up 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: slide-up 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
+
+  .boot-in {
+    animation: boot-in 620ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  .stagger > * {
+    animation: boot-in 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  .stagger > *:nth-child(1) { animation-delay: 60ms; }
+  .stagger > *:nth-child(2) { animation-delay: 130ms; }
+  .stagger > *:nth-child(3) { animation-delay: 200ms; }
+  .stagger > *:nth-child(4) { animation-delay: 270ms; }
+  .stagger > *:nth-child(5) { animation-delay: 340ms; }
+  .stagger > *:nth-child(6) { animation-delay: 410ms; }
+  .stagger > *:nth-child(7) { animation-delay: 480ms; }
+  .stagger > *:nth-child(8) { animation-delay: 550ms; }
 }
 
 @keyframes fade-in {
@@ -170,10 +407,31 @@
 @keyframes slide-up {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes boot-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ambient-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -2%, 0) scale(1.06);
   }
 }
