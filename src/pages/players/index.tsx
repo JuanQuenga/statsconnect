@@ -1,12 +1,16 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { Star } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
+import favoriteStyles from "@/components/PlayerFavorites.module.css";
 import { directorySizeQuery, isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
+import { readFavoriteProfiles, toggleFavorite, type FavoriteProfile } from "@/lib/recentProfiles";
 
 /**
  * Player lookup by name.
@@ -19,11 +23,21 @@ import { directorySizeQuery, isConvexConfigured, searchPlayersQuery } from "@/li
 export default function PlayerSearchPage() {
   const router = useRouter();
   const term = typeof router.query.q === "string" ? router.query.q.trim() : "";
+  const [favorites, setFavorites] = useState<FavoriteProfile[]>([]);
+
+  useEffect(() => setFavorites(readFavoriteProfiles()), []);
+
+  function onFavoriteToggle(profile: Omit<FavoriteProfile, "kind">) {
+    setFavorites(toggleFavorite({ kind: "players", ...profile }));
+  }
 
   if (!isConvexConfigured) {
     return (
       <Layout>
-        <SetupState feature="player search" />
+        <div className="profile-page">
+          <FavoritesSection favorites={favorites} onToggle={onFavoriteToggle} />
+          <SetupState feature="player search" />
+        </div>
       </Layout>
     );
   }
@@ -40,14 +54,49 @@ export default function PlayerSearchPage() {
           <h1>Find a player</h1>
           <p>Search by name, or paste a player tag. Both land on the same profile.</p>
           <ProfileSearch />
+          <Link href="/players/compare" className="pink-button">
+            Compare two players
+          </Link>
         </section>
-        <Results term={term} />
+        <FavoritesSection favorites={favorites} onToggle={onFavoriteToggle} />
+        <Results term={term} favorites={favorites} onToggle={onFavoriteToggle} />
       </div>
     </Layout>
   );
 }
 
-function Results({ term }: { term: string }) {
+function FavoritesSection({ favorites, onToggle }: { favorites: FavoriteProfile[]; onToggle: (profile: Omit<FavoriteProfile, "kind">) => void }) {
+  return (
+    <TableShell
+      title="Favorites"
+      head={["Player", "Clan", "Trophies", "Favorite", "Open"]}
+      note={favorites.length ? "Your starred players are saved in this browser." : "Star a player in the search results to keep them here."}
+      empty={!favorites.length}
+      emptyMessage="No favorites yet. Star a player in the results below."
+    >
+      {favorites.map((favorite) => (
+        <PlayerRow
+          key={favorite.tag}
+          tag={favorite.tag}
+          name={favorite.name}
+          clanName={favorite.clan}
+          favorite
+          onToggle={() => onToggle(favorite)}
+        />
+      ))}
+    </TableShell>
+  );
+}
+
+function Results({
+  term,
+  favorites,
+  onToggle
+}: {
+  term: string;
+  favorites: FavoriteProfile[];
+  onToggle: (profile: Omit<FavoriteProfile, "kind">) => void;
+}) {
   const results = useQuery(searchPlayersQuery, term ? { query: term, limit: 25 } : "skip");
   const directorySize = useQuery(directorySizeQuery, {});
 
@@ -98,7 +147,7 @@ function Results({ term }: { term: string }) {
   return (
     <TableShell
       title={`Players matching “${term}”`}
-      head={["Player", "Clan", "Trophies", ""]}
+      head={["Player", "Clan", "Trophies", "Favorite", "Open"]}
       note={
         <>
           Searching {known}. Names are not unique in Clash Royale — the players seen most often are listed first.
@@ -112,29 +161,63 @@ function Results({ term }: { term: string }) {
       }
     >
       {results.players.map((hit) => (
-        <tr key={hit.tag}>
-          <td>
-            <EntityCell href={`/players/${hit.tag}`} name={hit.name} sub={`#${hit.tag}`} />
-          </td>
-          <td>
-            {hit.clanName ? (
-              hit.clanTag ? (
-                <Link href={`/clans/${hit.clanTag}`}>{hit.clanName}</Link>
-              ) : (
-                hit.clanName
-              )
-            ) : (
-              "—"
-            )}
-          </td>
-          <td>{hit.trophies ? <TrophyCell value={hit.trophies} /> : "—"}</td>
-          <td>
-            <Link href={`/players/${hit.tag}`} className="pink-button">
-              Open
-            </Link>
-          </td>
-        </tr>
+        <PlayerRow
+          key={hit.tag}
+          tag={hit.tag}
+          name={hit.name}
+          clanName={hit.clanName}
+          clanTag={hit.clanTag}
+          trophies={hit.trophies}
+          favorite={favorites.some((favorite) => favorite.tag === hit.tag)}
+          onToggle={() => onToggle({ tag: hit.tag, name: hit.name, clan: hit.clanName })}
+        />
       ))}
     </TableShell>
+  );
+}
+
+function PlayerRow({
+  tag,
+  name,
+  clanName,
+  clanTag,
+  trophies,
+  favorite,
+  onToggle
+}: {
+  tag: string;
+  name: string;
+  clanName?: string;
+  clanTag?: string;
+  trophies?: number;
+  favorite: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <tr>
+      <td>
+        <EntityCell href={`/players/${tag}`} name={name} sub={`#${tag}`} />
+      </td>
+      <td>
+        {clanName ? clanTag ? <Link href={`/clans/${clanTag}`}>{clanName}</Link> : clanName : "—"}
+      </td>
+      {trophies !== undefined ? <td><TrophyCell value={trophies} /></td> : <td>—</td>}
+      <td>
+        <button
+          type="button"
+          className={favoriteStyles.toggle}
+          aria-label={`${favorite ? "Remove" : "Add"} ${name} ${favorite ? "from" : "to"} favorites`}
+          aria-pressed={favorite}
+          onClick={onToggle}
+        >
+          <Star size={18} fill={favorite ? "currentColor" : "none"} />
+        </button>
+      </td>
+      <td>
+        <Link href={`/players/${tag}`} className="pink-button">
+          Open
+        </Link>
+      </td>
+    </tr>
   );
 }

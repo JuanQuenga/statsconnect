@@ -14,8 +14,19 @@ export type RecentProfile = {
   kind: "players" | "clans";
   tag: string;
   name: string;
+  clan?: string;
   visitedAt: number;
+  favorite?: boolean;
 };
+
+export type FavoriteProfile = {
+  kind: "players";
+  tag: string;
+  name: string;
+  clan?: string;
+};
+
+const FAVORITES_KEY = "clash-crown:favorite-profiles";
 
 function isRecent(value: unknown): value is RecentProfile {
   if (typeof value !== "object" || value === null) return false;
@@ -24,8 +35,29 @@ function isRecent(value: unknown): value is RecentProfile {
     (item.kind === "players" || item.kind === "clans") &&
     typeof item.tag === "string" &&
     typeof item.name === "string" &&
-    typeof item.visitedAt === "number"
+    typeof item.visitedAt === "number" &&
+    (item.clan === undefined || typeof item.clan === "string") &&
+    (item.favorite === undefined || typeof item.favorite === "boolean")
   );
+}
+
+function isFavorite(value: unknown): value is FavoriteProfile {
+  if (typeof value !== "object" || value === null) return false;
+  const item = value as Record<string, unknown>;
+  return (
+    item.kind === "players" &&
+    typeof item.tag === "string" &&
+    typeof item.name === "string" &&
+    (item.clan === undefined || typeof item.clan === "string")
+  );
+}
+
+function sameProfile(left: { kind: string; tag: string }, right: { kind: string; tag: string }) {
+  return left.kind === right.kind && normalizeTag(left.tag) === normalizeTag(right.tag);
+}
+
+function normalizeTag(tag: string) {
+  return tag.replace(/^#/, "").toUpperCase();
 }
 
 export function readRecentProfiles(): RecentProfile[] {
@@ -45,15 +77,54 @@ export function readRecentProfiles(): RecentProfile[] {
 export function rememberProfile(profile: Omit<RecentProfile, "visitedAt">): RecentProfile[] {
   if (typeof window === "undefined") return [];
   const entry: RecentProfile = { ...profile, visitedAt: Date.now() };
-  const next = [entry, ...readRecentProfiles().filter((item) => !(item.kind === entry.kind && item.tag === entry.tag))].slice(
-    0,
-    MAX_ENTRIES
-  );
+  const existing = readRecentProfiles().find((item) => sameProfile(item, entry));
+  const nextEntry: RecentProfile = {
+    ...entry,
+    tag: normalizeTag(entry.tag),
+    clan: entry.clan ?? existing?.clan
+  };
+  const next = [nextEntry, ...readRecentProfiles().filter((item) => !sameProfile(item, entry))].slice(0, MAX_ENTRIES);
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
     // Nothing to do — recents are a convenience, not state we own.
   }
+  return next;
+}
+
+export function readFavoriteProfiles(): FavoriteProfile[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FAVORITES_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    const stored = Array.isArray(parsed) ? parsed.filter(isFavorite) : [];
+    const legacy: FavoriteProfile[] = readRecentProfiles()
+      .filter((item) => item.kind === "players" && item.favorite === true)
+      .map(({ tag, name, clan }) => ({ kind: "players", tag, name, clan }));
+    const merged = [...stored, ...legacy];
+    return merged.filter((profile, index) => merged.findIndex((item) => sameProfile(item, profile)) === index);
+  } catch {
+    return [];
+  }
+}
+
+/** Stars or unstars a player and returns the complete favorite list. */
+export function toggleFavorite(profile: Omit<FavoriteProfile, "kind"> & { kind?: "players" }): FavoriteProfile[] {
+  if (typeof window === "undefined") return [];
+  const normalized: FavoriteProfile = { kind: "players", tag: normalizeTag(profile.tag), name: profile.name, clan: profile.clan };
+  const favorites = readFavoriteProfiles();
+  const alreadyFavorite = favorites.some((item) => sameProfile(item, normalized));
+  const next = alreadyFavorite
+    ? favorites.filter((item) => !sameProfile(item, normalized))
+    : [normalized, ...favorites];
+
+  try {
+    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+  } catch {
+    // Nothing to do — favorites are a convenience, not state we own.
+  }
+
+  rememberProfile({ ...normalized });
   return next;
 }
 
