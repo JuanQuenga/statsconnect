@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { RefreshCcw } from "lucide-react";
+import { CardArt } from "@/components/portfolio/CardArt";
 import { variantArt } from "@/lib/clash/assets";
+import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
@@ -103,6 +105,99 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
   );
 }
 
+export function PerformanceSection({ battles }: { battles: Battle[] }) {
+  const performance = analyzePlayerBattles(battles);
+  if (!performance.games) return <EmptyPanel title="No battle performance yet" copy="Performance will appear when this player's battle log has a result." />;
+
+  return (
+    <section className="profile-section performance-section">
+      <div className="section-heading">
+        <span className="filter-button static">Last {performance.games} battles</span>
+        <h2>Performance</h2>
+        <span />
+      </div>
+      <div className="stat-matrix performance-stats">
+        <PerformanceStat icon="/images/icons/sword.png" value={`${performance.wins}–${performance.losses}`} label="W / L record" />
+        <PerformanceStat icon="/images/icons/trophy.png" value={`${performance.winRate.toFixed(1)}%`} label="Win rate" />
+        <PerformanceStat icon="/images/icons/crown-gold.png" value={`${performance.threeCrownRate.toFixed(1)}%`} label={`${performance.threeCrownWins} three-crown wins`} />
+        <PerformanceStat icon="/images/icons/sword.png" value={`${performance.currentWinStreak} / ${performance.bestWinStreak}`} label="Current / best streak" />
+      </div>
+      <div className="performance-grid">
+        <div className="performance-card">
+          <h3>Win rate by mode</h3>
+          <div className="members-table-wrap">
+            <table className="members-table">
+              <thead><tr><th>Mode</th><th>Record</th><th>Win rate</th></tr></thead>
+              <tbody>
+                {performance.modes.map((mode) => (
+                  <tr key={mode.mode}>
+                    <td>{mode.mode}</td>
+                    <td>{mode.wins}–{mode.losses}</td>
+                    <td>{mode.winRate.toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="performance-card recent-form-card">
+          <h3>Recent form</h3>
+          <div className="form-pips" role="list" aria-label={`Last ${performance.recent.length} battles, newest first`}>
+            {performance.recent.map((battle, index) => (
+              <span
+                key={`${battle.date}-${battle.opponent}-${index}`}
+                className={`form-pip ${battle.result.toLowerCase()}`}
+                role="listitem"
+                title={`${battle.result} · ${battle.mode}`}
+                aria-label={`${battle.result}, ${battle.mode}`}
+              >
+                {battle.result === "Win" ? "W" : "L"}
+              </span>
+            ))}
+          </div>
+          <div className="form-legend"><span><i className="form-pip win">W</i> Win</span><span><i className="form-pip loss">L</i> Loss</span></div>
+          <p className="table-note">Newest first · {performance.recent.length} of {performance.games} battles shown</p>
+        </div>
+      </div>
+      <p className="table-note">All figures are calculated from this player's last {performance.games} battles, so small samples can swing quickly.</p>
+      <PerformanceStyles />
+    </section>
+  );
+}
+
+function PerformanceStat({ icon, value, label }: { icon: string; value: string; label: string }) {
+  return (
+    <div className="stat-cell">
+      <Image src={icon} alt="" width={46} height={46} />
+      <div><strong>{value}</strong><span>{label}</span></div>
+    </div>
+  );
+}
+
+function PerformanceStyles() {
+  return (
+    <style jsx global>{`
+      .performance-stats { margin-bottom: 34px; }
+      .performance-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); gap: 28px; }
+      .performance-card { min-width: 0; padding: 18px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 7px; background: rgba(8, 24, 44, .52); }
+      .performance-card h3 { margin: 0 0 16px; color: #dfe8f8; font-size: 14px; }
+      .performance-card .members-table-wrap { margin: 0 -18px -18px; }
+      .performance-card .members-table td { height: 52px; }
+      .recent-form-card { display: flex; flex-direction: column; justify-content: center; }
+      .form-pips { display: flex; gap: 7px; flex-wrap: wrap; }
+      .form-pip { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 50%; color: white; font: 700 11px Arial, sans-serif; font-style: normal; }
+      .form-pip.win { background: #218b61; box-shadow: 0 0 0 1px rgba(83, 220, 151, .3) inset; }
+      .form-pip.loss { background: #a63c5b; box-shadow: 0 0 0 1px rgba(255, 126, 153, .3) inset; }
+      .form-legend { display: flex; gap: 16px; margin-top: 18px; color: #8ea2c4; font: 11px Arial, sans-serif; }
+      .form-legend span { display: inline-flex; align-items: center; gap: 6px; }
+      .form-legend .form-pip { width: 18px; height: 18px; font-size: 9px; }
+      @media (max-width: 680px) {
+        .performance-grid { grid-template-columns: 1fr; }
+      }
+    `}</style>
+  );
+}
+
 function statIcon(icon: string | undefined, arenaImage: string) {
   if (!icon) return "/images/icons/trophy.png";
   return icon === "arena" ? arenaImage : icon;
@@ -189,6 +284,67 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
   );
 }
 
+export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
+  const decks = analyzePlayerBattles(battles).decks;
+  if (!decks.length) return <EmptyPanel title="No complete decks in this log" copy="The API has not returned enough eight-card battles to compare this player's decks yet." />;
+
+  return (
+    <section className="profile-section deck-analytics-section">
+      <div className="section-heading compact-heading">
+        <span className="filter-button static">{decks.length} decks</span>
+        <h2>Your decks</h2>
+        <span />
+      </div>
+      <div className="members-table-wrap">
+        <table className="members-table deck-analytics-table">
+          <thead><tr><th>Deck</th><th>Uses</th><th>Win rate</th><th>Avg crowns</th><th>Modes played</th></tr></thead>
+          <tbody>
+            {decks.map((deck) => (
+              <tr key={deck.key}>
+                <td><div className="personal-deck-cards">{deck.cards.map((card, index) => <DeckThumbnail key={`${card.name}-${index}`} card={card} />)}</div></td>
+                <td>{deck.uses}</td>
+                <td><strong>{deck.winRate.toFixed(1)}%</strong><small className="deck-record">{deck.wins}–{deck.uses - deck.wins}</small></td>
+                <td>{deck.averageCrowns.toFixed(2)}</td>
+                <td className="deck-modes">{deck.modes.join(" · ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="table-note">Grouped by the same eight cards, including whether a slot was played as an Evolution or Hero. Sorted by uses across the last {battles.length} battles.</p>
+      <DeckAnalyticsStyles />
+    </section>
+  );
+}
+
+function DeckThumbnail({ card }: { card: Card }) {
+  const variant = variantArt(card);
+  const label = variant ? `${card.name} (${variant.label})` : card.name;
+  return <CardArt src={variant?.src ?? card.image} alt={label} width={42} height={52} />;
+}
+
+function DeckAnalyticsStyles() {
+  return (
+    <style jsx global>{`
+      .deck-analytics-table td:first-child { width: 48%; }
+      .personal-deck-cards { display: grid; grid-template-columns: repeat(8, minmax(27px, 1fr)); gap: 4px; align-items: center; min-width: 280px; }
+      .personal-deck-cards img { width: 100%; height: auto; max-height: 54px; object-fit: contain; margin: 0; }
+      .deck-analytics-table td { vertical-align: middle; }
+      .deck-analytics-table td strong { color: #f4fbff; }
+      .deck-record { display: block; margin-top: 4px; color: #8ea2c4; font: 10px Arial, sans-serif; }
+      .deck-modes { white-space: normal !important; line-height: 1.5; }
+      @media (max-width: 980px) {
+        .personal-deck-cards { min-width: 240px; }
+      }
+      @media (max-width: 680px) {
+        .deck-analytics-table th:nth-child(4), .deck-analytics-table td:nth-child(4), .deck-analytics-table th:nth-child(5), .deck-analytics-table td:nth-child(5) { display: none; }
+        .deck-analytics-table td:first-child { width: auto; }
+        .personal-deck-cards { min-width: 220px; }
+      }
+    `}</style>
+  );
+}
+
 export function CardCollection({ cards }: { cards: Card[] }) {
   if (!cards.length) return <EmptyPanel title="No cards available" copy="The API did not return this player's card collection." />;
   return (
@@ -202,7 +358,7 @@ export function CardCollection({ cards }: { cards: Card[] }) {
 }
 
 function MiniDeck({ cards }: { cards: Card[] }) {
-  return <div className="mini-deck">{cards.slice(0, 8).map((card, index) => <Image key={`${card.name}-${index}`} src={card.image} alt={card.name} width={42} height={52} />)}</div>;
+  return <div className="mini-deck">{cards.slice(0, 8).map((card, index) => <DeckThumbnail key={`${card.name}-${index}`} card={card} />)}</div>;
 }
 
 function CollectionCard({ card }: { card: Card }) {
@@ -210,7 +366,7 @@ function CollectionCard({ card }: { card: Card }) {
     <Link href={`/cards/${cardSlug(card.name)}`} className="collection-card">
       {card.isEvolution ? <span className="evo-flag">{variantArt(card)?.label === "Hero" ? "HERO" : "EVO"}</span> : null}
       {card.level ? <i className="card-level">{card.level}{card.maxLevel ? `/${card.maxLevel}` : ""}</i> : null}
-      <Image src={card.image} alt={card.name} width={82} height={100} />
+      <CardArt src={variantArt(card)?.src ?? card.image} alt={card.name} width={82} height={100} />
       <strong>{card.name}</strong>
       <span>{card.rarity} · {card.elixir || "?"} elixir</span>
     </Link>
@@ -227,18 +383,14 @@ function updatedLabel(fetchedAt?: number) {
   return minutes < 1 ? "updated just now" : `updated ${minutes}m ago`;
 }
 
-/**
- * Below this many real snapshots, the observed curve is mostly empty space —
- * a couple of dots tell a visitor less than the battle-derived guess does —
- * so the fallback wins until there's enough history to actually show a shape.
- */
-const MIN_OBSERVED_POINTS = 4;
+/** A single real snapshot is still more trustworthy than an inferred battle curve. */
+const MIN_OBSERVED_POINTS = 1;
 
 /**
  * Trophy chart for the Statistics tab. Prefers the real, visit-triggered
  * snapshots Convex has recorded for this player (`convex/cache.ts`'s
  * `history` query) and only falls back to a battle-derived guess when there
- * isn't enough observed history to plot.
+ * are no observed snapshots yet.
  *
  * `useQuery` needs the Convex provider `_app.tsx` only mounts when
  * `isConvexConfigured` (same constraint as `useCardCatalog.ts`), so the
@@ -271,9 +423,8 @@ function formatObservationWindow(spanMs: number) {
  * Plots the real snapshots Convex recorded for this profile. Each one was
  * taken the moment somebody viewed it and the trophy count had moved since
  * the last view, so the gaps between points are however long it took for
- * someone to look again — irregular and not meaningful. That's why this
- * draws discrete dots only: no connecting line, no fill, nothing that would
- * suggest a known value (or a known rise/fall) between two observations.
+ * someone to look again — irregular and not meaningful. The line is a compact
+ * trend guide between observed points, not a claim of continuous tracking.
  */
 function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] }) {
   const values = history.map((point) => point.value);
@@ -290,6 +441,7 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
     y: 210 - ((point.value - minimum) / range) * 170,
     value: point.value
   }));
+  const linePath = coordinates.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
   const latest = coordinates.at(-1) ?? { x: 470, y: 125, value: values.at(-1) ?? 0 };
 
   return (
@@ -306,10 +458,11 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
           <Image src="/images/icons/trophy.png" alt="" width={24} height={24} />
           <span>{maximum.toLocaleString()}</span><span>{Math.round((maximum + minimum) / 2).toLocaleString()}</span><span>{minimum.toLocaleString()}</span>
         </div>
-        <svg viewBox="0 0 930 250" aria-label="Observed trophy snapshots, plotted as discrete points">
+        <svg viewBox="0 0 930 250" aria-label="Observed trophy snapshots trend">
           {Array.from({ length: 10 }).map((_, index) => (
             <line key={index} x1={70 + index * 86} x2={70 + index * 86} y1="18" y2="205" className="grid-line" />
           ))}
+          {linePath ? <path d={linePath} /> : null}
           {coordinates.slice(0, -1).map((point, index) => (
             <circle key={index} cx={point.x} cy={point.y} r="5" className="chart-dot" />
           ))}
