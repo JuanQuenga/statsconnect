@@ -97,7 +97,9 @@ function parsePlayer(value: unknown): BrawlPlayer {
 }
 
 function parseBattle(value: unknown): BrawlBattle | null {
-  if (!record(value)) return null;
+  // Every real battle-log entry carries a battleTime; without it the entry is
+  // junk and would otherwise render as an empty "unknown" match.
+  if (!record(value) || typeof value.battleTime !== "string") return null;
   const event = record(value.event) ? value.event : null;
   const battle = record(value.battle) ? value.battle : null;
   return {

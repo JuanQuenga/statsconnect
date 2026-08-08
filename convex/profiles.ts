@@ -10,6 +10,7 @@ import { ownerKey, toPublicDisplay } from "./model";
 import {
   connectedProfileValidator,
   gameIdValidator,
+  profileIdValidator,
   summaryResultValidator,
 } from "./validators";
 
@@ -27,7 +28,7 @@ function publicTag(input: string): string {
 export const getHubState = query({
   args: { viewerId: v.string() },
   returns: v.object({
-    activeProfileId: v.union(v.string(), v.null()),
+    activeProfileId: v.union(profileIdValidator, v.null()),
     profiles: v.array(connectedProfileValidator),
   }),
   handler: async (ctx, args) => {
@@ -41,9 +42,9 @@ export const getHubState = query({
       ctx.db.query("viewerSettings").withIndex("by_owner_key", (index) => index.eq("ownerKey", key)).unique(),
     ]);
     return {
-      activeProfileId: settings?.activeProfileId ? String(settings.activeProfileId) : null,
+      activeProfileId: settings?.activeProfileId ?? null,
       profiles: profiles.map((profile) => ({
-        id: String(profile._id),
+        id: profile._id,
         game: profile.game,
         playerTag: `#${profile.playerTag}`,
         display: toPublicDisplay(profile.display),
@@ -60,16 +61,17 @@ export const preview = action({
   returns: summaryResultValidator,
   handler: async (ctx, args) => {
     const key = ownerKey(args.viewerId);
-    await ctx.runMutation(internal.internal.connectThrottle.checkAndRecord, { ownerKey: key });
     const tag = publicTag(args.playerTag);
+    await ctx.runMutation(internal.internal.connectThrottle.checkAndRecord, { ownerKey: key });
     const adapter = getAdapter(args.game);
-    return await readThrough(ctx, {
+    const { result } = await readThrough(ctx, {
       game: args.game,
       playerTag: tag,
       resource: "summary",
       guard: isProfileSummary,
       load: () => adapter.connectProfile(tag),
     });
+    return result;
   },
 });
 
@@ -77,15 +79,15 @@ export const connect = action({
   args: { viewerId: v.string(), game: gameIdValidator, playerTag: v.string() },
   returns: v.object({
     profile: connectedProfileValidator,
-    activeProfileId: v.string(),
+    activeProfileId: profileIdValidator,
     summary: summaryResultValidator,
   }),
   handler: async (ctx, args) => {
     const key = ownerKey(args.viewerId);
-    await ctx.runMutation(internal.internal.connectThrottle.checkAndRecord, { ownerKey: key });
     const tag = publicTag(args.playerTag);
+    await ctx.runMutation(internal.internal.connectThrottle.checkAndRecord, { ownerKey: key });
     const adapter = getAdapter(args.game);
-    const summary = await readThrough(ctx, {
+    const { result: summary } = await readThrough(ctx, {
       game: args.game,
       playerTag: tag,
       resource: "summary",
@@ -105,13 +107,13 @@ export const connect = action({
 
 export const disconnect = mutation({
   args: { viewerId: v.string(), profileId: v.id("connectedProfiles") },
-  returns: v.object({ removed: v.boolean(), activeProfileId: v.union(v.string(), v.null()) }),
+  returns: v.object({ removed: v.boolean(), activeProfileId: v.union(profileIdValidator, v.null()) }),
   handler: async (ctx, args) => {
     const key = ownerKey(args.viewerId);
     const settings = await ctx.db.query("viewerSettings").withIndex("by_owner_key", (index) => index.eq("ownerKey", key)).unique();
     const profile = await ctx.db.get(args.profileId);
     if (!profile || profile.ownerKey !== key) {
-      return { removed: false, activeProfileId: settings?.activeProfileId ? String(settings.activeProfileId) : null };
+      return { removed: false, activeProfileId: settings?.activeProfileId ?? null };
     }
     await ctx.db.delete(profile._id);
     let activeProfileId = settings?.activeProfileId ?? null;
@@ -124,13 +126,13 @@ export const disconnect = mutation({
       activeProfileId = newest[0]?._id ?? null;
     }
     if (settings) await ctx.db.patch(settings._id, { activeProfileId, updatedAt: Date.now() });
-    return { removed: true, activeProfileId: activeProfileId ? String(activeProfileId) : null };
+    return { removed: true, activeProfileId };
   },
 });
 
 export const setActive = mutation({
   args: { viewerId: v.string(), profileId: v.id("connectedProfiles") },
-  returns: v.object({ activeProfileId: v.string() }),
+  returns: v.object({ activeProfileId: profileIdValidator }),
   handler: async (ctx, args) => {
     const key = ownerKey(args.viewerId);
     const profile = await ctx.db.get(args.profileId);
@@ -142,6 +144,6 @@ export const setActive = mutation({
     if (settings) await ctx.db.patch(settings._id, { activeProfileId: profile._id, updatedAt: now });
     else await ctx.db.insert("viewerSettings", { ownerKey: key, activeProfileId: profile._id, createdAt: now, updatedAt: now });
     await ctx.db.patch(profile._id, { updatedAt: now });
-    return { activeProfileId: String(profile._id) };
+    return { activeProfileId: profile._id };
   },
 });

@@ -86,8 +86,10 @@ export const statsResultValidator = v.object({
   cache: cacheMetadataValidator,
 });
 
+export const profileIdValidator = v.id("connectedProfiles");
+
 export const connectedProfileValidator = v.object({
-  id: v.string(),
+  id: profileIdValidator,
   game: gameIdValidator,
   playerTag: v.string(),
   display: publicProfileDisplayValidator,

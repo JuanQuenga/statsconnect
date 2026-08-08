@@ -28,7 +28,7 @@ export function SiteNav() {
       </nav>
       {open ? (
         <div className="content-column space-y-2 border-t border-border/50 py-3 sm:hidden">
-          <GameSwitcher hub={hub} />
+          <GameSwitcher hub={hub} onNavigate={() => setOpen(false)} />
           <div className="grid grid-cols-2 gap-2">
             <Link to="/connect" onClick={() => setOpen(false)} className="rounded-lg bg-muted px-3 py-2 text-center text-sm font-medium no-underline">Connect</Link>
             <Link to="/settings/connections" onClick={() => setOpen(false)} className="rounded-lg bg-muted px-3 py-2 text-center text-sm font-medium no-underline">Settings</Link>

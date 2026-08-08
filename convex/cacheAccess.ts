@@ -27,6 +27,13 @@ function sourceFor(game: GameId, resultState: AdapterResult<unknown>["cache"]["s
   return game === "clash-royale" ? "direct" : "service";
 }
 
+/**
+ * `synced` is true only when this call actually reached the adapter and stored
+ * fresh data. Cache hits and stale fallbacks report false, so callers can avoid
+ * rewriting the connected-profile snapshot on a plain read (spec §6).
+ */
+export type ReadThroughResult<T> = { result: AdapterResult<T>; synced: boolean };
+
 export async function readThrough<T>(
   ctx: ActionCtx,
   options: {
@@ -36,7 +43,7 @@ export async function readThrough<T>(
     guard: (value: unknown) => value is T;
     load: () => Promise<AdapterLoadResult<T>>;
   },
-): Promise<AdapterResult<T>> {
+): Promise<ReadThroughResult<T>> {
   const cached = await ctx.runQuery(internal.internal.profileCache.get, {
     game: options.game,
     playerTag: options.playerTag,
@@ -54,8 +61,11 @@ export async function readThrough<T>(
   }
   if (cached && parsed && cached.expiresAt > now) {
     return {
-      data: parsed,
-      cache: { state: cached.source === "stub" ? "stub" : "hit", fetchedAt: cached.fetchedAt, expiresAt: cached.expiresAt },
+      result: {
+        data: parsed,
+        cache: { state: cached.source === "stub" ? "stub" : "hit", fetchedAt: cached.fetchedAt, expiresAt: cached.expiresAt },
+      },
+      synced: false,
     };
   }
 
@@ -75,23 +85,27 @@ export async function readThrough<T>(
       if (!valid) {
         throw new AdapterError("BAD_UPSTREAM_RESPONSE", "The game service returned unexpected cached statistics.");
       }
-      await ctx.runMutation(internal.internal.profileCache.put, {
-        game: options.game,
-        playerTag: options.playerTag,
-        resource: row.resource,
-        payload: JSON.stringify(row.data),
-        source: sourceFor(options.game, fresh.cache.state),
-        fetchedAt: fresh.cache.fetchedAt,
-        expiresAt: fresh.cache.expiresAt,
-        staleUntil: fresh.cache.expiresAt + 86_400_000,
-      });
     }
-    return { data: fresh.data, cache: fresh.cache };
+    await ctx.runMutation(internal.internal.profileCache.put, {
+      game: options.game,
+      playerTag: options.playerTag,
+      rows: rows.map((row) => ({ resource: row.resource, payload: JSON.stringify(row.data) })),
+      source: sourceFor(options.game, fresh.cache.state),
+      fetchedAt: fresh.cache.fetchedAt,
+      expiresAt: fresh.cache.expiresAt,
+      staleUntil: fresh.cache.expiresAt + 86_400_000,
+    });
+    return { result: { data: fresh.data, cache: fresh.cache }, synced: true };
   } catch (error) {
     if (cached && parsed && cached.staleUntil > now) {
       return {
-        data: parsed,
-        cache: { state: "stale", fetchedAt: cached.fetchedAt, expiresAt: cached.expiresAt },
+        result: {
+          data: parsed,
+          // A stub-written row keeps its stub provenance even when it goes stale,
+          // so the UI never labels sample data as real cached statistics.
+          cache: { state: cached.source === "stub" ? "stub" : "stale", fetchedAt: cached.fetchedAt, expiresAt: cached.expiresAt },
+        },
+        synced: false,
       };
     }
     return publicError(error);

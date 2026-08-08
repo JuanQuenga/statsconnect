@@ -15,14 +15,14 @@ export const getSummary = action({
       throw new ConvexError({ code: "PROFILE_NOT_CONNECTED", message: "That profile is not connected to this browser." });
     }
     const adapter = getAdapter(profile.game);
-    const result = await readThrough(ctx, {
+    const { result, synced } = await readThrough(ctx, {
       game: profile.game,
       playerTag: profile.playerTag,
       resource: "summary",
       guard: isProfileSummary,
       load: () => adapter.getProfileSummary(profile.playerTag),
     });
-    if (result.cache.state === "refreshed" || result.cache.state === "stub") {
+    if (synced) {
       await ctx.runMutation(internal.internal.profileWrites.refreshSnapshot, {
         profileId: profile.id,
         ownerKey: profile.ownerKey,
@@ -48,14 +48,14 @@ export const getStats = action({
       throw new ConvexError({ code: "PROFILE_NOT_CONNECTED", message: "That profile is not connected to this browser." });
     }
     const adapter = getAdapter(profile.game);
-    const result = await readThrough(ctx, {
+    const { result, synced } = await readThrough(ctx, {
       game: profile.game,
       playerTag: profile.playerTag,
       resource: "stats",
       guard: isProfileStats,
       load: () => adapter.getStats(profile.playerTag),
     });
-    if (result.cache.state === "refreshed" || result.cache.state === "stub") {
+    if (synced) {
       await ctx.runMutation(internal.internal.profileWrites.refreshSnapshot, {
         profileId: profile.id,
         ownerKey: profile.ownerKey,

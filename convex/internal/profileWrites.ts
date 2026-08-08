@@ -1,7 +1,8 @@
 import { v } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery } from "../_generated/server";
-import { ownerKey, toPublicDisplay, toStoredDisplay } from "../model";
-import { connectedProfileValidator, gameIdValidator, publicProfileDisplayValidator } from "../validators";
+import { ownerKey, toStoredDisplay } from "../model";
+import { connectedProfileValidator, gameIdValidator, profileIdValidator, publicProfileDisplayValidator } from "../validators";
 
 export const getOwned = internalQuery({
   args: { viewerId: v.string(), profileId: v.id("connectedProfiles") },
@@ -29,7 +30,7 @@ export const upsert = internalMutation({
     display: publicProfileDisplayValidator,
     syncedAt: v.number(),
   },
-  returns: v.object({ profile: connectedProfileValidator, activeProfileId: v.string() }),
+  returns: v.object({ profile: connectedProfileValidator, activeProfileId: profileIdValidator }),
   handler: async (ctx, args) => {
     const key = ownerKey(args.viewerId);
     const now = Date.now();
@@ -38,7 +39,7 @@ export const upsert = internalMutation({
       .withIndex("by_owner_key_and_game", (query) => query.eq("ownerKey", key).eq("game", args.game))
       .unique();
     const display = toStoredDisplay(args.display);
-    let id;
+    let id: Id<"connectedProfiles">;
     let connectedAt = now;
     if (existing) {
       connectedAt = existing.playerTag === args.playerTag ? existing.connectedAt : now;
@@ -66,7 +67,7 @@ export const upsert = internalMutation({
     else await ctx.db.insert("viewerSettings", { ownerKey: key, activeProfileId: id, createdAt: now, updatedAt: now });
     return {
       profile: {
-        id: String(id),
+        id,
         game: args.game,
         playerTag: `#${args.playerTag}`,
         display: args.display,
@@ -74,7 +75,7 @@ export const upsert = internalMutation({
         updatedAt: now,
         lastSyncedAt: args.syncedAt,
       },
-      activeProfileId: String(id),
+      activeProfileId: id,
     };
   },
 });
@@ -109,23 +110,5 @@ export const touch = internalMutation({
       await ctx.db.patch(profile._id, { updatedAt: Date.now() });
     }
     return null;
-  },
-});
-
-export const publicProfile = internalQuery({
-  args: { profileId: v.id("connectedProfiles") },
-  returns: v.union(connectedProfileValidator, v.null()),
-  handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) return null;
-    return {
-      id: String(profile._id),
-      game: profile.game,
-      playerTag: `#${profile.playerTag}`,
-      display: toPublicDisplay(profile.display),
-      connectedAt: profile.connectedAt,
-      updatedAt: profile.updatedAt,
-      lastSyncedAt: profile.lastSyncedAt,
-    };
   },
 });

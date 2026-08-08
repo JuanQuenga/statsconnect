@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,7 +37,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
     },
   });
 
-  function submitPreview(event: FormEvent<HTMLFormElement>) {
+  function submitPreview(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!tag || validation) return;
     previewMutation.mutate();

@@ -96,7 +96,9 @@ function firstRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function parseBattle(value: unknown): ClashBattle | null {
-  if (!record(value)) return null;
+  // Every real battlelog entry carries a battleTime; without it the entry is
+  // junk and would otherwise be cached as an "unknown" match with no warning.
+  if (!record(value) || typeof value.battleTime !== "string") return null;
   const gameMode = record(value.gameMode) ? value.gameMode : null;
   const arena = record(value.arena) ? value.arena : null;
   const team = firstRecord(value.team);
