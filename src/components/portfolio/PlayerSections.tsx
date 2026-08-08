@@ -124,7 +124,11 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
         <span />
       </div>
       <div className="stat-matrix performance-stats">
-        <PerformanceStat icon="/images/icons/sword.png" value={`${performance.wins}–${performance.losses}`} label="W / L record" />
+        <PerformanceStat
+          icon="/images/icons/sword.png"
+          value={performance.draws ? `${performance.wins}–${performance.losses}–${performance.draws}` : `${performance.wins}–${performance.losses}`}
+          label={performance.draws ? "W / L / D record" : "W / L record"}
+        />
         <PerformanceStat icon="/images/icons/trophy.png" value={`${performance.winRate.toFixed(1)}%`} label="Win rate" />
         <PerformanceStat icon="/images/icons/crown-gold.png" value={`${performance.threeCrownRate.toFixed(1)}%`} label={`${performance.threeCrownWins} three-crown wins`} />
         <PerformanceStat icon="/images/icons/sword.png" value={`${performance.currentWinStreak} / ${performance.bestWinStreak}`} label="Current / best streak" />
@@ -158,11 +162,11 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
                 title={`${battle.result} · ${battle.mode}`}
                 aria-label={`${battle.result}, ${battle.mode}`}
               >
-                {battle.result === "Win" ? "W" : "L"}
+                {battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L"}
               </span>
             ))}
           </div>
-          <div className="form-legend"><span><i className="form-pip win">W</i> Win</span><span><i className="form-pip loss">L</i> Loss</span></div>
+          <div className="form-legend"><span><i className="form-pip win">W</i> Win</span><span><i className="form-pip loss">L</i> Loss</span><span><i className="form-pip draw">D</i> Draw</span></div>
           <p className="table-note">Newest first · {performance.recent.length} of {performance.games} battles shown</p>
         </div>
       </div>
@@ -195,6 +199,7 @@ function PerformanceStyles() {
       .form-pip { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 50%; color: white; font: 700 11px Arial, sans-serif; font-style: normal; }
       .form-pip.win { background: #218b61; box-shadow: 0 0 0 1px rgba(83, 220, 151, .3) inset; }
       .form-pip.loss { background: #a63c5b; box-shadow: 0 0 0 1px rgba(255, 126, 153, .3) inset; }
+      .form-pip.draw { background: #4a5a78; box-shadow: 0 0 0 1px rgba(142, 162, 196, .3) inset; }
       .form-legend { display: flex; gap: 16px; margin-top: 18px; color: #8ea2c4; font: 11px Arial, sans-serif; }
       .form-legend span { display: inline-flex; align-items: center; gap: 6px; }
       .form-legend .form-pip { width: 18px; height: 18px; font-size: 9px; }

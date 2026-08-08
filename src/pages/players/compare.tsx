@@ -176,7 +176,8 @@ function PlayerHead({ player }: { player: Player }) {
 }
 
 function DeckComparison({ first, second }: { first: Player; second: Player }) {
-  const shared = new Set([...first.deck, ...second.deck].map(cardKey));
+  const firstKeys = new Set(first.deck.map(cardKey));
+  const shared = new Set(second.deck.map(cardKey).filter((key) => firstKeys.has(key)));
   return (
     <section className={`profile-section ${styles.deckPanel}`}>
       <h2>Current decks</h2>

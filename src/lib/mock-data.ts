@@ -21,7 +21,7 @@ export type Card = {
 export type Battle = {
   mode: string;
   date: string;
-  result: "Win" | "Loss";
+  result: "Win" | "Loss" | "Draw";
   crowns: [number, number];
   opponent: string;
   opponentClan?: string;

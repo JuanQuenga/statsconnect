@@ -17,7 +17,7 @@ const RANKING_WINDOWS = [1, 7] as const;
 /** Matches the deck ranking's CLASH_MIN_DECK_USES default in `crawler.ts`. */
 const MIN_TOWER_USES = 5;
 const MIN_MATCHUP_USES = 5;
-const PROFILE_HISTORY_KEEP = 500;
+const PROFILE_HISTORY_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
 
 const observation = v.object({
   fingerprint: v.string(),
@@ -466,27 +466,14 @@ export const pruneBatch = internalMutation({
       }
     }
 
-    // The profile index groups snapshots by player, which lets us inspect a
-    // bounded candidate set and delete only the oldest rows beyond the cap.
-    const historyCandidates = await ctx.db
-      .query("profileHistory")
-      .withIndex("by_profile")
-      .take(PROFILE_HISTORY_KEEP + 1);
-    const profileKeys = new Set(historyCandidates.map((row) => `${row.kind}:${row.tag}`));
-    let staleHistory = 0;
-    for (const key of profileKeys) {
-      const separator = key.indexOf(":");
-      const kind = key.slice(0, separator) as "player" | "clan";
-      const tag = key.slice(separator + 1);
-      const snapshots = await ctx.db
-        .query("profileHistory")
-        .withIndex("by_profile", (q) => q.eq("kind", kind).eq("tag", tag))
-        .order("asc")
-        .take(PROFILE_HISTORY_KEEP + 256);
-      const excess = snapshots.slice(0, Math.max(0, snapshots.length - PROFILE_HISTORY_KEEP));
-      for (const row of excess) await ctx.db.delete(row._id);
-      staleHistory += excess.length;
-    }
+    // A plain query streams oldest-first over the built-in by_creation_time
+    // index, so an age cutoff prunes every profile evenly in bounded batches.
+    const historyCutoff = Date.now() - PROFILE_HISTORY_RETENTION_MS;
+    const staleHistoryRows = (await ctx.db.query("profileHistory").take(256)).filter(
+      (row) => row._creationTime < historyCutoff
+    );
+    for (const row of staleHistoryRows) await ctx.db.delete(row._id);
+    const staleHistory = staleHistoryRows.length;
 
     const logCutoff = Date.now() - 7 * 86_400_000;
     const staleLogs = await ctx.db

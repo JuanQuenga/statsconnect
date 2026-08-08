@@ -64,6 +64,7 @@ export type PersonalBattlePerformance = {
   games: number;
   wins: number;
   losses: number;
+  draws: number;
   winRate: number;
   threeCrownWins: number;
   threeCrownRate: number;
@@ -97,8 +98,9 @@ export function personalDeckKey(cards: Card[]) {
  */
 export function analyzePlayerBattles(battles: Battle[]): PersonalBattlePerformance {
   const wins = battles.filter((battle) => battle.result === "Win").length;
+  const losses = battles.filter((battle) => battle.result === "Loss").length;
   const recent = battles.slice(0, 10);
-  const modeMap = new Map<string, { games: number; wins: number }>();
+  const modeMap = new Map<string, { games: number; wins: number; losses: number }>();
   const deckMap = new Map<string, PersonalDeckPerformance>();
 
   let currentWinStreak = 0;
@@ -106,9 +108,10 @@ export function analyzePlayerBattles(battles: Battle[]): PersonalBattlePerforman
   let runningStreak = 0;
 
   for (const battle of battles) {
-    const mode = modeMap.get(battle.mode) ?? { games: 0, wins: 0 };
+    const mode = modeMap.get(battle.mode) ?? { games: 0, wins: 0, losses: 0 };
     mode.games += 1;
     mode.wins += battle.result === "Win" ? 1 : 0;
+    mode.losses += battle.result === "Loss" ? 1 : 0;
     modeMap.set(battle.mode, mode);
 
     if (battle.result === "Win") {
@@ -146,7 +149,7 @@ export function analyzePlayerBattles(battles: Battle[]): PersonalBattlePerforman
       mode,
       games: stats.games,
       wins: stats.wins,
-      losses: stats.games - stats.wins,
+      losses: stats.losses,
       winRate: percentage(stats.wins, stats.games)
     }))
     .sort((left, right) => right.games - left.games || right.winRate - left.winRate || left.mode.localeCompare(right.mode));
@@ -164,7 +167,8 @@ export function analyzePlayerBattles(battles: Battle[]): PersonalBattlePerforman
   return {
     games: battles.length,
     wins,
-    losses: battles.length - wins,
+    losses,
+    draws: battles.length - wins - losses,
     winRate: percentage(wins, battles.length),
     threeCrownWins,
     threeCrownRate: percentage(threeCrownWins, battles.length),

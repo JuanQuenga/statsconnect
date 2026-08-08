@@ -76,7 +76,7 @@ function mapBattle(battle: ApiBattle): Battle {
   return {
     mode: battle.gameMode?.name ?? battle.type ?? "Battle",
     date: formatBattleDate(battle.battleTime),
-    result: ourCrowns >= theirCrowns ? "Win" : "Loss",
+    result: ourCrowns > theirCrowns ? "Win" : ourCrowns < theirCrowns ? "Loss" : "Draw",
     crowns: [ourCrowns, theirCrowns],
     opponent: opponent?.name ?? "Unknown player",
     opponentClan: opponent?.clan?.name,

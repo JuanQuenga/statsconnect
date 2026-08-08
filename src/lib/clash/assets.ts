@@ -36,6 +36,20 @@ export function slugify(value: string) {
  * eleven Hero cards that have no Evolution at all, so reading it as "can evolve"
  * is what put an EVO badge on Balloon, Bowler and Tombstone.
  */
+/** Cards with vendored -hero art under public/images/cards, per scripts/sync-assets.mjs. */
+const HERO_CARD_SLUGS = new Set([
+  "barbarian-barrel",
+  "giant",
+  "goblins",
+  "ice-golem",
+  "knight",
+  "magic-archer",
+  "mega-minion",
+  "mini-pekka",
+  "musketeer",
+  "wizard"
+]);
+
 export function evolutionCardImage(card: { iconUrls?: ApiIconUrls }): string | undefined {
   return card.iconUrls?.evolutionMedium;
 }
@@ -78,8 +92,11 @@ export function cardImage(card: {
     const variant = card.iconUrls?.heroMedium ?? card.iconUrls?.evolutionMedium;
     if (variant) return variant;
     if (card.name) {
-      const suffix = card.iconUrls?.heroMedium ? "-hero" : "-ev1";
-      return `/images/cards/${slugify(card.name)}${suffix}.png`;
+      // Without API URLs the hero cards are only recognizable by name; the set
+      // mirrors the -hero files vendored by scripts/sync-assets.mjs.
+      const slug = slugify(card.name);
+      const suffix = HERO_CARD_SLUGS.has(slug) ? "-hero" : "-ev1";
+      return `/images/cards/${slug}${suffix}.png`;
     }
   }
   if (card.iconUrls?.medium) return card.iconUrls.medium;

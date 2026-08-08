@@ -1582,6 +1582,8 @@ button:disabled { cursor: wait; opacity: .62; }
   background: rgba(8, 24, 44, .72);
 }
 .battle-card.loss { border-left-color: #e14f70; }
+.battle-card.draw { border-left-color: #8ea2c4; }
+.battle-card.draw .battle-result strong { color: #8ea2c4; }
 .battle-result,
 .battle-opponent,
 .battle-score { display: grid; gap: 5px; }
