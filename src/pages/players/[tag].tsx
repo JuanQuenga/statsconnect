@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -65,7 +66,16 @@ function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undef
         ) : null}
         {activeTab === "Battles" ? <BattleHistory battles={player.battles} /> : null}
         {activeTab === "Decks" ? <><DeckAnalyticsSection battles={player.battles} /><DeckOverview cards={player.deck} supportCards={player.supportCards} /></> : null}
-        {activeTab === "Cards" ? <CardCollection cards={player.cards} /> : null}
+        {activeTab === "Cards" ? (
+          <>
+            <div className="section-heading compact-heading">
+              <span />
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="pink-button">Upgrade Planner</Link>
+              <span />
+            </div>
+            <CardCollection cards={player.cards} />
+          </>
+        ) : null}
         <ChestList chests={player.chests} />
       </div>
     </Layout>
