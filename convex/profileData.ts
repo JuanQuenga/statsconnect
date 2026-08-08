@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import { isProfileStats, isProfileSummary } from "./adapters/guards";
+import type { AdapterResult, ProfileStats, ProfileSummary } from "./adapters/types";
 import { getAdapter } from "./adapters/registry";
 import { readThrough } from "./cacheAccess";
 import { statsResultValidator, summaryResultValidator } from "./validators";
@@ -9,7 +10,7 @@ import { statsResultValidator, summaryResultValidator } from "./validators";
 export const getSummary = action({
   args: { viewerId: v.string(), profileId: v.id("connectedProfiles") },
   returns: summaryResultValidator,
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<AdapterResult<ProfileSummary>> => {
     const profile = await ctx.runQuery(internal.internal.profileWrites.getOwned, args);
     if (!profile) {
       throw new ConvexError({ code: "PROFILE_NOT_CONNECTED", message: "That profile is not connected to this browser." });
@@ -42,7 +43,7 @@ export const getSummary = action({
 export const getStats = action({
   args: { viewerId: v.string(), profileId: v.id("connectedProfiles") },
   returns: statsResultValidator,
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<AdapterResult<ProfileStats>> => {
     const profile = await ctx.runQuery(internal.internal.profileWrites.getOwned, args);
     if (!profile) {
       throw new ConvexError({ code: "PROFILE_NOT_CONNECTED", message: "That profile is not connected to this browser." });

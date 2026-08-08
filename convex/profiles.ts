@@ -1,10 +1,10 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
 import { isProfileSummary } from "./adapters/guards";
 import { getAdapter } from "./adapters/registry";
 import { normalizeTag } from "./adapters/tags";
-import { AdapterError } from "./adapters/types";
+import { AdapterError, type AdapterResult, type ProfileSummary } from "./adapters/types";
 import { readThrough } from "./cacheAccess";
 import { ownerKey, toPublicDisplay } from "./model";
 import {
@@ -82,7 +82,14 @@ export const connect = action({
     activeProfileId: profileIdValidator,
     summary: summaryResultValidator,
   }),
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    profile: Infer<typeof connectedProfileValidator>;
+    activeProfileId: Infer<typeof profileIdValidator>;
+    summary: AdapterResult<ProfileSummary>;
+  }> => {
     const key = ownerKey(args.viewerId);
     const tag = publicTag(args.playerTag);
     await ctx.runMutation(internal.internal.connectThrottle.checkAndRecord, { ownerKey: key });
