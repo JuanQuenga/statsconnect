@@ -16,6 +16,7 @@ import type * as adapters_stub from "../adapters/stub.js";
 import type * as adapters_tags from "../adapters/tags.js";
 import type * as adapters_types from "../adapters/types.js";
 import type * as cacheAccess from "../cacheAccess.js";
+import type * as crons from "../crons.js";
 import type * as internal_connectThrottle from "../internal/connectThrottle.js";
 import type * as internal_profileCache from "../internal/profileCache.js";
 import type * as internal_profileWrites from "../internal/profileWrites.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   "adapters/tags": typeof adapters_tags;
   "adapters/types": typeof adapters_types;
   cacheAccess: typeof cacheAccess;
+  crons: typeof crons;
   "internal/connectThrottle": typeof internal_connectThrottle;
   "internal/profileCache": typeof internal_profileCache;
   "internal/profileWrites": typeof internal_profileWrites;

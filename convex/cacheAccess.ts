@@ -1,16 +1,22 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { ActionCtx } from "./_generated/server";
+import { internalAction, type ActionCtx } from "./_generated/server";
 import { isProfileStats, isProfileSummary } from "./adapters/guards";
+import { getAdapter } from "./adapters/registry";
 import {
   AdapterError,
   type AdapterLoadResult,
   type AdapterResult,
   type GameId,
+  type ProfileStats,
+  type ProfileSummary,
 } from "./adapters/types";
 
 type Resource = "summary" | "stats";
 type Source = "direct" | "service" | "stub";
+
+const REFRESH_BUDGET = 10;
+const PRUNE_BUDGET = 200;
 
 function publicError(error: unknown): never {
   if (error instanceof AdapterError) {
@@ -111,3 +117,111 @@ export async function readThrough<T>(
     return publicError(error);
   }
 }
+
+async function refreshResource(
+  ctx: ActionCtx,
+  candidate: { game: GameId; playerTag: string },
+  resource: Resource,
+): Promise<ReadThroughResult<ProfileSummary | ProfileStats>> {
+  const adapter = getAdapter(candidate.game);
+  if (resource === "summary") {
+    return readThrough(ctx, {
+      ...candidate,
+      resource,
+      guard: isProfileSummary,
+      load: () => adapter.getProfileSummary(candidate.playerTag),
+    });
+  }
+  return readThrough(ctx, {
+    ...candidate,
+    resource,
+    guard: isProfileStats,
+    load: () => adapter.getStats(candidate.playerTag),
+  });
+}
+
+export const refreshExpiredConnected = internalAction({
+  args: {},
+  returns: v.object({
+    attemptedProfiles: v.number(),
+    refreshedResources: v.number(),
+    failedResources: v.number(),
+  }),
+  handler: async (ctx): Promise<{
+    attemptedProfiles: number;
+    refreshedResources: number;
+    failedResources: number;
+  }> => {
+    const candidates = await ctx.runQuery(internal.internal.profileCache.listExpiredConnected, {
+      now: Date.now(),
+      limit: REFRESH_BUDGET,
+    });
+    let refreshedResources = 0;
+    let failedResources = 0;
+
+    for (const candidate of candidates) {
+      for (const resource of ["summary", "stats"] as const) {
+        try {
+          const refreshed = await refreshResource(ctx, candidate, resource);
+          if (refreshed.synced) refreshedResources += 1;
+          else if (refreshed.result.cache.state === "stale") failedResources += 1;
+        } catch (error) {
+          failedResources += 1;
+          console.warn("Background profile cache refresh failed", {
+            game: candidate.game,
+            playerTag: candidate.playerTag,
+            resource,
+            error,
+          });
+        }
+      }
+    }
+
+    return {
+      attemptedProfiles: candidates.length,
+      refreshedResources,
+      failedResources,
+    };
+  },
+});
+
+export const pruneExpired = internalAction({
+  args: {},
+  returns: v.object({
+    profileCacheRows: v.number(),
+    connectThrottleRows: v.number(),
+    failedBranches: v.number(),
+  }),
+  handler: async (ctx): Promise<{
+    profileCacheRows: number;
+    connectThrottleRows: number;
+    failedBranches: number;
+  }> => {
+    const now = Date.now();
+    let profileCacheRows = 0;
+    let connectThrottleRows = 0;
+    let failedBranches = 0;
+
+    try {
+      profileCacheRows = await ctx.runMutation(internal.internal.profileCache.pruneExpired, {
+        now,
+        limit: PRUNE_BUDGET,
+      });
+    } catch (error) {
+      failedBranches += 1;
+      console.warn("Background profile cache pruning failed", { error });
+    }
+
+    try {
+      connectThrottleRows = await ctx.runMutation(internal.internal.connectThrottle.pruneExpired, {
+        now,
+        limit: PRUNE_BUDGET,
+      });
+    } catch (error) {
+      failedBranches += 1;
+      console.warn("Background connect throttle pruning failed", { error });
+    }
+
+    return { profileCacheRows, connectThrottleRows, failedBranches };
+  },
+});

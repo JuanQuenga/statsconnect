@@ -34,7 +34,8 @@ export default defineSchema({
     lastSyncedAt: v.number(),
   })
     .index("by_owner_key_and_game", ["ownerKey", "game"])
-    .index("by_owner_key_and_connected_at", ["ownerKey", "connectedAt"]),
+    .index("by_owner_key_and_connected_at", ["ownerKey", "connectedAt"])
+    .index("by_game_and_player_tag", ["game", "playerTag"]),
 
   viewerSettings: defineTable({
     ownerKey: v.string(),
@@ -47,7 +48,9 @@ export default defineSchema({
     ownerKey: v.string(),
     attempts: v.array(v.number()),
     updatedAt: v.number(),
-  }).index("by_owner_key", ["ownerKey"]),
+  })
+    .index("by_owner_key", ["ownerKey"])
+    .index("by_updated_at", ["updatedAt"]),
 
   profileCache: defineTable({
     game: gameIdValidator,
@@ -69,5 +72,6 @@ export default defineSchema({
       "playerTag",
       "resource",
     ])
+    .index("by_expires_at", ["expiresAt"])
     .index("by_stale_until", ["staleUntil"]),
 });

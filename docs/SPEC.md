@@ -283,6 +283,11 @@ External requests live in Convex **actions**; DB access goes through internal qu
 - No public `force` refresh parameter (protects shared upstream quota).
 - UI shows a small stale indicator but keeps rendering data.
 
+### Background pipelines
+
+- Every 10 minutes, an internal cron refreshes expired summary and stats cache entries for up to 10 distinct connected `(game, playerTag)` pairs, oldest first. It uses the same adapter-backed read-through path as foreground requests and isolates failures per resource.
+- Every hour, an internal pruning cron removes bounded batches of cache rows past `staleUntil` when no connected profile references the pair, plus connect-throttle rows older than the throttle window. Neither job adds a public function.
+
 ### Stub mode
 `STATSCONNECT_ADAPTER_MODE = "live" | "stub"` (deployment env, default `live`). Stub adapter implements `GameAdapter` with **deterministic** fixtures derived from the normalized tag, real contract shapes, representative metrics/roster/loadout/matches/upcoming, `cache.state: "stub"`. Never silently enabled in production; in live mode missing config throws `NOT_CONFIGURED`. Stub rows either skip the shared cache or persist with `source: "stub"` and the 60 s TTL.
 
