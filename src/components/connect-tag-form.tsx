@@ -29,6 +29,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
     mutationFn: () => dataClient.connect(game, tag),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ["hub-state"] });
+      await queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
       await navigate({
         to: "/games/$game/$tag",
         params: { game, tag: normalizeTag(result.profile.playerTag) },
