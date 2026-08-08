@@ -43,6 +43,12 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_owner_key", ["ownerKey"]),
 
+  connectThrottles: defineTable({
+    ownerKey: v.string(),
+    attempts: v.array(v.number()),
+    updatedAt: v.number(),
+  }).index("by_owner_key", ["ownerKey"]),
+
   profileCache: defineTable({
     game: gameIdValidator,
     playerTag: v.string(),

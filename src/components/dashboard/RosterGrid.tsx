@@ -1,0 +1,5 @@
+import type { ProfileItem } from "@/lib/contracts";
+
+export function RosterGrid({ items }: { items: ProfileItem[] }) {
+  return <section><h2 className="font-display text-2xl font-semibold">Roster</h2>{items.length ? <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">{items.map((item) => <article key={item.id} className="overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3">{item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" className="mx-auto aspect-square w-full object-contain" /> : <div className="grid aspect-square place-items-center rounded-lg bg-muted text-2xl font-semibold">{item.name.slice(0, 1)}</div>}<p className="mt-3 truncate text-sm font-semibold">{item.name}</p><p className="mt-1 text-xs text-muted-foreground">{item.level !== null ? `Level ${item.level}` : "Level unavailable"}{item.score !== null ? ` · ${item.score.toLocaleString()}` : ""}</p></article>)}</div> : <p className="mt-3 text-sm text-muted-foreground">No roster data is available.</p>}</section>;
+}
