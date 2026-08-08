@@ -1,0 +1,9 @@
+.vercel
+.DS_Store
+node_modules
+dist
+.env
+.env.local
+*.local
+.pnpm-store
+convex/_generated
