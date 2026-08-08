@@ -1,4 +1,5 @@
 import { parseApiDate } from "./format";
+import type { Battle, Card } from "@/lib/mock-data";
 import type { ApiBattle, ApiBattleParticipant } from "./types";
 
 /**
@@ -40,6 +41,140 @@ export type DeckObservation = {
   crowns: number;
   opponentCrowns: number;
 };
+
+export type BattleModePerformance = {
+  mode: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+};
+
+export type PersonalDeckPerformance = {
+  key: string;
+  cards: Card[];
+  uses: number;
+  wins: number;
+  winRate: number;
+  averageCrowns: number;
+  modes: string[];
+};
+
+export type PersonalBattlePerformance = {
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  threeCrownWins: number;
+  threeCrownRate: number;
+  currentWinStreak: number;
+  bestWinStreak: number;
+  recent: Battle[];
+  modes: BattleModePerformance[];
+  decks: PersonalDeckPerformance[];
+};
+
+function percentage(wins: number, games: number) {
+  return games ? (wins / games) * 100 : 0;
+}
+
+function personalCardKey(card: Card) {
+  const identity = typeof card.id === "number" ? String(card.id) : card.name.trim().toLowerCase();
+  const variant = card.isEvolution || (card.evolutionLevel ?? 0) > 0 ? "variant" : "base";
+  return `${identity}:${variant}`;
+}
+
+/** Stable identity for one of this player's eight-card decks. */
+export function personalDeckKey(cards: Card[]) {
+  return cards.map(personalCardKey).sort().join("|");
+}
+
+/**
+ * Aggregates the battle log already returned for a player. The API returns
+ * newest battles first, which lets `currentWinStreak` start at the first row.
+ * Decks with anything other than eight cards are intentionally left out of the
+ * deck view, but still count toward the overall battle performance.
+ */
+export function analyzePlayerBattles(battles: Battle[]): PersonalBattlePerformance {
+  const wins = battles.filter((battle) => battle.result === "Win").length;
+  const recent = battles.slice(0, 10);
+  const modeMap = new Map<string, { games: number; wins: number }>();
+  const deckMap = new Map<string, PersonalDeckPerformance>();
+
+  let currentWinStreak = 0;
+  let bestWinStreak = 0;
+  let runningStreak = 0;
+
+  for (const battle of battles) {
+    const mode = modeMap.get(battle.mode) ?? { games: 0, wins: 0 };
+    mode.games += 1;
+    mode.wins += battle.result === "Win" ? 1 : 0;
+    modeMap.set(battle.mode, mode);
+
+    if (battle.result === "Win") {
+      runningStreak += 1;
+      bestWinStreak = Math.max(bestWinStreak, runningStreak);
+    } else {
+      runningStreak = 0;
+    }
+
+    if (battle.deck.length !== 8) continue;
+    const key = personalDeckKey(battle.deck);
+    const deck = deckMap.get(key) ?? {
+      key,
+      cards: battle.deck,
+      uses: 0,
+      wins: 0,
+      winRate: 0,
+      averageCrowns: 0,
+      modes: []
+    };
+    deck.uses += 1;
+    deck.wins += battle.result === "Win" ? 1 : 0;
+    deck.averageCrowns += battle.crowns[0];
+    if (!deck.modes.includes(battle.mode)) deck.modes.push(battle.mode);
+    deckMap.set(key, deck);
+  }
+
+  for (const battle of battles) {
+    if (battle.result !== "Win") break;
+    currentWinStreak += 1;
+  }
+
+  const modes = [...modeMap.entries()]
+    .map(([mode, stats]) => ({
+      mode,
+      games: stats.games,
+      wins: stats.wins,
+      losses: stats.games - stats.wins,
+      winRate: percentage(stats.wins, stats.games)
+    }))
+    .sort((left, right) => right.games - left.games || right.winRate - left.winRate || left.mode.localeCompare(right.mode));
+
+  const decks = [...deckMap.values()]
+    .map((deck) => ({
+      ...deck,
+      winRate: percentage(deck.wins, deck.uses),
+      averageCrowns: deck.averageCrowns / deck.uses,
+      modes: [...deck.modes].sort((left, right) => left.localeCompare(right))
+    }))
+    .sort((left, right) => right.uses - left.uses || right.winRate - left.winRate || left.key.localeCompare(right.key));
+
+  const threeCrownWins = battles.filter((battle) => battle.result === "Win" && battle.crowns[0] === 3).length;
+  return {
+    games: battles.length,
+    wins,
+    losses: battles.length - wins,
+    winRate: percentage(wins, battles.length),
+    threeCrownWins,
+    threeCrownRate: percentage(threeCrownWins, battles.length),
+    currentWinStreak,
+    bestWinStreak,
+    recent,
+    modes,
+    decks
+  };
+}
 
 /** Stable identity for a deck. Evolved cards are distinct from their base card. */
 export function deckHash(cardIds: number[], evolutionIds: number[]) {
