@@ -7,7 +7,7 @@ import { useAction } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, TableShell } from "@/components/portfolio/DataTable";
-import { badgeImage } from "@/lib/clash/assets";
+import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { formatApiDate } from "@/lib/clash/format";
 import type { ApiCurrentRiverRace, ApiRiverRaceClan, ApiRiverRaceLog } from "@/lib/clash/types";
 import { clanWarAction, errorMessage, isConvexConfigured } from "@/lib/convex";
@@ -109,6 +109,7 @@ function RaceStandings({ race }: { race: ApiCurrentRiverRace }) {
               href={clan.tag ? `/clans/${clan.tag.replace(/^#/, "")}` : undefined}
               name={clan.name ?? "Unknown clan"}
               badge={badgeImage(clan.badgeId, clan.badgeUrls)}
+              badgeFallback={NO_CLAN_BADGE_IMAGE}
             />
           </td>
           <td>

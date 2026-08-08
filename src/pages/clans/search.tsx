@@ -8,7 +8,7 @@ import { Search } from "lucide-react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
-import { badgeImage } from "@/lib/clash/assets";
+import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { errorMessage, isConvexConfigured, searchClansAction } from "@/lib/convex";
 
 type Filters = { name: string; minMembers?: number; minScore?: number };
@@ -139,6 +139,7 @@ function ClanSearch() {
                     href={`/clans/${clan.tag.replace(/^#/, "")}`}
                     name={clan.name}
                     badge={badgeImage(clan.badgeId, clan.badgeUrls)}
+                    badgeFallback={NO_CLAN_BADGE_IMAGE}
                     sub={clan.location?.name}
                   />
                 </td>

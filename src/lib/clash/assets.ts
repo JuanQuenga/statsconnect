@@ -16,6 +16,7 @@
 import type { ApiArena, ApiCard, ApiIconUrls } from "./types";
 
 export const UNKNOWN_CARD_IMAGE = "/images/cards/unknown.png";
+export const NO_CLAN_BADGE_IMAGE = "/images/clan-badges/0.png";
 
 /** Normalizes a display name into the filename convention used by cr-api-assets. */
 export function slugify(value: string) {
@@ -71,9 +72,15 @@ export function cardImage(card: {
   evolutionLevel?: number;
 }): string {
   if ((card.evolutionLevel ?? 0) > 0) {
-    const variant = card.iconUrls?.evolutionMedium ?? card.iconUrls?.heroMedium;
+    // Hero URLs identify hero slots when the API provides them. Keep that
+    // preference ahead of evolution art so a hero never falls through to an
+    // EVO image merely because both variants exist on the catalog card.
+    const variant = card.iconUrls?.heroMedium ?? card.iconUrls?.evolutionMedium;
     if (variant) return variant;
-    if (card.name) return `/images/cards/${slugify(card.name)}-ev1.png`;
+    if (card.name) {
+      const suffix = card.iconUrls?.heroMedium ? "-hero" : "-ev1";
+      return `/images/cards/${slugify(card.name)}${suffix}.png`;
+    }
   }
   if (card.iconUrls?.medium) return card.iconUrls.medium;
   if (!card.name) return UNKNOWN_CARD_IMAGE;
@@ -85,15 +92,16 @@ export function badgeImage(badgeId?: number, badgeUrls?: ApiIconUrls): string {
   const fromApi = badgeUrls?.large ?? badgeUrls?.medium ?? badgeUrls?.small;
   if (fromApi) return fromApi;
   if (typeof badgeId === "number" && badgeId > 0) return `/images/clan-badges/${badgeId}.png`;
-  return "/images/clan-badges/0.png";
+  return NO_CLAN_BADGE_IMAGE;
 }
 
 /**
  * Arena id -> vendored asset key.
  *
- * Ids are not a simple offset (54000007 is Arena 10, not Arena 7), so the ladder
- * arenas need an explicit table. Event and PvE arenas are deliberately omitted;
- * they fall through to the name/trophy heuristics below.
+ * Ids are not a simple offset (54000007 is Arena 10, not Arena 7), so the
+ * in-use ladder and clan-war arenas need an explicit table sourced from
+ * RoyaleAPI/cr-api-data. Other event and PvE arenas fall through to the
+ * name/trophy heuristics below.
  */
 const ARENA_ID_TO_KEY: Record<number, string> = {
   54000000: "arena0",
@@ -118,6 +126,10 @@ const ARENA_ID_TO_KEY: Record<number, string> = {
   54000019: "league8",
   54000020: "league9",
   54000024: "arena11",
+  54000027: "arena10",
+  54000028: "arena10",
+  54000029: "arena10",
+  54000030: "arena10",
   54000031: "league0",
   54000055: "arena13",
   54000056: "arena14"
@@ -128,8 +140,8 @@ const MAX_ARENA_INDEX = 24;
 const MAX_LEAGUE_INDEX = 10;
 
 /**
- * Arena art. The id table covers everything through Arena 14 / League 9; arenas
- * released after the upstream data snapshot are recovered by parsing the display
+ * Arena art. The id table covers the authoritative ladder and clan-war keys;
+ * arenas released after the data snapshot are recovered by parsing the display
  * name ("Arena 17", "League 10", "Legendary Arena").
  */
 export function arenaImage(arena?: ApiArena): string {
@@ -211,7 +223,7 @@ export function levelImage(level?: number): string {
   return `/images/levels/${clamped}.png`;
 }
 
-const RARITY_FILES = new Set(["Common", "Rare", "Epic", "Legendary"]);
+const RARITY_FILES = new Set(["Common", "Rare", "Epic", "Legendary", "Champion"]);
 
 export function rarityImage(rarity?: string): string | undefined {
   if (!rarity) return undefined;

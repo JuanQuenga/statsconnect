@@ -2,9 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { RefreshCcw } from "lucide-react";
-import { variantArt } from "@/lib/clash/assets";
+import { NO_CLAN_BADGE_IMAGE, variantArt } from "@/lib/clash/assets";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
+import { CardArt } from "@/components/portfolio/CardArt";
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
 import type { ProfileHistoryPoint } from "@/lib/clash/types";
 
@@ -34,7 +35,14 @@ const statIcons = [
 export function PlayerHero({ player }: { player: Player }) {
   return (
     <section className="profile-hero">
-      <Image src={player.clanBadge ?? "/images/clan-badges/16000004.png"} alt="" width={74} height={92} priority />
+      <CardArt
+        src={player.clanBadge ?? NO_CLAN_BADGE_IMAGE}
+        alt=""
+        width={74}
+        height={92}
+        priority
+        fallback={NO_CLAN_BADGE_IMAGE}
+      />
       <span>
         {player.clanTag ? <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>{player.clan} &gt;</Link> : `${player.clan} >`}
       </span>
@@ -202,7 +210,7 @@ export function CardCollection({ cards }: { cards: Card[] }) {
 }
 
 function MiniDeck({ cards }: { cards: Card[] }) {
-  return <div className="mini-deck">{cards.slice(0, 8).map((card, index) => <Image key={`${card.name}-${index}`} src={card.image} alt={card.name} width={42} height={52} />)}</div>;
+  return <div className="mini-deck">{cards.slice(0, 8).map((card, index) => <CardArt key={`${card.name}-${index}`} src={card.image} alt={card.name} width={42} height={52} />)}</div>;
 }
 
 function CollectionCard({ card }: { card: Card }) {
@@ -210,7 +218,7 @@ function CollectionCard({ card }: { card: Card }) {
     <Link href={`/cards/${cardSlug(card.name)}`} className="collection-card">
       {card.isEvolution ? <span className="evo-flag">{variantArt(card)?.label === "Hero" ? "HERO" : "EVO"}</span> : null}
       {card.level ? <i className="card-level">{card.level}{card.maxLevel ? `/${card.maxLevel}` : ""}</i> : null}
-      <Image src={card.image} alt={card.name} width={82} height={100} />
+      <CardArt src={card.image} alt={card.name} width={82} height={100} />
       <strong>{card.name}</strong>
       <span>{card.rarity} · {card.elixir || "?"} elixir</span>
     </Link>

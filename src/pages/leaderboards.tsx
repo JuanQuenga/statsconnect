@@ -5,7 +5,7 @@ import { useAction } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
-import { badgeImage } from "@/lib/clash/assets";
+import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import type { ApiClanRanking, ApiLeaderboard, ApiLocation, ApiPlayerRanking, RankingKind } from "@/lib/clash/types";
 import {
   GLOBAL_LOCATION_ID,
@@ -226,6 +226,7 @@ function PlayerRankings({ rows, label, toolbar }: { rows: ApiPlayerRanking[]; la
                 href={`/clans/${row.clan.tag.replace(/^#/, "")}`}
                 name={row.clan.name ?? "Clan"}
                 badge={badgeImage(row.clan.badgeId, row.clan.badgeUrls)}
+                badgeFallback={NO_CLAN_BADGE_IMAGE}
               />
             ) : (
               "—"
@@ -258,6 +259,7 @@ function ClanRankings({ rows, kind, toolbar }: { rows: ApiClanRanking[]; kind: R
               href={`/clans/${row.tag.replace(/^#/, "")}`}
               name={row.name}
               badge={badgeImage(row.badgeId, row.badgeUrls)}
+              badgeFallback={NO_CLAN_BADGE_IMAGE}
               sub={row.location?.name}
             />
           </td>

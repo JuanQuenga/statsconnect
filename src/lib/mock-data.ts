@@ -148,7 +148,7 @@ export const cards = [
   card("Fireball", 4, "Rare"),
   card("Giant", 5, "Rare"),
   card("Ice Wizard", 3, "Legendary"),
-  card("Witch", 5, "Epic", "night-witch"),
+  card("Witch", 5, "Epic", "witch"),
   card("Mega Knight", 7, "Legendary"),
   card("Three Musketeers", 9, "Rare"),
   card("Goblin Gang", 3, "Common"),
