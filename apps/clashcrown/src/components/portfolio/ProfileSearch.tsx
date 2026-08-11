@@ -1,7 +1,7 @@
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { Clock, Search, X } from "lucide-react";
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { normalizeTag } from "@/lib/clash/tag";
 import { forgetProfiles, readRecentProfiles, type RecentProfile } from "@/lib/recentProfiles";
@@ -24,10 +24,12 @@ type SearchKind = "players" | "clans";
 const DEBOUNCE_MS = 180;
 const MIN_QUERY_LENGTH = 2;
 
-export function ProfileSearch({ compact = false }: { compact?: boolean }) {
+export function ProfileSearch({ compact = false, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
   // The suggestion list needs Convex, which is only mounted when it is
   // configured. Splitting here keeps the hook order stable in both branches.
-  return isConvexConfigured ? <DirectorySearch compact={compact} /> : <TagOnlySearch compact={compact} />;
+  return isConvexConfigured
+    ? <DirectorySearch compact={compact} onNavigate={onNavigate} />
+    : <TagOnlySearch compact={compact} onNavigate={onNavigate} />;
 }
 
 function useDebounced(value: string, delay: number) {
@@ -77,7 +79,10 @@ function recentRow(recent: RecentProfile): Row {
 
 // --- Full search ----------------------------------------------------------
 
-function DirectorySearch({ compact }: { compact: boolean }) {
+function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate?: () => void }) {
+  const id = useId();
+  const kindId = `${id}-kind`;
+  const suggestionsId = `${id}-suggestions`;
   const router = useRouter();
   const [kind, setKind] = useState<SearchKind>("players");
   const [term, setTerm] = useState("");
@@ -132,6 +137,7 @@ function DirectorySearch({ compact }: { compact: boolean }) {
   function go(href: string) {
     setOpen(false);
     setError("");
+    onNavigate?.();
     void router.push(href);
   }
 
@@ -189,13 +195,13 @@ function DirectorySearch({ compact }: { compact: boolean }) {
   const noMatches = kind === "players" && Boolean(trimmed) && !searching && !rows.length;
 
   return (
-    <div id="lookup" className={compact ? "search-wrap search-wrap-compact" : "search-wrap"} ref={wrapRef}>
+    <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"} ref={wrapRef}>
       <form className="search-box" onSubmit={submit} noValidate role="search">
-        <label className="sr-only" htmlFor="search-kind">
+        <label className="sr-only" htmlFor={kindId}>
           Profile type
         </label>
         <select
-          id="search-kind"
+          id={kindId}
           className="search-type"
           value={kind}
           onChange={(event) => setKind(event.target.value as SearchKind)}
@@ -210,7 +216,7 @@ function DirectorySearch({ compact }: { compact: boolean }) {
           autoComplete="off"
           role="combobox"
           aria-expanded={open && rows.length > 0}
-          aria-controls="search-suggestions"
+          aria-controls={suggestionsId}
           onFocus={() => setOpen(true)}
           onChange={(event) => {
             setTerm(event.target.value);
@@ -225,7 +231,7 @@ function DirectorySearch({ compact }: { compact: boolean }) {
       </form>
 
       {open && (rows.length > 0 || searching || noMatches) ? (
-        <div className="search-suggestions" id="search-suggestions" role="listbox">
+        <div className="search-suggestions" id={suggestionsId} role="listbox">
           {!trimmed && recents.length ? (
             <div className="search-suggestions-head">
               <span>Recently viewed</span>
@@ -250,7 +256,10 @@ function DirectorySearch({ compact }: { compact: boolean }) {
               aria-selected={index === highlight}
               className={index === highlight ? "search-option search-option-on" : "search-option"}
               onMouseEnter={() => setHighlight(index)}
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                onNavigate?.();
+              }}
             >
               {row.icon === "recent" ? <Clock size={14} /> : null}
               <span>
@@ -282,7 +291,9 @@ function DirectorySearch({ compact }: { compact: boolean }) {
 // --- Fallback -------------------------------------------------------------
 
 /** No Convex, no directory — the tag lane still works entirely client-side. */
-function TagOnlySearch({ compact }: { compact: boolean }) {
+function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?: () => void }) {
+  const id = useId();
+  const kindId = `${id}-kind`;
   const router = useRouter();
   const [kind, setKind] = useState<SearchKind>("players");
   const [tag, setTag] = useState("");
@@ -293,6 +304,7 @@ function TagOnlySearch({ compact }: { compact: boolean }) {
     try {
       const normalized = normalizeTag(tag);
       setError("");
+      onNavigate?.();
       void router.push(`/${kind}/${normalized}`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Enter a valid Clash Royale tag.");
@@ -300,13 +312,13 @@ function TagOnlySearch({ compact }: { compact: boolean }) {
   }
 
   return (
-    <div id="lookup" className={compact ? "search-wrap search-wrap-compact" : "search-wrap"}>
+    <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"}>
       <form className="search-box" onSubmit={submit} noValidate role="search">
-        <label className="sr-only" htmlFor="search-kind-basic">
+        <label className="sr-only" htmlFor={kindId}>
           Profile type
         </label>
         <select
-          id="search-kind-basic"
+          id={kindId}
           className="search-type"
           value={kind}
           onChange={(event) => setKind(event.target.value as SearchKind)}

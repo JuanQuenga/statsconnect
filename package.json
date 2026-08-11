@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.12.3",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
   "scripts": {
     "dev:hub": "pnpm --filter statsconnect dev",
     "dev:brawlstats": "pnpm --filter brawlstats.io dev",

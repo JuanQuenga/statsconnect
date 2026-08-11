@@ -1,11 +1,14 @@
 import Image from "@/components/Image";
 import Link from "@/components/Link";
-import { GameSwitcher } from "@/components/portfolio/GameSwitcher";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import {
+  SiteNavigation,
+  type SiteNavigationLinkAdapterProps,
+} from "@statsconnect/site-nav";
 
 const navItems = [
+  { href: "/", label: "Home" },
   { href: "/meta", label: "Meta" },
   { href: "/leaderboards", label: "Leaderboards" },
   { href: "/cards", label: "Cards" },
@@ -14,50 +17,38 @@ const navItems = [
   { href: "/tournaments", label: "Tournaments" }
 ];
 
-export function Layout({ children, variant = "profile" }: { children: React.ReactNode; variant?: "home" | "profile" }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+const statsConnectOrigin = (
+  import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim() ||
+  import.meta.env.NEXT_PUBLIC_STATSCONNECT_ORIGIN?.trim()
+);
+
+function ClashCrownLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const active = href === "/" ? pathname === href : pathname.startsWith(href);
 
   return (
+    <Link href={href} className={className} aria-current={active ? "page" : undefined} onClick={onNavigate}>
+      {children}
+    </Link>
+  );
+}
+
+export function Layout({ children, variant = "profile" }: { children: React.ReactNode; variant?: "home" | "profile" }) {
+  return (
     <div className={`site-frame ${variant === "home" ? "site-frame-home" : ""}`}>
-      <header className="site-header">
-        <div className="site-header-inner">
-          <Link href="/" className="logo-link" aria-label="Clash Crown home">
+      <SiteNavigation
+        accentColor="#ee66ef"
+        currentSite="clash-royale"
+        statsConnectOrigin={statsConnectOrigin}
+        linkAdapter={ClashCrownLink}
+        links={navItems}
+        brand={
+          <Link href="/" aria-label="Clash Crown home">
             <Image src="/images/logo/clash-crown-purple-wide.png" alt="Clash Crown" width={315} height={100} priority />
           </Link>
-          <GameSwitcher />
-          <nav className="top-nav" aria-label="Primary navigation">
-            {navItems.map((item) => (
-              <Link key={item.label} href={item.href}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="header-search">
-            <ProfileSearch compact />
-          </div>
-          <button
-            type="button"
-            className="nav-menu-button"
-            aria-label="Toggle primary navigation"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {menuOpen ? <X aria-hidden /> : <Menu aria-hidden />}
-          </button>
-        </div>
-        <div className={`mobile-nav-panel ${menuOpen ? "is-open" : ""}`}>
-          <div className="mobile-header-search">
-            <ProfileSearch compact />
-          </div>
-          <nav className="mobile-top-nav" aria-label="Mobile primary navigation">
-            {navItems.map((item) => (
-              <Link key={item.label} href={item.href} onClick={() => setMenuOpen(false)}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </header>
+        }
+        renderSearch={(onNavigate) => <ProfileSearch compact onNavigate={onNavigate} />}
+      />
       <main>{children}</main>
       <SiteFooter />
     </div>
