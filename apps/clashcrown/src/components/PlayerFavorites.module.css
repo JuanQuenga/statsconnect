@@ -1,0 +1,18 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(62, 88, 128, .28);
+  border-radius: 7px;
+  color: #8ea2c4;
+  background: rgba(8, 24, 44, .72);
+}
+
+.toggle:hover,
+.toggle[aria-pressed="true"] {
+  border-color: rgba(238, 102, 239, .55);
+  color: #f0a2f2;
+  background: rgba(87, 35, 105, .34);
+}

@@ -1,0 +1,334 @@
+import Link from "@/components/Link";
+import { useRouter } from "@/lib/router";
+import { Clock, Search, X } from "lucide-react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "convex/react";
+import { normalizeTag } from "@/lib/clash/tag";
+import { forgetProfiles, readRecentProfiles, type RecentProfile } from "@/lib/recentProfiles";
+import { isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
+import type { DirectoryHit } from "@/lib/clash/types";
+
+/**
+ * Profile lookup by name or by tag.
+ *
+ * The Clash Royale API only resolves exact tags, so names are answered from the
+ * directory the pipeline assembles (see `convex/players.ts`). A name that is
+ * not in the directory yet still fails, which is why the tag lane never goes
+ * away — it is the fallback that always works, and using it once is what puts
+ * the player in the directory and in this browser's recents.
+ */
+
+type SearchKind = "players" | "clans";
+
+/** Long enough that a stray keystroke does not fire a query, short enough to feel live. */
+const DEBOUNCE_MS = 180;
+const MIN_QUERY_LENGTH = 2;
+
+export function ProfileSearch({ compact = false }: { compact?: boolean }) {
+  // The suggestion list needs Convex, which is only mounted when it is
+  // configured. Splitting here keeps the hook order stable in both branches.
+  return isConvexConfigured ? <DirectorySearch compact={compact} /> : <TagOnlySearch compact={compact} />;
+}
+
+function useDebounced(value: string, delay: number) {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+  return settled;
+}
+
+function useRecents() {
+  const [recents, setRecents] = useState<RecentProfile[]>([]);
+  // localStorage is not available during SSR, so recents arrive after mount.
+  useEffect(() => setRecents(readRecentProfiles()), []);
+  return [recents, setRecents] as const;
+}
+
+// --- Rows -----------------------------------------------------------------
+
+type Row =
+  | { key: string; href: string; label: string; sub: string; hint: string; icon?: "recent" }
+  | { key: string; href: string; label: string; sub: string; hint: string; icon?: undefined };
+
+function playerRow(hit: DirectoryHit): Row {
+  const parts = [`#${hit.tag}`];
+  if (hit.clanName) parts.push(hit.clanName);
+  return {
+    key: `player:${hit.tag}`,
+    href: `/players/${hit.tag}`,
+    label: hit.name,
+    sub: parts.join(" · "),
+    hint: hit.trophies ? `${hit.trophies.toLocaleString()} 🏆` : ""
+  };
+}
+
+function recentRow(recent: RecentProfile): Row {
+  return {
+    key: `recent:${recent.kind}:${recent.tag}`,
+    href: `/${recent.kind}/${recent.tag}`,
+    label: recent.name,
+    sub: `#${recent.tag}`,
+    hint: recent.kind === "clans" ? "Clan" : "Player",
+    icon: "recent"
+  };
+}
+
+// --- Full search ----------------------------------------------------------
+
+function DirectorySearch({ compact }: { compact: boolean }) {
+  const router = useRouter();
+  const [kind, setKind] = useState<SearchKind>("players");
+  const [term, setTerm] = useState("");
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
+  const [error, setError] = useState("");
+  const [recents, setRecents] = useRecents();
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const trimmed = term.trim();
+  const debounced = useDebounced(trimmed, DEBOUNCE_MS);
+
+  // Clan names are searchable through the official API, so those queries go to
+  // the clan search page rather than through the local directory.
+  const results = useQuery(
+    searchPlayersQuery,
+    kind === "players" && debounced.length >= MIN_QUERY_LENGTH ? { query: debounced, limit: 8 } : "skip"
+  );
+
+  const rows = useMemo<Row[]>(() => {
+    if (!trimmed) return recents.map(recentRow);
+    if (kind === "clans") {
+      return [
+        { key: "clan-search", href: `/clans/search?name=${encodeURIComponent(trimmed)}`, label: `Search clans for “${trimmed}”`, sub: "Official clan name search", hint: "" }
+      ];
+    }
+
+    const list: Row[] = [];
+    // A tag is unambiguous, so when the input could be one it leads — even if
+    // the directory also has name matches for the same string.
+    if (results?.tag) {
+      list.push({ key: `tag:${results.tag}`, href: `/players/${results.tag}`, label: `#${results.tag}`, sub: "Open this player tag", hint: "Tag" });
+    }
+    for (const hit of results?.players ?? []) {
+      if (results?.tag === hit.tag) continue;
+      list.push(playerRow(hit));
+    }
+    return list;
+  }, [trimmed, kind, recents, results]);
+
+  useEffect(() => setHighlight(-1), [rows.length, trimmed]);
+
+  // A click anywhere else should dismiss the list without stealing the input.
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
+
+  function go(href: string) {
+    setOpen(false);
+    setError("");
+    void router.push(href);
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!trimmed) return;
+
+    if (highlight >= 0 && rows[highlight]) {
+      go(rows[highlight].href);
+      return;
+    }
+
+    // Enter with nothing highlighted means "do the obvious thing": a tag opens
+    // the profile, a single name match opens that player, anything else lands
+    // on the results page where the ambiguity can be shown properly.
+    if (kind === "clans") {
+      try {
+        go(`/clans/${normalizeTag(trimmed)}`);
+      } catch {
+        go(`/clans/search?name=${encodeURIComponent(trimmed)}`);
+      }
+      return;
+    }
+
+    if (results?.tag && !results.players.length) {
+      go(`/players/${results.tag}`);
+      return;
+    }
+    if (!results?.tag && results?.players.length === 1) {
+      go(`/players/${results.players[0].tag}`);
+      return;
+    }
+    go(`/players?q=${encodeURIComponent(trimmed)}`);
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!rows.length) return;
+      event.preventDefault();
+      setOpen(true);
+      setHighlight((current) => {
+        const next = event.key === "ArrowDown" ? current + 1 : current - 1;
+        if (next < 0) return rows.length - 1;
+        if (next >= rows.length) return 0;
+        return next;
+      });
+    }
+  }
+
+  const searching = kind === "players" && trimmed.length >= MIN_QUERY_LENGTH && results === undefined;
+  const noMatches = kind === "players" && Boolean(trimmed) && !searching && !rows.length;
+
+  return (
+    <div id="lookup" className={compact ? "search-wrap search-wrap-compact" : "search-wrap"} ref={wrapRef}>
+      <form className="search-box" onSubmit={submit} noValidate role="search">
+        <label className="sr-only" htmlFor="search-kind">
+          Profile type
+        </label>
+        <select
+          id="search-kind"
+          className="search-type"
+          value={kind}
+          onChange={(event) => setKind(event.target.value as SearchKind)}
+        >
+          <option value="players">Players</option>
+          <option value="clans">Clans</option>
+        </select>
+        <input
+          aria-label={kind === "players" ? "Player name or tag" : "Clan name or tag"}
+          placeholder={kind === "players" ? "Player name or #TAG" : "Clan name or #TAG"}
+          value={term}
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={open && rows.length > 0}
+          aria-controls="search-suggestions"
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            setTerm(event.target.value);
+            setOpen(true);
+            setError("");
+          }}
+          onKeyDown={onKeyDown}
+        />
+        <button type="submit" className="search-submit" aria-label={`Search ${kind}`}>
+          <Search size={compact ? 20 : 27} />
+        </button>
+      </form>
+
+      {open && (rows.length > 0 || searching || noMatches) ? (
+        <div className="search-suggestions" id="search-suggestions" role="listbox">
+          {!trimmed && recents.length ? (
+            <div className="search-suggestions-head">
+              <span>Recently viewed</span>
+              <button
+                type="button"
+                onClick={() => {
+                  forgetProfiles();
+                  setRecents([]);
+                }}
+              >
+                <X size={13} />
+                Clear
+              </button>
+            </div>
+          ) : null}
+
+          {rows.map((row, index) => (
+            <Link
+              key={row.key}
+              href={row.href}
+              role="option"
+              aria-selected={index === highlight}
+              className={index === highlight ? "search-option search-option-on" : "search-option"}
+              onMouseEnter={() => setHighlight(index)}
+              onClick={() => setOpen(false)}
+            >
+              {row.icon === "recent" ? <Clock size={14} /> : null}
+              <span>
+                <strong>{row.label}</strong>
+                <small>{row.sub}</small>
+              </span>
+              {row.hint ? <i>{row.hint}</i> : null}
+            </Link>
+          ))}
+
+          {searching ? <p className="search-note">Searching…</p> : null}
+          {noMatches ? (
+            <p className="search-note">
+              No player called “{trimmed}” yet. Open them once by tag and the name becomes searchable.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className="search-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+// --- Fallback -------------------------------------------------------------
+
+/** No Convex, no directory — the tag lane still works entirely client-side. */
+function TagOnlySearch({ compact }: { compact: boolean }) {
+  const router = useRouter();
+  const [kind, setKind] = useState<SearchKind>("players");
+  const [tag, setTag] = useState("");
+  const [error, setError] = useState("");
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      const normalized = normalizeTag(tag);
+      setError("");
+      void router.push(`/${kind}/${normalized}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Enter a valid Clash Royale tag.");
+    }
+  }
+
+  return (
+    <div id="lookup" className={compact ? "search-wrap search-wrap-compact" : "search-wrap"}>
+      <form className="search-box" onSubmit={submit} noValidate role="search">
+        <label className="sr-only" htmlFor="search-kind-basic">
+          Profile type
+        </label>
+        <select
+          id="search-kind-basic"
+          className="search-type"
+          value={kind}
+          onChange={(event) => setKind(event.target.value as SearchKind)}
+        >
+          <option value="players">Player Tag</option>
+          <option value="clans">Clan Tag</option>
+        </select>
+        <input
+          aria-label={`${kind === "players" ? "Player" : "Clan"} tag`}
+          placeholder="#PLAYER_TAG"
+          value={tag}
+          onChange={(event) => setTag(event.target.value)}
+        />
+        <button type="submit" className="search-submit" aria-label={`Search ${kind}`}>
+          <Search size={compact ? 20 : 27} />
+        </button>
+      </form>
+      {error ? (
+        <p className="search-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
