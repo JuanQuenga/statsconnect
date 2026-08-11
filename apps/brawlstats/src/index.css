@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --font-sans: ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #0a101a;
+  --foreground: #f4f1e9;
+  --card: #101926;
+  --card-foreground: #f4f1e9;
+  --popover: #111b29;
+  --popover-foreground: #f4f1e9;
+  --primary: #f5c85b;
+  --primary-foreground: #1a1200;
+  --secondary: #172235;
+  --secondary-foreground: #e8edf6;
+  --muted: #151f2e;
+  --muted-foreground: #99a7bc;
+  --accent: #4ac7b7;
+  --accent-foreground: #04201c;
+  --destructive: #ff5c7a;
+  --border: #253249;
+  --input: #2c3a52;
+  --ring: #f5c85b;
+  --chart-1: #f5c85b;
+  --chart-2: #4ac7b7;
+  --chart-3: #7aa2ff;
+  --chart-4: #ff7a59;
+  --chart-5: #c4f542;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    background: var(--background);
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 35%, transparent);
+    color: var(--foreground);
+  }
+}
+
+@layer components {
+  .brawl-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--background);
+  }
+
+  .brawl-hero::before {
+    position: absolute;
+    z-index: -2;
+    inset: 0;
+    content: "";
+    background: url("/assets/generated/brawlstats-arena.webp") center top / cover no-repeat;
+  }
+
+  .brawl-hero::after {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    background:
+      linear-gradient(90deg, rgba(6, 13, 24, 0.96) 0%, rgba(6, 13, 24, 0.88) 28%, rgba(6, 13, 24, 0.48) 58%, rgba(6, 13, 24, 0.2) 100%),
+      linear-gradient(180deg, rgba(10, 16, 26, 0.08) 35%, var(--background) 100%);
+  }
+
+  .brawl-hero-copy {
+    text-shadow: 0 2px 22px rgba(3, 8, 15, 0.62);
+  }
+
+  .brawl-hero-art {
+    filter: drop-shadow(0 28px 32px rgba(0, 0, 0, 0.4));
+  }
+
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl space-y-8 px-4 py-8 md:px-6 md:py-12;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent;
+  }
+
+  .section-title {
+    @apply font-display text-2xl leading-tight md:text-3xl;
+  }
+
+  .data-surface {
+    @apply rounded-xl border border-border bg-card;
+  }
+}
+
+@media (max-width: 63.999rem) {
+  .brawl-hero::after {
+    background:
+      linear-gradient(180deg, rgba(6, 13, 24, 0.84) 0%, rgba(6, 13, 24, 0.62) 54%, var(--background) 100%),
+      linear-gradient(90deg, rgba(6, 13, 24, 0.72), rgba(6, 13, 24, 0.38));
+  }
+}
