@@ -1,131 +1,23 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Brawl Stats - I/O</title>
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet">
-    <link rel="icon" href="./assets/img/bs-stats.png">
-    <link rel="stylesheet" href="./styles.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Live Brawl Stars statistics — players, clubs, maps, meta, and leaderboards."
+    />
+    <title>BrawlStats.io</title>
+    <link rel="icon" href="/assets/img/bs-stats.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
-  <body id="page-top" class="index">
-    <div id="skipnav"><a href="#maincontent">Skip to main content</a></div>
-    <nav id="mainNav" class="navbar navbar-default navbar-custom affix-top">
-      <div class="container">
-        <div class="navbar-header page-scroll">
-          <a class="navbar-brand" href="./">
-            <img src="./assets/img/bs-stats.png" alt="">
-            <p>BRAWLSTATS.IO</p>
-          </a>
-        </div>
-        <div class="navbar-collapse">
-          <ul class="nav navbar-nav navbar-right">
-            <li class="dropdown">
-              <a href="./players/">Stats <span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="./players/">Player Profile</a></li>
-                <li><a href="./bands/">Band Page</a></li>
-              </ul>
-            </li>
-            <li class="dropdown">
-              <a href="./leaderboards/">Leaderboards <span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="./leaderboards/">Players</a></li>
-                <li><a href="./leaderboards/">Brawlers</a></li>
-                <li><a href="./bands/">Bands</a></li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-    <main id="maincontent" tabindex="-1">
-      <section class="home-hero">
-        <div class="container hero-grid">
-          <div class="hero-copy">
-            <div class="eyebrow">Fan-made stats mockup</div>
-            <h1>BrawlStats.io</h1>
-            <p>Track player profiles, club rosters, active events, and brawler meta snapshots with a modern static demo built from current Brawl Stars asset sources.</p>
-            <form id="search-form" class="hero-search" data-target="players">
-              <input id="search-input" type="text" class="tag-search-input" placeholder="Search player tag or club tag">
-              <button class="tag-search-button" aria-label="Search"><span class="tag-search-span">⌕</span></button>
-            </form>
-            <div class="hero-actions">
-              <a class="button primary" href="./players/">View Player</a>
-              <a class="button" href="./leaderboards/">Leaderboards</a>
-            </div>
-          </div>
-          <div class="hero-panel">
-            <div class="featured-brawler" id="featured-brawler"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="demo-section">
-        <div class="container">
-          <div class="section-title">
-            <span class="eyebrow">Live mock data</span>
-            <h2>Newest brawlers</h2>
-          </div>
-          <div class="modern-brawler-grid" id="modern-brawler-grid"></div>
-        </div>
-      </section>
-
-      <section class="demo-section split-band">
-        <div class="container dashboard-grid">
-          <div class="demo-panel">
-            <div class="section-title compact">
-              <span class="eyebrow">Current rotation</span>
-              <h2>Events</h2>
-            </div>
-            <div class="event-list" id="event-list"></div>
-          </div>
-          <div class="demo-panel">
-            <div class="section-title compact">
-              <span class="eyebrow">Club snapshot</span>
-              <h2>The bois</h2>
-            </div>
-            <div class="club-snapshot">
-              <img src="https://cdn.brawlify.com/club-badges/regular/8000038.png" alt="Club badge">
-              <div>
-                <strong>#9PJC2</strong>
-                <span>48/50 members</span>
-                <span>1,246,380 trophies</span>
-              </div>
-            </div>
-            <table class="table compact-table"><tbody id="home-leaderboard"></tbody></table>
-          </div>
-        </div>
-      </section>
-
-      <section class="demo-section source-band">
-        <div class="container source-line">
-          <p>Asset source: Brawlify/CDN on GitHub, served through cdn.brawlify.com. Static data is mock demo content and is not affiliated with Supercell.</p>
-          <a class="button" href="https://github.com/Brawlify/CDN">View asset repo</a>
-        </div>
-      </section>
-    </main>
-    <footer>
-      <div class="footer" id="footer">
-        <div class="container">
-          <h3>Notice</h3>
-          <p>All the information displayed is our own interpretation of the data we collect. This content is not affiliated with, endorsed, sponsored, or specifically approved by Supercell and Supercell is not responsible for it. For more information see <strong><a href="http://www.supercell.com/fan-content-policy">Supercell’s Fan Content Policy</a></strong>.</p>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <div class="container footer-line">
-          <p>BrawlStats.io © 2017. All right reserved.</p>
-          <ul class="payments">
-            <li>f</li>
-            <li>t</li>
-            <li>r</li>
-            <li>c</li>
-          </ul>
-        </div>
-      </div>
-    </footer>
-    <script src="./script.js"></script>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
