@@ -61,7 +61,7 @@ function MatchupDeck({ matchup, byId }: { matchup: Matchup; byId: Map<number, Ca
           <MatchupCard key={`${id}-${index}`} id={id} card={byId.get(id)} evolved={evolved.has(id)} />
         ))}
       </div>
-      <span style={{ color: rateColor(matchup.winRate), font: "12px Arial, sans-serif" }}>
+      <span style={{ color: rateColor(matchup.winRate), font: "12px var(--font-ui)" }}>
         {pct(matchup.winRate)} <small style={{ color: "#8ea2c4" }}>({matchup.uses.toLocaleString()} games)</small>
       </span>
     </div>

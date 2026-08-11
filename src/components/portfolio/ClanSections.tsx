@@ -1,5 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
+import Image from "@/components/Image";
+import Link from "@/components/Link";
 import { RefreshCcw, Swords, User } from "lucide-react";
 import { RankCell } from "@/components/portfolio/DataTable";
 import { relativeTime } from "@/lib/clash/format";

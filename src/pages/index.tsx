@@ -1,6 +1,6 @@
-import Image from "next/image";
+import Image from "@/components/Image";
 import { CardArt } from "@/components/portfolio/CardArt";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { ChevronLeft, ChevronRight, Crown, RefreshCcw, Swords, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -26,11 +26,7 @@ export default function HomePage() {
 
   const playerQuery = useQuery<Player>({
     queryKey: ["demo-player", "home"],
-    queryFn: async () => {
-      const response = await fetch("/api/demo/player");
-      if (!response.ok) throw new Error("Unable to load demo player");
-      return response.json();
-    },
+    queryFn: async () => player,
     initialData: player
   });
 

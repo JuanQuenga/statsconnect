@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import { AlertTriangle, Database, LoaderCircle } from "lucide-react";
 
 export function LoadingState({ label }: { label: string }) {

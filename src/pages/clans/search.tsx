@@ -1,7 +1,7 @@
-import Head from "next/head";
-import Link from "next/link";
+import Head from "@/components/Head";
+import Link from "@/components/Link";
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { Search } from "lucide-react";

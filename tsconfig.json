@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "es2022"
-    ],
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -16,7 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true,
+    "types": ["vite/client"],
     "paths": {
       "@/*": [
         "./src/*"
@@ -24,10 +20,10 @@
     }
   },
   "include": [
-    "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "convex/**/*.ts"
+    "convex/**/*.ts",
+    "vite.config.ts"
   ],
   "exclude": [
     "node_modules"

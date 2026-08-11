@@ -1,6 +1,9 @@
-import Image from "next/image";
-import Link from "next/link";
+import Image from "@/components/Image";
+import Link from "@/components/Link";
+import { GameSwitcher } from "@/components/portfolio/GameSwitcher";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
+import { Menu, X } from "lucide-react";
+import { useState } from "react";
 
 const navItems = [
   { href: "/meta", label: "Meta" },
@@ -12,21 +15,47 @@ const navItems = [
 ];
 
 export function Layout({ children, variant = "profile" }: { children: React.ReactNode; variant?: "home" | "profile" }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div className={`site-frame ${variant === "home" ? "site-frame-home" : ""}`}>
       <header className="site-header">
-        <Link href="/" className="logo-link" aria-label="Clash Crown home">
-          <Image src="/images/logo/clash-crown-purple-wide.png" alt="Clash Crown" width={315} height={100} priority />
-        </Link>
-        <nav className="top-nav" aria-label="Primary navigation">
-          {navItems.map((item) => (
-            <Link key={item.label} href={item.href}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="header-search">
-          <ProfileSearch compact />
+        <div className="site-header-inner">
+          <Link href="/" className="logo-link" aria-label="Clash Crown home">
+            <Image src="/images/logo/clash-crown-purple-wide.png" alt="Clash Crown" width={315} height={100} priority />
+          </Link>
+          <GameSwitcher />
+          <nav className="top-nav" aria-label="Primary navigation">
+            {navItems.map((item) => (
+              <Link key={item.label} href={item.href}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="header-search">
+            <ProfileSearch compact />
+          </div>
+          <button
+            type="button"
+            className="nav-menu-button"
+            aria-label="Toggle primary navigation"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X aria-hidden /> : <Menu aria-hidden />}
+          </button>
+        </div>
+        <div className={`mobile-nav-panel ${menuOpen ? "is-open" : ""}`}>
+          <div className="mobile-header-search">
+            <ProfileSearch compact />
+          </div>
+          <nav className="mobile-top-nav" aria-label="Mobile primary navigation">
+            {navItems.map((item) => (
+              <Link key={item.label} href={item.href} onClick={() => setMenuOpen(false)}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </header>
       <main>{children}</main>

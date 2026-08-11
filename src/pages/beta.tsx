@@ -1,4 +1,4 @@
-import Head from "next/head";
+import Head from "@/components/Head";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "convex/react";

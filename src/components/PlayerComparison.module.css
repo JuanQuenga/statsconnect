@@ -16,7 +16,7 @@
 .intro p,
 .sourceNote {
   color: #9aacca;
-  font: 13px/1.6 Arial, sans-serif;
+  font: 13px/1.6 var(--font-ui);
 }
 
 .form {
@@ -31,7 +31,7 @@
   display: grid;
   gap: 8px;
   color: #9aacca;
-  font: 12px Arial, sans-serif;
+  font: 12px var(--font-ui);
   text-align: left;
 }
 
@@ -54,7 +54,7 @@
 .error {
   margin: 16px 0 0;
   color: #ff9ab0;
-  font: 13px Arial, sans-serif;
+  font: 13px var(--font-ui);
 }
 
 .sourceNote {
@@ -101,13 +101,13 @@
 
 .playerHead strong {
   color: #d9e4f5;
-  font: 12px Arial, sans-serif;
+  font: 12px var(--font-ui);
 }
 
 .playerHead span {
   margin-top: 8px;
   color: #9aacca;
-  font: 11px Arial, sans-serif;
+  font: 11px var(--font-ui);
 }
 
 .playerHead a {
@@ -120,7 +120,7 @@
 
 .vs {
   color: #8ea2c4;
-  font: 700 12px Arial, sans-serif;
+  font: 700 12px var(--font-ui);
   text-align: center;
   text-transform: uppercase;
 }
@@ -158,7 +158,7 @@
 
 .label {
   color: #9aacca;
-  font: 11px Arial, sans-serif;
+  font: 11px var(--font-ui);
   text-align: center;
 }
 
@@ -183,7 +183,7 @@
   display: block;
   margin-top: 4px;
   color: #8ea2c4;
-  font: 11px Arial, sans-serif;
+  font: 11px var(--font-ui);
 }
 
 .decks {
@@ -232,7 +232,7 @@
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  font: 10px/1.2 Arial, sans-serif;
+  font: 10px/1.2 var(--font-ui);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -251,7 +251,7 @@
   border-radius: 4px;
   color: white;
   background: #8d2e9d;
-  font: 700 7px Arial, sans-serif;
+  font: 700 7px var(--font-ui);
   text-transform: uppercase;
 }
 
@@ -260,7 +260,7 @@
   display: grid;
   place-content: center;
   color: #8ea2c4;
-  font: 13px Arial, sans-serif;
+  font: 13px var(--font-ui);
   text-align: center;
 }
 

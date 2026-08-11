@@ -21,7 +21,9 @@ import type {
 } from "@/lib/clash/types";
 import type { MetaMode } from "@/lib/clash/battles";
 
-export const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.trim() ?? "";
+export const convexUrl = (
+  import.meta.env.VITE_CONVEX_URL ?? import.meta.env.NEXT_PUBLIC_CONVEX_URL ?? ""
+).trim();
 export const isConvexConfigured = convexUrl.startsWith("https://");
 
 export const playerBundleAction = makeFunctionReference<

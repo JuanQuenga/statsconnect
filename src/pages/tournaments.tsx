@@ -1,4 +1,4 @@
-import Head from "next/head";
+import Head from "@/components/Head";
 import { FormEvent, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";

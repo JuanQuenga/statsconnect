@@ -1,4 +1,4 @@
-import Head from "next/head";
+import Head from "@/components/Head";
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";

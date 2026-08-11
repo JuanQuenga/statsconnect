@@ -1,8 +1,8 @@
-import Head from "next/head";
-import Image from "next/image";
+import Head from "@/components/Head";
+import Image from "@/components/Image";
 import { CardArt } from "@/components/portfolio/CardArt";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import Link from "@/components/Link";
+import { useRouter } from "@/lib/router";
 import { useMemo, useState } from "react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";

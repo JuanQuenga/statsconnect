@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { useRouter } from "next/router";
+import Link from "@/components/Link";
+import { useRouter } from "@/lib/router";
 import { Clock, Search, X } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/Image";
 import { useEffect, useState } from "react";
 import { UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 

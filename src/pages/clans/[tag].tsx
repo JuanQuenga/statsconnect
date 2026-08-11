@@ -1,5 +1,5 @@
-import Head from "next/head";
-import { useRouter } from "next/router";
+import Head from "@/components/Head";
+import { useRouter } from "@/lib/router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";

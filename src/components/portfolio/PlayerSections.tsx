@@ -1,5 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
+import Image from "@/components/Image";
+import Link from "@/components/Link";
 import { useQuery } from "convex/react";
 import { RefreshCcw } from "lucide-react";
 import { NO_CLAN_BADGE_IMAGE, variantArt } from "@/lib/clash/assets";
@@ -187,7 +187,7 @@ function PerformanceStat({ icon, value, label }: { icon: string; value: string; 
 
 function PerformanceStyles() {
   return (
-    <style jsx global>{`
+    <style>{`
       .performance-stats { margin-bottom: 34px; }
       .performance-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); gap: 28px; }
       .performance-card { min-width: 0; padding: 18px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 7px; background: rgba(8, 24, 44, .52); }
@@ -196,11 +196,11 @@ function PerformanceStyles() {
       .performance-card .members-table td { height: 52px; }
       .recent-form-card { display: flex; flex-direction: column; justify-content: center; }
       .form-pips { display: flex; gap: 7px; flex-wrap: wrap; }
-      .form-pip { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 50%; color: white; font: 700 11px Arial, sans-serif; font-style: normal; }
+      .form-pip { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 50%; color: white; font: 700 11px var(--font-ui); font-style: normal; }
       .form-pip.win { background: #218b61; box-shadow: 0 0 0 1px rgba(83, 220, 151, .3) inset; }
       .form-pip.loss { background: #a63c5b; box-shadow: 0 0 0 1px rgba(255, 126, 153, .3) inset; }
       .form-pip.draw { background: #4a5a78; box-shadow: 0 0 0 1px rgba(142, 162, 196, .3) inset; }
-      .form-legend { display: flex; gap: 16px; margin-top: 18px; color: #8ea2c4; font: 11px Arial, sans-serif; }
+      .form-legend { display: flex; gap: 16px; margin-top: 18px; color: #8ea2c4; font: 11px var(--font-ui); }
       .form-legend span { display: inline-flex; align-items: center; gap: 6px; }
       .form-legend .form-pip { width: 18px; height: 18px; font-size: 9px; }
       @media (max-width: 680px) {
@@ -337,13 +337,13 @@ function DeckThumbnail({ card }: { card: Card }) {
 
 function DeckAnalyticsStyles() {
   return (
-    <style jsx global>{`
+    <style>{`
       .deck-analytics-table td:first-child { width: 48%; }
       .personal-deck-cards { display: grid; grid-template-columns: repeat(8, minmax(27px, 1fr)); gap: 4px; align-items: center; min-width: 280px; }
       .personal-deck-cards img { width: 100%; height: auto; max-height: 54px; object-fit: contain; margin: 0; }
       .deck-analytics-table td { vertical-align: middle; }
       .deck-analytics-table td strong { color: #f4fbff; }
-      .deck-record { display: block; margin-top: 4px; color: #8ea2c4; font: 10px Arial, sans-serif; }
+      .deck-record { display: block; margin-top: 4px; color: #8ea2c4; font: 10px var(--font-ui); }
       .deck-modes { white-space: normal !important; line-height: 1.5; }
       @media (max-width: 980px) {
         .personal-deck-cards { min-width: 240px; }

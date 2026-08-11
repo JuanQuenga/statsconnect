@@ -1,6 +1,6 @@
-import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import Head from "@/components/Head";
+import Link from "@/components/Link";
+import { useRouter } from "@/lib/router";
 import { useEffect, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
@@ -217,20 +217,20 @@ function EmptySection({ title, copy }: { title: string; copy: string }) {
 }
 
 function UpgradeStyles() {
-  return <style jsx>{`
+  return <style>{`
     .upgrade-page { padding-bottom: 70px; }
     .upgrade-hero { margin-bottom: 28px; }
     .upgrade-hero p { max-width: 680px; }
     .upgrade-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 0 42px; }
     .upgrade-summary-card { display: grid; gap: 6px; padding: 18px 20px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 8px; background: rgba(8, 24, 44, .72); }
-    .upgrade-summary-card span, .upgrade-summary-card small { color: #8ea2c4; font: 11px Arial, sans-serif; }
+    .upgrade-summary-card span, .upgrade-summary-card small { color: #8ea2c4; font: 11px var(--font-ui); }
     .upgrade-summary-card strong { font-size: 26px; color: white; }
     .overall-progress { margin: -16px 0 42px; padding: 18px 20px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 8px; background: rgba(8, 24, 44, .55); }
     .overall-progress-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 10px; }
     .overall-progress-heading .eyebrow { display: block; margin-bottom: 5px; }
     .overall-progress-heading h2 { margin: 0; font-size: 18px; }
     .overall-progress-heading > strong { color: #d8e4fa; font-size: 20px; }
-    .overall-progress p { margin: 10px 0 0; color: #8ea2c4; font: 11px/1.5 Arial, sans-serif; }
+    .overall-progress p { margin: 10px 0 0; color: #8ea2c4; font: 11px/1.5 var(--font-ui); }
     .ready-filter { background: rgba(31, 162, 104, .72); }
     .ready-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .ready-card { display: grid; grid-template-columns: 58px 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid rgba(62, 188, 126, .24); border-radius: 8px; background: rgba(8, 39, 47, .75); color: white; }
@@ -238,21 +238,21 @@ function UpgradeStyles() {
     .ready-card img { width: 58px; height: 72px; object-fit: contain; }
     .ready-card-copy, .ready-cost { display: grid; gap: 4px; }
     .ready-card-copy strong { font-size: 13px; }
-    .ready-card-copy small, .ready-cost small { color: #8ea2c4; font: 10px Arial, sans-serif; }
+    .ready-card-copy small, .ready-cost small { color: #8ea2c4; font: 10px var(--font-ui); }
     .ready-cost { text-align: right; }
     .ready-cost b { color: #ffd76a; font-size: 15px; }
     .upgrade-collection-section { padding-bottom: 0; border-bottom: 0; }
     .upgrade-heading { margin-bottom: 22px; }
     .upgrade-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 26px; padding: 14px 16px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 8px; background: rgba(8, 24, 44, .55); }
     .upgrade-toolbar label { display: grid; gap: 6px; min-width: 150px; }
-    .upgrade-toolbar label span { color: #8ea2c4; font: 10px Arial, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+    .upgrade-toolbar label span { color: #8ea2c4; font: 10px var(--font-ui); text-transform: uppercase; letter-spacing: .06em; }
     .upgrade-toolbar select { min-height: 36px; padding: 0 30px 0 11px; border: 1px solid rgba(62, 88, 128, .38); border-radius: 6px; color: #d8e4fa; background: rgba(8, 24, 44, .9); }
     .upgrade-toggle { min-height: 36px; padding: 0 14px; border: 1px solid rgba(62, 88, 128, .38); border-radius: 6px; color: #cbd8ef; background: rgba(8, 24, 44, .9); cursor: pointer; }
     .upgrade-toggle-on { border-color: transparent; color: white; background: var(--pink-bright); }
     .rarity-group { margin: 0 0 34px; }
     .rarity-group-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 9px; }
     .rarity-group-heading h3 { margin: 0 0 4px; font-size: 18px; }
-    .rarity-group-heading span { color: #8ea2c4; font: 11px Arial, sans-serif; }
+    .rarity-group-heading span { color: #8ea2c4; font: 11px var(--font-ui); }
     .rarity-group-heading > strong { color: #cbd8ef; font-size: 14px; }
     .upgrade-progress-track { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: rgba(47, 76, 113, .48); }
     .upgrade-progress-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1b8cff, #bb4fd0); }
@@ -263,12 +263,12 @@ function UpgradeStyles() {
     .upgrade-card-row img { width: 52px; height: 64px; object-fit: contain; }
     .upgrade-card-name, .upgrade-progress { display: grid; gap: 6px; min-width: 0; }
     .upgrade-card-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-    .upgrade-card-name small, .upgrade-level, .upgrade-progress-label small { color: #8ea2c4; font: 10px Arial, sans-serif; }
+    .upgrade-card-name small, .upgrade-level, .upgrade-progress-label small { color: #8ea2c4; font: 10px var(--font-ui); }
     .upgrade-level { color: #d8e4fa; }
     .upgrade-progress-label { display: flex; justify-content: space-between; gap: 12px; }
-    .upgrade-status { justify-self: end; color: #8ea2c4; font: 700 10px Arial, sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+    .upgrade-status { justify-self: end; color: #8ea2c4; font: 700 10px var(--font-ui); text-transform: uppercase; letter-spacing: .04em; }
     .upgrade-status-ready { color: #55d895; }
-    .upgrade-note { margin: 18px 0 0; color: #8ea2c4; font: 12px/1.5 Arial, sans-serif; }
+    .upgrade-note { margin: 18px 0 0; color: #8ea2c4; font: 12px/1.5 var(--font-ui); }
     .upgrade-empty-section { margin-top: 14px; }
     @media (max-width: 900px) { .upgrade-summary-grid { grid-template-columns: repeat(2, 1fr); } .ready-grid { grid-template-columns: repeat(2, 1fr); } .upgrade-card-row { grid-template-columns: 52px minmax(110px, 1fr) 65px minmax(150px, 2fr) 55px; gap: 9px; } }
     @media (max-width: 640px) { .upgrade-summary-grid, .ready-grid { grid-template-columns: 1fr; } .upgrade-card-row { grid-template-columns: 46px 1fr auto; gap: 10px; } .upgrade-card-row img { width: 46px; height: 56px; } .upgrade-level { grid-column: 2; grid-row: 2; } .upgrade-progress { grid-column: 2 / -1; grid-row: 3; } .upgrade-status { grid-column: 3; grid-row: 1; } }

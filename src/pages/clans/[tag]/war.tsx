@@ -1,6 +1,6 @@
-import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import Head from "@/components/Head";
+import Link from "@/components/Link";
+import { useRouter } from "@/lib/router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";

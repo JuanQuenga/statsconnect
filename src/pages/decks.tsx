@@ -1,9 +1,9 @@
-import Head from "next/head";
+import Head from "@/components/Head";
 import { CardArt } from "@/components/portfolio/CardArt";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Check, Copy, LoaderCircle, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";

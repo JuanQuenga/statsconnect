@@ -1,6 +1,6 @@
-import Head from "next/head";
+import Head from "@/components/Head";
 import { CardArt } from "@/components/portfolio/CardArt";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Copy } from "lucide-react";

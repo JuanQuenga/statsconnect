@@ -1,5 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
+import Image from "@/components/Image";
+import Link from "@/components/Link";
 import { CardArt } from "@/components/portfolio/CardArt";
 import type { ReactNode } from "react";
 

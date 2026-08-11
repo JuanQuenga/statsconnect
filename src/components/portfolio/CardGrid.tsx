@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/Image";
 import type { Card } from "@/lib/mock-data";
 
 export function CardGrid({ cards }: { cards: Card[] }) {
