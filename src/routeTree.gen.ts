@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as ConnectIndexRouteImport } from './routes/connect/index'
 import { Route as ConnectGameRouteImport } from './routes/connect/$game'
+import { Route as LaunchGameRouteImport } from './routes/launch/$game'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsConnectionsRouteImport } from './routes/settings/connections'
 import { Route as GamesGameIndexRouteImport } from './routes/games/$game/index'
@@ -36,6 +37,11 @@ const ConnectIndexRoute = ConnectIndexRouteImport.update({
 const ConnectGameRoute = ConnectGameRouteImport.update({
   id: '/connect/$game',
   path: '/connect/$game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LaunchGameRoute = LaunchGameRouteImport.update({
+  id: '/launch/$game',
+  path: '/launch/$game',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/connect/$game': typeof ConnectGameRoute
+  '/launch/$game': typeof LaunchGameRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/connect/': typeof ConnectIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/connect/$game': typeof ConnectGameRoute
+  '/launch/$game': typeof LaunchGameRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/connect': typeof ConnectIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/connect/$game': typeof ConnectGameRoute
+  '/launch/$game': typeof LaunchGameRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/connect/': typeof ConnectIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/connect/$game'
+    | '/launch/$game'
     | '/settings/connections'
     | '/connect/'
     | '/settings/'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/connect/$game'
+    | '/launch/$game'
     | '/settings/connections'
     | '/connect'
     | '/settings'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/connect/$game'
+    | '/launch/$game'
     | '/settings/connections'
     | '/connect/'
     | '/settings/'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   ConnectGameRoute: typeof ConnectGameRoute
+  LaunchGameRoute: typeof LaunchGameRoute
   SettingsConnectionsRoute: typeof SettingsConnectionsRoute
   ConnectIndexRoute: typeof ConnectIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConnectGameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/launch/$game': {
+      id: '/launch/$game'
+      path: '/launch/$game'
+      fullPath: '/launch/$game'
+      preLoaderRoute: typeof LaunchGameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/': {
       id: '/settings/'
       path: '/settings'
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   ConnectGameRoute: ConnectGameRoute,
+  LaunchGameRoute: LaunchGameRoute,
   SettingsConnectionsRoute: SettingsConnectionsRoute,
   ConnectIndexRoute: ConnectIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,

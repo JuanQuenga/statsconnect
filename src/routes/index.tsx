@@ -36,8 +36,8 @@ function HomePage() {
           <span className="block text-[var(--ambient)]">one console.</span>
         </h1>
         <p className="mt-7 max-w-xl text-lg leading-relaxed text-muted-foreground">
-          Connect a profile by player tag and every match, card, and trophy lands
-          on one screen — built to be read from the couch.
+          Connect each player tag once, then jump between BrawlStats and
+          ClashCrown from one launcher.
         </p>
         <Link to="/connect" className={`${buttonVariants({ size: "lg" })} mt-10`}>
           Connect a game
@@ -61,4 +61,3 @@ function HomePage() {
     </section>
   );
 }
-

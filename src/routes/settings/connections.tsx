@@ -9,7 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import type { ConnectedProfile } from "@/lib/contracts";
 import { gameName, games } from "@/lib/contracts";
 import { dataClient, hubQueryOptions } from "@/lib/data-client";
-import { normalizeTag } from "@/lib/tags";
+import { hubLaunchPath } from "@/lib/destinations";
 
 export const Route = createFileRoute("/settings/connections")({
   component: ConnectionsPage,
@@ -94,17 +94,13 @@ function ConnectionsPage() {
                 <div className="flex flex-wrap gap-2">
                   {profile ? (
                     <>
-                      <Link
-                        to="/games/$game/$tag"
-                        params={{
-                          game: game.id,
-                          tag: normalizeTag(profile.playerTag),
-                        }}
+                      <a
+                        href={hubLaunchPath(game.id)}
                         className={buttonVariants({ variant: "outline", size: "sm" })}
                       >
                         <ExternalLink className="size-3.5" />
                         Open
-                      </Link>
+                      </a>
                       {profile.id !== hubQuery.data.activeProfileId ? (
                         <Button
                           size="sm"

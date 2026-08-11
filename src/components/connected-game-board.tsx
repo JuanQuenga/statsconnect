@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import type { ConnectedProfile, HubState } from "@/lib/contracts";
 import { gameName, games } from "@/lib/contracts";
 import { dataClient } from "@/lib/data-client";
-import { normalizeTag } from "@/lib/tags";
+import { hubLaunchPath } from "@/lib/destinations";
 
 export function ConnectedGameBoard({ hub }: { hub: HubState }) {
   const queryClient = useQueryClient();
@@ -102,10 +102,9 @@ function ActiveProfileHero({
 }) {
   const stageLight = useStageLight(profile.game);
   return (
-    <Link
+    <a
       data-game={profile.game}
-      to="/games/$game/$tag"
-      params={{ game: profile.game, tag: normalizeTag(profile.playerTag) }}
+      href={hubLaunchPath(profile.game)}
       onClick={onOpen}
       className="tile bevel bevel-lg relative flex flex-col gap-8 overflow-hidden border border-border/60 bg-card/70 p-7 no-underline backdrop-blur-sm sm:p-10 lg:flex-row lg:items-center lg:gap-12"
       {...stageLight}
@@ -169,11 +168,11 @@ function ActiveProfileHero({
           </div>
         ) : null}
         <span className={buttonVariants({ size: "lg" })}>
-          Open dashboard
+          Launch {gameName(profile.game)}
           <Play className="size-4 fill-current" aria-hidden />
         </span>
       </div>
-    </Link>
+    </a>
   );
 }
 
@@ -188,11 +187,10 @@ function ProfileTile({
 }) {
   const stageLight = useStageLight(profile.game);
   return (
-    <Link
+    <a
       data-tile
       data-game={profile.game}
-      to="/games/$game/$tag"
-      params={{ game: profile.game, tag: normalizeTag(profile.playerTag) }}
+      href={hubLaunchPath(profile.game)}
       onClick={onOpen}
       className="tile bevel bevel-lg relative flex min-h-[210px] flex-col justify-between overflow-hidden border border-border/60 bg-card/70 p-7 backdrop-blur-sm"
       {...stageLight}
@@ -249,6 +247,6 @@ function ProfileTile({
         <Clock3 className="size-3" aria-hidden />
         Opened {new Date(profile.updatedAt).toLocaleDateString()}
       </p>
-    </Link>
+    </a>
   );
 }

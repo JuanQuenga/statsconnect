@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import type { AdapterResult, GameId, ProfileSummary } from "@/lib/contracts";
 import { gameName } from "@/lib/contracts";
 import { dataClient } from "@/lib/data-client";
-import { normalizeTag, tagError } from "@/lib/tags";
+import { tagError } from "@/lib/tags";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "StatsConnect could not complete the request.";
@@ -27,13 +27,10 @@ export function ConnectTagForm({ game }: { game: GameId }) {
   });
   const connectMutation = useMutation({
     mutationFn: () => dataClient.connect(game, tag),
-    onSuccess: async (result) => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["hub-state"] });
       await queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
-      await navigate({
-        to: "/games/$game/$tag",
-        params: { game, tag: normalizeTag(result.profile.playerTag) },
-      });
+      await navigate({ to: "/launch/$game", params: { game } });
     },
   });
 
@@ -61,7 +58,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
         {connectMutation.isError ? <PageStatus tone="error">{errorMessage(connectMutation.error)}</PageStatus> : null}
         <div className="flex flex-wrap gap-3">
           <Button variant="secondary" onClick={() => { setPreview(null); previewMutation.reset(); connectMutation.reset(); }}><ArrowLeft className="size-4" />Use another tag</Button>
-          <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : "Save & open dashboard"}<ArrowRight className="size-4" /></Button>
+          <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : `Save & launch ${gameName(game)}`}<ArrowRight className="size-4" /></Button>
         </div>
       </div>
     );

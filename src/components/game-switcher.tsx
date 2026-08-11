@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import type { HubState } from "@/lib/contracts";
 import { gameName, games } from "@/lib/contracts";
 import { dataClient } from "@/lib/data-client";
-import { normalizeTag } from "@/lib/tags";
+import { hubLaunchPath } from "@/lib/destinations";
 
 const itemClass =
   "bevel bevel-sm flex px-3 py-2.5 text-sm no-underline transition-colors hover:bg-white/[0.07] focus:bg-white/[0.07] focus:outline-none";
@@ -38,17 +38,16 @@ export function GameSwitcher({ hub, onNavigate }: { hub: HubState; onNavigate?: 
         {games.map((game) => {
           const profile = hub.profiles.find((entry) => entry.game === game.id);
           return profile ? (
-            <Link
+            <a
               key={game.id}
               role="menuitem"
               tabIndex={-1}
-              to="/games/$game/$tag"
-              params={{ game: game.id, tag: normalizeTag(profile.playerTag) }}
+              href={hubLaunchPath(game.id)}
               onClick={() => { setActive.mutate(profile.id); onNavigate?.(); }}
               className={itemClass}
             >
               <span className="min-w-0"><span className="font-medium">{game.name}</span><span className="block truncate text-xs text-muted-foreground">{profile.display.name} · {profile.playerTag}</span></span>
-            </Link>
+            </a>
           ) : (
             <Link
               key={game.id}
