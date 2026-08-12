@@ -32,6 +32,8 @@ export function SiteNav() {
     { href: "/clubs", label: t("clubs") },
     { href: "/maps", label: t("maps") },
     { href: "/brawlers", label: t("brawlers") },
+    { href: "/meta", label: t("meta") },
+    { href: "/progression", label: t("progression") },
     { href: "/leaderboards", label: t("leaderboards") },
   ];
   return (

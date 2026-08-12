@@ -34,6 +34,14 @@ function normalizedTag(value: string | null): string | null {
   return /^[0289PYLQGRJCUV]{3,15}$/.test(tag) ? `#${tag}` : null;
 }
 
+function trophyBucket(value: string | null): "all" | "0-499" | "500-999" | "1000+" | null {
+  return value === null || value === "all"
+    ? "all"
+    : value === "0-499" || value === "500-999" || value === "1000+"
+      ? value
+      : null;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
 }
@@ -335,7 +343,8 @@ const mapDetail = httpAction(async (ctx, request) => {
     return json({ error: "INVALID_MAP", message: "A numeric map id is required." }, 400);
   }
   const mapId = Number(idPart);
-  const trophyBucket = url.searchParams.get("trophyBucket") || "all";
+  const selectedTrophyBucket = trophyBucket(url.searchParams.get("trophyBucket"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
 
   const mapResponse = await brawlApi("/maps");
   if (!mapResponse.ok) return mapResponse;
@@ -353,7 +362,7 @@ const mapDetail = httpAction(async (ctx, request) => {
 
   const meta = await ctx.runQuery(api.brawl.stats.getMapStats, {
     mapId,
-    trophyBucket: trophyBucket === "all" ? "all" : trophyBucket,
+    trophyBucket: selectedTrophyBucket,
   });
 
   return json({
@@ -363,6 +372,23 @@ const mapDetail = httpAction(async (ctx, request) => {
     sampleSize: meta.sampleSize,
     minPicks: meta.minPicks ?? MIN_META_PICKS,
   });
+});
+
+const brawlerMeta = httpAction(async (ctx, request) => {
+  const search = new URL(request.url).searchParams;
+  const brawlerId = Number(search.get("id"));
+  if (!Number.isInteger(brawlerId) || brawlerId <= 0) {
+    return json({ error: "INVALID_BRAWLER", message: "A numeric brawler id is required." }, 400);
+  }
+  const selectedTrophyBucket = trophyBucket(search.get("trophyBucket"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
+  return json(await ctx.runQuery(api.brawl.stats.getBrawlerStats, { brawlerId, trophyBucket: selectedTrophyBucket }));
+});
+
+const metaResearch = httpAction(async (ctx, request) => {
+  const selectedTrophyBucket = trophyBucket(new URL(request.url).searchParams.get("trophyBucket"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
+  return json(await ctx.runQuery(api.brawl.stats.getMetaResearch, { trophyBucket: selectedTrophyBucket }));
 });
 
 const options = httpAction(async () => new Response(null, { headers: corsHeaders, status: 204 }));
@@ -380,6 +406,8 @@ const paths = [
   "/api/events",
   "/api/maps",
   "/api/gamemodes",
+  "/api/brawler-meta",
+  "/api/meta",
 ];
 
 for (const path of paths) {
@@ -401,5 +429,7 @@ http.route({ method: "GET", path: "/api/events", handler: events });
 http.route({ method: "GET", path: "/api/maps", handler: maps });
 http.route({ method: "GET", pathPrefix: "/api/maps/", handler: mapDetail });
 http.route({ method: "GET", path: "/api/gamemodes", handler: gamemodes });
+http.route({ method: "GET", path: "/api/brawler-meta", handler: brawlerMeta });
+http.route({ method: "GET", path: "/api/meta", handler: metaResearch });
 
 export default http;
