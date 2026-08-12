@@ -245,6 +245,35 @@ export const ingestBattleLogItems = internalMutation({
           }
         }
       }
+
+      const focusOutcome = result === "victory" ? true : result === "defeat" ? false : result === "draw" ? null : undefined;
+      if (Array.isArray(raw.battle?.teams) && raw.battle.teams.length >= 2 && focusOutcome !== undefined) {
+        for (const [teamIndex, team] of raw.battle.teams.entries()) {
+          const teamWon = focusOutcome === null ? null : teamIndex === focusTeamIndex ? focusOutcome : !focusOutcome;
+          const opponents = raw.battle.teams
+            .filter((_, opponentTeamIndex) => opponentTeamIndex !== teamIndex)
+            .flatMap((opponentTeam) => opponentTeam || [])
+            .map((opponent) => Number(opponent.brawler?.id))
+            .filter((id) => Number.isFinite(id) && id > 0);
+          if (!opponents.length) continue;
+          for (const person of team || []) {
+            const brawlerId = Number(person.brawler?.id);
+            if (!Number.isFinite(brawlerId) || brawlerId <= 0) continue;
+            const personBucket = trophyBucketFromTrophies(Number(person.brawler?.trophies || 0));
+            for (const opponentBrawlerId of opponents) {
+              for (const trophyBucket of ["all", personBucket] as const) {
+                await bumpMatchupStat(ctx, {
+                  mapId,
+                  trophyBucket,
+                  brawlerId,
+                  opponentBrawlerId,
+                  won: teamWon,
+                });
+              }
+            }
+          }
+        }
+      }
     }
 
     return { inserted };
@@ -321,6 +350,44 @@ async function bumpTeamStat(
     teamHash: args.teamHash,
     brawlerIds: args.brawlerIds,
     trophyBucket: args.trophyBucket,
+    ...patch,
+  });
+}
+
+async function bumpMatchupStat(
+  ctx: MutationCtx,
+  args: {
+    mapId: number;
+    trophyBucket: string;
+    brawlerId: number;
+    opponentBrawlerId: number;
+    won: boolean | null;
+  },
+) {
+  const existing = await ctx.db
+    .query("mapBrawlerMatchups")
+    .withIndex("by_map_bucket_brawler_opponent", (q) =>
+      q
+        .eq("mapId", args.mapId)
+        .eq("trophyBucket", args.trophyBucket)
+        .eq("brawlerId", args.brawlerId)
+        .eq("opponentBrawlerId", args.opponentBrawlerId),
+    )
+    .unique();
+  const patch = {
+    picks: (existing?.picks || 0) + 1,
+    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
+    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
+  };
+  if (existing) {
+    await ctx.db.patch(existing._id, patch);
+    return;
+  }
+  await ctx.db.insert("mapBrawlerMatchups", {
+    mapId: args.mapId,
+    trophyBucket: args.trophyBucket,
+    brawlerId: args.brawlerId,
+    opponentBrawlerId: args.opponentBrawlerId,
     ...patch,
   });
 }

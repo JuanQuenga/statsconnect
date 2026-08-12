@@ -248,10 +248,21 @@ export type MapTeamStat = {
   trophyBucket: string;
 };
 
+export type MapBrawlerMatchup = {
+  brawlerId: number;
+  opponentBrawlerId: number;
+  wins: number;
+  losses: number;
+  picks: number;
+  winRate: number;
+  trophyBucket: string;
+};
+
 export type MapDetailResponse = {
   map: MapListItem;
   stats: MapBrawlerStat[];
   teams: MapTeamStat[];
+  matchups: MapBrawlerMatchup[];
   sampleSize: number;
   minPicks: number;
 };

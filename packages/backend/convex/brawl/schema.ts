@@ -47,6 +47,21 @@ export const brawlTables = {
     picks: v.number(),
   }).index("by_map_bucket_hash", ["mapId", "trophyBucket", "teamHash"]),
 
+  mapBrawlerMatchups: defineTable({
+    mapId: v.number(),
+    trophyBucket: v.string(),
+    brawlerId: v.number(),
+    opponentBrawlerId: v.number(),
+    wins: v.number(),
+    losses: v.number(),
+    picks: v.number(),
+  }).index("by_map_bucket_brawler_opponent", [
+    "mapId",
+    "trophyBucket",
+    "brawlerId",
+    "opponentBrawlerId",
+  ]),
+
   brawlPlayerDirectory: defineTable({
     tag: v.string(),
     name: v.string(),
