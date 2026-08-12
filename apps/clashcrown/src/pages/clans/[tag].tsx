@@ -9,7 +9,8 @@ import { Layout } from "@/components/portfolio/Layout";
 import { clan as mockClan, type Clan } from "@/lib/mock-data";
 import { clanBundleAction, errorMessage, isConvexConfigured } from "@/lib/convex";
 import { mapClanBundle } from "@/lib/clash/mappers";
-import { rememberProfile } from "@/lib/recentProfiles";
+import { TrackingControls } from "@/components/personalization/PersonalDashboard";
+import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 export default function ClanPage() {
   const router = useRouter();
@@ -38,9 +39,12 @@ function LiveClan({ tag }: { tag: string }) {
 }
 
 function ClanDashboard({ clan, isRefreshing = false, onRefresh = () => undefined }: { clan: Clan; isRefreshing?: boolean; onRefresh?: () => void }) {
+  const personalization = usePersonalization();
   useEffect(() => {
-    if (clan.tag) rememberProfile({ kind: "clans", tag: clan.tag.replace(/^#/, ""), name: clan.name });
-  }, [clan.tag, clan.name]);
+    if (!clan.tag) return;
+    void personalization.remember({ kind: "clans", tag: clan.tag, name: clan.name }).catch(() => undefined);
+    void personalization.observe({ kind: "clans", tag: clan.tag, name: clan.name, warTrophies: clan.warTrophies }).catch(() => undefined);
+  }, [clan.tag, clan.name, clan.warTrophies]);
 
   return (
     <Layout>
@@ -49,6 +53,7 @@ function ClanDashboard({ clan, isRefreshing = false, onRefresh = () => undefined
       </Head>
       <div className="profile-page clan-page">
         <ClanProfile clan={clan} />
+        <TrackingControls profile={{ kind: "clans", tag: clan.tag, name: clan.name }} />
         <ClanChestProgress clan={clan} />
         <MemberTable clan={clan} onRefresh={onRefresh} isRefreshing={isRefreshing} />
       </div>

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
+import { PersonalDashboard } from "@/components/personalization/PersonalDashboard";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
@@ -64,13 +65,15 @@ export default function HomePage() {
         </div>
       </section>
 
+      <PersonalDashboard />
+
       <section className="demo-command page-band">
         <div key={heroes[activeHero].name} className="command-spotlight">
           <Image src={heroes[activeHero].art} alt="" width={190} height={210} />
           <div>
-            <span>Live API-ready command center</span>
+            <span>Sample command center</span>
             <h2>{heroes[activeHero].name} Console</h2>
-            <p>{heroes[activeHero].copy} Search any player or clan tag above to load live stats, battle logs, chest cycles, rosters, and cards through the Convex-powered backend.</p>
+            <p>{heroes[activeHero].copy} The numbers below are a labeled sample. Search any player or clan tag above to load current API data.</p>
           </div>
         </div>
         <div className="command-stats">
@@ -78,14 +81,14 @@ export default function HomePage() {
           <Metric icon={<Crown size={19} />} value={demoPlayer.bestTrophies?.toLocaleString() ?? "—"} label="demo best trophies" />
           <Metric icon={<Swords size={19} />} value={selectedBattle.result} label="last battle" />
           <button type="button" onClick={() => playerQuery.refetch()} className={playerQuery.isFetching ? "is-fetching" : ""}>
-            <RefreshCcw size={17} />Refresh snapshot
+            <RefreshCcw size={17} />Reload sample
           </button>
         </div>
       </section>
 
       <section className="game-day page-band">
         <div className="section-title-row">
-          <h2>Game of the day</h2>
+          <h2>Game of the day <SampleBadge /></h2>
           <Link href="/players/CCDEMO" className="pink-button">See all games</Link>
         </div>
         <div className="game-board">

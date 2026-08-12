@@ -4,6 +4,7 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { convexUrl, isConvexConfigured } from "@/lib/convex";
+import { PersonalizationProvider } from "@/components/personalization/PersonalizationProvider";
 import { routeTree } from "./routeTree.gen";
 import "./styles/globals.css";
 
@@ -30,7 +31,11 @@ declare module "@tanstack/react-router" {
 }
 
 function Providers({ children }: { children: ReactNode }) {
-  const app = <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  const app = (
+    <QueryClientProvider client={queryClient}>
+      <PersonalizationProvider>{children}</PersonalizationProvider>
+    </QueryClientProvider>
+  );
   return convexClient ? <ConvexProvider client={convexClient}>{app}</ConvexProvider> : app;
 }
 

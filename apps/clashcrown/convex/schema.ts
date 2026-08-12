@@ -322,5 +322,73 @@ export default defineSchema({
     .index("by_tag", ["tag"])
     .index("by_name_lower", ["nameLower"])
     .index("by_updated_at", ["updatedAt"])
-    .searchIndex("search_name", { searchField: "name" })
+    .searchIndex("search_name", { searchField: "name" }),
+
+  /** Capability-owned personalization account. See docs/personalization-identity-adapter.md. */
+  personalAccounts: defineTable({
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    chestAlerts: v.boolean(),
+    progressionAlerts: v.boolean(),
+    warAlerts: v.boolean()
+  }),
+
+  /** Each browser has an independent high-entropy capability; raw secrets are never stored. */
+  personalDevices: defineTable({
+    accountId: v.id("personalAccounts"),
+    secretHash: v.string(),
+    label: v.string(),
+    createdAt: v.number(),
+    lastSeenAt: v.number()
+  })
+    .index("by_secret_hash", ["secretHash"])
+    .index("by_account_id", ["accountId"]),
+
+  /** One-time, ten-minute pairing capabilities generated in the browser. */
+  personalPairingCodes: defineTable({
+    accountId: v.id("personalAccounts"),
+    codeHash: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number()
+  })
+    .index("by_code_hash", ["codeHash"])
+    .index("by_account_id", ["accountId"]),
+
+  personalProfiles: defineTable({
+    accountId: v.id("personalAccounts"),
+    kind: v.union(v.literal("players"), v.literal("clans")),
+    tag: v.string(),
+    name: v.string(),
+    clan: v.optional(v.string()),
+    isDefault: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number()
+  })
+    .index("by_account_id", ["accountId"])
+    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"]),
+
+  personalRecents: defineTable({
+    accountId: v.id("personalAccounts"),
+    kind: v.union(v.literal("players"), v.literal("clans")),
+    tag: v.string(),
+    name: v.string(),
+    clan: v.optional(v.string()),
+    visitedAt: v.number()
+  })
+    .index("by_account_id", ["accountId"])
+    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"]),
+
+  /** Last API observation for opt-in, refresh-driven browser alerts. */
+  personalObservations: defineTable({
+    accountId: v.id("personalAccounts"),
+    kind: v.union(v.literal("players"), v.literal("clans")),
+    tag: v.string(),
+    trophies: v.optional(v.number()),
+    chestName: v.optional(v.string()),
+    chestIndex: v.optional(v.number()),
+    warTrophies: v.optional(v.number()),
+    observedAt: v.number()
+  })
+    .index("by_account_id", ["accountId"])
+    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"])
 });

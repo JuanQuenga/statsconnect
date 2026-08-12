@@ -1,22 +1,29 @@
-/**
- * Profiles this browser has opened, newest first.
- *
- * The directory in Convex answers "who is called X"; this answers "who am I".
- * A player only has to type their tag once — after that their own name is in
- * the search box before they finish typing it, and usually before they type
- * anything at all.
- */
+/** Local cache and migration layer for ClashCrown personalization. */
 
-const STORAGE_KEY = "clash-crown:recent-profiles";
-const MAX_ENTRIES = 8;
+const STORAGE_KEY = "clash-crown:personalization:v2";
+const LEGACY_RECENTS_KEY = "clash-crown:recent-profiles";
+const LEGACY_FAVORITES_KEY = "clash-crown:favorite-profiles";
+const MAX_RECENTS = 12;
+
+export type ProfileKind = "players" | "clans";
 
 export type RecentProfile = {
-  kind: "players" | "clans";
+  kind: ProfileKind;
   tag: string;
   name: string;
   clan?: string;
   visitedAt: number;
   favorite?: boolean;
+};
+
+export type TrackedProfile = {
+  kind: ProfileKind;
+  tag: string;
+  name: string;
+  clan?: string;
+  isDefault: boolean;
+  createdAt: number;
+  updatedAt: number;
 };
 
 export type FavoriteProfile = {
@@ -26,113 +33,195 @@ export type FavoriteProfile = {
   clan?: string;
 };
 
-const FAVORITES_KEY = "clash-crown:favorite-profiles";
+export type AlertPreferences = {
+  chestAlerts: boolean;
+  progressionAlerts: boolean;
+  warAlerts: boolean;
+};
+
+export type LocalPersonalizationState = {
+  version: 2;
+  deviceSecret: string;
+  migratedToSync: boolean;
+  profiles: TrackedProfile[];
+  recents: RecentProfile[];
+  preferences: AlertPreferences;
+};
+
+export const defaultAlertPreferences: AlertPreferences = {
+  chestAlerts: false,
+  progressionAlerts: false,
+  warAlerts: false,
+};
+
+function normalizeTag(tag: string) {
+  return tag.replace(/^#/, "").trim().toUpperCase();
+}
+
+function profileKey(profile: Pick<RecentProfile, "kind" | "tag">) {
+  return `${profile.kind}:${normalizeTag(profile.tag)}`;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 function isRecent(value: unknown): value is RecentProfile {
-  if (typeof value !== "object" || value === null) return false;
-  const item = value as Record<string, unknown>;
+  if (!isObject(value)) return false;
   return (
-    (item.kind === "players" || item.kind === "clans") &&
-    typeof item.tag === "string" &&
-    typeof item.name === "string" &&
-    typeof item.visitedAt === "number" &&
-    (item.clan === undefined || typeof item.clan === "string") &&
-    (item.favorite === undefined || typeof item.favorite === "boolean")
+    (value.kind === "players" || value.kind === "clans") &&
+    typeof value.tag === "string" &&
+    typeof value.name === "string" &&
+    typeof value.visitedAt === "number" &&
+    (value.clan === undefined || typeof value.clan === "string") &&
+    (value.favorite === undefined || typeof value.favorite === "boolean")
   );
 }
 
 function isFavorite(value: unknown): value is FavoriteProfile {
-  if (typeof value !== "object" || value === null) return false;
-  const item = value as Record<string, unknown>;
+  if (!isObject(value)) return false;
+  return value.kind === "players" && typeof value.tag === "string" && typeof value.name === "string" &&
+    (value.clan === undefined || typeof value.clan === "string");
+}
+
+function isTracked(value: unknown): value is TrackedProfile {
+  if (!isObject(value)) return false;
   return (
-    item.kind === "players" &&
-    typeof item.tag === "string" &&
-    typeof item.name === "string" &&
-    (item.clan === undefined || typeof item.clan === "string")
+    (value.kind === "players" || value.kind === "clans") &&
+    typeof value.tag === "string" &&
+    typeof value.name === "string" &&
+    typeof value.isDefault === "boolean" &&
+    typeof value.createdAt === "number" &&
+    typeof value.updatedAt === "number" &&
+    (value.clan === undefined || typeof value.clan === "string")
   );
 }
 
-function sameProfile(left: { kind: string; tag: string }, right: { kind: string; tag: string }) {
-  return left.kind === right.kind && normalizeTag(left.tag) === normalizeTag(right.tag);
+function randomSecret() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
-function normalizeTag(tag: string) {
-  return tag.replace(/^#/, "").toUpperCase();
-}
-
-export function readRecentProfiles(): RecentProfile[] {
-  if (typeof window === "undefined") return [];
+function parseArray(key: string): unknown[] {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isRecent) : [];
+    const raw = window.localStorage.getItem(key);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    // Private browsing, a quota error, or somebody else's key. Not worth a throw.
     return [];
   }
 }
 
-/** Returns the new list so a caller holding React state does not have to re-read. */
-export function rememberProfile(profile: Omit<RecentProfile, "visitedAt">): RecentProfile[] {
-  if (typeof window === "undefined") return [];
-  const entry: RecentProfile = { ...profile, visitedAt: Date.now() };
-  const existing = readRecentProfiles().find((item) => sameProfile(item, entry));
-  const nextEntry: RecentProfile = {
-    ...entry,
-    tag: normalizeTag(entry.tag),
-    clan: entry.clan ?? existing?.clan
+function migrateLegacy(deviceSecret: string): LocalPersonalizationState {
+  const now = Date.now();
+  const recents = parseArray(LEGACY_RECENTS_KEY).filter(isRecent);
+  const favorites = parseArray(LEGACY_FAVORITES_KEY).filter(isFavorite);
+  const legacyFavorites = recents
+    .filter((recent) => recent.kind === "players" && recent.favorite)
+    .map(({ tag, name, clan }) => ({ kind: "players" as const, tag, name, clan }));
+  const merged = [...favorites, ...legacyFavorites];
+  const profiles = merged
+    .filter((profile, index) => merged.findIndex((candidate) => profileKey(candidate) === profileKey(profile)) === index)
+    .map((profile) => ({ ...profile, tag: normalizeTag(profile.tag), isDefault: false, createdAt: now, updatedAt: now }));
+  return {
+    version: 2,
+    deviceSecret,
+    migratedToSync: false,
+    profiles,
+    recents: recents
+      .map((recent) => ({ ...recent, tag: normalizeTag(recent.tag) }))
+      .sort((left, right) => right.visitedAt - left.visitedAt)
+      .slice(0, MAX_RECENTS),
+    preferences: defaultAlertPreferences,
   };
-  const next = [nextEntry, ...readRecentProfiles().filter((item) => !sameProfile(item, entry))].slice(0, MAX_ENTRIES);
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // Nothing to do — recents are a convenience, not state we own.
+}
+
+export function readLocalPersonalization(): LocalPersonalizationState {
+  if (typeof window === "undefined") {
+    return { version: 2, deviceSecret: "", migratedToSync: false, profiles: [], recents: [], preferences: defaultAlertPreferences };
   }
-  return next;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    if (isObject(parsed) && parsed.version === 2 && typeof parsed.deviceSecret === "string" && parsed.deviceSecret.length >= 40) {
+      const preferences = isObject(parsed.preferences) ? parsed.preferences : {};
+      return {
+        version: 2,
+        deviceSecret: parsed.deviceSecret,
+        migratedToSync: parsed.migratedToSync === true,
+        profiles: Array.isArray(parsed.profiles) ? parsed.profiles.filter(isTracked) : [],
+        recents: Array.isArray(parsed.recents) ? parsed.recents.filter(isRecent).slice(0, MAX_RECENTS) : [],
+        preferences: {
+          chestAlerts: preferences.chestAlerts === true,
+          progressionAlerts: preferences.progressionAlerts === true,
+          warAlerts: preferences.warAlerts === true,
+        },
+      };
+    }
+  } catch {
+    // A corrupt or unavailable cache should not prevent the app from working.
+  }
+  const migrated = migrateLegacy(randomSecret());
+  writeLocalPersonalization(migrated);
+  return migrated;
+}
+
+export function writeLocalPersonalization(state: LocalPersonalizationState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // The in-memory provider remains usable when storage is unavailable.
+  }
+}
+
+export function replaceLocalDevice(): LocalPersonalizationState {
+  const state: LocalPersonalizationState = {
+    version: 2,
+    deviceSecret: randomSecret(),
+    migratedToSync: false,
+    profiles: [],
+    recents: [],
+    preferences: defaultAlertPreferences,
+  };
+  writeLocalPersonalization(state);
+  return state;
+}
+
+export function readRecentProfiles() {
+  return readLocalPersonalization().recents;
 }
 
 export function readFavoriteProfiles(): FavoriteProfile[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(FAVORITES_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    const stored = Array.isArray(parsed) ? parsed.filter(isFavorite) : [];
-    const legacy: FavoriteProfile[] = readRecentProfiles()
-      .filter((item) => item.kind === "players" && item.favorite === true)
-      .map(({ tag, name, clan }) => ({ kind: "players", tag, name, clan }));
-    const merged = [...stored, ...legacy];
-    return merged.filter((profile, index) => merged.findIndex((item) => sameProfile(item, profile)) === index);
-  } catch {
-    return [];
-  }
+  return readLocalPersonalization().profiles
+    .filter((profile): profile is TrackedProfile & { kind: "players" } => profile.kind === "players")
+    .map(({ tag, name, clan }) => ({ kind: "players", tag, name, clan }));
 }
 
-/** Stars or unstars a player and returns the complete favorite list. */
+export function rememberProfile(profile: Omit<RecentProfile, "visitedAt">): RecentProfile[] {
+  const state = readLocalPersonalization();
+  const recent: RecentProfile = { ...profile, tag: normalizeTag(profile.tag), visitedAt: Date.now() };
+  state.recents = [recent, ...state.recents.filter((candidate) => profileKey(candidate) !== profileKey(recent))].slice(0, MAX_RECENTS);
+  writeLocalPersonalization(state);
+  return state.recents;
+}
+
 export function toggleFavorite(profile: Omit<FavoriteProfile, "kind"> & { kind?: "players" }): FavoriteProfile[] {
-  if (typeof window === "undefined") return [];
-  const normalized: FavoriteProfile = { kind: "players", tag: normalizeTag(profile.tag), name: profile.name, clan: profile.clan };
-  const favorites = readFavoriteProfiles();
-  const alreadyFavorite = favorites.some((item) => sameProfile(item, normalized));
-  const next = alreadyFavorite
-    ? favorites.filter((item) => !sameProfile(item, normalized))
-    : [normalized, ...favorites];
-
-  try {
-    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-  } catch {
-    // Nothing to do — favorites are a convenience, not state we own.
+  const state = readLocalPersonalization();
+  const normalized = { kind: "players" as const, tag: normalizeTag(profile.tag), name: profile.name, clan: profile.clan };
+  const existing = state.profiles.find((candidate) => profileKey(candidate) === profileKey(normalized));
+  if (existing) state.profiles = state.profiles.filter((candidate) => candidate !== existing);
+  else {
+    const now = Date.now();
+    state.profiles.unshift({ ...normalized, isDefault: false, createdAt: now, updatedAt: now });
   }
-
-  rememberProfile({ ...normalized });
-  return next;
+  writeLocalPersonalization(state);
+  return readFavoriteProfiles();
 }
 
 export function forgetProfiles() {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // See above.
-  }
+  const state = readLocalPersonalization();
+  state.recents = [];
+  writeLocalPersonalization(state);
 }
