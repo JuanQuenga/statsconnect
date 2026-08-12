@@ -15,6 +15,7 @@ import { normalizeTag, readableMode, trophies } from "@/lib/format";
 import { shareContent } from "@/lib/share";
 import type { BrawlerCatalogItem, EventItem, MapDetailResponse, MapListItem, PlayerProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 type AssistantSearch = { tag?: string; map?: string; bucket?: string };
 type DraftSide = "ally" | "enemy" | "ban";
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/assistant")({
 });
 
 function AssistantPage() {
+  const { t } = useI18n();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [draftTag, setDraftTag] = useState(search.tag || "");
@@ -69,54 +71,53 @@ function AssistantPage() {
     <div className="page-shell">
       <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
-          <p className="eyebrow">Personalized strategy</p>
-          <h1 className="font-display text-4xl md:text-5xl">Draft Lab</h1>
+          <p className="eyebrow">{t("assistant.eyebrow")}</p>
+          <h1 className="font-display text-4xl md:text-5xl">{t("assistant.title")}</h1>
           <p className="mt-2 max-w-3xl text-muted-foreground">
-            Turn live map data into picks you can actually play. Recommendations combine map performance, team synergies,
-            matchup evidence, your power levels, and your brawler trophies.
+            {t("assistant.description")}
           </p>
         </div>
         <Button
           variant="outline"
-          onClick={() => shareContent({ title: "BrawlStats Draft Lab", text: "Try this Brawl Stars draft and map setup", url: window.location.href })}
+          onClick={() => shareContent({ title: `BrawlStats ${t("assistant.title")}`, text: t("assistant.shareText"), url: window.location.href })}
         >
-          <Share2 /> Share setup
+          <Share2 /> {t("assistant.shareSetup")}
         </Button>
       </div>
 
       <Card className="p-5 py-5">
         <form onSubmit={loadPlayer} className="flex flex-col gap-3 md:flex-row md:items-end">
           <label className="min-w-0 flex-1 text-sm">
-            <span className="mb-1.5 block text-muted-foreground">Player tag for owned-brawler recommendations</span>
+            <span className="mb-1.5 block text-muted-foreground">{t("assistant.playerTag")}</span>
             <Input value={draftTag} onChange={(event) => setDraftTag(event.target.value)} placeholder="#PLAYER_TAG" className="h-10" />
           </label>
-          <Button type="submit" className="h-10"><UserRound /> Load account</Button>
+          <Button type="submit" className="h-10"><UserRound /> {t("assistant.loadAccount")}</Button>
           <label className="text-sm">
-            <span className="mb-1.5 block text-muted-foreground">Trophy range</span>
+            <span className="mb-1.5 block text-muted-foreground">{t("assistant.trophyRange")}</span>
             <Select value={bucket} onValueChange={(value) => navigate({ search: (current) => ({ ...current, bucket: value || "all" }) })}>
-              <SelectTrigger className="h-10 min-w-40"><SelectValue>{bucket === "all" ? "All trophies" : `${bucket} trophies`}</SelectValue></SelectTrigger>
+              <SelectTrigger className="h-10 min-w-40"><SelectValue>{bucket === "all" ? t("common.allTrophies") : t("common.trophyRange", { range: bucket })}</SelectValue></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All trophies</SelectItem>
-                <SelectItem value="0-499">0–499 trophies</SelectItem>
-                <SelectItem value="500-999">500–999 trophies</SelectItem>
-                <SelectItem value="1000+">1000+ trophies</SelectItem>
+                <SelectItem value="all">{t("common.allTrophies")}</SelectItem>
+                <SelectItem value="0-499">{t("common.trophyRange", { range: "0–499" })}</SelectItem>
+                <SelectItem value="500-999">{t("common.trophyRange", { range: "500–999" })}</SelectItem>
+                <SelectItem value="1000+">{t("common.trophyRange", { range: "1000+" })}</SelectItem>
               </SelectContent>
             </Select>
           </label>
         </form>
-        {playerQuery.isLoading ? <p className="mt-3 text-sm text-muted-foreground">Loading account…</p> : null}
+        {playerQuery.isLoading ? <p className="mt-3 text-sm text-muted-foreground">{t("assistant.loadingAccount")}</p> : null}
         {playerQuery.data ? (
           <p className="mt-3 text-sm text-accent">
-            Personalizing for {playerQuery.data.name} · {playerQuery.data.brawlers?.length || 0} unlocked brawlers
+            {t("assistant.personalizing", { name: playerQuery.data.name, count: playerQuery.data.brawlers?.length || 0 })}
           </p>
         ) : null}
-        {playerQuery.error ? <p className="mt-3 text-sm text-destructive">{playerQuery.error instanceof Error ? playerQuery.error.message : "Player lookup failed."}</p> : null}
+        {playerQuery.error ? <p className="mt-3 text-sm text-destructive">{playerQuery.error instanceof Error ? playerQuery.error.message : t("assistant.lookupFailed")}</p> : null}
       </Card>
 
       <Tabs defaultValue="now">
         <TabsList>
-          <TabsTrigger value="now"><Sparkles /> What should I play now?</TabsTrigger>
-          <TabsTrigger value="draft"><Swords /> Live draft assistant</TabsTrigger>
+          <TabsTrigger value="now"><Sparkles /> {t("assistant.playNow")}</TabsTrigger>
+          <TabsTrigger value="draft"><Swords /> {t("assistant.liveDraft")}</TabsTrigger>
         </TabsList>
         <TabsContent value="now" className="mt-5">
           <PlayNow
@@ -155,11 +156,12 @@ function PlayNow({
   player?: PlayerProfile;
   loading: boolean;
 }) {
+  const { t } = useI18n();
   const owned = useMemo(() => new Map((player?.brawlers || []).map((brawler) => [brawler.id, brawler])), [player]);
   const catalogMap = useMemo(() => new Map(catalog.map((brawler) => [brawler.id, brawler])), [catalog]);
 
-  if (loading && !events.length) return <PageStatus tone="loading">Analyzing the live rotation…</PageStatus>;
-  if (!events.length) return <EmptyState title="No active events" detail="The official rotation returned no events." />;
+  if (loading && !events.length) return <PageStatus tone="loading">{t("assistant.analyzing")}</PageStatus>;
+  if (!events.length) return <EmptyState title={t("assistant.noEvents")} detail={t("assistant.noEventsDetail")} />;
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -182,9 +184,9 @@ function PlayNow({
               <img src={gameModeImageUrl(eventModeId(event.event?.mode))} alt="" className="size-12 rounded-lg" />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{readableMode(event.event?.mode)}</p>
-                <p className="truncate text-sm text-muted-foreground">{event.event?.map || "Unknown map"}</p>
+                <p className="truncate text-sm text-muted-foreground">{event.event?.map || t("common.unknownMap")}</p>
               </div>
-              {event.event?.id ? <Link to="/maps/$mapId" params={{ mapId: String(event.event.id) }} className="text-xs text-accent hover:underline">Map stats</Link> : null}
+              {event.event?.id ? <Link to="/maps/$mapId" params={{ mapId: String(event.event.id) }} className="text-xs text-accent hover:underline">{t("assistant.mapStats")}</Link> : null}
             </div>
             <div className="space-y-3 p-4">
               {suggestions.map((suggestion, rank) => {
@@ -192,19 +194,19 @@ function PlayNow({
                 return (
                   <div key={suggestion.brawlerId} className="flex items-center gap-3 rounded-lg border border-border bg-background/35 p-3">
                     <span className="font-display text-xl text-primary">#{rank + 1}</span>
-                    <img src={brawlerBorderUrl(suggestion.brawlerId)} alt={meta?.name || "Brawler"} className="size-12 rounded-lg object-cover" />
+                    <img src={brawlerBorderUrl(suggestion.brawlerId)} alt={meta?.name || t("player.brawler")} className="size-12 rounded-lg object-cover" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium">{meta?.name || `Brawler ${suggestion.brawlerId}`}</p>
+                      <p className="font-medium">{meta?.name || `${t("player.brawler")} ${suggestion.brawlerId}`}</p>
                       <p className="text-xs text-muted-foreground">
                         {suggestion.winRate.toFixed(1)}% WR · {suggestion.useRate.toFixed(1)}% use
-                        {suggestion.account ? ` · Power ${suggestion.account.power}` : ""}
+                        {suggestion.account ? ` · ${t("assistant.power", { power: suggestion.account.power })}` : ""}
                       </p>
                     </div>
-                    <Badge variant={rank === 0 ? "default" : "secondary"}>{Math.round(suggestion.score)} fit</Badge>
+                    <Badge variant={rank === 0 ? "default" : "secondary"}>{t("assistant.fit", { score: Math.round(suggestion.score) })}</Badge>
                   </div>
                 );
               })}
-              {!suggestions.length ? <p className="text-sm text-muted-foreground">Not enough qualified samples for this map and account yet.</p> : null}
+              {!suggestions.length ? <p className="text-sm text-muted-foreground">{t("assistant.noSamples")}</p> : null}
             </div>
           </Card>
         );
@@ -228,6 +230,7 @@ function DraftAssistant({
   player?: PlayerProfile;
   onMapChange: (map: string) => void;
 }) {
+  const { t } = useI18n();
   const [side, setSide] = useState<DraftSide>("ally");
   const [allies, setAllies] = useState<number[]>([]);
   const [enemies, setEnemies] = useState<number[]>([]);
@@ -286,25 +289,25 @@ function DraftAssistant({
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
         <Select value={selectedMap} onValueChange={(value) => value && onMapChange(value)}>
-          <SelectTrigger className="h-10 w-full"><SelectValue>{detailQuery.data?.map.name || "Choose a map"}</SelectValue></SelectTrigger>
+          <SelectTrigger className="h-10 w-full"><SelectValue>{detailQuery.data?.map.name || t("assistant.chooseMap")}</SelectValue></SelectTrigger>
           <SelectContent>
             {maps.filter((map) => !map.disabled).map((map) => <SelectItem key={map.id} value={String(map.id)}>{map.name} · {map.gameMode?.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Button variant={ownedOnly ? "secondary" : "outline"} onClick={() => setOwnedOnly((value) => !value)} disabled={!player}>
-          <ShieldCheck /> Owned only
+          <ShieldCheck /> {t("assistant.ownedOnly")}
         </Button>
-        <Button variant="outline" onClick={() => { setAllies([]); setEnemies([]); setBans([]); }}><RefreshCw /> Reset</Button>
+        <Button variant="outline" onClick={() => { setAllies([]); setEnemies([]); setBans([]); }}><RefreshCw /> {t("assistant.reset")}</Button>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.7fr)]">
         <Card className="p-5 py-5">
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant={side === "ally" ? "default" : "outline"} onClick={() => setSide("ally")}><Check /> Your team ({allies.length}/3)</Button>
-            <Button size="sm" variant={side === "enemy" ? "default" : "outline"} onClick={() => setSide("enemy")}><Swords /> Opponents ({enemies.length}/3)</Button>
-            <Button size="sm" variant={side === "ban" ? "default" : "outline"} onClick={() => setSide("ban")}><Ban /> Bans ({bans.length}/6)</Button>
+            <Button size="sm" variant={side === "ally" ? "default" : "outline"} onClick={() => setSide("ally")}><Check /> {t("assistant.yourTeam", { count: allies.length })}</Button>
+            <Button size="sm" variant={side === "enemy" ? "default" : "outline"} onClick={() => setSide("enemy")}><Swords /> {t("assistant.opponents", { count: enemies.length })}</Button>
+            <Button size="sm" variant={side === "ban" ? "default" : "outline"} onClick={() => setSide("ban")}><Ban /> {t("assistant.bans", { count: bans.length })}</Button>
           </div>
-          <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter brawlers" className="mt-4" />
+          <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t("assistant.filterBrawlers")} className="mt-4" />
           <div className="mt-4 grid max-h-[500px] grid-cols-4 gap-2 overflow-y-auto pr-1 sm:grid-cols-6 md:grid-cols-8">
             {visibleCatalog.map((brawler) => {
               const selected = occupied.has(brawler.id);
@@ -327,12 +330,12 @@ function DraftAssistant({
         <div>
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
-              <p className="eyebrow">Live recommendation</p>
-              <h2 className="font-display text-2xl">Best remaining picks</h2>
+              <p className="eyebrow">{t("assistant.liveRecommendation")}</p>
+              <h2 className="font-display text-2xl">{t("assistant.bestRemaining")}</h2>
             </div>
-            <p className="text-xs text-muted-foreground">{detailQuery.data?.sampleSize ? `${trophies(detailQuery.data.sampleSize)} samples` : ""}</p>
+            <p className="text-xs text-muted-foreground">{detailQuery.data?.sampleSize ? t("assistant.samples", { count: trophies(detailQuery.data.sampleSize) }) : ""}</p>
           </div>
-          {detailQuery.isLoading ? <PageStatus tone="loading">Calculating draft…</PageStatus> : null}
+          {detailQuery.isLoading ? <PageStatus tone="loading">{t("assistant.calculating")}</PageStatus> : null}
           <div className="space-y-2">
             {recommendations.map((row, index) => {
               const meta = catalogMap.get(row.brawlerId);
@@ -342,22 +345,22 @@ function DraftAssistant({
                   <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-12 rounded-lg object-cover" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-medium">{meta?.name || `Brawler ${row.brawlerId}`}</p>
+                      <p className="truncate font-medium">{meta?.name || `${t("player.brawler")} ${row.brawlerId}`}</p>
                       {row.account ? <Badge variant="secondary">P{row.account.power}</Badge> : null}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {row.winRate.toFixed(1)}% map WR · {row.synergySamples ? `${row.synergy >= 0 ? "+" : ""}${row.synergy.toFixed(1)} synergy` : "new team"}
-                      {enemies.length ? ` · ${row.matchupSamples ? `${row.counter >= 0 ? "+" : ""}${row.counter.toFixed(1)} counter` : "matchup pending"}` : ""}
+                      {t("assistant.mapWin", { rate: row.winRate.toFixed(1) })} · {row.synergySamples ? t("assistant.synergy", { score: `${row.synergy >= 0 ? "+" : ""}${row.synergy.toFixed(1)}` }) : t("assistant.newTeam")}
+                      {enemies.length ? ` · ${row.matchupSamples ? t("assistant.counter", { score: `${row.counter >= 0 ? "+" : ""}${row.counter.toFixed(1)}` }) : t("assistant.matchupPending")}` : ""}
                     </p>
                   </div>
                   <Badge>{Math.round(row.score)}</Badge>
                 </Card>
               );
             })}
-            {!detailQuery.isLoading && !recommendations.length ? <EmptyState title="No eligible recommendations" detail="Try another trophy range or clear Owned only." /> : null}
+            {!detailQuery.isLoading && !recommendations.length ? <EmptyState title={t("assistant.noEligible")} detail={t("assistant.noEligibleDetail")} /> : null}
           </div>
           {enemies.length && !detailQuery.data?.matchups?.length ? (
-            <p className="mt-3 text-xs text-muted-foreground">Counter scores appear as matchup samples accumulate; map strength and team synergy remain active now.</p>
+            <p className="mt-3 text-xs text-muted-foreground">{t("assistant.counterDetail")}</p>
           ) : null}
         </div>
       </div>

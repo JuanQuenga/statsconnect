@@ -20,6 +20,7 @@ import { normalizeCatalog } from "@/lib/brawlers";
 import { readableMode, relativeEnd, trophies } from "@/lib/format";
 import type { EventItem, RankingClub, RankingPlayer } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { t } = useI18n();
   const catalogQuery = useQuery({
     queryKey: ["brawlers"],
     queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog),
@@ -58,21 +60,20 @@ function HomePage() {
       <section className="brawl-hero border-b border-border">
         <div className="relative mx-auto grid min-h-[680px] max-w-7xl items-center gap-4 px-4 pt-12 md:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:pt-0">
           <div className="brawl-hero-copy relative z-10 self-center pb-4 lg:pb-16">
-            <p className="eyebrow">Live Brawl Stars statistics</p>
+            <p className="eyebrow">{t("home.eyebrow")}</p>
             <h1 className="mt-3 font-display text-5xl font-bold md:text-7xl">
               BrawlStats<span className="text-primary">.io</span>
             </h1>
             <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-              Track players, clubs, event rotation, map meta, and official rankings — powered by the Brawl Stars API
-              and first-party battle aggregation.
+              {t("home.description")}
             </p>
-            <PlayerSearch className="mt-8 max-w-lg" buttonLabel="View Player" />
+            <PlayerSearch className="mt-8 max-w-lg" buttonLabel={t("home.viewPlayer")} />
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to="/maps" className={cn(buttonVariants({ variant: "secondary" }), "h-9 px-3")}>
-                Maps & Meta
+                {t("home.mapsMeta")}
               </Link>
               <Link to="/leaderboards" className={cn(buttonVariants({ variant: "outline" }), "h-9 px-3")}>
-                Leaderboards
+                {t("nav.leaderboards")}
               </Link>
             </div>
           </div>
@@ -80,7 +81,7 @@ function HomePage() {
           <div className="relative min-h-[430px] self-end lg:min-h-[650px]">
             <img
               src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-hero-official.webp`}
-              alt="Colt, Shelly, and Spike from Brawl Stars"
+              alt={t("home.heroAlt")}
               width={900}
               height={1125}
               fetchPriority="high"
@@ -94,8 +95,8 @@ function HomePage() {
                   className="size-12 rounded-lg object-cover"
                 />
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">Live catalog</p>
-                  <p className="font-display text-lg leading-tight">Newest: {featured.name}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">{t("home.liveCatalog")}</p>
+                  <p className="font-display text-lg leading-tight">{t("home.newestNamed", { name: featured.name })}</p>
                   <p className="text-xs text-muted-foreground">{featured.rarity} · {featured.role}</p>
                 </div>
               </div>
@@ -106,15 +107,15 @@ function HomePage() {
 
       <div className="page-shell space-y-14">
         {error ? (
-          <PageStatus tone="error">{error instanceof Error ? error.message : "Failed to load live data."}</PageStatus>
+          <PageStatus tone="error">{error instanceof Error ? error.message : t("home.loadError")}</PageStatus>
         ) : catalogQuery.isLoading ? (
-          <PageStatus tone="loading">Loading live game data…</PageStatus>
+          <PageStatus tone="loading">{t("home.loading")}</PageStatus>
         ) : null}
 
         <section>
           <div className="mb-5">
-            <p className="eyebrow">Live game data</p>
-            <h2 className="section-title">Newest brawlers</h2>
+            <p className="eyebrow">{t("home.liveData")}</p>
+            <h2 className="section-title">{t("home.newest")}</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {newest.map((brawler, index) => (
@@ -144,11 +145,11 @@ function HomePage() {
           <div>
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <p className="eyebrow">Current rotation</p>
-                <h2 className="section-title">Active events</h2>
+                <p className="eyebrow">{t("home.rotation")}</p>
+                <h2 className="section-title">{t("home.activeEvents")}</h2>
               </div>
               <Link to="/maps" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-                All maps
+                {t("home.allMaps")}
               </Link>
             </div>
             <div className="space-y-2">
@@ -166,22 +167,22 @@ function HomePage() {
                       <img src={gameModeImageUrl(eventModeId(mode))} alt="" className="size-12 rounded-lg" />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium">{readableMode(mode)}</p>
-                        <p className="truncate text-sm text-muted-foreground">{item.event?.map || "Map unavailable"}</p>
+                        <p className="truncate text-sm text-muted-foreground">{item.event?.map || t("home.mapUnavailable")}</p>
                       </div>
                       <span className="text-xs text-primary">{relativeEnd(item.endTime)}</span>
                     </Link>
                   );
                 })
               ) : (
-                <EmptyState title="No active events" detail="Check back after the next rotation." />
+                <EmptyState title={t("home.noEvents")} detail={t("home.noEventsDetail")} />
               )}
             </div>
           </div>
 
           <div>
             <div className="mb-4">
-              <p className="eyebrow">Global rankings</p>
-              <h2 className="section-title">Top players</h2>
+              <p className="eyebrow">{t("home.globalRankings")}</p>
+              <h2 className="section-title">{t("home.topPlayers")}</h2>
             </div>
             <div className="data-surface overflow-hidden">
               <Table>
@@ -200,7 +201,7 @@ function HomePage() {
                         >
                           {player.name}
                         </Link>
-                        <p className="text-xs text-muted-foreground">{player.club?.name || "No club"}</p>
+                        <p className="text-xs text-muted-foreground">{player.club?.name || t("common.noClub")}</p>
                       </TableCell>
                       <TableCell className="px-3 text-right font-medium text-primary">{trophies(player.trophies)}</TableCell>
                     </TableRow>
@@ -212,7 +213,7 @@ function HomePage() {
               <Card className="mt-4 flex-row items-center gap-3 p-4 py-4">
                 <img src={clubBadgeUrl(clubsQuery.data[0].badgeId)} alt="" className="size-12" />
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Top club</p>
+                  <p className="text-xs font-medium text-muted-foreground">{t("home.topClub")}</p>
                   <Link
                     to="/clubs"
                     search={{ tag: clubsQuery.data[0].tag }}
@@ -221,7 +222,7 @@ function HomePage() {
                     {clubsQuery.data[0].name}
                   </Link>
                   <p className="text-sm text-muted-foreground">
-                    {clubsQuery.data[0].tag} · {trophies(clubsQuery.data[0].trophies)} trophies
+                    {clubsQuery.data[0].tag} · {trophies(clubsQuery.data[0].trophies)} {t("common.trophies").toLocaleLowerCase()}
                   </p>
                 </div>
               </Card>

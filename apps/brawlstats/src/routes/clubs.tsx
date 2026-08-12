@@ -36,6 +36,7 @@ import type {
   ClubHistoryResponse,
   ClubProfile,
 } from "@/lib/types";
+import { useI18n, type Translator } from "@/lib/i18n";
 
 type ClubSearch = { tag?: string };
 type RosterSort = "trophies" | "name" | "role" | "activity" | "change";
@@ -64,27 +65,27 @@ function downloadCsv(filename: string, rows: Array<Array<string | number | undef
   URL.revokeObjectURL(url);
 }
 
-function formatDate(timestamp?: number) {
+function formatDate(timestamp: number | undefined, locale: string, t: Translator) {
   return timestamp
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(timestamp)
-    : "Not tracked yet";
+    ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(timestamp)
+    : t("common.notTracked");
 }
 
-function relativeAge(timestamp?: number) {
-  if (!timestamp) return "Not crawled";
+function relativeAge(timestamp: number | undefined, t: Translator) {
+  if (!timestamp) return t("common.notCrawled");
   const days = Math.floor((Date.now() - timestamp) / 86_400_000);
-  if (days <= 0) return "Today";
-  if (days === 1) return "1 day ago";
-  return `${days} days ago`;
+  if (days <= 0) return t("common.today");
+  if (days === 1) return t("common.oneDayAgo");
+  return t("common.daysAgo", { count: days });
 }
 
-function eventText(event: ClubActivityEvent) {
-  if (event.type === "join") return `joined as ${readableMode(event.toRole || "member")}`;
-  if (event.type === "leave") return "left the club";
+function eventText(event: ClubActivityEvent, t: Translator) {
+  if (event.type === "join") return t("club.joined", { role: readableMode(event.toRole || "member") });
+  if (event.type === "leave") return t("club.left");
   if (event.type === "role_change") {
-    return `moved from ${readableMode(event.fromRole || "member")} to ${readableMode(event.toRole || "member")}`;
+    return t("club.roleMoved", { from: readableMode(event.fromRole || "member"), to: readableMode(event.toRole || "member") });
   }
-  return `${(event.trophyDelta || 0) >= 0 ? "gained" : "lost"} ${trophies(Math.abs(event.trophyDelta || 0))} trophies`;
+  return t((event.trophyDelta || 0) >= 0 ? "club.gained" : "club.lost", { count: trophies(Math.abs(event.trophyDelta || 0)) });
 }
 
 function eventIcon(type: ClubActivityType) {
@@ -95,12 +96,13 @@ function eventIcon(type: ClubActivityType) {
 }
 
 function HistoryChart({ history }: { history: ClubHistoryResponse }) {
+  const { t, date } = useI18n();
   const snapshots = history.snapshots;
   if (snapshots.length < 2) {
     return (
       <EmptyState
-        title="History starts now"
-        detail="Return after future club observations to see trophy and membership trends."
+        title={t("club.historyStarts")}
+        detail={t("club.historyStartsDetail")}
       />
     );
   }
@@ -126,35 +128,36 @@ function HistoryChart({ history }: { history: ClubHistoryResponse }) {
     <Card className="p-5">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="eyebrow">Prospective history</p>
-          <h3 className="font-display text-2xl">Club trajectory</h3>
+          <p className="eyebrow">{t("club.prospective")}</p>
+          <h3 className="font-display text-2xl">{t("club.trajectory")}</h3>
         </div>
         <div className="flex gap-4 text-xs text-muted-foreground">
-          <span><i className="mr-1.5 inline-block size-2 rounded-full bg-primary" />Trophies</span>
-          <span><i className="mr-1.5 inline-block size-2 rounded-full bg-accent" />Members</span>
+          <span><i className="mr-1.5 inline-block size-2 rounded-full bg-primary" />{t("common.trophies")}</span>
+          <span><i className="mr-1.5 inline-block size-2 rounded-full bg-accent" />{t("common.members")}</span>
         </div>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-52 w-full" role="img" aria-label="Club trophy and member history">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-52 w-full" role="img" aria-label={t("club.historyAria")}>
         <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} className="stroke-border" />
         <polyline points={points} fill="none" className="stroke-primary" strokeWidth="4" strokeLinejoin="round" />
         <polyline points={memberPoints} fill="none" className="stroke-accent" strokeWidth="3" strokeLinejoin="round" />
       </svg>
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{new Date(snapshots[0].recordedAt).toLocaleDateString()}</span>
-        <span>{trophies(min)}–{trophies(max)} trophies</span>
-        <span>{new Date(snapshots.at(-1)!.recordedAt).toLocaleDateString()}</span>
+        <span>{date(snapshots[0].recordedAt)}</span>
+        <span>{trophies(min)}–{trophies(max)} {t("common.trophies").toLocaleLowerCase()}</span>
+        <span>{date(snapshots.at(-1)!.recordedAt)}</span>
       </div>
     </Card>
   );
 }
 
 function CommunityActivity({ data }: { data?: ClubCommunityResponse }) {
+  const { t } = useI18n();
   if (!data?.clubs.length) return null;
   return (
     <section>
       <div className="mb-4">
-        <p className="eyebrow">Tracked community</p>
-        <h2 className="font-display text-3xl">Recently observed clubs</h2>
+        <p className="eyebrow">{t("club.community")}</p>
+        <h2 className="font-display text-3xl">{t("club.recent")}</h2>
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {data.clubs.slice(0, 6).map((club) => (
@@ -162,10 +165,10 @@ function CommunityActivity({ data }: { data?: ClubCommunityResponse }) {
             <img src={clubBadgeUrl(club.badgeId)} alt="" className="size-12" />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{club.name}</p>
-              <p className="text-xs text-muted-foreground">{club.memberCount}/30 · {trophies(club.trophies)} trophies</p>
+              <p className="text-xs text-muted-foreground">{club.memberCount}/30 · {trophies(club.trophies)} {t("common.trophies").toLocaleLowerCase()}</p>
             </div>
             <div className="text-right text-xs">
-              <p className="text-accent">{club.activity7d} changes</p>
+              <p className="text-accent">{t("club.changes", { count: club.activity7d })}</p>
               <p className={club.trophyChange7d >= 0 ? "text-primary" : "text-destructive"}>
                 {club.trophyChange7d >= 0 ? "+" : ""}{trophies(club.trophyChange7d)}
               </p>
@@ -178,6 +181,7 @@ function CommunityActivity({ data }: { data?: ClubCommunityResponse }) {
 }
 
 function ClubsPage() {
+  const { t, locale, date } = useI18n();
   const { tag: rawTag } = Route.useSearch();
   const [draft, setDraft] = useState(rawTag || "");
   const [rosterSearch, setRosterSearch] = useState("");
@@ -239,36 +243,36 @@ function ClubsPage() {
 
   function exportRoster() {
     downloadCsv(`${(club?.name || "club").replaceAll(" ", "-")}-roster.csv`, [
-      ["Name", "Tag", "Role", "Trophies", "Tracked trophy change", "First seen", "Last profile crawl"],
+      [t("common.name"), t("common.tag"), t("common.role"), t("common.trophies"), t("club.trackedChange"), t("club.firstSeen"), t("club.lastProfile")],
       ...members.map((member) => {
         const tracked = trackedByTag.get(member.tag);
-        return [member.name, member.tag, member.role, member.trophies, trophyChangeByTag.get(member.tag) || 0, formatDate(tracked?.firstSeenAt), formatDate(tracked?.lastProfileAt)];
+        return [member.name, member.tag, member.role, member.trophies, trophyChangeByTag.get(member.tag) || 0, formatDate(tracked?.firstSeenAt, locale, t), formatDate(tracked?.lastProfileAt, locale, t)];
       }),
     ]);
   }
 
   function exportActivity() {
     downloadCsv(`${(club?.name || "club").replaceAll(" ", "-")}-activity.csv`, [
-      ["Date", "Player", "Tag", "Event", "From role", "To role", "From trophies", "To trophies", "Delta"],
-      ...filteredEvents.map((event) => [formatDate(event.recordedAt), event.playerName, event.playerTag, event.type, event.fromRole, event.toRole, event.fromTrophies, event.toTrophies, event.trophyDelta]),
+      [t("common.date"), t("common.player"), t("common.tag"), t("common.event"), t("club.fromRole"), t("club.toRole"), t("club.fromTrophies"), t("club.toTrophies"), t("club.delta")],
+      ...filteredEvents.map((event) => [formatDate(event.recordedAt, locale, t), event.playerName, event.playerTag, event.type, event.fromRole, event.toRole, event.fromTrophies, event.toTrophies, event.trophyDelta]),
     ]);
   }
 
   return (
     <div className="page-shell">
       <div>
-        <p className="eyebrow">Club intelligence</p>
-        <h1 className="font-display text-4xl">Clubs & activity</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Live rosters plus prospective trophy, membership, role, and member activity tracking.</p>
+        <p className="eyebrow">{t("club.intelligence")}</p>
+        <h1 className="font-display text-4xl">{t("club.title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t("club.description")}</p>
         <form onSubmit={onSearch} className="mt-4 flex max-w-lg gap-2">
           <Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="#CLUB_TAG" className="h-10" />
-          <Button type="submit">Load</Button>
+          <Button type="submit">{t("common.load")}</Button>
         </form>
       </div>
 
-      {!tag ? <EmptyState title="Enter a club tag" detail="Load its live roster and begin tracking changes from this observation forward." /> : null}
-      {tag && clubQuery.isLoading ? <PageStatus tone="loading">Loading club profile…</PageStatus> : null}
-      {clubQuery.error ? <PageStatus tone="error">{clubQuery.error instanceof Error ? clubQuery.error.message : "Failed to load club."}</PageStatus> : null}
+      {!tag ? <EmptyState title={t("club.enter")} detail={t("club.enterDetail")} /> : null}
+      {tag && clubQuery.isLoading ? <PageStatus tone="loading">{t("club.loading")}</PageStatus> : null}
+      {clubQuery.error ? <PageStatus tone="error">{clubQuery.error instanceof Error ? clubQuery.error.message : t("club.loadFailed")}</PageStatus> : null}
 
       {club ? (
         <>
@@ -280,15 +284,15 @@ function ClubsPage() {
                   <h2 className="font-display text-4xl">{club.name}</h2>
                   <p className="text-muted-foreground">{club.tag} · {readableMode(club.type || "unknown")}</p>
                 </div>
-                {history?.trackedSinceAt ? <Badge variant="outline"><Clock3 /> Tracking since {new Date(history.trackedSinceAt).toLocaleDateString()}</Badge> : null}
+                {history?.trackedSinceAt ? <Badge variant="outline"><Clock3 /> {t("club.trackingSince", { date: date(history.trackedSinceAt) })}</Badge> : null}
               </div>
-              <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{club.description || "No club description."}</p>
+              <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{club.description || t("club.noDescription")}</p>
               <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 lg:grid-cols-4">
                 {[
-                  ["Trophies", trophies(club.trophies || 0)],
-                  ["Required", trophies(club.requiredTrophies || 0)],
-                  ["Members", `${liveMembers.length}/30`],
-                  ["Average", trophies(average)],
+                  [t("common.trophies"), trophies(club.trophies || 0)],
+                  [t("common.required"), trophies(club.requiredTrophies || 0)],
+                  [t("common.members"), `${liveMembers.length}/30`],
+                  [t("common.average"), trophies(average)],
                 ].map(([label, value]) => (
                   <div key={label} className="border-t border-border pt-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-display text-2xl text-primary">{value}</p></div>
                 ))}
@@ -296,17 +300,17 @@ function ClubsPage() {
             </div>
           </Card>
 
-          {historyQuery.isLoading ? <PageStatus tone="loading">Loading tracked club activity…</PageStatus> : null}
-          {historyQuery.error ? <PageStatus tone="error">Live profile loaded, but tracked history is temporarily unavailable.</PageStatus> : null}
+          {historyQuery.isLoading ? <PageStatus tone="loading">{t("club.loadingActivity")}</PageStatus> : null}
+          {historyQuery.error ? <PageStatus tone="error">{t("club.activityUnavailable")}</PageStatus> : null}
 
           {history ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               {[
-                { Icon: Users, label: "Active roster", value: history.summary.activeMembers, color: "text-chart-3" },
-                { Icon: UserPlus, label: "Joins", value: history.summary.joins, color: "text-accent" },
-                { Icon: UserMinus, label: "Leaves", value: history.summary.leaves, color: "text-destructive" },
-                { Icon: ShieldCheck, label: "Role moves", value: history.summary.roleChanges, color: "text-chart-3" },
-                { Icon: history.summary.trophyChange >= 0 ? TrendingUp : TrendingDown, label: "Member movement", value: `${history.summary.trophyChange >= 0 ? "+" : ""}${trophies(history.summary.trophyChange)}`, color: history.summary.trophyChange >= 0 ? "text-primary" : "text-destructive" },
+                { Icon: Users, label: t("club.activeRoster"), value: history.summary.activeMembers, color: "text-chart-3" },
+                { Icon: UserPlus, label: t("club.joins"), value: history.summary.joins, color: "text-accent" },
+                { Icon: UserMinus, label: t("club.leaves"), value: history.summary.leaves, color: "text-destructive" },
+                { Icon: ShieldCheck, label: t("club.roleMoves"), value: history.summary.roleChanges, color: "text-chart-3" },
+                { Icon: history.summary.trophyChange >= 0 ? TrendingUp : TrendingDown, label: t("club.memberMovement"), value: `${history.summary.trophyChange >= 0 ? "+" : ""}${trophies(history.summary.trophyChange)}`, color: history.summary.trophyChange >= 0 ? "text-primary" : "text-destructive" },
               ].map(({ Icon, label, value, color }) => (
                 <Card key={label} className="p-4"><Icon className={`mb-3 size-5 ${color}`} /><p className="text-xs text-muted-foreground">{label}</p><p className="font-display text-2xl">{value}</p></Card>
               ))}
@@ -317,19 +321,19 @@ function ClubsPage() {
 
           <Tabs defaultValue="roster">
             <TabsList>
-              <TabsTrigger value="roster">Roster</TabsTrigger>
-              <TabsTrigger value="activity">Activity {history?.events.length ? `(${history.events.length})` : ""}</TabsTrigger>
+              <TabsTrigger value="roster">{t("club.roster")}</TabsTrigger>
+              <TabsTrigger value="activity">{t("club.activity")} {history?.events.length ? `(${history.events.length})` : ""}</TabsTrigger>
             </TabsList>
             <TabsContent value="roster" className="space-y-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                <Input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder="Filter name or tag" className="lg:max-w-xs" />
-                <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value || "all")}><SelectTrigger><SelectValue placeholder="All roles" /></SelectTrigger><SelectContent><SelectItem value="all">All roles</SelectItem>{roles.map((role) => <SelectItem key={role} value={role}>{readableMode(role)}</SelectItem>)}</SelectContent></Select>
-                <Select value={rosterSort} onValueChange={(value) => setRosterSort((value || "trophies") as RosterSort)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trophies">Sort: trophies</SelectItem><SelectItem value="change">Sort: tracked change</SelectItem><SelectItem value="activity">Sort: last profile crawl</SelectItem><SelectItem value="name">Sort: name</SelectItem><SelectItem value="role">Sort: role</SelectItem></SelectContent></Select>
-                <Button type="button" variant="outline" className="lg:ml-auto" onClick={exportRoster}><Download /> Export roster CSV</Button>
+                <Input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder={t("club.filterRoster")} className="lg:max-w-xs" />
+                <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value || "all")}><SelectTrigger><SelectValue placeholder={t("club.allRoles")} /></SelectTrigger><SelectContent><SelectItem value="all">{t("club.allRoles")}</SelectItem>{roles.map((role) => <SelectItem key={role} value={role}>{readableMode(role)}</SelectItem>)}</SelectContent></Select>
+                <Select value={rosterSort} onValueChange={(value) => setRosterSort((value || "trophies") as RosterSort)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trophies">{t("club.sortTrophies")}</SelectItem><SelectItem value="change">{t("club.sortChange")}</SelectItem><SelectItem value="activity">{t("club.sortActivity")}</SelectItem><SelectItem value="name">{t("club.sortName")}</SelectItem><SelectItem value="role">{t("club.sortRole")}</SelectItem></SelectContent></Select>
+                <Button type="button" variant="outline" className="lg:ml-auto" onClick={exportRoster}><Download /> {t("club.exportRoster")}</Button>
               </div>
               <div className="data-surface overflow-x-auto">
                 <Table>
-                  <TableHeader><TableRow><TableHead>Member</TableHead><TableHead>Role</TableHead><TableHead>Last tracked profile</TableHead><TableHead className="text-right">Tracked change</TableHead><TableHead className="text-right">Trophies</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>{t("club.member")}</TableHead><TableHead>{t("common.role")}</TableHead><TableHead>{t("club.lastProfile")}</TableHead><TableHead className="text-right">{t("club.trackedChange")}</TableHead><TableHead className="text-right">{t("common.trophies")}</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {members.map((member) => {
                       const tracked = trackedByTag.get(member.tag);
@@ -339,7 +343,7 @@ function ClubsPage() {
                         <TableRow key={member.tag}>
                           <TableCell><div className="flex items-center gap-3"><img src={profileIconUrl(member.icon?.id)} alt="" className="size-9 rounded-full" /><div><Link to="/players" search={{ tag: member.tag }} className="font-medium hover:text-primary">{member.name}</Link><p className="text-xs text-muted-foreground">{member.tag}</p></div></div></TableCell>
                           <TableCell>{readableMode(member.role || "member")}</TableCell>
-                          <TableCell><span className={staleDays !== null && staleDays >= 7 ? "text-destructive" : "text-muted-foreground"}>{relativeAge(tracked?.lastProfileAt)}</span>{staleDays !== null && staleDays >= 7 ? <Badge variant="destructive" className="ml-2">Inactive signal</Badge> : null}</TableCell>
+                          <TableCell><span className={staleDays !== null && staleDays >= 7 ? "text-destructive" : "text-muted-foreground"}>{relativeAge(tracked?.lastProfileAt, t)}</span>{staleDays !== null && staleDays >= 7 ? <Badge variant="destructive" className="ml-2">{t("club.inactive")}</Badge> : null}</TableCell>
                           <TableCell className={`text-right ${change > 0 ? "text-accent" : change < 0 ? "text-destructive" : "text-muted-foreground"}`}>{change > 0 ? "+" : ""}{trophies(change)}</TableCell>
                           <TableCell className="text-right text-primary">{trophies(member.trophies)}</TableCell>
                         </TableRow>
@@ -348,18 +352,18 @@ function ClubsPage() {
                   </TableBody>
                 </Table>
               </div>
-              {!members.length ? <EmptyState title="No roster matches" detail="Adjust the name, tag, or role filters." /> : null}
-              <p className="text-xs text-muted-foreground">“Inactive signal” means the member has no recent tracked profile snapshot; the official API does not expose a true last-online timestamp.</p>
+              {!members.length ? <EmptyState title={t("club.noMatches")} detail={t("club.noMatchesDetail")} /> : null}
+              <p className="text-xs text-muted-foreground">{t("club.inactiveDetail")}</p>
             </TabsContent>
             <TabsContent value="activity" className="space-y-4">
               <div className="flex flex-wrap gap-2">
-                {(["all", "join", "leave", "role_change", "trophy_change"] as const).map((type) => <Button key={type} type="button" variant={eventFilter === type ? "default" : "outline"} size="sm" onClick={() => setEventFilter(type)}>{type === "all" ? "All changes" : readableMode(type)}</Button>)}
-                <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={exportActivity}><Download /> Export activity CSV</Button>
+                {(["all", "join", "leave", "role_change", "trophy_change"] as const).map((type) => <Button key={type} type="button" variant={eventFilter === type ? "default" : "outline"} size="sm" onClick={() => setEventFilter(type)}>{type === "all" ? t("club.allChanges") : readableMode(type)}</Button>)}
+                <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={exportActivity}><Download /> {t("club.exportActivity")}</Button>
               </div>
               <div className="space-y-2">
-                {filteredEvents.map((event, index) => <div key={`${event.recordedAt}-${event.playerTag}-${event.type}-${index}`} className="data-surface flex gap-3 p-4"><div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary">{eventIcon(event.type)}</div><div className="min-w-0 flex-1"><p><Link to="/players" search={{ tag: event.playerTag }} className="font-medium hover:text-primary">{event.playerName}</Link> <span className="text-muted-foreground">{eventText(event)}</span></p><p className="mt-1 text-xs text-muted-foreground">{formatDate(event.recordedAt)} · {event.playerTag}</p></div></div>)}
+                {filteredEvents.map((event, index) => <div key={`${event.recordedAt}-${event.playerTag}-${event.type}-${index}`} className="data-surface flex gap-3 p-4"><div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary">{eventIcon(event.type)}</div><div className="min-w-0 flex-1"><p><Link to="/players" search={{ tag: event.playerTag }} className="font-medium hover:text-primary">{event.playerName}</Link> <span className="text-muted-foreground">{eventText(event, t)}</span></p><p className="mt-1 text-xs text-muted-foreground">{formatDate(event.recordedAt, locale, t)} · {event.playerTag}</p></div></div>)}
               </div>
-              {!filteredEvents.length ? <EmptyState title="No recorded changes yet" detail="This club has a baseline. Joins, leaves, role transitions, and trophy movement will appear after future observations." /> : null}
+              {!filteredEvents.length ? <EmptyState title={t("club.noChanges")} detail={t("club.noChangesDetail")} /> : null}
             </TabsContent>
           </Tabs>
         </>

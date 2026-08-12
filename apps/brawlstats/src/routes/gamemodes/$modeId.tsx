@@ -5,12 +5,14 @@ import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { apiFetch, collection, mapImageUrl } from "@/lib/api";
 import type { MapListItem } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/gamemodes/$modeId")({
   component: GameModePage,
 });
 
 function GameModePage() {
+  const { t } = useI18n();
   const { modeId } = Route.useParams();
   const mapsQuery = useQuery({
     queryKey: ["maps"],
@@ -21,16 +23,16 @@ function GameModePage() {
     () => (mapsQuery.data || []).filter((item) => String(item.gameMode?.id) === modeId),
     [mapsQuery.data, modeId],
   );
-  const modeName = maps[0]?.gameMode?.name || "Game mode";
+  const modeName = maps[0]?.gameMode?.name || t("maps.gameMode");
 
   return (
     <div className="page-shell">
       <div>
-        <p className="eyebrow">Game mode</p>
+        <p className="eyebrow">{t("mode.eyebrow")}</p>
         <h1 className="font-display text-4xl">{modeName}</h1>
         <p className="mt-2 text-muted-foreground">{maps.length} maps in catalog</p>
       </div>
-      {mapsQuery.isLoading ? <PageStatus tone="loading">Loading maps…</PageStatus> : null}
+      {mapsQuery.isLoading ? <PageStatus tone="loading">{t("mode.loading")}</PageStatus> : null}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {maps.map((map) => (
           <Link
@@ -47,12 +49,12 @@ function GameModePage() {
             />
             <div className="p-3">
               <p className="font-display text-lg">{map.name}</p>
-              {map.disabled ? <p className="text-xs text-muted-foreground">Disabled</p> : null}
+              {map.disabled ? <p className="text-xs text-muted-foreground">{t("common.disabled")}</p> : null}
             </div>
           </Link>
         ))}
       </div>
-      {!maps.length && !mapsQuery.isLoading ? <EmptyState title="No maps for this mode" /> : null}
+      {!maps.length && !mapsQuery.isLoading ? <EmptyState title={t("mode.noMaps")} /> : null}
     </div>
   );
 }
