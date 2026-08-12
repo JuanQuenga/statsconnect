@@ -5,6 +5,7 @@ import { FormEvent, KeyboardEvent, useEffect, useId, useMemo, useRef, useState }
 import { useQuery } from "convex/react";
 import { normalizeTag } from "@/lib/clash/tag";
 import type { RecentProfile } from "@/lib/recentProfiles";
+import { useI18n } from "@/lib/i18n";
 import { isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
 import type { DirectoryHit } from "@/lib/clash/types";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
@@ -48,7 +49,7 @@ type Row =
   | { key: string; href: string; label: string; sub: string; hint: string; icon?: "recent" }
   | { key: string; href: string; label: string; sub: string; hint: string; icon?: undefined };
 
-function playerRow(hit: DirectoryHit): Row {
+function playerRow(hit: DirectoryHit, formatNumber: (value: number) => string): Row {
   const parts = [`#${hit.tag}`];
   if (hit.clanName) parts.push(hit.clanName);
   return {
@@ -56,7 +57,7 @@ function playerRow(hit: DirectoryHit): Row {
     href: `/players/${hit.tag}`,
     label: hit.name,
     sub: parts.join(" · "),
-    hint: hit.trophies ? `${hit.trophies.toLocaleString()} 🏆` : ""
+    hint: hit.trophies ? `${formatNumber(hit.trophies)} 🏆` : ""
   };
 }
 
@@ -74,6 +75,7 @@ function recentRow(recent: RecentProfile): Row {
 // --- Full search ----------------------------------------------------------
 
 function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate?: () => void }) {
+  const { formatNumber, t } = useI18n();
   const id = useId();
   const kindId = `${id}-kind`;
   const suggestionsId = `${id}-suggestions`;
@@ -101,7 +103,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
     if (!trimmed) return recents.map(recentRow);
     if (kind === "clans") {
       return [
-        { key: "clan-search", href: `/clans/search?name=${encodeURIComponent(trimmed)}`, label: `Search clans for “${trimmed}”`, sub: "Official clan name search", hint: "" }
+        { key: "clan-search", href: `/clans/search?name=${encodeURIComponent(trimmed)}`, label: `${t("search.clans")}: “${trimmed}”`, sub: t("search.officialClan"), hint: "" }
       ];
     }
 
@@ -109,14 +111,14 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
     // A tag is unambiguous, so when the input could be one it leads — even if
     // the directory also has name matches for the same string.
     if (results?.tag) {
-      list.push({ key: `tag:${results.tag}`, href: `/players/${results.tag}`, label: `#${results.tag}`, sub: "Open this player tag", hint: "Tag" });
+      list.push({ key: `tag:${results.tag}`, href: `/players/${results.tag}`, label: `#${results.tag}`, sub: t("search.openPlayerTag"), hint: t("search.tag") });
     }
     for (const hit of results?.players ?? []) {
       if (results?.tag === hit.tag) continue;
-      list.push(playerRow(hit));
+      list.push(playerRow(hit, formatNumber));
     }
     return list;
-  }, [trimmed, kind, recents, results]);
+  }, [trimmed, kind, recents, results, formatNumber, t]);
 
   useEffect(() => setHighlight(-1), [rows.length, trimmed]);
 
@@ -193,7 +195,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
     <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"} ref={wrapRef}>
       <form className="search-box" onSubmit={submit} noValidate role="search">
         <label className="sr-only" htmlFor={kindId}>
-          Profile type
+          {t("search.profileType")}
         </label>
         <select
           id={kindId}
@@ -201,12 +203,12 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
           value={kind}
           onChange={(event) => setKind(event.target.value as SearchKind)}
         >
-          <option value="players">Players</option>
-          <option value="clans">Clans</option>
+          <option value="players">{t("search.players")}</option>
+          <option value="clans">{t("search.clans")}</option>
         </select>
         <input
           aria-label={kind === "players" ? "Player name or tag" : "Clan name or tag"}
-          placeholder={kind === "players" ? "Player name or #TAG" : "Clan name or #TAG"}
+          placeholder={kind === "players" ? t("search.playerPlaceholder") : t("search.clanPlaceholder")}
           value={term}
           autoComplete="off"
           role="combobox"
@@ -229,7 +231,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
         <div className="search-suggestions" id={suggestionsId} role="listbox">
           {!trimmed && recents.length ? (
             <div className="search-suggestions-head">
-              <span>Recently viewed</span>
+              <span>{t("search.recent")}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -237,7 +239,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
                 }}
               >
                 <X size={13} />
-                Clear
+                {t("search.clear")}
               </button>
             </div>
           ) : null}
@@ -264,10 +266,10 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
             </Link>
           ))}
 
-          {searching ? <p className="search-note">Searching…</p> : null}
+          {searching ? <p className="search-note">{t("search.searching")}</p> : null}
           {noMatches ? (
             <p className="search-note">
-              No player called “{trimmed}” yet. Open them once by tag and the name becomes searchable.
+              {t("search.noPlayer")}
             </p>
           ) : null}
         </div>
@@ -286,6 +288,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
 
 /** No Convex, no directory — the tag lane still works entirely client-side. */
 function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?: () => void }) {
+  const { locale, t } = useI18n();
   const id = useId();
   const kindId = `${id}-kind`;
   const router = useRouter();
@@ -301,7 +304,7 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
       onNavigate?.();
       void router.push(`/${kind}/${normalized}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Enter a valid Clash Royale tag.");
+      setError(locale === "es" ? "Introduce una etiqueta válida de Clash Royale, por ejemplo #2PP o #P0LYQ." : (caught instanceof Error ? caught.message : "Enter a valid Clash Royale tag."));
     }
   }
 
@@ -309,7 +312,7 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
     <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"}>
       <form className="search-box" onSubmit={submit} noValidate role="search">
         <label className="sr-only" htmlFor={kindId}>
-          Profile type
+          {t("search.profileType")}
         </label>
         <select
           id={kindId}
@@ -317,8 +320,8 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
           value={kind}
           onChange={(event) => setKind(event.target.value as SearchKind)}
         >
-          <option value="players">Player Tag</option>
-          <option value="clans">Clan Tag</option>
+          <option value="players">{t("search.playerTag")}</option>
+          <option value="clans">{t("search.clanTag")}</option>
         </select>
         <input
           aria-label={`${kind === "players" ? "Player" : "Clan"} tag`}

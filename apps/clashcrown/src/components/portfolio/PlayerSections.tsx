@@ -12,15 +12,17 @@ import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollectio
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
 import type { ProfileHistoryPoint } from "@/lib/clash/types";
+import { useI18n, type Locale, type MessageKey } from "@/lib/i18n";
 
 const tabItems = [
-  { label: "Statistics", icon: "/images/icons/trophy.png" },
-  { label: "Battles", icon: "/images/icons/sword.png" },
-  { label: "Decks", icon: "/images/icons/cardsq.png" },
-  { label: "Cards", icon: "/images/icons/book-cards.png" }
-];
+  { label: "Statistics", message: "player.statistics", icon: "/images/icons/trophy.png" },
+  { label: "Battles", message: "player.battles", icon: "/images/icons/sword.png" },
+  { label: "Decks", message: "player.decks", icon: "/images/icons/cardsq.png" },
+  { label: "Cards", message: "player.cards", icon: "/images/icons/book-cards.png" }
+] satisfies Array<{ label: PlayerTab; message: MessageKey; icon: string }>;
 
 export function PlayerHero({ player }: { player: Player }) {
+  const { formatNumber, locale, t } = useI18n();
   return (
     <section className="profile-hero">
       <CardArt
@@ -34,7 +36,7 @@ export function PlayerHero({ player }: { player: Player }) {
       <span>
         {player.clanTag ? <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>{player.clan} &gt;</Link> : `${player.clan} >`}
       </span>
-      <h1>{player.name}{player.level !== undefined ? <span className="hero-level" aria-label={`Level ${player.level}`}>{player.level}</span> : null}</h1>
+      <h1>{player.name}{player.level !== undefined ? <span className="hero-level" aria-label={`${locale === "es" ? "Nivel" : "Level"} ${player.level}`}>{player.level}</span> : null}</h1>
       <strong>#{player.tag}</strong>
       <div className="card-detail-meta hero-chips">
         <span className="status-chip">
@@ -43,13 +45,13 @@ export function PlayerHero({ player }: { player: Player }) {
         </span>
         {player.pathOfLegends?.current?.trophies !== undefined ? (
           <span className="status-chip">
-            Path of Legends · {player.pathOfLegends.current.trophies.toLocaleString()}
-            {player.pathOfLegends.current.rank ? ` · #${player.pathOfLegends.current.rank.toLocaleString()}` : ""}
+            Path of Legends · {formatNumber(player.pathOfLegends.current.trophies)}
+            {player.pathOfLegends.current.rank ? ` · #${formatNumber(player.pathOfLegends.current.rank)}` : ""}
           </span>
         ) : null}
         {player.clanTag ? (
           <Link className="status-chip" href={`/clans/${player.clanTag.replace(/^#/, "")}/war`}>
-            Clan war
+            {t("clan.war")}
           </Link>
         ) : null}
       </div>
@@ -61,12 +63,13 @@ export function PlayerHero({ player }: { player: Player }) {
 export type PlayerTab = "Statistics" | "Battles" | "Decks" | "Cards";
 
 export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: (tab: PlayerTab) => void }) {
+  const { t } = useI18n();
   return (
-    <nav className="profile-tabs" aria-label="Player sections">
+    <nav className="profile-tabs" aria-label={t("player.sections")}>
       {tabItems.map((tab) => (
         <button key={tab.label} type="button" className={active === tab.label ? "active" : ""} onClick={() => onChange(tab.label as PlayerTab)}>
           <Image src={tab.icon} alt="" width={44} height={44} />
-          {tab.label}
+          {t(tab.message)}
         </button>
       ))}
     </nav>
@@ -74,8 +77,9 @@ export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: 
 }
 
 export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Player; onRefresh: () => void; isRefreshing: boolean }) {
+  const { formatNumber, locale, t } = useI18n();
   const rows = [
-    ...(player.bestTrophies !== undefined ? [["Highest trophies", player.bestTrophies.toLocaleString()]] : []),
+    ...(player.bestTrophies !== undefined ? [[locale === "es" ? "Máximo de trofeos" : "Highest trophies", formatNumber(player.bestTrophies)]] : []),
     ...Object.entries(player.stats)
   ];
 
@@ -83,7 +87,7 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
     <section className="profile-section">
       <div className="section-tools">
         <FilterButton />
-        <div className="update-tools"><span>{updatedLabel(player.fetchedAt)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? "Refreshing" : "Refresh"}</button></div>
+        <div className="update-tools"><span>{updatedLabel(player.fetchedAt, locale)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? t("common.refreshing") : t("common.refresh")}</button></div>
       </div>
       {rows.length ? (
         <div className="stat-matrix">
@@ -103,8 +107,9 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
 }
 
 export function PerformanceSection({ battles }: { battles: Battle[] }) {
+  const { locale } = useI18n();
   const performance = analyzePlayerBattles(battles);
-  if (!performance.games) return <EmptyPanel title="No battle performance yet" copy="Performance will appear when this player's battle log has a result." />;
+  if (!performance.games) return <EmptyPanel title={locale === "es" ? "Sin rendimiento de batallas" : "No battle performance yet"} copy={locale === "es" ? "El rendimiento aparecerá cuando el registro de este jugador tenga resultados." : "Performance will appear when this player's battle log has a result."} />;
 
   return (
     <section className="profile-section performance-section">
@@ -216,28 +221,29 @@ function statIcon(label: string, arenaImage: string) {
  * player who has never queued Path of Legends.
  */
 export function PathOfLegendsSeasons({ player }: { player: Player }) {
+  const { formatNumber, locale } = useI18n();
   const seasons = player.pathOfLegends;
   if (!seasons) return null;
 
   const rows: Array<{ label: string; result?: PathOfLegendsResult }> = [
-    { label: "This season", result: seasons.current },
-    { label: "Last season", result: seasons.last },
-    { label: "Personal best", result: seasons.best }
+    { label: locale === "es" ? "Esta temporada" : "This season", result: seasons.current },
+    { label: locale === "es" ? "Temporada anterior" : "Last season", result: seasons.last },
+    { label: locale === "es" ? "Mejor marca" : "Personal best", result: seasons.best }
   ];
 
   return (
     <section className="profile-section">
       <div className="section-heading compact-heading">
         <span className="filter-button static">Path of Legends</span>
-        <h2>Season Comparison</h2>
+        <h2>{locale === "es" ? "Comparación de temporadas" : "Season Comparison"}</h2>
         <span />
       </div>
       <div className="pol-columns">
         {rows.map(({ label, result }) => (
           <div key={label} className="pol-card">
             <span className="pol-label">{label}</span>
-            <strong>{result?.trophies !== undefined ? result.trophies.toLocaleString() : "—"}</strong>
-            <span>{result?.rank ? `#${result.rank.toLocaleString()}` : "Unranked"}</span>
+            <strong>{result?.trophies !== undefined ? formatNumber(result.trophies) : "—"}</strong>
+            <span>{result?.rank ? `#${formatNumber(result.rank)}` : (locale === "es" ? "Sin clasificación" : "Unranked")}</span>
           </div>
         ))}
       </div>
@@ -249,12 +255,13 @@ export function PathOfLegendsSeasons({ player }: { player: Player }) {
 }
 
 export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supportCards?: Card[] }) {
-  if (!cards.length) return <EmptyPanel title="No current deck" copy="This player's current deck is private or unavailable." />;
+  const { locale, t } = useI18n();
+  if (!cards.length) return <EmptyPanel title={t("player.noDeck")} copy={t("player.noDeckCopy")} />;
   const average = cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length;
   const cycle = [...cards].map((card) => card.elixir).filter((cost) => cost > 0).sort((a, b) => a - b).slice(0, 4).reduce((total, cost) => total + cost, 0);
   return (
     <section className="profile-section deck-overview">
-      <div className="section-heading compact-heading"><span className="filter-button static">{average.toFixed(1)} elixir · {cycle} cycle</span><h2>Current Deck</h2><DeckActions cards={cards} label="current deck" compact /></div>
+      <div className="section-heading compact-heading"><span className="filter-button static">{average.toFixed(1)} elixir · {cycle} {locale === "es" ? "ciclo" : "cycle"}</span><h2>{locale === "es" ? "Mazo actual" : "Current Deck"}</h2><DeckActions cards={cards} label="current deck" compact /></div>
       <div className="collection-grid deck-collection">
         {cards.map((card, index) => <CollectionCard key={`${card.name}-${index}`} card={card} />)}
       </div>
@@ -361,9 +368,10 @@ function EmptyPanel({ title, copy }: { title: string; copy: string }) {
   return <section className="profile-section empty-panel"><h2>{title}</h2><p>{copy}</p></section>;
 }
 
-function updatedLabel(fetchedAt?: number) {
-  if (!fetchedAt) return "demo data";
+function updatedLabel(fetchedAt: number | undefined, locale: Locale) {
+  if (!fetchedAt) return locale === "es" ? "datos de demostración" : "demo data";
   const minutes = Math.max(0, Math.floor((Date.now() - fetchedAt) / 60_000));
+  if (locale === "es") return minutes < 1 ? "actualizado ahora" : `actualizado hace ${minutes} min`;
   return minutes < 1 ? "updated just now" : `updated ${minutes}m ago`;
 }
 
@@ -392,14 +400,15 @@ function ProgressionChartWithHistory({ player }: { player: Player }) {
   return <InferredProgressionChart player={player} />;
 }
 
-function formatSnapshotDate(recordedAt: number) {
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(recordedAt));
+function formatSnapshotDate(recordedAt: number, locale: Locale) {
+  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(new Date(recordedAt));
 }
 
-function formatObservationWindow(spanMs: number) {
+function formatObservationWindow(spanMs: number, locale: Locale) {
   const days = spanMs / 86_400_000;
-  if (days < 1) return "under a day";
+  if (days < 1) return locale === "es" ? "menos de un día" : "under a day";
   const rounded = Math.round(days);
+  if (locale === "es") return `${rounded} día${rounded === 1 ? "" : "s"}`;
   return `${rounded} day${rounded === 1 ? "" : "s"}`;
 }
 
@@ -411,6 +420,7 @@ function formatObservationWindow(spanMs: number) {
  * trend guide between observed points, not a claim of continuous tracking.
  */
 function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] }) {
+  const { formatNumber, locale } = useI18n();
   const values = history.map((point) => point.value);
   const times = history.map((point) => point.recordedAt);
   const minimum = Math.min(...values);
@@ -434,13 +444,13 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
         <FilterButton label="Observed" />
         <h2>Trophy Activity</h2>
         <span className="chart-range">
-          {history.length} snapshots · {formatObservationWindow(mostRecent - earliest)}
+          {history.length} {locale === "es" ? "instantáneas" : "snapshots"} · {formatObservationWindow(mostRecent - earliest, locale)}
         </span>
       </div>
       <div className="line-chart">
         <div className="y-axis">
           <Image src="/images/icons/trophy.png" alt="" width={24} height={24} />
-          <span>{maximum.toLocaleString()}</span><span>{Math.round((maximum + minimum) / 2).toLocaleString()}</span><span>{minimum.toLocaleString()}</span>
+          <span>{formatNumber(maximum)}</span><span>{formatNumber(Math.round((maximum + minimum) / 2))}</span><span>{formatNumber(minimum)}</span>
         </div>
         <svg viewBox="0 0 930 250" aria-label="Observed trophy snapshots trend">
           {Array.from({ length: 10 }).map((_, index) => (
@@ -456,8 +466,8 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
           </foreignObject>
         </svg>
         <div className="x-axis">
-          <span>{formatSnapshotDate(earliest)}</span>
-          <span>{formatSnapshotDate(mostRecent)}</span>
+          <span>{formatSnapshotDate(earliest, locale)}</span>
+          <span>{formatSnapshotDate(mostRecent, locale)}</span>
         </div>
       </div>
       <p className="table-note">
@@ -475,6 +485,7 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
  * history, and the note under the chart says so.
  */
 function InferredProgressionChart({ player }: { player: Player }) {
+  const { formatNumber } = useI18n();
   if (player.trophies === undefined) {
     return <EmptyPanel title="No trophy activity available" copy="The API did not report a current trophy count for this player." />;
   }
@@ -507,7 +518,7 @@ function InferredProgressionChart({ player }: { player: Player }) {
       <div className="line-chart">
         <div className="y-axis">
           <Image src="/images/icons/trophy.png" alt="" width={24} height={24} />
-          <span>{maximum.toLocaleString()}</span><span>{Math.round((maximum + minimum) / 2).toLocaleString()}</span><span>{minimum.toLocaleString()}</span>
+          <span>{formatNumber(maximum)}</span><span>{formatNumber(Math.round((maximum + minimum) / 2))}</span><span>{formatNumber(minimum)}</span>
         </div>
         <svg viewBox="0 0 930 250" aria-label="Recent trophy activity line chart">
           <defs>
@@ -545,11 +556,12 @@ function InferredProgressionChart({ player }: { player: Player }) {
 }
 
 export function ChestList({ chests }: { chests: Chest[] }) {
+  const { t } = useI18n();
   if (!chests.length) return null;
   return (
     <section className="chest-footer">
       {/* "My Chests" on someone else's profile read as the viewer's own. */}
-      <h2>Upcoming chests</h2>
+      <h2>{t("player.upcomingChests")}</h2>
       <div className="chest-row">
         {chests.map((chest, index) => (
           <div key={`${chest.name}-${index}`} className="chest-item" title={chest.name}>
@@ -558,7 +570,7 @@ export function ChestList({ chests }: { chests: Chest[] }) {
           </div>
         ))}
       </div>
-      <p className="chest-note">+N is how many more chests this player has to open before that one.</p>
+      <p className="chest-note">{t("player.chestExplanation")}</p>
     </section>
   );
 }

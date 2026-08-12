@@ -17,6 +17,7 @@ import { useCardLibrary } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/mock-data";
 import { TrackingControls } from "@/components/personalization/PersonalDashboard";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
+import { useI18n } from "@/lib/i18n";
 
 export default function PlayerPage() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function PlayerPage() {
 }
 
 function LivePlayer({ tag }: { tag: string }) {
+  const { locale } = useI18n();
   const getPlayerBundle = useAction(playerBundleAction);
   const cardLibrary = useCardLibrary();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -41,7 +43,7 @@ function LivePlayer({ tag }: { tag: string }) {
 
   if (query.isLoading) return <Layout><LoadingState label="player" /></Layout>;
   if (query.error) return <Layout><ErrorState message={errorMessage(query.error)} /></Layout>;
-  if (!query.data) return <Layout><ErrorState message="No player data was returned." /></Layout>;
+  if (!query.data) return <Layout><ErrorState message={locale === "es" ? "No se recibieron datos del jugador." : "No player data was returned."} /></Layout>;
 
   return (
     <PlayerDashboard
@@ -70,6 +72,7 @@ function PlayerDashboard({
   catalogLoading?: boolean;
   catalogError?: boolean;
 }) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<PlayerTab>("Statistics");
   const personalization = usePersonalization();
 
@@ -122,7 +125,7 @@ function PlayerDashboard({
           <>
             <div className="section-heading compact-heading">
               <span />
-              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="pink-button">Upgrade Planner</Link>
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="pink-button">{t("player.upgradePlanner")}</Link>
               <span />
             </div>
             <CardCollection player={player} catalogCards={catalogCards} catalogLoading={catalogLoading} catalogError={catalogError} />
