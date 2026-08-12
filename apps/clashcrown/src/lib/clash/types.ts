@@ -65,7 +65,7 @@ export type ApiPlayer = {
   starPoints?: number;
   expPoints?: number;
   totalExpPoints?: number;
-  legacyTrophyRoadHighScore?: number;
+  legacyTrophyRoadHighScore?: number | null;
   currentPathOfLegendSeasonResult?: ApiPlayerLeagueStats;
   bestPathOfLegendSeasonResult?: ApiPlayerLeagueStats;
   lastPathOfLegendSeasonResult?: ApiPlayerLeagueStats;

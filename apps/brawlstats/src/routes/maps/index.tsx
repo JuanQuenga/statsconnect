@@ -10,6 +10,7 @@ import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { apiFetch, collection, eventModeId, gameModeImageUrl, mapImageUrl } from "@/lib/api";
 import { readableMode, relativeEnd } from "@/lib/format";
 import type { EventItem, MapListItem } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 type MapsSearch = { q?: string; mode?: string; archive?: string };
 
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/maps/")({
 });
 
 function MapsPage() {
+  const { t } = useI18n();
   const search = Route.useSearch();
   const [query, setQuery] = useState(search.q || "");
   const [modeFilter, setModeFilter] = useState(search.mode || "all");
@@ -69,8 +71,8 @@ function MapsPage() {
   return (
     <div className="page-shell space-y-10">
       <div>
-        <p className="eyebrow">Maps and meta</p>
-        <h1 className="font-display text-4xl md:text-5xl">Maps and live performance</h1>
+        <p className="eyebrow">{t("maps.eyebrow")}</p>
+        <h1 className="font-display text-4xl md:text-5xl">{t("maps.title")}</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           Browse the map archive, jump into today&apos;s rotation, and open any map for win/use rates aggregated from
           official battle logs collected by BrawlStats.
@@ -80,8 +82,8 @@ function MapsPage() {
       <section>
         <div className="mb-4 flex items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Live rotation</p>
-            <h2 className="section-title">Active now</h2>
+            <p className="text-xs font-medium text-muted-foreground">{t("maps.liveRotation")}</p>
+            <h2 className="section-title">{t("maps.activeNow")}</h2>
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -98,14 +100,14 @@ function MapsPage() {
                 <img src={gameModeImageUrl(eventModeId(mode))} alt="" className="size-14 rounded-xl" />
                 <div className="min-w-0">
                   <p className="font-medium">{readableMode(mode)}</p>
-                  <p className="truncate text-sm text-muted-foreground">{item.event?.map || "Unknown map"}</p>
+                  <p className="truncate text-sm text-muted-foreground">{item.event?.map || t("common.unknownMap")}</p>
                   <p className="text-xs text-primary">{relativeEnd(item.endTime)}</p>
                 </div>
               </Link>
             );
           })}
           {!eventsQuery.data?.length && !eventsQuery.isLoading ? (
-            <EmptyState title="No live events" detail="Official rotation is empty right now." />
+            <EmptyState title={t("maps.noEvents")} detail={t("maps.noEventsDetail")} />
           ) : null}
         </div>
       </section>
@@ -115,12 +117,12 @@ function MapsPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search maps or modes"
+            placeholder={t("maps.search")}
             className="h-10 max-w-md"
           />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant={showArchive ? "default" : "outline"} onClick={() => setShowArchive((v) => !v)}>
-              {showArchive ? "Archive on" : "Archive off"}
+              {showArchive ? t("maps.archiveOn") : t("maps.archiveOff")}
             </Button>
             <Button size="sm" variant={sort === "active" ? "default" : "outline"} onClick={() => setSort("active")}>
               Last active
@@ -130,15 +132,15 @@ function MapsPage() {
             </Button>
           </div>
           <Select value={modeFilter} onValueChange={(value) => setModeFilter(value || "all")}>
-            <SelectTrigger className="h-9 w-full lg:ml-auto lg:w-56" aria-label="Filter by game mode">
+            <SelectTrigger className="h-9 w-full lg:ml-auto lg:w-56" aria-label={t("maps.filterMode")}>
               <SelectValue>
                 {modeFilter === "all"
-                  ? "All game modes"
-                  : modes.find(([id]) => String(id) === modeFilter)?.[1] || "Game mode"}
+                  ? t("maps.allModes")
+                  : modes.find(([id]) => String(id) === modeFilter)?.[1] || t("maps.gameMode")}
               </SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
-              <SelectItem value="all">All game modes</SelectItem>
+              <SelectItem value="all">{t("maps.allModes")}</SelectItem>
               {modes.map(([id, name]) => (
                 <SelectItem key={id} value={String(id)}>{name}</SelectItem>
               ))}
@@ -146,10 +148,10 @@ function MapsPage() {
           </Select>
         </div>
 
-        {mapsQuery.isLoading ? <PageStatus tone="loading">Loading map catalog…</PageStatus> : null}
+        {mapsQuery.isLoading ? <PageStatus tone="loading">{t("maps.loadingCatalog")}</PageStatus> : null}
         {mapsQuery.error ? (
           <PageStatus tone="error">
-            {mapsQuery.error instanceof Error ? mapsQuery.error.message : "Failed to load maps."}
+            {mapsQuery.error instanceof Error ? mapsQuery.error.message : t("maps.loadFailed")}
           </PageStatus>
         ) : null}
 
@@ -190,14 +192,14 @@ function MapsPage() {
                   {map.gameMode?.imageUrl ? (
                     <img src={map.gameMode.imageUrl} alt="" className="size-5 rounded" />
                   ) : null}
-                  <span className="text-xs text-muted-foreground">{map.gameMode?.name || "Mode"}</span>
+                  <span className="text-xs text-muted-foreground">{map.gameMode?.name || t("common.mode")}</span>
                 </div>
                 <h3 className="font-display text-lg leading-tight">{map.name}</h3>
               </div>
             </Link>
           ))}
         </div>
-        {!filtered.length && !mapsQuery.isLoading ? <EmptyState title="No maps match these filters" /> : null}
+        {!filtered.length && !mapsQuery.isLoading ? <EmptyState title={t("maps.noMatches")} /> : null}
       </section>
     </div>
   );

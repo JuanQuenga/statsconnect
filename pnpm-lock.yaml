@@ -13,6 +13,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.7.0
         version: 1.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@statsconnect/site-errors':
+        specifier: workspace:*
+        version: link:../../packages/site-errors
       '@statsconnect/site-nav':
         specifier: workspace:*
         version: link:../../packages/site-nav
@@ -80,6 +83,9 @@ importers:
 
   apps/clashcrown:
     dependencies:
+      '@statsconnect/site-errors':
+        specifier: workspace:*
+        version: link:../../packages/site-errors
       '@statsconnect/site-nav':
         specifier: workspace:*
         version: link:../../packages/site-nav
@@ -135,6 +141,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.7.0
         version: 1.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@statsconnect/site-errors':
+        specifier: workspace:*
+        version: link:../../packages/site-errors
       '@statsconnect/site-nav':
         specifier: workspace:*
         version: link:../../packages/site-nav
@@ -206,6 +215,18 @@ importers:
         specifier: ^1.42.2
         version: 1.43.0(react@19.2.8)
     devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/site-errors:
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

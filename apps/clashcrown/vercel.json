@@ -1,7 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- . ../../packages/site-nav ../../packages/site-errors ../../package.json ../../pnpm-lock.yaml ../../pnpm-workspace.yaml",
+  "headers": [
+    {
+      "source": "/beta",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    }
+  ],
+  "rewrites": [{ "source": "/:path*", "destination": "/index.html" }]
 }

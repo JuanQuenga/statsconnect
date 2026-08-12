@@ -13,7 +13,8 @@ export const cacheKind = v.union(
   v.literal("leaderboards"),
   v.literal("leaderboard"),
   v.literal("clanSearch"),
-  v.literal("tournaments")
+  v.literal("tournaments"),
+  v.literal("news")
 );
 
 /** Mirrors META_MODES in src/lib/clash/battles.ts. */
@@ -32,6 +33,14 @@ export const crawlSource = v.union(
   v.literal("leaderboard"),
   v.literal("clan"),
   v.literal("manual")
+);
+
+export const clanEventKind = v.union(
+  v.literal("joined"),
+  v.literal("left"),
+  v.literal("roleChanged"),
+  v.literal("becameInactive"),
+  v.literal("warDecksMissed")
 );
 
 export const clashTables = {
@@ -53,6 +62,106 @@ export const clashTables = {
     value: v.number(),
     recordedAt: v.number()
   }).index("by_profile", ["kind", "tag", "recordedAt"]),
+
+  /**
+   * Meaningful player-profile changes observed by ClashCrown. This intentionally
+   * stores compact summaries instead of entire API payloads or card collections.
+   */
+  clashPlayerSnapshots: defineTable({
+    tag: v.string(),
+    name: v.string(),
+    source: v.union(v.literal("api_profile"), v.literal("battle_log"), v.literal("legacy_trophy")),
+    fingerprint: v.string(),
+    observedAt: v.number(),
+    /** Last API observation that returned the same meaningful state. */
+    lastObservedAt: v.number(),
+    retentionAt: v.number(),
+    trophies: v.optional(v.number()),
+    bestTrophies: v.optional(v.number()),
+    expLevel: v.optional(v.number()),
+    arenaId: v.optional(v.number()),
+    arenaName: v.optional(v.string()),
+    clanTag: v.optional(v.string()),
+    clanName: v.optional(v.string()),
+    currentDeck: v.optional(v.array(v.object({
+      id: v.number(),
+      level: v.optional(v.number()),
+      evolutionLevel: v.optional(v.number())
+    }))),
+    collection: v.optional(v.object({
+      cardsOwned: v.number(),
+      totalLevels: v.number(),
+      maxedCards: v.number(),
+      evolvedCards: v.number(),
+      starLevels: v.number()
+    })),
+    totals: v.optional(v.object({
+      wins: v.optional(v.number()),
+      losses: v.optional(v.number()),
+      battleCount: v.optional(v.number()),
+      threeCrownWins: v.optional(v.number()),
+      challengeCardsWon: v.optional(v.number()),
+      tournamentCardsWon: v.optional(v.number()),
+      donations: v.optional(v.number()),
+      donationsReceived: v.optional(v.number()),
+      totalDonations: v.optional(v.number()),
+      warDayWins: v.optional(v.number()),
+      clanCardsCollected: v.optional(v.number())
+    })),
+    path: v.optional(v.object({
+      current: v.optional(v.object({ trophies: v.optional(v.number()), bestTrophies: v.optional(v.number()), rank: v.optional(v.union(v.number(), v.null())) })),
+      last: v.optional(v.object({ trophies: v.optional(v.number()), bestTrophies: v.optional(v.number()), rank: v.optional(v.union(v.number(), v.null())) })),
+      best: v.optional(v.object({ trophies: v.optional(v.number()), bestTrophies: v.optional(v.number()), rank: v.optional(v.union(v.number(), v.null())) }))
+    })),
+    legacyHistoryId: v.optional(v.id("profileHistory"))
+  })
+    .index("by_tag_and_observed_at", ["tag", "observedAt"])
+    .index("by_tag_and_source_and_observed_at", ["tag", "source", "observedAt"])
+    .index("by_retention_at", ["retentionAt"])
+    .index("by_legacy_history_id", ["legacyHistoryId"]),
+
+  /** Stable catalog for API event boards and location-scoped ranking boards. */
+  clashLeaderboardBoards: defineTable({
+    key: v.string(),
+    kind: v.union(v.literal("event"), v.literal("players"), v.literal("clans"), v.literal("clanwars")),
+    name: v.string(),
+    boardId: v.optional(v.number()),
+    locationId: v.optional(v.number()),
+    firstObservedAt: v.number(),
+    lastObservedAt: v.number(),
+    snapshotCount: v.number()
+  })
+    .index("by_key", ["key"])
+    .index("by_last_observed_at", ["lastObservedAt"]),
+
+  /** Snapshot metadata is separate from entries to stay well below 1 MiB. */
+  clashLeaderboardSnapshots: defineTable({
+    boardKey: v.string(),
+    fingerprint: v.string(),
+    observedAt: v.number(),
+    lastObservedAt: v.number(),
+    entryCount: v.number(),
+    /** First observation per API board is retained; later changes roll off. */
+    baseline: v.boolean(),
+    retentionAt: v.number()
+  })
+    .index("by_board_key_and_observed_at", ["boardKey", "observedAt"])
+    .index("by_retention_at", ["retentionAt"]),
+
+  clashLeaderboardEntries: defineTable({
+    snapshotId: v.id("clashLeaderboardSnapshots"),
+    boardKey: v.string(),
+    observedAt: v.number(),
+    rank: v.number(),
+    tag: v.string(),
+    name: v.string(),
+    score: v.optional(v.number()),
+    trophies: v.optional(v.number()),
+    clanTag: v.optional(v.string()),
+    clanName: v.optional(v.string())
+  })
+    .index("by_snapshot_id_and_rank", ["snapshotId", "rank"])
+    .index("by_tag_and_observed_at", ["tag", "observedAt"]),
 
   clashApiFetchLogs: defineTable({
     endpoint: v.string(),
@@ -102,14 +211,22 @@ export const clashTables = {
     evolutionIds: v.array(v.number()),
     uses: v.number(),
     wins: v.number(),
-    crowns: v.number()
+    crowns: v.number(),
+    /** Optional because existing aggregates predate trophy/arena capture. */
+    trophySum: v.optional(v.number()),
+    trophySamples: v.optional(v.number()),
+    arenaIds: v.optional(v.array(v.number())),
+    arenaNames: v.optional(v.array(v.string()))
   })
     .index("by_day_and_mode_and_deck", ["day", "mode", "deckHash"])
+    .index("by_day_and_mode", ["day", "mode"])
     .index("by_day", ["day"]),
 
   /** Per-day ordered deck-vs-deck aggregates, from deckHash's perspective. */
   matchupStats: defineTable({
     day: v.number(),
+    /** Optional only for rows collected before mode-aware matchup analytics shipped. */
+    mode: v.optional(metaMode),
     deckHash: v.string(),
     oppDeckHash: v.string(),
     cardIds: v.array(v.number()),
@@ -119,6 +236,8 @@ export const clashTables = {
   })
     .index("by_day_and_deck_hash_and_opp_deck_hash", ["day", "deckHash", "oppDeckHash"])
     .index("by_day_and_deck_hash", ["day", "deckHash"])
+    .index("by_day_and_mode_and_deck_hash_and_opp_deck_hash", ["day", "mode", "deckHash", "oppDeckHash"])
+    .index("by_day_and_mode", ["day", "mode"])
     .index("by_day", ["day"]),
 
   /** Per-day card aggregates. Small enough to sum directly in a query. */
@@ -159,6 +278,10 @@ export const clashTables = {
     wins: v.number(),
     winRate: v.number(),
     usageRate: v.number(),
+    averageTrophies: v.optional(v.number()),
+    trophySamples: v.optional(v.number()),
+    arenaIds: v.optional(v.array(v.number())),
+    arenaNames: v.optional(v.array(v.string())),
     computedAt: v.number()
   })
     .index("by_window_and_mode_and_rank", ["windowDays", "mode", "rank"])
@@ -208,5 +331,170 @@ export const clashTables = {
     .index("by_tag", ["tag"])
     .index("by_name_lower", ["nameLower"])
     .index("by_updated_at", ["updatedAt"])
-    .searchIndex("search_name", { searchField: "name" })
+    .searchIndex("search_name", { searchField: "name" }),
+
+  /** Capability-owned personalization account. See docs/personalization-identity-adapter.md. */
+  clashPersonalAccounts: defineTable({
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    chestAlerts: v.boolean(),
+    progressionAlerts: v.boolean(),
+    warAlerts: v.boolean()
+  }),
+
+  /** Each browser has an independent high-entropy capability; raw secrets are never stored. */
+  clashPersonalDevices: defineTable({
+    accountId: v.id("clashPersonalAccounts"),
+    secretHash: v.string(),
+    label: v.string(),
+    createdAt: v.number(),
+    lastSeenAt: v.number()
+  })
+    .index("by_secret_hash", ["secretHash"])
+    .index("by_account_id", ["accountId"]),
+
+  /** One-time, ten-minute pairing capabilities generated in the browser. */
+  clashPersonalPairingCodes: defineTable({
+    accountId: v.id("clashPersonalAccounts"),
+    codeHash: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number()
+  })
+    .index("by_code_hash", ["codeHash"])
+    .index("by_account_id", ["accountId"]),
+
+  clashPersonalProfiles: defineTable({
+    accountId: v.id("clashPersonalAccounts"),
+    kind: v.union(v.literal("players"), v.literal("clans")),
+    tag: v.string(),
+    name: v.string(),
+    clan: v.optional(v.string()),
+    isDefault: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number()
+  })
+    .index("by_account_id", ["accountId"])
+    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"]),
+
+  clashPersonalRecents: defineTable({
+    accountId: v.id("clashPersonalAccounts"),
+    kind: v.union(v.literal("players"), v.literal("clans")),
+    tag: v.string(),
+    name: v.string(),
+    clan: v.optional(v.string()),
+    visitedAt: v.number()
+  })
+    .index("by_account_id", ["accountId"])
+    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"]),
+
+  /** Last API observation for opt-in, refresh-driven browser alerts. */
+  clashPersonalObservations: defineTable({
+    accountId: v.id("clashPersonalAccounts"),
+    kind: v.union(v.literal("players"), v.literal("clans")),
+    tag: v.string(),
+    trophies: v.optional(v.number()),
+    chestName: v.optional(v.string()),
+    chestIndex: v.optional(v.number()),
+    warTrophies: v.optional(v.number()),
+    observedAt: v.number()
+  })
+    .index("by_account_id", ["accountId"])
+    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"]),
+
+  /** Clans explicitly opened in the management view; observed at most every six hours. */
+  clashTrackedClans: defineTable({
+    tag: v.string(),
+    name: v.optional(v.string()),
+    trackingStartedAt: v.number(),
+    lastObservedAt: v.optional(v.number()),
+    nextObservationAt: v.number(),
+    observationCount: v.number(),
+    consecutiveFailures: v.number(),
+    lastError: v.optional(v.string())
+  })
+    .index("by_tag", ["tag"])
+    .index("by_next_observation_at", ["nextObservationAt"]),
+
+  /** One bounded-retention clan-level observation. Member rows live separately. */
+  clashClanRosterSnapshots: defineTable({
+    clanTag: v.string(),
+    clanName: v.string(),
+    observedAt: v.number(),
+    memberCount: v.number(),
+    clanScore: v.number(),
+    warTrophies: v.number(),
+    donationsPerWeek: v.number(),
+    donationsChange: v.optional(v.number())
+  })
+    .index("by_clan_tag_and_observed_at", ["clanTag", "observedAt"])
+    .index("by_observed_at", ["observedAt"]),
+
+  /** Immutable member rows backing joins/leaves and observation-window movement. */
+  clashClanMemberSnapshots: defineTable({
+    clanTag: v.string(),
+    observedAt: v.number(),
+    memberTag: v.string(),
+    name: v.string(),
+    role: v.string(),
+    trophies: v.number(),
+    trophyChange: v.optional(v.number()),
+    donations: v.number(),
+    donationChange: v.optional(v.number()),
+    donationsReceived: v.number(),
+    lastSeenAt: v.optional(v.number())
+  })
+    .index("by_clan_tag_and_observed_at", ["clanTag", "observedAt"])
+    .index("by_observed_at", ["observedAt"]),
+
+  /** Current roster projection, capped naturally by Clash Royale's 50-member limit. */
+  clashClanActiveMembers: defineTable({
+    clanTag: v.string(),
+    memberTag: v.string(),
+    name: v.string(),
+    role: v.string(),
+    trophies: v.number(),
+    trophyChange: v.number(),
+    donations: v.number(),
+    donationChange: v.number(),
+    donationsReceived: v.number(),
+    lastSeenAt: v.optional(v.number()),
+    joinedObservedAt: v.number(),
+    lastObservedAt: v.number(),
+    inactiveSince: v.optional(v.number())
+  }).index("by_clan_tag_and_member_tag", ["clanTag", "memberTag"]),
+
+  /** Sparse, explainable changes used by the timeline and opt-in browser alerts. */
+  clashClanManagementEvents: defineTable({
+    clanTag: v.string(),
+    observedAt: v.number(),
+    kind: clanEventKind,
+    memberTag: v.string(),
+    memberName: v.string(),
+    summary: v.string(),
+    detail: v.string()
+  })
+    .index("by_clan_tag_and_observed_at", ["clanTag", "observedAt"])
+    .index("by_observed_at", ["observedAt"]),
+
+  /** One member's best-known River Race totals for one observed week. */
+  clashClanWarMemberWeeks: defineTable({
+    clanTag: v.string(),
+    weekKey: v.string(),
+    memberTag: v.string(),
+    memberName: v.string(),
+    seasonId: v.optional(v.number()),
+    sectionIndex: v.optional(v.number()),
+    completed: v.boolean(),
+    fame: v.number(),
+    repairPoints: v.number(),
+    boatAttacks: v.number(),
+    decksUsed: v.number(),
+    decksUsedToday: v.optional(v.number()),
+    missedDecks: v.optional(v.number()),
+    firstObservedAt: v.number(),
+    lastObservedAt: v.number()
+  })
+    .index("by_clan_tag_and_week_key_and_member_tag", ["clanTag", "weekKey", "memberTag"])
+    .index("by_clan_tag_and_member_tag", ["clanTag", "memberTag"])
+    .index("by_last_observed_at", ["lastObservedAt"])
 };

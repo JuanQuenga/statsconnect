@@ -1,9 +1,22 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
+import {
+  AppErrorBoundary,
+  installGlobalErrorHandlers,
+  reportClientError,
+} from "@statsconnect/site-errors";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  StatsConnectFatalError,
+  StatsConnectRouteError,
+} from "./components/AppErrorPage";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
+
+const APP_NAME = "StatsConnect";
+const removeGlobalErrorHandlers = installGlobalErrorHandlers(APP_NAME);
+if (import.meta.hot) import.meta.hot.dispose(removeGlobalErrorHandlers);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +32,15 @@ const router = createRouter({
   routeTree,
   context: { queryClient },
   defaultPreload: "intent",
+  defaultErrorComponent: StatsConnectRouteError,
+  defaultOnCatch: (error, errorInfo) => {
+    reportClientError({
+      app: APP_NAME,
+      error,
+      source: "route",
+      componentStack: errorInfo.componentStack ?? undefined,
+    });
+  },
 });
 
 declare module "@tanstack/react-router" {
@@ -33,10 +55,29 @@ if (!rootElement) {
   throw new Error("StatsConnect could not find its root element.");
 }
 
-createRoot(rootElement).render(
+createRoot(rootElement, {
+  onUncaughtError: (error, errorInfo) => {
+    reportClientError({
+      app: APP_NAME,
+      error,
+      source: "uncaught",
+      componentStack: errorInfo.componentStack,
+    });
+  },
+  onRecoverableError: (error, errorInfo) => {
+    reportClientError({
+      app: APP_NAME,
+      error,
+      source: "recoverable",
+      componentStack: errorInfo.componentStack,
+    });
+  },
+}).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <AppErrorBoundary app={APP_NAME} fallback={StatsConnectFatalError}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </AppErrorBoundary>
   </StrictMode>,
 );

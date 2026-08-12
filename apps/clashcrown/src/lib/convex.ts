@@ -20,6 +20,7 @@ import type {
   TournamentsPayload
 } from "@/lib/clash/types";
 import type { MetaMode } from "@/lib/clash/battles";
+import type { AlertPreferences, ProfileKind, RecentProfile, TrackedProfile } from "@/lib/recentProfiles";
 
 export const convexUrl = (
   import.meta.env.VITE_CONVEX_URL ?? import.meta.env.NEXT_PUBLIC_CONVEX_URL ?? ""
@@ -137,6 +138,107 @@ export const seedTagMutation = makeFunctionReference<
   { tag: string; key: string },
   { ok: boolean; message: string }
 >("clash/meta:seedTag");
+
+// --- Capability-backed personalization -----------------------------------
+
+export type PersonalizationState = {
+  accountId: string;
+  preferences: AlertPreferences;
+  profiles: TrackedProfile[];
+  recents: RecentProfile[];
+  devices: Array<{ label: string; createdAt: number; lastSeenAt: number }>;
+  updatedAt: number;
+};
+
+export type PersonalAlert = {
+  type: "chest" | "progression" | "war";
+  title: string;
+  body: string;
+};
+
+type ProfileInput = Pick<TrackedProfile, "kind" | "tag" | "name" | "clan">;
+type RecentInput = Pick<RecentProfile, "kind" | "tag" | "name" | "clan" | "visitedAt">;
+
+export const ensurePersonalAccountMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; deviceLabel: string; importedProfiles: ProfileInput[]; importedRecents: RecentInput[]; importedPreferences: AlertPreferences },
+  string
+>("clash/personalization:ensureAccount");
+
+export const personalStateQuery = makeFunctionReference<
+  "query",
+  { deviceSecret: string },
+  PersonalizationState | null
+>("clash/personalization:getState");
+
+export const savePersonalProfileMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; profile: ProfileInput },
+  null
+>("clash/personalization:saveProfile");
+
+export const removePersonalProfileMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; kind: ProfileKind; tag: string },
+  null
+>("clash/personalization:removeProfile");
+
+export const setDefaultPersonalProfileMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; tag: string | null },
+  null
+>("clash/personalization:setDefaultProfile");
+
+export const recordPersonalRecentMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; recent: RecentInput },
+  null
+>("clash/personalization:recordRecent");
+
+export const clearPersonalRecentsMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string },
+  null
+>("clash/personalization:clearRecents");
+
+export const updatePersonalPreferencesMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; preferences: AlertPreferences },
+  null
+>("clash/personalization:updatePreferences");
+
+export const observePersonalProfileMutation = makeFunctionReference<
+  "mutation",
+  {
+    deviceSecret: string;
+    kind: ProfileKind;
+    tag: string;
+    name: string;
+    trophies?: number;
+    chestName?: string;
+    chestIndex?: number;
+    warTrophies?: number;
+  },
+  PersonalAlert[]
+>("clash/personalization:observeProfile");
+
+export const createPairingCodeMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; codeSecret: string },
+  { expiresAt: number }
+>("clash/personalization:createPairingCode");
+
+export const redeemPairingCodeMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string; codeSecret: string; deviceLabel: string },
+  string
+>("clash/personalization:redeemPairingCode");
+
+export const clearPersonalAccountMutation = makeFunctionReference<
+  "mutation",
+  { deviceSecret: string },
+  null
+>("clash/personalization:clearAccount");
 
 /** Matches GLOBAL_LOCATION_ID in convex/clashApi.ts. "International", not Europe. */
 export const GLOBAL_LOCATION_ID = 57000006;

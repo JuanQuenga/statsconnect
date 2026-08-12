@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as BandsRouteImport } from './routes/bands'
 import { Route as BetaRouteImport } from './routes/beta'
 import { Route as ClubsRouteImport } from './routes/clubs'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
+import { Route as MetaRouteImport } from './routes/meta'
 import { Route as PlayersRouteImport } from './routes/players'
+import { Route as ProgressionRouteImport } from './routes/progression'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as BrawlersIndexRouteImport } from './routes/brawlers/index'
+import { Route as BrawlersBrawlerIdRouteImport } from './routes/brawlers/$brawlerId'
 import { Route as GamemodesModeIdRouteImport } from './routes/gamemodes/$modeId'
 import { Route as MapsIndexRouteImport } from './routes/maps/index'
 import { Route as MapsMapIdRouteImport } from './routes/maps/$mapId'
@@ -22,6 +28,11 @@ import { Route as MapsMapIdRouteImport } from './routes/maps/$mapId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BandsRoute = BandsRouteImport.update({
@@ -44,9 +55,34 @@ const LeaderboardsRoute = LeaderboardsRouteImport.update({
   path: '/leaderboards',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MetaRoute = MetaRouteImport.update({
+  id: '/meta',
+  path: '/meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayersRoute = PlayersRouteImport.update({
   id: '/players',
   path: '/players',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressionRoute = ProgressionRouteImport.update({
+  id: '/progression',
+  path: '/progression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrawlersIndexRoute = BrawlersIndexRouteImport.update({
+  id: '/brawlers/',
+  path: '/brawlers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrawlersBrawlerIdRoute = BrawlersBrawlerIdRouteImport.update({
+  id: '/brawlers/$brawlerId',
+  path: '/brawlers/$brawlerId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamemodesModeIdRoute = GamemodesModeIdRouteImport.update({
@@ -67,83 +103,125 @@ const MapsMapIdRoute = MapsMapIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/bands': typeof BandsRoute
   '/beta': typeof BetaRoute
   '/clubs': typeof ClubsRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/meta': typeof MetaRoute
   '/players': typeof PlayersRoute
+  '/progression': typeof ProgressionRoute
+  '/settings': typeof SettingsRoute
+  '/brawlers/$brawlerId': typeof BrawlersBrawlerIdRoute
   '/gamemodes/$modeId': typeof GamemodesModeIdRoute
   '/maps/$mapId': typeof MapsMapIdRoute
+  '/brawlers/': typeof BrawlersIndexRoute
   '/maps/': typeof MapsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/bands': typeof BandsRoute
   '/beta': typeof BetaRoute
   '/clubs': typeof ClubsRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/meta': typeof MetaRoute
   '/players': typeof PlayersRoute
+  '/progression': typeof ProgressionRoute
+  '/settings': typeof SettingsRoute
+  '/brawlers/$brawlerId': typeof BrawlersBrawlerIdRoute
   '/gamemodes/$modeId': typeof GamemodesModeIdRoute
   '/maps/$mapId': typeof MapsMapIdRoute
+  '/brawlers': typeof BrawlersIndexRoute
   '/maps': typeof MapsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/bands': typeof BandsRoute
   '/beta': typeof BetaRoute
   '/clubs': typeof ClubsRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/meta': typeof MetaRoute
   '/players': typeof PlayersRoute
+  '/progression': typeof ProgressionRoute
+  '/settings': typeof SettingsRoute
+  '/brawlers/$brawlerId': typeof BrawlersBrawlerIdRoute
   '/gamemodes/$modeId': typeof GamemodesModeIdRoute
   '/maps/$mapId': typeof MapsMapIdRoute
+  '/brawlers/': typeof BrawlersIndexRoute
   '/maps/': typeof MapsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assistant'
     | '/bands'
     | '/beta'
     | '/clubs'
     | '/leaderboards'
+    | '/meta'
     | '/players'
+    | '/progression'
+    | '/settings'
+    | '/brawlers/$brawlerId'
     | '/gamemodes/$modeId'
     | '/maps/$mapId'
+    | '/brawlers/'
     | '/maps/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assistant'
     | '/bands'
     | '/beta'
     | '/clubs'
     | '/leaderboards'
+    | '/meta'
     | '/players'
+    | '/progression'
+    | '/settings'
+    | '/brawlers/$brawlerId'
     | '/gamemodes/$modeId'
     | '/maps/$mapId'
+    | '/brawlers'
     | '/maps'
   id:
     | '__root__'
     | '/'
+    | '/assistant'
     | '/bands'
     | '/beta'
     | '/clubs'
     | '/leaderboards'
+    | '/meta'
     | '/players'
+    | '/progression'
+    | '/settings'
+    | '/brawlers/$brawlerId'
     | '/gamemodes/$modeId'
     | '/maps/$mapId'
+    | '/brawlers/'
     | '/maps/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistantRoute: typeof AssistantRoute
   BandsRoute: typeof BandsRoute
   BetaRoute: typeof BetaRoute
   ClubsRoute: typeof ClubsRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
+  MetaRoute: typeof MetaRoute
   PlayersRoute: typeof PlayersRoute
+  ProgressionRoute: typeof ProgressionRoute
+  SettingsRoute: typeof SettingsRoute
+  BrawlersBrawlerIdRoute: typeof BrawlersBrawlerIdRoute
   GamemodesModeIdRoute: typeof GamemodesModeIdRoute
   MapsMapIdRoute: typeof MapsMapIdRoute
+  BrawlersIndexRoute: typeof BrawlersIndexRoute
   MapsIndexRoute: typeof MapsIndexRoute
 }
 
@@ -154,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bands': {
@@ -184,11 +269,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/meta': {
+      id: '/meta'
+      path: '/meta'
+      fullPath: '/meta'
+      preLoaderRoute: typeof MetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/players': {
       id: '/players'
       path: '/players'
       fullPath: '/players'
       preLoaderRoute: typeof PlayersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progression': {
+      id: '/progression'
+      path: '/progression'
+      fullPath: '/progression'
+      preLoaderRoute: typeof ProgressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brawlers/': {
+      id: '/brawlers/'
+      path: '/brawlers'
+      fullPath: '/brawlers/'
+      preLoaderRoute: typeof BrawlersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brawlers/$brawlerId': {
+      id: '/brawlers/$brawlerId'
+      path: '/brawlers/$brawlerId'
+      fullPath: '/brawlers/$brawlerId'
+      preLoaderRoute: typeof BrawlersBrawlerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gamemodes/$modeId': {
@@ -217,13 +337,19 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistantRoute: AssistantRoute,
   BandsRoute: BandsRoute,
   BetaRoute: BetaRoute,
   ClubsRoute: ClubsRoute,
   LeaderboardsRoute: LeaderboardsRoute,
+  MetaRoute: MetaRoute,
   PlayersRoute: PlayersRoute,
+  ProgressionRoute: ProgressionRoute,
+  SettingsRoute: SettingsRoute,
+  BrawlersBrawlerIdRoute: BrawlersBrawlerIdRoute,
   GamemodesModeIdRoute: GamemodesModeIdRoute,
   MapsMapIdRoute: MapsMapIdRoute,
+  BrawlersIndexRoute: BrawlersIndexRoute,
   MapsIndexRoute: MapsIndexRoute,
 }
 export const routeTree = rootRouteImport

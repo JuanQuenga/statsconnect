@@ -18,5 +18,9 @@ crons.interval("refill the crawl queue", { hours: 6 }, internal.crawler.discover
 crons.interval("crawl battle logs", { minutes: 2 }, internal.crawler.crawl, {});
 crons.interval("roll up deck rankings", { minutes: 30 }, internal.crawler.rollup, {});
 crons.interval("prune expired rows", { hours: 6 }, internal.crawler.prune, {});
+// At most three explicitly tracked clans are observed per tick. Each clan is
+// leased for six hours after success, keeping API usage bounded as tracking grows.
+crons.interval("observe tracked clans", { minutes: 30 }, internal.clanManagementActions.pollTrackedClans, {});
+crons.interval("prune clan management history", { hours: 6 }, internal.clanManagementActions.pruneHistory, {});
 
 export default crons;

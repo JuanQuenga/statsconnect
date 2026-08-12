@@ -33,6 +33,42 @@ type ProfileSnapshot = {
   iconId?: number;
   brawlerCount: number;
   power11Count: number;
+  rankedCurrent?: number;
+  rankedCurrentName?: string;
+  rankedSeasonBest?: number;
+  rankedSeasonBestName?: string;
+  rankedBest?: number;
+  rankedBestName?: string;
+  brawlers?: OwnedBrawler[];
+};
+type Equipment = { id: number; name: string };
+type OwnedBrawler = {
+  id: number;
+  name: string;
+  power: number;
+  rank: number;
+  trophies: number;
+  highestTrophies: number;
+  gadgets: Equipment[];
+  starPowers: Equipment[];
+  gears: Equipment[];
+  hypercharges: Equipment[];
+};
+type ClubSnapshot = {
+  tag: string;
+  name: string;
+  description?: string;
+  type?: string;
+  badgeId?: number;
+  requiredTrophies?: number;
+  trophies: number;
+  members: Array<{
+    tag: string;
+    name: string;
+    role?: string;
+    trophies: number;
+    iconId?: number;
+  }>;
 };
 
 class UpstreamError extends Error {
@@ -75,6 +111,43 @@ function finiteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function firstNumber(...values: unknown[]): number | undefined {
+  return values.map(finiteNumber).find((value) => value !== undefined);
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  return values.find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim();
+}
+
+function equipment(value: unknown): Equipment[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const record = asRecord(item);
+    const id = finiteNumber(record?.id);
+    const name = firstString(record?.name);
+    return id !== undefined && name ? [{ id, name }] : [];
+  });
+}
+
+function ownedBrawler(value: unknown): OwnedBrawler | null {
+  const record = asRecord(value);
+  const id = finiteNumber(record?.id);
+  const name = firstString(record?.name);
+  if (id === undefined || !name) return null;
+  return {
+    id,
+    name,
+    power: finiteNumber(record?.power) ?? 0,
+    rank: finiteNumber(record?.rank) ?? 0,
+    trophies: finiteNumber(record?.trophies) ?? 0,
+    highestTrophies: finiteNumber(record?.highestTrophies) ?? 0,
+    gadgets: equipment(record?.gadgets),
+    starPowers: equipment(record?.starPowers),
+    gears: equipment(record?.gears),
+    hypercharges: equipment(record?.hypercharges ?? record?.hypercharge ?? record?.buffies),
+  };
+}
+
 function playerSighting(value: unknown, club?: { tag?: string; name?: string }): PlayerSighting | null {
   const record = asRecord(value);
   const tag = cleanTag(record?.tag);
@@ -97,6 +170,9 @@ function profileSnapshot(value: unknown): ProfileSnapshot | null {
   const sighting = playerSighting(value);
   if (!record || !sighting) return null;
   const brawlers = Array.isArray(record.brawlers) ? record.brawlers : [];
+  const ranked = asRecord(record.ranked);
+  const rankedSeason = asRecord(record.rankedSeason ?? record.currentRankedSeason);
+  const normalizedBrawlers = brawlers.map(ownedBrawler).filter((brawler): brawler is OwnedBrawler => brawler !== null);
   return {
     ...sighting,
     trophies: finiteNumber(record.trophies) ?? 0,
@@ -107,6 +183,45 @@ function profileSnapshot(value: unknown): ProfileSnapshot | null {
     duoVictories: finiteNumber(record.duoVictories) ?? 0,
     brawlerCount: brawlers.length,
     power11Count: brawlers.filter((brawler) => finiteNumber(asRecord(brawler)?.power) === 11).length,
+    rankedCurrent: firstNumber(ranked?.currentRank, ranked?.current, record.rankedCurrent),
+    rankedCurrentName: firstString(ranked?.currentRankName, ranked?.currentName, record.rankedCurrentName),
+    rankedSeasonBest: firstNumber(ranked?.seasonBestRank, rankedSeason?.bestRank, record.rankedSeasonBest),
+    rankedSeasonBestName: firstString(ranked?.seasonBestRankName, rankedSeason?.bestRankName, record.rankedSeasonBestName),
+    rankedBest: firstNumber(ranked?.bestRank, ranked?.highestRank, record.rankedBest),
+    rankedBestName: firstString(ranked?.bestRankName, ranked?.highestRankName, record.rankedBestName),
+    brawlers: normalizedBrawlers,
+  };
+}
+
+function clubSnapshot(value: unknown): ClubSnapshot | null {
+  const club = asRecord(value);
+  const tag = cleanTag(club?.tag);
+  const name = typeof club?.name === "string" ? club.name.trim() : "";
+  if (!club || !tag || !name) return null;
+  const badge = asRecord(club.badge);
+  const members = (Array.isArray(club.members) ? club.members : []).flatMap((value) => {
+    const member = asRecord(value);
+    const memberTag = cleanTag(member?.tag);
+    const memberName = typeof member?.name === "string" ? member.name.trim() : "";
+    const icon = asRecord(member?.icon);
+    if (!memberTag || !memberName) return [];
+    return [{
+      tag: memberTag,
+      name: memberName,
+      role: typeof member?.role === "string" ? member.role : undefined,
+      trophies: finiteNumber(member?.trophies) ?? 0,
+      iconId: finiteNumber(icon?.id),
+    }];
+  });
+  return {
+    tag,
+    name,
+    description: typeof club.description === "string" ? club.description : undefined,
+    type: typeof club.type === "string" ? club.type : undefined,
+    badgeId: finiteNumber(club.badgeId) ?? finiteNumber(badge?.id),
+    requiredTrophies: finiteNumber(club.requiredTrophies),
+    trophies: finiteNumber(club.trophies) ?? 0,
+    members,
   };
 }
 
@@ -174,9 +289,16 @@ export const discover = internalAction({
 
       for (const clubTag of tagsFromItems(clubRankings)) {
         try {
-          const club = asRecord(
-            await fetchJson(ctx, `/clubs/${encodeURIComponent(`#${clubTag}`)}`, "clubs/detail"),
+          const clubPayload = await fetchJson(
+            ctx,
+            `/clubs/${encodeURIComponent(`#${clubTag}`)}`,
+            "clubs/detail",
           );
+          const club = asRecord(clubPayload);
+          const trackedClub = clubSnapshot(clubPayload);
+          if (trackedClub) {
+            await ctx.runMutation(internal.brawl.clubs.recordClub, { club: trackedClub });
+          }
           const members = club && Array.isArray(club.members) ? club.members : [];
           const clubName = typeof club?.name === "string" ? club.name : undefined;
           for (const member of members) {

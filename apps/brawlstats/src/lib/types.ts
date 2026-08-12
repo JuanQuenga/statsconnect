@@ -1,13 +1,27 @@
+export type CatalogAbility = {
+  id: number;
+  name: string;
+  description: string;
+  imageUrl?: string;
+  released: boolean;
+};
+
 export type BrawlerCatalogItem = {
   id: number;
   name: string;
+  hash: string;
+  version: number;
   rarity: string;
   color: string;
   role: string;
   description: string;
   gadget: string;
   starPower: string;
+  gadgets: CatalogAbility[];
+  starPowers: CatalogAbility[];
   imageUrl?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
   released?: boolean;
 };
 
@@ -23,6 +37,14 @@ export type PlayerProfile = {
   duoVictories?: number;
   icon?: { id: number };
   club?: { tag?: string; name?: string };
+  ranked?: {
+    currentRank?: number;
+    currentRankName?: string;
+    seasonBestRank?: number;
+    seasonBestRankName?: string;
+    bestRank?: number;
+    bestRankName?: string;
+  };
   brawlers?: Array<{
     id: number;
     name: string;
@@ -30,6 +52,11 @@ export type PlayerProfile = {
     rank: number;
     trophies: number;
     highestTrophies: number;
+    gadgets?: Array<{ id: number; name: string }>;
+    starPowers?: Array<{ id: number; name: string }>;
+    gears?: Array<{ id: number; name: string; level?: number }>;
+    hypercharges?: Array<{ id: number; name: string }>;
+    buffies?: Array<{ id: number; name: string }>;
   }>;
 };
 
@@ -64,6 +91,54 @@ export type PlayerSnapshot = {
   iconId?: number;
   brawlerCount: number;
   power11Count: number;
+  rankedCurrent?: number;
+  rankedCurrentName?: string;
+  rankedSeasonBest?: number;
+  rankedSeasonBestName?: string;
+  rankedBest?: number;
+  rankedBestName?: string;
+  brawlers?: PlayerProfile["brawlers"];
+};
+
+export type PlayerBattle = {
+  battleTime: string;
+  battleTimestamp: number;
+  mapId?: number;
+  mapName?: string;
+  mode: string;
+  battleType?: string;
+  result: "victory" | "defeat" | "draw" | "unknown";
+  rank?: number;
+  trophyChange?: number;
+  brawlerId?: number;
+  brawlerName?: string;
+  brawlerPower?: number;
+  brawlerTrophies?: number;
+  starPlayer: boolean;
+};
+
+export type PlayerAggregate = {
+  days: number;
+  battles: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  unknown: number;
+  winRate: number;
+  netTrophies: number;
+  starPlayerRate: number;
+};
+
+export type PlayerAnalytics = {
+  battles: PlayerBattle[];
+  nextCursor?: number;
+  hasMore: boolean;
+  capped: boolean;
+  summaries: PlayerAggregate[];
+  streaks: { current: number; currentResult: PlayerBattle["result"]; longestWin: number };
+  activity: Array<{ day: string; battles: number; wins: number }>;
+  modes: Array<PlayerAggregate & { mode: string }>;
+  brawlers: Array<PlayerAggregate & { brawlerId: number; brawlerName: string }>;
 };
 
 export type ClubProfile = {
@@ -82,6 +157,70 @@ export type ClubProfile = {
     icon?: { id: number };
   }>;
 };
+
+export type ClubActivityType = "join" | "leave" | "role_change" | "trophy_change";
+
+export type ClubSnapshot = {
+  day: number;
+  recordedAt: number;
+  name: string;
+  trophies: number;
+  memberCount: number;
+  requiredTrophies?: number;
+};
+
+export type ClubActivityEvent = {
+  recordedAt: number;
+  playerTag: string;
+  playerName: string;
+  type: ClubActivityType;
+  fromRole?: string;
+  toRole?: string;
+  fromTrophies?: number;
+  toTrophies?: number;
+  trophyDelta?: number;
+};
+
+export type TrackedClubMember = {
+  tag: string;
+  name: string;
+  role: string;
+  trophies: number;
+  iconId?: number;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  joinedAt: number;
+  lastProfileAt?: number;
+};
+
+export type ClubHistoryResponse = {
+  trackedSinceAt?: number;
+  lastSeenAt?: number;
+  snapshots: ClubSnapshot[];
+  events: ClubActivityEvent[];
+  roster: TrackedClubMember[];
+  summary: {
+    joins: number;
+    leaves: number;
+    roleChanges: number;
+    trophyChange: number;
+    activeMembers: number;
+  };
+};
+
+export type TrackedClubSummary = {
+  tag: string;
+  name: string;
+  badgeId?: number;
+  trophies: number;
+  memberCount: number;
+  trackedSinceAt: number;
+  lastSeenAt: number;
+  activity7d: number;
+  trophyChange7d: number;
+};
+
+export type ClubCommunityResponse = { clubs: TrackedClubSummary[] };
 
 export type RankingPlayer = {
   tag: string;
@@ -187,10 +326,105 @@ export type MapTeamStat = {
   trophyBucket: string;
 };
 
+export type MapBrawlerMatchup = {
+  brawlerId: number;
+  opponentBrawlerId: number;
+  wins: number;
+  losses: number;
+  picks: number;
+  winRate: number;
+  trophyBucket: string;
+};
+
 export type MapDetailResponse = {
   map: MapListItem;
   stats: MapBrawlerStat[];
   teams: MapTeamStat[];
+  matchups: MapBrawlerMatchup[];
   sampleSize: number;
   minPicks: number;
+};
+
+export type BrawlerMapStat = {
+  mapId: number;
+  brawlerId: number;
+  wins: number;
+  losses: number;
+  picks: number;
+  starPlayer: number;
+  winRate: number;
+  starRate: number;
+  trophyBucket: string;
+};
+
+export type BrawlerTeamStat = {
+  mapId: number;
+  brawlerIds: number[];
+  wins: number;
+  losses: number;
+  picks: number;
+  winRate: number;
+  trophyBucket: string;
+};
+
+export type BrawlerMatchupStat = MapBrawlerMatchup & { mapId: number };
+
+export type BrawlerMetaResponse = {
+  stats: BrawlerMapStat[];
+  teams: BrawlerTeamStat[];
+  matchups: BrawlerMatchupStat[];
+  totals: {
+    wins: number;
+    losses: number;
+    picks: number;
+    starPlayer: number;
+    winRate: number;
+    starRate: number;
+  };
+  minPicks: number;
+  limitations: string[];
+};
+
+export type MetaResearchResponse = {
+  stats: BrawlerMapStat[];
+  sampleSize: number;
+  minPicks: number;
+  capped: boolean;
+};
+
+export type MetaTrendWindow = "7" | "30" | "90" | "all";
+
+export type MetaDailyPoint = {
+  day: number;
+  wins: number;
+  losses: number;
+  picks: number;
+  starPlayer: number;
+  winRate: number;
+  starRate: number;
+};
+
+export type MetaTrendPeriod = {
+  stats: BrawlerMapStat[];
+  days: MetaDailyPoint[];
+  sampleSize: number;
+  startAt: number;
+  endAt: number;
+  capped: boolean;
+};
+
+export type MetaTrendsResponse = {
+  window: MetaTrendWindow;
+  windowDays: number | null;
+  coverageStartAt: number | null;
+  current: MetaTrendPeriod;
+  previous: MetaTrendPeriod | null;
+  currentMatchups: BrawlerMatchupStat[];
+  previousMatchups: BrawlerMatchupStat[] | null;
+  matchupCapped: boolean;
+  comparisonReady: boolean;
+  currentCoverageComplete: boolean;
+  minPicks: number;
+  rowLimit: number;
+  matchupRowLimit: number;
 };

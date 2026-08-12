@@ -2,15 +2,15 @@ import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { Star } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
+import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
 import favoriteStyles from "@/components/PlayerFavorites.module.css";
 import { directorySizeQuery, isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
-import { readFavoriteProfiles, toggleFavorite, type FavoriteProfile } from "@/lib/recentProfiles";
+import type { FavoriteProfile } from "@/lib/recentProfiles";
 
 /**
  * Player lookup by name.
@@ -23,12 +23,16 @@ import { readFavoriteProfiles, toggleFavorite, type FavoriteProfile } from "@/li
 export default function PlayerSearchPage() {
   const router = useRouter();
   const term = typeof router.query.q === "string" ? router.query.q.trim() : "";
-  const [favorites, setFavorites] = useState<FavoriteProfile[]>([]);
-
-  useEffect(() => setFavorites(readFavoriteProfiles()), []);
+  const personalization = usePersonalization();
+  const favorites: FavoriteProfile[] = personalization.profiles
+    .filter((profile) => profile.kind === "players")
+    .map(({ tag, name, clan }) => ({ kind: "players" as const, tag, name, clan }));
 
   function onFavoriteToggle(profile: Omit<FavoriteProfile, "kind">) {
-    setFavorites(toggleFavorite({ kind: "players", ...profile }));
+    const existing = favorites.some((favorite) => favorite.tag === profile.tag);
+    void (existing
+      ? personalization.untrack("players", profile.tag)
+      : personalization.track({ kind: "players", ...profile }));
   }
 
   if (!isConvexConfigured) {
@@ -70,7 +74,7 @@ function FavoritesSection({ favorites, onToggle }: { favorites: FavoriteProfile[
     <TableShell
       title="Favorites"
       head={["Player", "Clan", "Trophies", "Favorite", "Open"]}
-      note={favorites.length ? "Your starred players are saved in this browser." : "Star a player in the search results to keep them here."}
+      note={favorites.length ? "Tracked players are saved locally and sync across paired browsers when available." : "Track a player in the search results to keep them here."}
       empty={!favorites.length}
       emptyMessage="No favorites yet. Star a player in the results below."
     >

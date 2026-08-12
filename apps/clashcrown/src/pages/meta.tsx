@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { Copy } from "lucide-react";
 import { Layout } from "@/components/portfolio/Layout";
 import { DeckMatchupPanel } from "@/components/MetaMatchups";
+import { MetaAnalytics } from "@/components/MetaAnalytics";
 import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell } from "@/components/portfolio/DataTable";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
@@ -14,6 +15,7 @@ import { averageElixir, copyDeckLink, variantArt, UNKNOWN_CARD_IMAGE } from "@/l
 import { useCardCatalog } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/mock-data";
 import { isConvexConfigured, topCardsQuery, topDecksQuery, topTowerTroopsQuery } from "@/lib/convex";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * The public face of the battle-log pipeline.
@@ -39,6 +41,7 @@ export default function MetaPage() {
 }
 
 function MetaReport() {
+  const { formatNumber, locale, t } = useI18n();
   // Path of Legends is the default because it is where the crawl has by far
   // the deepest sample; the other modes are honest but thinner.
   const [mode, setMode] = useState<MetaMode>("pathOfLegends");
@@ -54,21 +57,21 @@ function MetaReport() {
   return (
     <Layout>
       <Head>
-        <title>Meta Report | Clash Crown</title>
+        <title>{t("meta.title")} | Clash Crown</title>
         <meta
           name="description"
-          content="Live Clash Royale deck and card statistics, aggregated from real battle logs."
+          content={locale === "es" ? "Estadísticas en vivo de mazos y cartas de Clash Royale, agregadas desde registros de batalla observados." : "Live Clash Royale deck and card statistics, aggregated from real battle logs."}
         />
+        <link rel="canonical" href="/meta" />
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">Aggregated from real battle logs</span>
-          <h1>Meta Report</h1>
+          <span className="eyebrow">{locale === "es" ? "Agregado desde registros de batalla reales" : "Aggregated from real battle logs"}</span>
+          <h1>{t("meta.title")}</h1>
           <p>
-            The Clash Royale API publishes battles one player at a time and no statistics at all. These numbers come
-            from continuously reading those battle logs and counting what people actually played — currently{" "}
-            <strong>{Math.round(sample).toLocaleString()}</strong> decks observed in {modeLabel(mode)} over the last{" "}
-            {windowDays === 1 ? "24 hours" : `${windowDays} days`}.
+            {locale === "es" ? "La API de Clash Royale publica batallas jugador por jugador, pero no estadísticas agregadas. Clash Crown cuenta lo que se jugó y muestra siempre la muestra: " : "The Clash Royale API publishes battles one player at a time, but no aggregate statistics. Clash Crown counts what was actually played and always shows the sample: "}
+            <strong>{formatNumber(Math.round(sample))}</strong> {locale === "es" ? "mazos observados" : "decks observed"} · {modeLabel(mode)} ·{" "}
+            {windowDays === 1 ? (locale === "es" ? "24 horas" : "24 hours") : `${windowDays} ${locale === "es" ? "días" : "days"}`}.
           </p>
         </section>
 
@@ -93,7 +96,7 @@ function MetaReport() {
                 className={item === windowDays ? "beta-tab beta-tab-on" : "beta-tab"}
                 onClick={() => setWindowDays(item)}
               >
-                {item === 1 ? "24 hours" : "7 days"}
+                {item === 1 ? (locale === "es" ? "24 horas" : "24 hours") : `7 ${locale === "es" ? "días" : "days"}`}
               </button>
             ))}
           </div>
@@ -108,6 +111,7 @@ function MetaReport() {
           mode={mode}
           windowDays={windowDays}
         />
+        <MetaAnalytics mode={mode} windowDays={windowDays} byId={byId} />
       </div>
     </Layout>
   );
@@ -143,10 +147,10 @@ function CardThumb({ card, id, evolved }: { card?: Card; id: number; evolved?: b
 }
 
 function NotEnoughData({ mode, windowDays }: { mode: MetaMode; windowDays: number }) {
+  const { locale, t } = useI18n();
   return (
     <p className="empty-results">
-      Not enough {modeLabel(mode)} battles in the last {windowDays === 1 ? "24 hours" : `${windowDays} days`} to publish
-      a ranking. Clash Crown does not print numbers it cannot source.
+      {t("meta.notEnough")} {modeLabel(mode)} · {windowDays === 1 ? (locale === "es" ? "24 horas" : "24 hours") : `${windowDays} ${locale === "es" ? "días" : "days"}`}.
     </p>
   );
 }
@@ -159,11 +163,10 @@ function NotEnoughData({ mode, windowDays }: { mode: MetaMode; windowDays: numbe
  * which would wrongly imply battles were happening but too few of them.
  */
 function TowerTroopsStarting({ mode, windowDays }: { mode: MetaMode; windowDays: number }) {
+  const { locale } = useI18n();
   return (
     <p className="empty-results">
-      Tower Troop tracking just started — Clash Crown only began recording which one each side played, so there is no
-      history to backfill. Check back as {modeLabel(mode)} battles accumulate over the next{" "}
-      {windowDays === 1 ? "24 hours" : `${windowDays} days`}. Clash Crown does not print numbers it cannot source.
+      {locale === "es" ? "El seguimiento de Tropas de Torre acaba de empezar; no existe un historial que se pueda reconstruir. Vuelve cuando se acumulen más batallas." : "Tower Troop tracking just started; there is no history that can be backfilled. Check back as more battles accumulate."} {modeLabel(mode)} · {windowDays === 1 ? (locale === "es" ? "24 horas" : "24 hours") : `${windowDays} ${locale === "es" ? "días" : "days"}`}.
     </p>
   );
 }
@@ -171,6 +174,7 @@ function TowerTroopsStarting({ mode, windowDays }: { mode: MetaMode; windowDays:
 // --- Decks ----------------------------------------------------------------
 
 function CopyDeckButton({ cardIds }: { cardIds: number[] }) {
+  const { locale } = useI18n();
   const [copied, setCopied] = useState(false);
   const link = copyDeckLink(cardIds);
   if (!link) return null;
@@ -191,7 +195,7 @@ function CopyDeckButton({ cardIds }: { cardIds: number[] }) {
       }}
     >
       <Copy size={14} />
-      {copied ? "Copied" : "Copy"}
+      {copied ? (locale === "es" ? "Copiado" : "Copied") : (locale === "es" ? "Copiar" : "Copy")}
     </button>
   );
 }
@@ -216,13 +220,14 @@ function TopDecks({
   mode: MetaMode;
   windowDays: number;
 }) {
+  const { formatNumber, locale, t } = useI18n();
   const [expandedDeckHash, setExpandedDeckHash] = useState<string | null>(null);
 
   if (!decks) {
     return (
       <section className="profile-section">
-        <h2>Top decks</h2>
-        <p className="empty-results">Loading…</p>
+        <h2>{t("meta.topDecks")}</h2>
+        <p className="empty-results">{t("meta.loading")}</p>
       </section>
     );
   }
@@ -231,7 +236,7 @@ function TopDecks({
     return (
       <section className="profile-section">
         <div className="section-heading">
-          <h2>Top decks</h2>
+          <h2>{t("meta.topDecks")}</h2>
         </div>
         <NotEnoughData mode={mode} windowDays={windowDays} />
       </section>
@@ -240,8 +245,8 @@ function TopDecks({
 
   return (
     <TableShell
-      title="Top decks"
-      head={["#", "Deck", "Elixir", "Games", "Win rate", "Usage", ""]}
+      title={t("meta.topDecks")}
+      head={["#", locale === "es" ? "Mazo" : "Deck", "Elixir", locale === "es" ? "Partidas" : "Games", locale === "es" ? "% victoria" : "Win rate", locale === "es" ? "Uso" : "Usage", ""]}
       note={`${modeLabel(mode)}, last ${
         windowDays === 1 ? "24 hours" : `${windowDays} days`
       }. Ranked by how often the deck was played, not by how well it did — a deck has to be seen at least five times to appear.`}
@@ -265,7 +270,7 @@ function TopDecks({
               </span>
             </td>
             <td>{elixir ? elixir.toFixed(1) : "—"}</td>
-            <td>{deck.uses.toLocaleString()}</td>
+            <td>{formatNumber(deck.uses)}</td>
             <td className={rateClass(deck.winRate)}>{pct(deck.winRate)}</td>
             <td>{pct(deck.usageRate)}</td>
             <td>
@@ -276,7 +281,7 @@ function TopDecks({
                   aria-expanded={expanded}
                   onClick={() => setExpandedDeckHash(expanded ? null : deck.deckHash)}
                 >
-                  {expanded ? "Hide" : "Matchups"}
+                  {expanded ? (locale === "es" ? "Ocultar" : "Hide") : (locale === "es" ? "Cruces" : "Matchups")}
                 </button>
                 <CopyDeckButton cardIds={deck.cardIds} />
               </span>
@@ -310,22 +315,23 @@ function TopCards({
   mode: MetaMode;
   windowDays: number;
 }) {
+  const { formatNumber, locale, t } = useI18n();
   if (!cards?.length) {
     return (
       <section className="profile-section">
         <div className="section-heading">
-          <h2>Top cards</h2>
+          <h2>{t("meta.topCards")}</h2>
         </div>
-        {cards ? <NotEnoughData mode={mode} windowDays={windowDays} /> : <p className="empty-results">Loading…</p>}
+        {cards ? <NotEnoughData mode={mode} windowDays={windowDays} /> : <p className="empty-results">{t("meta.loading")}</p>}
       </section>
     );
   }
 
   return (
     <TableShell
-      title="Top cards"
-      head={["#", "Card", "Games", "Win rate", "Usage"]}
-      note={`Usage is the share of the ${Math.round(sample).toLocaleString()} decks observed that included the card. A card in every deck would read 100%.`}
+      title={t("meta.topCards")}
+      head={["#", locale === "es" ? "Carta" : "Card", locale === "es" ? "Partidas" : "Games", locale === "es" ? "% victoria" : "Win rate", locale === "es" ? "Uso" : "Usage"]}
+      note={`${t("meta.sourceNote")} ${formatNumber(Math.round(sample))} ${locale === "es" ? "mazos observados" : "decks observed"}.`}
     >
       {cards.map((row, index) => {
         const card = byId.get(row.cardId);
@@ -343,7 +349,7 @@ function TopCards({
                 sub={card ? `${card.rarity} · ${card.elixir} elixir` : "Not in the catalog"}
               />
             </td>
-            <td>{row.uses.toLocaleString()}</td>
+            <td>{formatNumber(row.uses)}</td>
             <td className={rateClass(row.winRate)}>{pct(row.winRate)}</td>
             <td>
               <span className="usage-bar" aria-hidden="true">
@@ -373,22 +379,23 @@ function TopTowerTroops({
   mode: MetaMode;
   windowDays: number;
 }) {
+  const { formatNumber, locale, t } = useI18n();
   if (!towerTroops?.length) {
     return (
       <section className="profile-section">
         <div className="section-heading">
-          <h2>Top Tower Troops</h2>
+          <h2>{locale === "es" ? "Mejores Tropas de Torre" : "Top Tower Troops"}</h2>
         </div>
-        {towerTroops ? <TowerTroopsStarting mode={mode} windowDays={windowDays} /> : <p className="empty-results">Loading…</p>}
+        {towerTroops ? <TowerTroopsStarting mode={mode} windowDays={windowDays} /> : <p className="empty-results">{t("meta.loading")}</p>}
       </section>
     );
   }
 
   return (
     <TableShell
-      title="Top Tower Troops"
-      head={["#", "Tower Troop", "Games", "Win rate", "Usage"]}
-      note={`Usage is the share of the ${Math.round(sample).toLocaleString()} decks observed with a Tower Troop recorded that used it. That sample only counts from when this table shipped, so it will keep growing.`}
+      title={locale === "es" ? "Mejores Tropas de Torre" : "Top Tower Troops"}
+      head={["#", locale === "es" ? "Tropa de Torre" : "Tower Troop", locale === "es" ? "Partidas" : "Games", locale === "es" ? "% victoria" : "Win rate", locale === "es" ? "Uso" : "Usage"]}
+      note={`${formatNumber(Math.round(sample))} ${locale === "es" ? "mazos observados con una Tropa de Torre registrada." : "observed decks with a recorded Tower Troop."}`}
     >
       {towerTroops.map((row, index) => {
         const card = byId.get(row.towerCardId);
@@ -406,7 +413,7 @@ function TopTowerTroops({
                 sub={card ? card.rarity : "Not in the catalog"}
               />
             </td>
-            <td>{row.uses.toLocaleString()}</td>
+            <td>{formatNumber(row.uses)}</td>
             <td className={rateClass(row.winRate)}>{pct(row.winRate)}</td>
             <td>
               <span className="usage-bar" aria-hidden="true">

@@ -34,12 +34,42 @@ function normalizedTag(value: string | null): string | null {
   return /^[0289PYLQGRJCUV]{3,15}$/.test(tag) ? `#${tag}` : null;
 }
 
+function trophyBucket(value: string | null): "all" | "0-499" | "500-999" | "1000+" | null {
+  return value === null || value === "all"
+    ? "all"
+    : value === "0-499" || value === "500-999" || value === "1000+"
+      ? value
+      : null;
+}
+
+function trendWindow(value: string | null): "7" | "30" | "90" | "all" | null {
+  return value === "7" || value === "30" || value === "90" || value === "all" ? value : null;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
 }
 
 function finiteNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function optionalNumber(...values: unknown[]): number | undefined {
+  return values.find((value): value is number => typeof value === "number" && Number.isFinite(value));
+}
+
+function optionalString(...values: unknown[]): string | undefined {
+  return values.find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim();
+}
+
+function equipment(value: unknown): Array<{ id: number; name: string }> {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const record = asRecord(item);
+    const id = optionalNumber(record?.id);
+    const name = optionalString(record?.name);
+    return id !== undefined && name ? [{ id, name }] : [];
+  });
 }
 
 function profileSnapshot(value: unknown) {
@@ -50,6 +80,26 @@ function profileSnapshot(value: unknown) {
   const club = asRecord(profile.club);
   const icon = asRecord(profile.icon);
   const brawlers = Array.isArray(profile.brawlers) ? profile.brawlers : [];
+  const ranked = asRecord(profile.ranked);
+  const rankedSeason = asRecord(profile.rankedSeason ?? profile.currentRankedSeason);
+  const normalizedBrawlers = brawlers.flatMap((value) => {
+    const brawler = asRecord(value);
+    const id = optionalNumber(brawler?.id);
+    const brawlerName = optionalString(brawler?.name);
+    if (id === undefined || !brawlerName) return [];
+    return [{
+      id,
+      name: brawlerName,
+      power: finiteNumber(brawler?.power),
+      rank: finiteNumber(brawler?.rank),
+      trophies: finiteNumber(brawler?.trophies),
+      highestTrophies: finiteNumber(brawler?.highestTrophies),
+      gadgets: equipment(brawler?.gadgets),
+      starPowers: equipment(brawler?.starPowers),
+      gears: equipment(brawler?.gears),
+      hypercharges: equipment(brawler?.hypercharges ?? brawler?.hypercharge ?? brawler?.buffies),
+    }];
+  });
   return {
     tag,
     name,
@@ -64,6 +114,52 @@ function profileSnapshot(value: unknown) {
     iconId: typeof icon?.id === "number" ? icon.id : undefined,
     brawlerCount: brawlers.length,
     power11Count: brawlers.filter((brawler) => finiteNumber(asRecord(brawler)?.power) === 11).length,
+    rankedCurrent: optionalNumber(ranked?.currentRank, ranked?.current, profile.rankedCurrent),
+    rankedCurrentName: optionalString(ranked?.currentRankName, ranked?.currentName, profile.rankedCurrentName),
+    rankedSeasonBest: optionalNumber(ranked?.seasonBestRank, rankedSeason?.bestRank, profile.rankedSeasonBest),
+    rankedSeasonBestName: optionalString(ranked?.seasonBestRankName, rankedSeason?.bestRankName, profile.rankedSeasonBestName),
+    rankedBest: optionalNumber(ranked?.bestRank, ranked?.highestRank, profile.rankedBest),
+    rankedBestName: optionalString(ranked?.bestRankName, ranked?.highestRankName, profile.rankedBestName),
+    brawlers: normalizedBrawlers,
+  };
+}
+
+function clubProfileSnapshot(value: unknown) {
+  const club = asRecord(value);
+  const tag = typeof club?.tag === "string" ? normalizedTag(club.tag) : null;
+  const name = typeof club?.name === "string" ? club.name.trim() : "";
+  if (!club || !tag || !name) return null;
+  const members = Array.isArray(club.members)
+    ? club.members.flatMap((value) => {
+        const member = asRecord(value);
+        const memberTag = typeof member?.tag === "string" ? normalizedTag(member.tag) : null;
+        const memberName = typeof member?.name === "string" ? member.name.trim() : "";
+        const icon = asRecord(member?.icon);
+        if (!memberTag || !memberName) return [];
+        return [{
+          tag: memberTag,
+          name: memberName,
+          role: typeof member?.role === "string" ? member.role : undefined,
+          trophies: finiteNumber(member?.trophies),
+          iconId: typeof icon?.id === "number" ? icon.id : undefined,
+        }];
+      })
+    : [];
+  const badge = asRecord(club.badge);
+  return {
+    tag,
+    name,
+    description: typeof club.description === "string" ? club.description : undefined,
+    type: typeof club.type === "string" ? club.type : undefined,
+    badgeId:
+      typeof club.badgeId === "number"
+        ? club.badgeId
+        : typeof badge?.id === "number"
+          ? badge.id
+          : undefined,
+    requiredTrophies: typeof club.requiredTrophies === "number" ? club.requiredTrophies : undefined,
+    trophies: finiteNumber(club.trophies),
+    members,
   };
 }
 
@@ -174,10 +270,43 @@ const playerHistory = httpAction(async (ctx, request) => {
   return json({ snapshots: await ctx.runQuery(api.brawl.players.history, { tag, limit: 180 }) });
 });
 
-const club = httpAction(async (_ctx, request) => {
+const playerAnalytics = httpAction(async (ctx, request) => {
+  const search = new URL(request.url).searchParams;
+  const tag = normalizedTag(search.get("tag"));
+  if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars player tag." }, 400);
+  const requestedLimit = Number(search.get("limit") || "50");
+  const beforeValue = Number(search.get("before"));
+  const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, Math.trunc(requestedLimit))) : 50;
+  const before = Number.isFinite(beforeValue) && beforeValue > 0 ? beforeValue : undefined;
+  return json(await ctx.runQuery(api.brawl.players.analytics, { tag, limit, before }));
+});
+
+const club = httpAction(async (ctx, request) => {
   const tag = normalizedTag(new URL(request.url).searchParams.get("tag"));
   if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars club tag." }, 400);
-  return upstream(`/clubs/${encodeURIComponent(tag)}`);
+  const response = await upstream(`/clubs/${encodeURIComponent(tag)}`);
+  if (response.ok) {
+    const payload = await parsed(response.clone());
+    const snapshot = clubProfileSnapshot(payload);
+    if (snapshot) await ctx.runMutation(internal.brawl.clubs.recordClub, { club: snapshot });
+  }
+  return response;
+});
+
+const clubHistory = httpAction(async (ctx, request) => {
+  const tag = normalizedTag(new URL(request.url).searchParams.get("tag"));
+  if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars club tag." }, 400);
+  return json(await ctx.runQuery(api.brawl.clubs.history, {
+    tag,
+    snapshotLimit: 365,
+    eventLimit: 500,
+  }));
+});
+
+const clubCommunity = httpAction(async (ctx, request) => {
+  const requestedLimit = Number(new URL(request.url).searchParams.get("limit") || "20");
+  const limit = Number.isFinite(requestedLimit) ? Math.min(50, Math.max(1, Math.trunc(requestedLimit))) : 20;
+  return json(await ctx.runQuery(api.brawl.clubs.communityActivity, { limit }));
 });
 
 const rankings = httpAction(async (_ctx, request) => {
@@ -218,7 +347,8 @@ const mapDetail = httpAction(async (ctx, request) => {
     return json({ error: "INVALID_MAP", message: "A numeric map id is required." }, 400);
   }
   const mapId = Number(idPart);
-  const trophyBucket = url.searchParams.get("trophyBucket") || "all";
+  const selectedTrophyBucket = trophyBucket(url.searchParams.get("trophyBucket"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
 
   const mapResponse = await brawlApi("/maps");
   if (!mapResponse.ok) return mapResponse;
@@ -236,16 +366,52 @@ const mapDetail = httpAction(async (ctx, request) => {
 
   const meta = await ctx.runQuery(api.brawl.stats.getMapStats, {
     mapId,
-    trophyBucket: trophyBucket === "all" ? "all" : trophyBucket,
+    trophyBucket: selectedTrophyBucket,
   });
 
   return json({
     map,
     stats: meta.stats,
     teams: meta.teams,
+    matchups: meta.matchups,
     sampleSize: meta.sampleSize,
     minPicks: meta.minPicks ?? MIN_META_PICKS,
   });
+});
+
+const brawlerMeta = httpAction(async (ctx, request) => {
+  const search = new URL(request.url).searchParams;
+  const brawlerId = Number(search.get("id"));
+  if (!Number.isInteger(brawlerId) || brawlerId <= 0) {
+    return json({ error: "INVALID_BRAWLER", message: "A numeric brawler id is required." }, 400);
+  }
+  const selectedTrophyBucket = trophyBucket(search.get("trophyBucket"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
+  return json(await ctx.runQuery(api.brawl.stats.getBrawlerStats, { brawlerId, trophyBucket: selectedTrophyBucket }));
+});
+
+const metaResearch = httpAction(async (ctx, request) => {
+  const selectedTrophyBucket = trophyBucket(new URL(request.url).searchParams.get("trophyBucket"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
+  return json(await ctx.runQuery(api.brawl.stats.getMetaResearch, { trophyBucket: selectedTrophyBucket }));
+});
+
+const metaTrends = httpAction(async (ctx, request) => {
+  const search = new URL(request.url).searchParams;
+  const selectedTrophyBucket = trophyBucket(search.get("trophyBucket"));
+  const selectedWindow = trendWindow(search.get("window"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
+  if (!selectedWindow) return json({ error: "INVALID_TREND_WINDOW", message: "Choose 7, 30, 90, or all." }, 400);
+  const rawBrawlerId = search.get("brawlerId");
+  const brawlerId = rawBrawlerId === null ? undefined : Number(rawBrawlerId);
+  if (brawlerId !== undefined && (!Number.isInteger(brawlerId) || brawlerId <= 0)) {
+    return json({ error: "INVALID_BRAWLER", message: "A numeric brawler id is required." }, 400);
+  }
+  return json(await ctx.runQuery(internal.brawl.stats.getMetaTrends, {
+    trophyBucket: selectedTrophyBucket,
+    window: selectedWindow,
+    brawlerId,
+  }));
 });
 
 const options = httpAction(async () => new Response(null, { headers: corsHeaders, status: 204 }));
@@ -254,12 +420,18 @@ const paths = [
   "/api/player",
   "/api/player-search",
   "/api/player-history",
+  "/api/player-analytics",
   "/api/club",
+  "/api/club-history",
+  "/api/clubs/activity",
   "/api/rankings",
   "/api/brawlers",
   "/api/events",
   "/api/maps",
   "/api/gamemodes",
+  "/api/brawler-meta",
+  "/api/meta",
+  "/api/meta-trends",
 ];
 
 for (const path of paths) {
@@ -271,12 +443,18 @@ http.route({ method: "OPTIONS", pathPrefix: "/api/maps/", handler: options });
 http.route({ method: "GET", path: "/api/player", handler: player });
 http.route({ method: "GET", path: "/api/player-search", handler: playerSearch });
 http.route({ method: "GET", path: "/api/player-history", handler: playerHistory });
+http.route({ method: "GET", path: "/api/player-analytics", handler: playerAnalytics });
 http.route({ method: "GET", path: "/api/club", handler: club });
+http.route({ method: "GET", path: "/api/club-history", handler: clubHistory });
+http.route({ method: "GET", path: "/api/clubs/activity", handler: clubCommunity });
 http.route({ method: "GET", path: "/api/rankings", handler: rankings });
 http.route({ method: "GET", path: "/api/brawlers", handler: brawlers });
 http.route({ method: "GET", path: "/api/events", handler: events });
 http.route({ method: "GET", path: "/api/maps", handler: maps });
 http.route({ method: "GET", pathPrefix: "/api/maps/", handler: mapDetail });
 http.route({ method: "GET", path: "/api/gamemodes", handler: gamemodes });
+http.route({ method: "GET", path: "/api/brawler-meta", handler: brawlerMeta });
+http.route({ method: "GET", path: "/api/meta", handler: metaResearch });
+http.route({ method: "GET", path: "/api/meta-trends", handler: metaTrends });
 
 export default http;

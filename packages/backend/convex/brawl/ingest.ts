@@ -10,7 +10,7 @@ declare const process: { env: Record<string, string | undefined> };
 type BattlePlayer = {
   tag?: string;
   name?: string;
-  brawler?: { id?: number; trophies?: number };
+  brawler?: { id?: number; name?: string; power?: number; trophies?: number };
 };
 
 type BattleLogItem = {
@@ -20,6 +20,8 @@ type BattleLogItem = {
     mode?: string;
     type?: string;
     result?: string;
+    rank?: number;
+    trophyChange?: number;
     starPlayer?: { tag?: string; brawler?: { id?: number } };
     teams?: BattlePlayer[][];
     players?: BattlePlayer[];
@@ -69,6 +71,25 @@ function teamHash(ids: number[]) {
   return [...ids].sort((a, b) => a - b).join("-");
 }
 
+function battleTimestamp(value?: string): number | null {
+  const match = String(value || "").match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+  if (!match) return null;
+  const timestamp = Date.parse(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}Z`);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function utcDayStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function personalResult(battle: BattleLogItem["battle"]): "victory" | "defeat" | "draw" | "unknown" {
+  if (battle?.result === "victory" || battle?.result === "defeat" || battle?.result === "draw") return battle.result;
+  if (battle?.rank === 1) return "victory";
+  if (typeof battle?.rank === "number" && battle.rank > 1) return "defeat";
+  return "unknown";
+}
+
 export const ingestBattleLogItems = internalMutation({
   args: {
     items: v.array(v.any()),
@@ -94,6 +115,47 @@ export const ingestBattleLogItems = internalMutation({
     }
 
     for (const raw of args.items as BattleLogItem[]) {
+      if (focus) {
+        const focusPlayer = participants(raw.battle).find((person) => normalizedTag(person.tag || null) === focus);
+        const timestamp = battleTimestamp(raw.battleTime);
+        if (focusPlayer && timestamp !== null && raw.battleTime) {
+          const playerTag = focus.slice(1);
+          const mode = String(raw.event?.mode || raw.battle?.mode || "unknown");
+          const dedupeKey = `${raw.battleTime}|${mode}|${focusPlayer.brawler?.id ?? 0}`;
+          const existingPlayerBattle = await ctx.db
+            .query("playerBattles")
+            .withIndex("by_player_and_dedupe", (q) => q.eq("playerTag", playerTag).eq("dedupeKey", dedupeKey))
+            .unique();
+          if (!existingPlayerBattle) {
+            const mapId = Number(raw.event?.id);
+            const rank = Number(raw.battle?.rank);
+            const trophyChange = Number(raw.battle?.trophyChange);
+            const brawlerId = Number(focusPlayer.brawler?.id);
+            const brawlerPower = Number(focusPlayer.brawler?.power);
+            const brawlerTrophies = Number(focusPlayer.brawler?.trophies);
+            await ctx.db.insert("playerBattles", {
+              playerTag,
+              dedupeKey,
+              battleTime: raw.battleTime,
+              battleTimestamp: timestamp,
+              ingestedAt: Date.now(),
+              mapId: Number.isFinite(mapId) && mapId > 0 ? mapId : undefined,
+              mapName: raw.event?.map,
+              mode,
+              battleType: raw.battle?.type,
+              result: personalResult(raw.battle),
+              rank: Number.isFinite(rank) && rank > 0 ? rank : undefined,
+              trophyChange: Number.isFinite(trophyChange) ? trophyChange : undefined,
+              brawlerId: Number.isFinite(brawlerId) && brawlerId > 0 ? brawlerId : undefined,
+              brawlerName: focusPlayer.brawler?.name,
+              brawlerPower: Number.isFinite(brawlerPower) && brawlerPower > 0 ? brawlerPower : undefined,
+              brawlerTrophies: Number.isFinite(brawlerTrophies) ? brawlerTrophies : undefined,
+              starPlayer: normalizedTag(raw.battle?.starPlayer?.tag || null) === focus,
+            });
+          }
+        }
+      }
+
       const mapId = Number(raw.event?.id);
       if (!Number.isFinite(mapId) || mapId <= 0) continue;
 
@@ -104,6 +166,8 @@ export const ingestBattleLogItems = internalMutation({
         .sort();
       const battleTime = String(raw.battleTime || "");
       if (!battleTime || tags.length === 0) continue;
+      const observedAt = battleTimestamp(battleTime);
+      const trendDay = observedAt === null ? null : utcDayStart(observedAt);
 
       const dedupeKey = `${battleTime}|${tags.join(",")}`;
       const existing = await ctx.db
@@ -161,6 +225,17 @@ export const ingestBattleLogItems = internalMutation({
             won,
             isStar,
           });
+          if (trendDay !== null && observedAt !== null) {
+            await bumpDailyBrawlerStat(ctx, {
+              day: trendDay,
+              observedAt,
+              mapId,
+              brawlerId,
+              trophyBucket,
+              won,
+              isStar,
+            });
+          }
         }
       }
 
@@ -185,6 +260,46 @@ export const ingestBattleLogItems = internalMutation({
               trophyBucket,
               won: teamWon,
             });
+          }
+        }
+      }
+
+      const focusOutcome = result === "victory" ? true : result === "defeat" ? false : result === "draw" ? null : undefined;
+      if (Array.isArray(raw.battle?.teams) && raw.battle.teams.length >= 2 && focusOutcome !== undefined) {
+        for (const [teamIndex, team] of raw.battle.teams.entries()) {
+          const teamWon = focusOutcome === null ? null : teamIndex === focusTeamIndex ? focusOutcome : !focusOutcome;
+          const opponents = raw.battle.teams
+            .filter((_, opponentTeamIndex) => opponentTeamIndex !== teamIndex)
+            .flatMap((opponentTeam) => opponentTeam || [])
+            .map((opponent) => Number(opponent.brawler?.id))
+            .filter((id) => Number.isFinite(id) && id > 0);
+          if (!opponents.length) continue;
+          for (const person of team || []) {
+            const brawlerId = Number(person.brawler?.id);
+            if (!Number.isFinite(brawlerId) || brawlerId <= 0) continue;
+            const personBucket = trophyBucketFromTrophies(Number(person.brawler?.trophies || 0));
+            for (const opponentBrawlerId of opponents) {
+              for (const trophyBucket of ["all", personBucket] as const) {
+                await bumpMatchupStat(ctx, {
+                  mapId,
+                  trophyBucket,
+                  brawlerId,
+                  opponentBrawlerId,
+                  won: teamWon,
+                });
+                if (trendDay !== null && observedAt !== null) {
+                  await bumpDailyMatchupStat(ctx, {
+                    day: trendDay,
+                    observedAt,
+                    mapId,
+                    trophyBucket,
+                    brawlerId,
+                    opponentBrawlerId,
+                    won: teamWon,
+                  });
+                }
+              }
+            }
           }
         }
       }
@@ -231,6 +346,49 @@ async function bumpBrawlerStat(
   });
 }
 
+async function bumpDailyBrawlerStat(
+  ctx: MutationCtx,
+  args: {
+    day: number;
+    observedAt: number;
+    mapId: number;
+    brawlerId: number;
+    trophyBucket: string;
+    won: boolean | null;
+    isStar: boolean;
+  },
+) {
+  const existing = await ctx.db
+    .query("dailyMapBrawlerStats")
+    .withIndex("by_map_brawler_bucket_and_day", (q) =>
+      q
+        .eq("mapId", args.mapId)
+        .eq("brawlerId", args.brawlerId)
+        .eq("trophyBucket", args.trophyBucket)
+        .eq("day", args.day),
+    )
+    .unique();
+  const values = {
+    picks: (existing?.picks || 0) + 1,
+    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
+    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
+    starPlayer: (existing?.starPlayer || 0) + (args.isStar ? 1 : 0),
+    firstBattleAt: Math.min(existing?.firstBattleAt ?? args.observedAt, args.observedAt),
+    lastBattleAt: Math.max(existing?.lastBattleAt ?? args.observedAt, args.observedAt),
+  };
+  if (existing) {
+    await ctx.db.patch(existing._id, values);
+    return;
+  }
+  await ctx.db.insert("dailyMapBrawlerStats", {
+    day: args.day,
+    mapId: args.mapId,
+    brawlerId: args.brawlerId,
+    trophyBucket: args.trophyBucket,
+    ...values,
+  });
+}
+
 async function bumpTeamStat(
   ctx: MutationCtx,
   args: {
@@ -265,6 +423,88 @@ async function bumpTeamStat(
     brawlerIds: args.brawlerIds,
     trophyBucket: args.trophyBucket,
     ...patch,
+  });
+}
+
+async function bumpMatchupStat(
+  ctx: MutationCtx,
+  args: {
+    mapId: number;
+    trophyBucket: string;
+    brawlerId: number;
+    opponentBrawlerId: number;
+    won: boolean | null;
+  },
+) {
+  const existing = await ctx.db
+    .query("mapBrawlerMatchups")
+    .withIndex("by_map_bucket_brawler_opponent", (q) =>
+      q
+        .eq("mapId", args.mapId)
+        .eq("trophyBucket", args.trophyBucket)
+        .eq("brawlerId", args.brawlerId)
+        .eq("opponentBrawlerId", args.opponentBrawlerId),
+    )
+    .unique();
+  const patch = {
+    picks: (existing?.picks || 0) + 1,
+    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
+    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
+  };
+  if (existing) {
+    await ctx.db.patch(existing._id, patch);
+    return;
+  }
+  await ctx.db.insert("mapBrawlerMatchups", {
+    mapId: args.mapId,
+    trophyBucket: args.trophyBucket,
+    brawlerId: args.brawlerId,
+    opponentBrawlerId: args.opponentBrawlerId,
+    ...patch,
+  });
+}
+
+async function bumpDailyMatchupStat(
+  ctx: MutationCtx,
+  args: {
+    day: number;
+    observedAt: number;
+    mapId: number;
+    trophyBucket: string;
+    brawlerId: number;
+    opponentBrawlerId: number;
+    won: boolean | null;
+  },
+) {
+  const existing = await ctx.db
+    .query("dailyBrawlerMatchups")
+    .withIndex("by_map_bucket_brawler_opponent_and_day", (q) =>
+      q
+        .eq("mapId", args.mapId)
+        .eq("trophyBucket", args.trophyBucket)
+        .eq("brawlerId", args.brawlerId)
+        .eq("opponentBrawlerId", args.opponentBrawlerId)
+        .eq("day", args.day),
+    )
+    .unique();
+  const values = {
+    picks: (existing?.picks || 0) + 1,
+    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
+    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
+    firstBattleAt: Math.min(existing?.firstBattleAt ?? args.observedAt, args.observedAt),
+    lastBattleAt: Math.max(existing?.lastBattleAt ?? args.observedAt, args.observedAt),
+  };
+  if (existing) {
+    await ctx.db.patch(existing._id, values);
+    return;
+  }
+  await ctx.db.insert("dailyBrawlerMatchups", {
+    day: args.day,
+    mapId: args.mapId,
+    trophyBucket: args.trophyBucket,
+    brawlerId: args.brawlerId,
+    opponentBrawlerId: args.opponentBrawlerId,
+    ...values,
   });
 }
 

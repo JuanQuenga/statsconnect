@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { apiFetch, profileIconUrl } from "@/lib/api";
 import { normalizeTag, trophies } from "@/lib/format";
 import { appPath } from "@/lib/paths";
+import { rememberRecentProfile } from "@/lib/preferences";
 import type { PlayerDirectoryResult, PlayerSearchResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 type PlayerSearchProps = {
   initialValue?: string;
@@ -20,12 +22,13 @@ type PlayerSearchProps = {
 
 export function PlayerSearch({
   initialValue = "",
-  placeholder = "Search player name or #tag",
-  buttonLabel = "Search",
+  placeholder,
+  buttonLabel,
   compact = false,
   className,
   onNavigate,
 }: PlayerSearchProps) {
+  const { t } = useI18n();
   const [value, setValue] = useState(initialValue);
   const [debounced, setDebounced] = useState(initialValue.trim());
   const [focused, setFocused] = useState(false);
@@ -56,6 +59,13 @@ export function PlayerSearch({
   }, [searchQuery.data]);
 
   function navigateToPlayer(tag: string) {
+    const match = choices.players.find((player) => player.tag === tag.replace(/^#/, ""));
+    rememberRecentProfile({
+      tag,
+      name: match?.name,
+      iconId: match?.iconId,
+      trophies: match?.trophies,
+    });
     onNavigate?.();
     window.location.assign(
       appPath(`/players?tag=${encodeURIComponent(`#${tag.replace(/^#/, "")}`)}`),
@@ -115,17 +125,17 @@ export function PlayerSearch({
           onFocus={() => setFocused(true)}
           onBlur={() => window.setTimeout(() => setFocused(false), 120)}
           onKeyDown={onKeyDown}
-          placeholder={placeholder}
+          placeholder={placeholder || t("search.placeholder")}
           autoComplete="off"
           className={cn("border-border/70 bg-card/70 pl-9", compact ? "h-9" : "h-11 text-base")}
-          aria-label="Search players by name or tag"
+          aria-label={t("search.aria")}
           aria-expanded={showResults}
         />
 
         {showResults ? (
           <div className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border border-border bg-popover shadow-xl">
             {searchQuery.isLoading ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">Searching tracked players…</p>
+              <p className="px-4 py-3 text-sm text-muted-foreground">{t("search.searching")}</p>
             ) : null}
             {choices.tag ? (
               <Button
@@ -139,8 +149,8 @@ export function PlayerSearch({
               >
                 <span className="grid size-9 place-items-center rounded-lg bg-primary/15 text-sm font-semibold text-primary">#</span>
                 <span>
-                  <span className="block text-sm font-medium">Open #{choices.tag}</span>
-                  <span className="block text-xs text-muted-foreground">Exact player tag</span>
+                  <span className="block text-sm font-medium">{t("search.openTag", { tag: choices.tag })}</span>
+                  <span className="block text-xs text-muted-foreground">{t("search.exactTag")}</span>
                 </span>
               </Button>
             ) : null}
@@ -150,10 +160,11 @@ export function PlayerSearch({
                 player={player}
                 active={activeIndex === index + (choices.tag ? 1 : 0)}
                 onChoose={() => navigateToPlayer(player.tag)}
+                noClubLabel={t("common.noTrackedClub")}
               />
             ))}
             {!searchQuery.isLoading && !choices.count ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">No tracked players yet. Try an exact #tag.</p>
+              <p className="px-4 py-3 text-sm text-muted-foreground">{t("search.empty")}</p>
             ) : null}
           </div>
         ) : null}
@@ -163,7 +174,7 @@ export function PlayerSearch({
         size={compact ? "sm" : "lg"}
         className={compact ? "h-9" : "h-11 w-full px-5 sm:w-auto"}
       >
-        {buttonLabel}
+        {buttonLabel || t("common.search")}
       </Button>
     </form>
   );
@@ -173,10 +184,12 @@ function PlayerChoice({
   player,
   active,
   onChoose,
+  noClubLabel,
 }: {
   player: PlayerDirectoryResult;
   active: boolean;
   onChoose: () => void;
+  noClubLabel: string;
 }) {
   return (
     <Button
@@ -189,7 +202,7 @@ function PlayerChoice({
       <span className="min-w-0 flex-1">
         <span className="block truncate font-display text-sm">{player.name}</span>
         <span className="block truncate text-xs text-muted-foreground">
-          #{player.tag} · {player.clubName || "No tracked club"}
+          #{player.tag} · {player.clubName || noClubLabel}
         </span>
       </span>
       {typeof player.trophies === "number" ? (

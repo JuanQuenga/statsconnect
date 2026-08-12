@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "convex dev",
     "deploy": "convex deploy",
-    "deploy:with-frontend": "convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'pnpm --dir ../.. build:unified'",
     "typecheck": "tsc --noEmit -p convex/tsconfig.json"
   },
   "dependencies": {

@@ -12,6 +12,7 @@ import { normalizeCatalog } from "@/lib/brawlers";
 import { formatPercent, MIN_META_PICKS, trophies } from "@/lib/format";
 import type { MapDetailResponse, MapListItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/maps/$mapId")({
   component: MapDetailPage,
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/maps/$mapId")({
 type TrophyFilter = "all" | "0-499" | "500-999" | "1000+";
 
 function MapDetailPage() {
+  const { t } = useI18n();
   const { mapId } = Route.useParams();
   const [trophyFilter, setTrophyFilter] = useState<TrophyFilter>("all");
 
@@ -81,10 +83,10 @@ function MapDetailPage() {
 
   return (
     <div className="page-shell">
-      {detailQuery.isLoading ? <PageStatus tone="loading">Loading map meta…</PageStatus> : null}
+      {detailQuery.isLoading ? <PageStatus tone="loading">{t("maps.loadingMeta")}</PageStatus> : null}
       {detailQuery.error ? (
         <PageStatus tone="error">
-          {detailQuery.error instanceof Error ? detailQuery.error.message : "Failed to load map."}
+          {detailQuery.error instanceof Error ? detailQuery.error.message : t("maps.loadMapFailed")}
         </PageStatus>
       ) : null}
 
@@ -105,15 +107,14 @@ function MapDetailPage() {
               <div className="absolute right-0 bottom-0 left-0 p-4 md:p-8">
                 <div className="mb-2 flex flex-wrap gap-2">
                   <Badge style={{ background: map.gameMode?.color || "#ffd166", color: "#141414" }}>
-                    {map.gameMode?.name || "Mode"}
+                    {map.gameMode?.name || t("common.mode")}
                   </Badge>
-                  {map.disabled ? <Badge variant="secondary">Disabled</Badge> : null}
-                  {map.new ? <Badge>New</Badge> : null}
+                  {map.disabled ? <Badge variant="secondary">{t("common.disabled")}</Badge> : null}
+                  {map.new ? <Badge>{t("common.new")}</Badge> : null}
                 </div>
                 <h1 className="font-display text-3xl md:text-5xl">{map.name}</h1>
                 <p className="mt-1 max-w-3xl text-xs text-foreground/75 md:mt-2 md:text-sm">
-                  {trophies(sampleSize)} sampled brawler picks · Min {minPicks} picks for tier lists · BrawlStats first-party
-                  meta
+                  {t("maps.sampleSummary", { samples: trophies(sampleSize), minimum: minPicks })}
                 </p>
               </div>
             </div>
@@ -127,25 +128,25 @@ function MapDetailPage() {
                 variant={trophyFilter === bucket ? "default" : "outline"}
                 onClick={() => setTrophyFilter(bucket)}
               >
-                {bucket === "all" ? "All trophies" : `${bucket} trophies`}
+                {bucket === "all" ? t("common.allTrophies") : t("common.trophyRange", { range: bucket })}
               </Button>
             ))}
           </div>
 
           {!ranked.eligible.length ? (
             <EmptyState
-              title="Not enough meta samples yet"
-              detail={`We need at least ${minPicks} picks per brawler before publishing tier lists. Keep looking up players — battle logs feed this map automatically.`}
+              title={t("maps.notEnough")}
+              detail={t("maps.minimumDetail", { minimum: minPicks })}
             />
           ) : (
             <Tabs defaultValue="best">
               <TabsList>
-                <TabsTrigger value="best">Best picks</TabsTrigger>
-                <TabsTrigger value="winners">Winners</TabsTrigger>
-                <TabsTrigger value="used">Most used</TabsTrigger>
-                <TabsTrigger value="avoid">Not recommended</TabsTrigger>
-                <TabsTrigger value="teams">Top teams</TabsTrigger>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="best">{t("maps.bestPicks")}</TabsTrigger>
+                <TabsTrigger value="winners">{t("maps.winners")}</TabsTrigger>
+                <TabsTrigger value="used">{t("maps.mostUsed")}</TabsTrigger>
+                <TabsTrigger value="avoid">{t("maps.avoid")}</TabsTrigger>
+                <TabsTrigger value="teams">{t("maps.topTeams")}</TabsTrigger>
+                <TabsTrigger value="overview">{t("maps.overview")}</TabsTrigger>
               </TabsList>
               <TabsContent value="best" className="mt-4">
                 <StatGrid rows={ranked.bestPicks} catalog={catalog} />
@@ -165,30 +166,30 @@ function MapDetailPage() {
               <TabsContent value="overview" className="mt-4">
                 <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
                   <StatSummary
-                    label="Win rate"
+                    label={t("player.winRate")}
                     median={median(ranked.eligible.map((s) => s.winRate))}
                     avg={avg(ranked.eligible.map((s) => s.winRate))}
                   />
                   <StatSummary
-                    label="Use rate"
+                    label={t("maps.useRate")}
                     median={median(ranked.eligible.map((s) => s.useRate))}
                     avg={avg(ranked.eligible.map((s) => s.useRate))}
                   />
                   <StatSummary
-                    label="Star player rate"
+                    label={t("maps.starRate")}
                     median={median(ranked.eligible.map((s) => (s.picks ? (s.starPlayer / s.picks) * 100 : 0)))}
                     avg={avg(ranked.eligible.map((s) => (s.picks ? (s.starPlayer / s.picks) * 100 : 0)))}
                   />
-                  <MetaSummary label="Diversity" value={formatPercent(ranked.diversity)} detail="Normalized pick spread" />
-                  <MetaSummary label="Top 5 share" value={formatPercent(ranked.top5Share)} detail="Meta concentration" />
+                  <MetaSummary label={t("maps.diversity")} value={formatPercent(ranked.diversity)} detail={t("maps.pickSpread")} />
+                  <MetaSummary label={t("maps.topShare")} value={formatPercent(ranked.top5Share)} detail={t("maps.concentration")} />
                   <MetaSummary
-                    label="Sleeper pick"
+                    label={t("maps.sleeper")}
                     value={ranked.sleeper ? catalog.get(ranked.sleeper.brawlerId)?.name || `#${ranked.sleeper.brawlerId}` : "—"}
-                    detail={ranked.sleeper ? `${formatPercent(ranked.sleeper.winRate)} WR at ${formatPercent(ranked.sleeper.useRate)} use` : "More data needed"}
+                    detail={ranked.sleeper ? t("maps.sleeperDetail", { win: formatPercent(ranked.sleeper.winRate), use: formatPercent(ranked.sleeper.useRate) }) : t("maps.moreData")}
                   />
                 </div>
                 <p className="mt-4 text-xs text-muted-foreground">
-                  Confidence: {sampleSize >= 2_000 ? "high" : sampleSize >= 500 ? "medium" : "early"} · Calculated from crawled official battle logs.
+                  {t("maps.confidence", { level: t(sampleSize >= 2_000 ? "maps.confidenceHigh" : sampleSize >= 500 ? "maps.confidenceMedium" : "maps.confidenceEarly") })}
                 </p>
               </TabsContent>
             </Tabs>
@@ -196,7 +197,7 @@ function MapDetailPage() {
 
           {related.length ? (
             <section>
-              <h2 className="mb-4 font-display text-2xl">More {map.gameMode?.name} maps</h2>
+              <h2 className="mb-4 font-display text-2xl">{t("maps.moreMode", { mode: map.gameMode?.name || t("common.mode") })}</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((item) => (
                   <Link
@@ -226,7 +227,7 @@ function MapDetailPage() {
               params={{ modeId: String(map.gameMode.id) }}
               className="inline-flex h-8 items-center rounded-lg border border-border bg-background px-2.5 text-sm hover:bg-muted"
             >
-              All {map.gameMode.name} maps
+              {t("maps.allMode", { mode: map.gameMode.name })}
             </Link>
           ) : null}
         </>
@@ -242,7 +243,8 @@ function StatGrid({
   rows: MapDetailResponse["stats"];
   catalog: Map<number, { name: string; color: string; rarity: string }>;
 }) {
-  if (!rows.length) return <EmptyState title="No brawlers in this list" />;
+  const { t } = useI18n();
+  if (!rows.length) return <EmptyState title={t("maps.noBrawlers")} />;
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {rows.map((row) => {
@@ -254,8 +256,8 @@ function StatGrid({
           >
             <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-14 rounded-xl" />
             <div className="min-w-0 flex-1">
-              <p className="font-display">{meta?.name || `Brawler ${row.brawlerId}`}</p>
-              <p className="text-xs text-muted-foreground">{meta?.rarity || "Brawler"} · {trophies(row.picks)} picks</p>
+              <p className="font-display">{meta?.name || `${t("player.brawler")} ${row.brawlerId}`}</p>
+              <p className="text-xs text-muted-foreground">{meta?.rarity || t("player.brawler")} · {t("maps.picks", { count: trophies(row.picks) })}</p>
               <div className="mt-1 flex gap-3 text-sm">
                 <span className="font-display text-primary">{formatPercent(row.winRate)} WR</span>
                 <span className="font-display text-accent">{formatPercent(row.useRate)} UR</span>
@@ -275,7 +277,8 @@ function TeamGrid({
   rows: MapDetailResponse["teams"];
   catalog: Map<number, { name: string; color: string; rarity: string }>;
 }) {
-  if (!rows.length) return <EmptyState title="No team combinations have enough samples yet" />;
+  const { t } = useI18n();
+  if (!rows.length) return <EmptyState title={t("maps.noTeams")} />;
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {rows.map((row) => (
@@ -297,7 +300,7 @@ function TeamGrid({
             {row.brawlerIds.map((id) => catalog.get(id)?.name || `#${id}`).join(" · ")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-display text-primary">{formatPercent(row.winRate)} win rate</span> · {trophies(row.picks)} games
+            <span className="font-display text-primary">{t("maps.winRateText", { rate: formatPercent(row.winRate) })}</span> · {t("maps.games", { count: trophies(row.picks) })}
           </p>
         </Card>
       ))}
@@ -316,11 +319,12 @@ function MetaSummary({ label, value, detail }: { label: string; value: string; d
 }
 
 function StatSummary({ label, median, avg }: { label: string; median: number; avg: number }) {
+  const { t } = useI18n();
   return (
     <Card className="gap-0 p-5 py-5">
       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
       <p className="mt-2 font-display text-3xl text-primary">{formatPercent(median)}</p>
-      <p className="text-sm text-muted-foreground">Median · avg {formatPercent(avg)}</p>
+      <p className="text-sm text-muted-foreground">{t("maps.medianAvg", { average: formatPercent(avg) })}</p>
     </Card>
   );
 }

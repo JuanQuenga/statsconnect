@@ -10,6 +10,7 @@ import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/Asy
 import { EntityCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
 import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { errorMessage, isConvexConfigured, searchClansAction } from "@/lib/convex";
+import { useI18n } from "@/lib/i18n";
 
 type Filters = { name: string; minMembers?: number; minScore?: number };
 
@@ -25,6 +26,7 @@ export default function ClanSearchPage() {
 }
 
 function ClanSearch() {
+  const { formatNumber, locale, t } = useI18n();
   const router = useRouter();
   const searchClans = useAction(searchClansAction);
   const [draft, setDraft] = useState<Filters>({ name: "" });
@@ -63,14 +65,15 @@ function ClanSearch() {
   return (
     <Layout>
       <Head>
-        <title>Clan Search | Clash Crown</title>
-        <meta name="description" content="Find Clash Royale clans by name, size and clan score." />
+        <title>{t("nav.clans")} | Clash Crown</title>
+        <meta name="description" content={locale === "es" ? "Busca clanes de Clash Royale por nombre, tamaño y puntuación." : "Find Clash Royale clans by name, size and clan score."} />
+        <link rel="canonical" href="/clans/search" />
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">Official clan directory</span>
-          <h1>Find a Clan</h1>
-          <p>Search the live clan directory by name, then filter by size and score.</p>
+          <span className="eyebrow">{t("clan.liveDirectory")}</span>
+          <h1>{locale === "es" ? "Buscar un clan" : "Find a Clan"}</h1>
+          <p>{locale === "es" ? "Busca el directorio en vivo por nombre y filtra por tamaño y puntuación." : "Search the live clan directory by name, then filter by size and score."}</p>
         </section>
 
         <section className="profile-section">
@@ -80,8 +83,8 @@ function ClanSearch() {
               <input
                 value={draft.name}
                 onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                placeholder="Clan name (min 3 characters)"
-                aria-label="Clan name"
+                placeholder={locale === "es" ? "Nombre del clan (mín. 3 caracteres)" : "Clan name (min 3 characters)"}
+                aria-label={locale === "es" ? "Nombre del clan" : "Clan name"}
               />
             </label>
             <label className="rarity-filter">
@@ -113,7 +116,7 @@ function ClanSearch() {
               </select>
             </label>
             <button type="submit" className="pink-button">
-              Search
+              {locale === "es" ? "Buscar" : "Search"}
             </button>
           </form>
           <p className="table-note">
@@ -126,11 +129,11 @@ function ClanSearch() {
         {query.error ? <ErrorState message={errorMessage(query.error)} /> : null}
         {query.data ? (
           <TableShell
-            title="Results"
-            head={["Clan", "Members", "Score", "Required", "War Trophies"]}
+            title={locale === "es" ? "Resultados" : "Results"}
+            head={["Clan", locale === "es" ? "Miembros" : "Members", locale === "es" ? "Puntuación" : "Score", locale === "es" ? "Requeridos" : "Required", locale === "es" ? "Trofeos de guerra" : "War Trophies"]}
             empty={!query.data.length}
-            note={query.data.length ? `${query.data.length} clans found.` : undefined}
-            emptyMessage={`No clan matches “${submitted?.name ?? ""}” with those filters. Clan names must match at least three characters, and the size and score filters are applied on top of the name.`}
+            note={query.data.length ? `${formatNumber(query.data.length)} ${locale === "es" ? "clanes encontrados" : "clans found"}.` : undefined}
+            emptyMessage={query.data.length ? undefined : t("clan.noResults")}
           >
             {query.data.map((clan) => (
               <tr key={clan.tag}>
@@ -147,8 +150,8 @@ function ClanSearch() {
                 <td>
                   <TrophyCell value={clan.clanScore} />
                 </td>
-                <td>{(clan.requiredTrophies ?? 0).toLocaleString()}</td>
-                <td>{(clan.clanWarTrophies ?? 0).toLocaleString()}</td>
+                <td>{formatNumber(clan.requiredTrophies ?? 0)}</td>
+                <td>{formatNumber(clan.clanWarTrophies ?? 0)}</td>
               </tr>
             ))}
           </TableShell>

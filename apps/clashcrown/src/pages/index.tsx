@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
+import { PersonalDashboard } from "@/components/personalization/PersonalDashboard";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
@@ -64,28 +65,30 @@ export default function HomePage() {
         </div>
       </section>
 
+      <PersonalDashboard />
+
       <section className="demo-command page-band">
         <div key={heroes[activeHero].name} className="command-spotlight">
           <Image src={heroes[activeHero].art} alt="" width={190} height={210} />
           <div>
-            <span>Live API-ready command center</span>
+            <span>Sample command center</span>
             <h2>{heroes[activeHero].name} Console</h2>
-            <p>{heroes[activeHero].copy} Search any player or clan tag above to load live stats, battle logs, chest cycles, rosters, and cards through the Convex-powered backend.</p>
+            <p>{heroes[activeHero].copy} The numbers below are a labeled sample. Search any player or clan tag above to load current API data.</p>
           </div>
         </div>
         <div className="command-stats">
-          <Metric icon={<Trophy size={19} />} value={demoPlayer.trophies.toLocaleString()} label="live trophies" />
-          <Metric icon={<Crown size={19} />} value={demoPlayer.bestTrophies.toLocaleString()} label="best trophies" />
+          <Metric icon={<Trophy size={19} />} value={demoPlayer.trophies?.toLocaleString() ?? "—"} label="demo trophies" />
+          <Metric icon={<Crown size={19} />} value={demoPlayer.bestTrophies?.toLocaleString() ?? "—"} label="demo best trophies" />
           <Metric icon={<Swords size={19} />} value={selectedBattle.result} label="last battle" />
           <button type="button" onClick={() => playerQuery.refetch()} className={playerQuery.isFetching ? "is-fetching" : ""}>
-            <RefreshCcw size={17} />Refresh snapshot
+            <RefreshCcw size={17} />Reload sample
           </button>
         </div>
       </section>
 
       <section className="game-day page-band">
         <div className="section-title-row">
-          <h2>Game of the day</h2>
+          <h2>Game of the day <SampleBadge /></h2>
           <Link href="/players/CCDEMO" className="pink-button">See all games</Link>
         </div>
         <div className="game-board">
@@ -94,7 +97,12 @@ export default function HomePage() {
           <div className="score-card">
             <span>{selectedBattle.date}</span>
             <strong><i>{selectedBattle.crowns[0]}</i> - <i>{selectedBattle.crowns[1]}</i></strong>
-            <span>{selectedBattle.mode} · {selectedBattle.trophyChange > 0 ? "+" : ""}{selectedBattle.trophyChange}</span>
+            <span>
+              {selectedBattle.mode}
+              {selectedBattle.trophyChange !== undefined
+                ? ` · ${selectedBattle.trophyChange > 0 ? "+" : ""}${selectedBattle.trophyChange}`
+                : ""}
+            </span>
           </div>
           <DeckStrip cards={[...selectedBattle.deck].reverse()} />
           <PlayerMini name={selectedBattle.opponent} clan="Synetics" />
@@ -328,7 +336,7 @@ function SampleDeckOfTheDay() {
     <section className="deck-day page-band">
       <div className="section-title-row">
         <h2>Deck of the day <SampleBadge /></h2>
-        <Link href="/decks" className="pink-button">Open the deck builder</Link>
+        <Link href="/decks?tool=builder" className="pink-button">Open the deck builder</Link>
       </div>
       <div className="archetype-tabs" aria-label="Deck archetype filters">
         {["All", "Control", "Cycle", "Beatdown", "Bait"].map((item) => (

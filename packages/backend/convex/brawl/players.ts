@@ -20,6 +20,20 @@ const sighting = v.object({
   iconId: v.optional(v.number()),
 });
 
+const equipment = v.object({ id: v.number(), name: v.string() });
+const ownedBrawler = v.object({
+  id: v.number(),
+  name: v.string(),
+  power: v.number(),
+  rank: v.number(),
+  trophies: v.number(),
+  highestTrophies: v.number(),
+  gadgets: v.array(equipment),
+  starPowers: v.array(equipment),
+  gears: v.array(equipment),
+  hypercharges: v.array(equipment),
+});
+
 const profileSnapshot = v.object({
   tag: v.string(),
   name: v.string(),
@@ -34,6 +48,13 @@ const profileSnapshot = v.object({
   iconId: v.optional(v.number()),
   brawlerCount: v.number(),
   power11Count: v.number(),
+  rankedCurrent: v.optional(v.number()),
+  rankedCurrentName: v.optional(v.string()),
+  rankedSeasonBest: v.optional(v.number()),
+  rankedSeasonBestName: v.optional(v.string()),
+  rankedBest: v.optional(v.number()),
+  rankedBestName: v.optional(v.string()),
+  brawlers: v.optional(v.array(ownedBrawler)),
 });
 
 const directoryResult = v.object({
@@ -62,6 +83,43 @@ const historyResult = v.object({
   iconId: v.optional(v.number()),
   brawlerCount: v.number(),
   power11Count: v.number(),
+  rankedCurrent: v.optional(v.number()),
+  rankedCurrentName: v.optional(v.string()),
+  rankedSeasonBest: v.optional(v.number()),
+  rankedSeasonBestName: v.optional(v.string()),
+  rankedBest: v.optional(v.number()),
+  rankedBestName: v.optional(v.string()),
+  brawlers: v.optional(v.array(ownedBrawler)),
+});
+
+const battleResult = v.union(v.literal("victory"), v.literal("defeat"), v.literal("draw"), v.literal("unknown"));
+const playerBattleResult = v.object({
+  battleTime: v.string(),
+  battleTimestamp: v.number(),
+  mapId: v.optional(v.number()),
+  mapName: v.optional(v.string()),
+  mode: v.string(),
+  battleType: v.optional(v.string()),
+  result: battleResult,
+  rank: v.optional(v.number()),
+  trophyChange: v.optional(v.number()),
+  brawlerId: v.optional(v.number()),
+  brawlerName: v.optional(v.string()),
+  brawlerPower: v.optional(v.number()),
+  brawlerTrophies: v.optional(v.number()),
+  starPlayer: v.boolean(),
+});
+
+const aggregateResult = v.object({
+  days: v.number(),
+  battles: v.number(),
+  wins: v.number(),
+  losses: v.number(),
+  draws: v.number(),
+  unknown: v.number(),
+  winRate: v.number(),
+  netTrophies: v.number(),
+  starPlayerRate: v.number(),
 });
 
 function cleanTag(value: string): string | null {
@@ -183,6 +241,13 @@ export const recordProfile = internalMutation({
       iconId: args.iconId,
       brawlerCount: args.brawlerCount,
       power11Count: args.power11Count,
+      rankedCurrent: args.rankedCurrent,
+      rankedCurrentName: args.rankedCurrentName,
+      rankedSeasonBest: args.rankedSeasonBest,
+      rankedSeasonBestName: args.rankedSeasonBestName,
+      rankedBest: args.rankedBest,
+      rankedBestName: args.rankedBestName,
+      brawlers: args.brawlers,
     };
     if (existingSnapshot) {
       await ctx.db.patch(existingSnapshot._id, snapshot);
@@ -256,7 +321,7 @@ export const history = query({
       .withIndex("by_tag_and_day", (q) => q.eq("tag", tag))
       .order("desc")
       .take(limit);
-    return rows.map(({ day, recordedAt, name, trophies, highestTrophies, expLevel, victory3v3, soloVictories, duoVictories, clubTag, clubName, iconId, brawlerCount, power11Count }) => ({
+    return rows.map(({ day, recordedAt, name, trophies, highestTrophies, expLevel, victory3v3, soloVictories, duoVictories, clubTag, clubName, iconId, brawlerCount, power11Count, rankedCurrent, rankedCurrentName, rankedSeasonBest, rankedSeasonBestName, rankedBest, rankedBestName, brawlers }) => ({
       day,
       recordedAt,
       name,
@@ -271,7 +336,147 @@ export const history = query({
       iconId,
       brawlerCount,
       power11Count,
+      rankedCurrent,
+      rankedCurrentName,
+      rankedSeasonBest,
+      rankedSeasonBestName,
+      rankedBest,
+      rankedBestName,
+      brawlers,
     }));
+  },
+});
+
+type PlayerBattle = {
+  battleTime: string;
+  battleTimestamp: number;
+  mapId?: number;
+  mapName?: string;
+  mode: string;
+  battleType?: string;
+  result: "victory" | "defeat" | "draw" | "unknown";
+  rank?: number;
+  trophyChange?: number;
+  brawlerId?: number;
+  brawlerName?: string;
+  brawlerPower?: number;
+  brawlerTrophies?: number;
+  starPlayer: boolean;
+};
+
+function summarize(rows: PlayerBattle[], days: number) {
+  const cutoff = Date.now() - days * 86_400_000;
+  const scoped = rows.filter((row) => row.battleTimestamp >= cutoff);
+  const wins = scoped.filter((row) => row.result === "victory").length;
+  const losses = scoped.filter((row) => row.result === "defeat").length;
+  const draws = scoped.filter((row) => row.result === "draw").length;
+  const decided = wins + losses;
+  return {
+    days,
+    battles: scoped.length,
+    wins,
+    losses,
+    draws,
+    unknown: scoped.length - wins - losses - draws,
+    winRate: decided ? (wins / decided) * 100 : 0,
+    netTrophies: scoped.reduce((sum, row) => sum + (row.trophyChange ?? 0), 0),
+    starPlayerRate: scoped.length ? (scoped.filter((row) => row.starPlayer).length / scoped.length) * 100 : 0,
+  };
+}
+
+function battleView(row: PlayerBattle): PlayerBattle {
+  return {
+    battleTime: row.battleTime,
+    battleTimestamp: row.battleTimestamp,
+    mapId: row.mapId,
+    mapName: row.mapName,
+    mode: row.mode,
+    battleType: row.battleType,
+    result: row.result,
+    rank: row.rank,
+    trophyChange: row.trophyChange,
+    brawlerId: row.brawlerId,
+    brawlerName: row.brawlerName,
+    brawlerPower: row.brawlerPower,
+    brawlerTrophies: row.brawlerTrophies,
+    starPlayer: row.starPlayer,
+  };
+}
+
+export const analytics = query({
+  args: {
+    tag: v.string(),
+    limit: v.optional(v.number()),
+    before: v.optional(v.number()),
+  },
+  returns: v.object({
+    battles: v.array(playerBattleResult),
+    nextCursor: v.optional(v.number()),
+    hasMore: v.boolean(),
+    capped: v.boolean(),
+    summaries: v.array(aggregateResult),
+    streaks: v.object({ current: v.number(), currentResult: battleResult, longestWin: v.number() }),
+    activity: v.array(v.object({ day: v.string(), battles: v.number(), wins: v.number() })),
+    modes: v.array(v.object({ mode: v.string(), ...aggregateResult.fields })),
+    brawlers: v.array(v.object({ brawlerId: v.number(), brawlerName: v.string(), ...aggregateResult.fields })),
+  }),
+  handler: async (ctx, args) => {
+    const tag = cleanTag(args.tag);
+    if (!tag) return { battles: [], hasMore: false, capped: false, summaries: [], streaks: { current: 0, currentResult: "unknown" as const, longestWin: 0 }, activity: [], modes: [], brawlers: [] };
+    const limit = Math.min(Math.max(Math.floor(args.limit ?? 50), 1), 100);
+    const cutoff = Date.now() - 90 * 86_400_000;
+    const [page, recentProbe] = await Promise.all([
+      ctx.db.query("playerBattles").withIndex("by_player_and_battle_time", (q) =>
+        args.before ? q.eq("playerTag", tag).lt("battleTimestamp", args.before) : q.eq("playerTag", tag),
+      ).order("desc").take(limit + 1),
+      ctx.db.query("playerBattles").withIndex("by_player_and_battle_time", (q) =>
+        q.eq("playerTag", tag).gte("battleTimestamp", cutoff),
+      ).order("desc").take(1_001),
+    ]);
+    const hasMore = page.length > limit;
+    const battles = page.slice(0, limit).map(battleView);
+    const recent = recentProbe.slice(0, 1_000).map(battleView);
+    const currentResult = recent[0]?.result ?? "unknown";
+    let current = 0;
+    for (const row of recent) {
+      if (row.result !== currentResult) break;
+      current += 1;
+    }
+    let longestWin = 0;
+    let winRun = 0;
+    for (const row of [...recent].reverse()) {
+      winRun = row.result === "victory" ? winRun + 1 : 0;
+      longestWin = Math.max(longestWin, winRun);
+    }
+    const activityMap = new Map<string, { battles: number; wins: number }>();
+    const modeMap = new Map<string, PlayerBattle[]>();
+    const brawlerMap = new Map<string, PlayerBattle[]>();
+    for (const row of recent) {
+      const day = new Date(row.battleTimestamp).toISOString().slice(0, 10);
+      const activity = activityMap.get(day) ?? { battles: 0, wins: 0 };
+      activity.battles += 1;
+      activity.wins += row.result === "victory" ? 1 : 0;
+      activityMap.set(day, activity);
+      modeMap.set(row.mode, [...(modeMap.get(row.mode) ?? []), row]);
+      if (row.brawlerId) {
+        const key = `${row.brawlerId}|${row.brawlerName ?? "Unknown"}`;
+        brawlerMap.set(key, [...(brawlerMap.get(key) ?? []), row]);
+      }
+    }
+    return {
+      battles,
+      nextCursor: hasMore ? battles.at(-1)?.battleTimestamp : undefined,
+      hasMore,
+      capped: recentProbe.length > 1_000,
+      summaries: [7, 30, 90].map((days) => summarize(recent, days)),
+      streaks: { current, currentResult, longestWin },
+      activity: [...activityMap].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ day, ...value })),
+      modes: [...modeMap].map(([mode, rows]) => ({ mode, ...summarize(rows, 90) })).sort((a, b) => b.battles - a.battles),
+      brawlers: [...brawlerMap].map(([key, rows]) => {
+        const [id, name] = key.split("|");
+        return { brawlerId: Number(id), brawlerName: name, ...summarize(rows, 90) };
+      }).sort((a, b) => b.battles - a.battles),
+    };
   },
 });
 

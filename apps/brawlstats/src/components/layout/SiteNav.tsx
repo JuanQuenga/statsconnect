@@ -4,14 +4,7 @@ import {
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 import { PlayerSearch } from "@/components/PlayerSearch";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/players", label: "Players" },
-  { href: "/clubs", label: "Clubs" },
-  { href: "/maps", label: "Maps" },
-  { href: "/leaderboards", label: "Leaderboards" },
-] as const;
+import { useI18n } from "@/lib/i18n";
 
 const statsConnectOrigin = import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim();
 
@@ -32,6 +25,17 @@ function BrawlStatsLink({ children, className, href, onNavigate }: SiteNavigatio
 }
 
 export function SiteNav() {
+  const { t } = useI18n();
+  const links = [
+    { href: "/", label: t("nav.home") },
+    { href: "/players", label: t("nav.players") },
+    { href: "/clubs", label: t("nav.clubs") },
+    { href: "/maps", label: t("nav.maps") },
+    { href: "/brawlers", label: t("nav.brawlers") },
+    { href: "/meta", label: t("nav.meta") },
+    { href: "/progression", label: t("nav.progression") },
+    { href: "/leaderboards", label: t("nav.leaderboards") },
+  ];
   return (
     <SiteNavigation
       accentColor="#f5c85b"
@@ -40,7 +44,7 @@ export function SiteNav() {
       linkAdapter={BrawlStatsLink}
       links={links}
       brand={
-        <Link to="/" aria-label="BrawlStats home">
+        <Link to="/" aria-label={t("nav.home")}>
           <img
             src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-logo.png`}
             alt="BrawlStats"
@@ -48,7 +52,7 @@ export function SiteNav() {
         </Link>
       }
       renderSearch={(onNavigate) => (
-        <PlayerSearch compact buttonLabel="Search" onNavigate={onNavigate} />
+        <PlayerSearch compact buttonLabel={t("common.search")} onNavigate={onNavigate} />
       )}
     />
   );

@@ -12,17 +12,24 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BetaRouteImport } from './routes/beta'
 import { Route as DecksRouteImport } from './routes/decks'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as MetaRouteImport } from './routes/meta'
+import { Route as NewsRouteImport } from './routes/news'
+import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as CardsIndexRouteImport } from './routes/cards/index'
 import { Route as CardsSlugRouteImport } from './routes/cards/$slug'
 import { Route as ClansTagRouteImport } from './routes/clans/$tag'
 import { Route as ClansSearchRouteImport } from './routes/clans/search'
+import { Route as GuidesIndexRouteImport } from './routes/guides/index'
+import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as PlayersTagRouteImport } from './routes/players/$tag'
 import { Route as PlayersCompareRouteImport } from './routes/players/compare'
+import { Route as ClansTagManageRouteImport } from './routes/clans/$tag_.manage'
 import { Route as ClansTagWarRouteImport } from './routes/clans/$tag_.war'
+import { Route as PlayersTagHistoryRouteImport } from './routes/players/$tag_.history'
 import { Route as PlayersTagUpgradesRouteImport } from './routes/players/$tag_.upgrades'
 
 const IndexRoute = IndexRouteImport.update({
@@ -40,6 +47,11 @@ const DecksRoute = DecksRouteImport.update({
   path: '/decks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
   id: '/leaderboards',
   path: '/leaderboards',
@@ -48,6 +60,16 @@ const LeaderboardsRoute = LeaderboardsRouteImport.update({
 const MetaRoute = MetaRouteImport.update({
   id: '/meta',
   path: '/meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TournamentsRoute = TournamentsRouteImport.update({
@@ -75,6 +97,16 @@ const ClansSearchRoute = ClansSearchRouteImport.update({
   path: '/clans/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayersIndexRoute = PlayersIndexRouteImport.update({
   id: '/players/',
   path: '/players/',
@@ -90,9 +122,19 @@ const PlayersCompareRoute = PlayersCompareRouteImport.update({
   path: '/players/compare',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClansTagManageRoute = ClansTagManageRouteImport.update({
+  id: '/clans/$tag_/manage',
+  path: '/clans/$tag/manage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClansTagWarRoute = ClansTagWarRouteImport.update({
   id: '/clans/$tag_/war',
   path: '/clans/$tag/war',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersTagHistoryRoute = PlayersTagHistoryRouteImport.update({
+  id: '/players/$tag_/history',
+  path: '/players/$tag/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayersTagUpgradesRoute = PlayersTagUpgradesRouteImport.update({
@@ -105,34 +147,48 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/beta': typeof BetaRoute
   '/decks': typeof DecksRoute
+  '/history': typeof HistoryRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
+  '/news': typeof NewsRoute
+  '/tools': typeof ToolsRoute
   '/tournaments': typeof TournamentsRoute
   '/cards/$slug': typeof CardsSlugRoute
   '/clans/$tag': typeof ClansTagRoute
   '/clans/search': typeof ClansSearchRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/players/$tag': typeof PlayersTagRoute
   '/players/compare': typeof PlayersCompareRoute
   '/cards/': typeof CardsIndexRoute
+  '/guides/': typeof GuidesIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/clans/$tag/manage': typeof ClansTagManageRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
+  '/players/$tag/history': typeof PlayersTagHistoryRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/beta': typeof BetaRoute
   '/decks': typeof DecksRoute
+  '/history': typeof HistoryRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
+  '/news': typeof NewsRoute
+  '/tools': typeof ToolsRoute
   '/tournaments': typeof TournamentsRoute
   '/cards/$slug': typeof CardsSlugRoute
   '/clans/$tag': typeof ClansTagRoute
   '/clans/search': typeof ClansSearchRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/players/$tag': typeof PlayersTagRoute
   '/players/compare': typeof PlayersCompareRoute
   '/cards': typeof CardsIndexRoute
+  '/guides': typeof GuidesIndexRoute
   '/players': typeof PlayersIndexRoute
+  '/clans/$tag/manage': typeof ClansTagManageRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
+  '/players/$tag/history': typeof PlayersTagHistoryRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
 }
 export interface FileRoutesById {
@@ -140,17 +196,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/beta': typeof BetaRoute
   '/decks': typeof DecksRoute
+  '/history': typeof HistoryRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
+  '/news': typeof NewsRoute
+  '/tools': typeof ToolsRoute
   '/tournaments': typeof TournamentsRoute
   '/cards/$slug': typeof CardsSlugRoute
   '/clans/$tag': typeof ClansTagRoute
   '/clans/search': typeof ClansSearchRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/players/$tag': typeof PlayersTagRoute
   '/players/compare': typeof PlayersCompareRoute
   '/cards/': typeof CardsIndexRoute
+  '/guides/': typeof GuidesIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/clans/$tag_/manage': typeof ClansTagManageRoute
   '/clans/$tag_/war': typeof ClansTagWarRoute
+  '/players/$tag_/history': typeof PlayersTagHistoryRoute
   '/players/$tag_/upgrades': typeof PlayersTagUpgradesRoute
 }
 export interface FileRouteTypes {
@@ -159,51 +222,72 @@ export interface FileRouteTypes {
     | '/'
     | '/beta'
     | '/decks'
+    | '/history'
     | '/leaderboards'
     | '/meta'
+    | '/news'
+    | '/tools'
     | '/tournaments'
     | '/cards/$slug'
     | '/clans/$tag'
     | '/clans/search'
+    | '/guides/$slug'
     | '/players/$tag'
     | '/players/compare'
     | '/cards/'
+    | '/guides/'
     | '/players/'
+    | '/clans/$tag/manage'
     | '/clans/$tag/war'
+    | '/players/$tag/history'
     | '/players/$tag/upgrades'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/beta'
     | '/decks'
+    | '/history'
     | '/leaderboards'
     | '/meta'
+    | '/news'
+    | '/tools'
     | '/tournaments'
     | '/cards/$slug'
     | '/clans/$tag'
     | '/clans/search'
+    | '/guides/$slug'
     | '/players/$tag'
     | '/players/compare'
     | '/cards'
+    | '/guides'
     | '/players'
+    | '/clans/$tag/manage'
     | '/clans/$tag/war'
+    | '/players/$tag/history'
     | '/players/$tag/upgrades'
   id:
     | '__root__'
     | '/'
     | '/beta'
     | '/decks'
+    | '/history'
     | '/leaderboards'
     | '/meta'
+    | '/news'
+    | '/tools'
     | '/tournaments'
     | '/cards/$slug'
     | '/clans/$tag'
     | '/clans/search'
+    | '/guides/$slug'
     | '/players/$tag'
     | '/players/compare'
     | '/cards/'
+    | '/guides/'
     | '/players/'
+    | '/clans/$tag_/manage'
     | '/clans/$tag_/war'
+    | '/players/$tag_/history'
     | '/players/$tag_/upgrades'
   fileRoutesById: FileRoutesById
 }
@@ -211,17 +295,24 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BetaRoute: typeof BetaRoute
   DecksRoute: typeof DecksRoute
+  HistoryRoute: typeof HistoryRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
   MetaRoute: typeof MetaRoute
+  NewsRoute: typeof NewsRoute
+  ToolsRoute: typeof ToolsRoute
   TournamentsRoute: typeof TournamentsRoute
   CardsSlugRoute: typeof CardsSlugRoute
   ClansTagRoute: typeof ClansTagRoute
   ClansSearchRoute: typeof ClansSearchRoute
+  GuidesSlugRoute: typeof GuidesSlugRoute
   PlayersTagRoute: typeof PlayersTagRoute
   PlayersCompareRoute: typeof PlayersCompareRoute
   CardsIndexRoute: typeof CardsIndexRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
+  ClansTagManageRoute: typeof ClansTagManageRoute
   ClansTagWarRoute: typeof ClansTagWarRoute
+  PlayersTagHistoryRoute: typeof PlayersTagHistoryRoute
   PlayersTagUpgradesRoute: typeof PlayersTagUpgradesRoute
 }
 
@@ -248,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leaderboards': {
       id: '/leaderboards'
       path: '/leaderboards'
@@ -260,6 +358,20 @@ declare module '@tanstack/react-router' {
       path: '/meta'
       fullPath: '/meta'
       preLoaderRoute: typeof MetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tournaments': {
@@ -297,6 +409,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClansSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guides/': {
+      id: '/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/players/': {
       id: '/players/'
       path: '/players'
@@ -318,11 +444,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersCompareRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clans/$tag_/manage': {
+      id: '/clans/$tag_/manage'
+      path: '/clans/$tag/manage'
+      fullPath: '/clans/$tag/manage'
+      preLoaderRoute: typeof ClansTagManageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clans/$tag_/war': {
       id: '/clans/$tag_/war'
       path: '/clans/$tag/war'
       fullPath: '/clans/$tag/war'
       preLoaderRoute: typeof ClansTagWarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/$tag_/history': {
+      id: '/players/$tag_/history'
+      path: '/players/$tag/history'
+      fullPath: '/players/$tag/history'
+      preLoaderRoute: typeof PlayersTagHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/players/$tag_/upgrades': {
@@ -339,17 +479,24 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BetaRoute: BetaRoute,
   DecksRoute: DecksRoute,
+  HistoryRoute: HistoryRoute,
   LeaderboardsRoute: LeaderboardsRoute,
   MetaRoute: MetaRoute,
+  NewsRoute: NewsRoute,
+  ToolsRoute: ToolsRoute,
   TournamentsRoute: TournamentsRoute,
   CardsSlugRoute: CardsSlugRoute,
   ClansTagRoute: ClansTagRoute,
   ClansSearchRoute: ClansSearchRoute,
+  GuidesSlugRoute: GuidesSlugRoute,
   PlayersTagRoute: PlayersTagRoute,
   PlayersCompareRoute: PlayersCompareRoute,
   CardsIndexRoute: CardsIndexRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
+  ClansTagManageRoute: ClansTagManageRoute,
   ClansTagWarRoute: ClansTagWarRoute,
+  PlayersTagHistoryRoute: PlayersTagHistoryRoute,
   PlayersTagUpgradesRoute: PlayersTagUpgradesRoute,
 }
 export const routeTree = rootRouteImport

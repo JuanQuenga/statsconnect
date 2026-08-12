@@ -4,11 +4,17 @@ Live Brawl Stars statistics: players, clubs, maps/meta, events, and official ran
 
 ## What Works
 
-- Player search by tag — profile totals, brawler roster, recent battles
-- Club search by tag — metadata, roster, top members, trophy distribution (`/bands` redirects to `/clubs`)
+- Player search by tag — profile totals, complete loadouts, ranked snapshots, recent battles, 7/30/90-day analytics, streaks, heatmaps, mode/brawler splits, and share cards
+- Saved/recent profiles, quick switching, preference import/export, installable PWA support, and optional live-rotation notifications
+- Club search by tag — metadata, searchable/sortable roster, trophy/member history, prospective join/leave/role/trophy activity, community overview, and CSV export (`/bands` redirects to `/clubs`)
 - Global and country player/club leaderboards, plus per-brawler trophy rankings
-- Maps catalog and detail pages with live rotation, mode filters, archive toggle
-- First-party map meta (win rate / use rate) aggregated from official battle logs
+- Maps catalog and detail pages with live rotation, mode filters, archive toggle, teams, synergies, and actual opponent matchup evidence
+- Searchable brawler directory and detail pages with catalog loadouts, map/mode performance, team synergies, counters, and official regional rankings
+- Draft Lab personalized by player ownership, trophy bracket, active rotation, ally/enemy picks, bans, synergies, and observed matchups
+- Account progression planner with resource estimates, meta-aware priorities, and an explainable readiness grade
+- Meta research dashboard with grouping, trophy brackets, sample controls, comparison, shareable filters, and CSV export
+- First-party map meta (win rate / use rate) aggregated from official battle logs; history begins prospectively when observations are ingested
+- Typed localization across seven languages: English, Spanish, German, French, Portuguese, Japanese, and Korean
 - Durable battle-log crawler with queue/run telemetry at `/beta`
 - Current event rotation and brawler catalog artwork
 - Loading, empty, invalid-tag, missing-configuration, and upstream-error states
@@ -72,6 +78,12 @@ pnpm deploy:backend  # Deploy Convex functions
 - `/leaderboards`
 - `/maps`
 - `/maps/$mapId`
+- `/brawlers`
+- `/brawlers/$brawlerId`
+- `/assistant`
+- `/progression?tag=%23PLAYER_TAG`
+- `/meta`
+- `/settings`
 - `/gamemodes/$modeId`
 - `/beta` (noindex crawler telemetry)
 
@@ -86,7 +98,7 @@ Map win/use rates are **first-party**, not scraped from Brawlify:
 1. Every successful `/api/player` lookup ingests its battle log and adds that player to the durable crawl queue
 2. A six-hour discovery job adds global ranking players and members of top clubs
 3. A two-minute worker claims due targets, ingests only newer battles, and retries failures with exponential backoff
-4. Aggregates live in `mapBrawlerStats` / `mapTeamStats` (deduped via `seenBattles`)
+4. Aggregates live in `mapBrawlerStats`, `mapTeamStats`, and directional matchup records (deduped via `seenBattles`)
 5. `/beta` exposes bounded queue health, API volume, ingestion coverage, and recent run history
 6. A six-hour maintenance job removes expired dedupe records and telemetry
 
@@ -100,6 +112,8 @@ pnpm convex env set BRAWL_CRAWL_REVISIT_MINUTES 30
 ```
 
 Map detail UI hides tier lists until a brawler has enough picks (default 25).
+
+Player, club, matchup, and time-series history is prospective because the official API only returns a short current battle log and live profile/club state. BrawlStats labels sample sizes and coverage instead of presenting inferred history as complete. The public metadata catalog also does not currently provide trustworthy ownership/pricing data for every Hypercharge, Buffie, skin, pin, or special gear, so unsupported economy claims remain explicitly excluded.
 
 Credit BrawlAPI/Brawlify CDN for static artwork and map metadata only.
 

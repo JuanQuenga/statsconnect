@@ -1,21 +1,13 @@
 import Image from "@/components/Image";
 import Link from "@/components/Link";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
+import { useI18n } from "@/lib/i18n";
 import { useRouterState } from "@tanstack/react-router";
 import {
   SiteNavigation,
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
-
-const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/meta", label: "Meta" },
-  { href: "/leaderboards", label: "Leaderboards" },
-  { href: "/cards", label: "Cards" },
-  { href: "/decks", label: "Deck Builder" },
-  { href: "/clans/search", label: "Clans" },
-  { href: "/tournaments", label: "Tournaments" }
-];
 
 const statsConnectOrigin = (
   import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim() ||
@@ -34,6 +26,21 @@ function ClashCrownLink({ children, className, href, onNavigate }: SiteNavigatio
 }
 
 export function Layout({ children, variant = "profile" }: { children: React.ReactNode; variant?: "home" | "profile" }) {
+  const { t } = useI18n();
+  const navItems = [
+    { href: "/", label: t("nav.home") },
+    { href: "/meta", label: t("nav.meta") },
+    { href: "/leaderboards", label: t("nav.leaderboards") },
+    { href: "/history", label: "History" },
+    { href: "/cards", label: t("nav.cards") },
+    { href: "/decks", label: t("nav.decks") },
+    { href: "/clans/search", label: t("nav.clans") },
+    { href: "/news", label: t("nav.news") },
+    { href: "/guides", label: t("nav.guides") },
+    { href: "/tools", label: t("nav.tools") },
+    { href: "/tournaments", label: "Tournaments" },
+  ];
+
   return (
     <div className={`site-frame ${variant === "home" ? "site-frame-home" : ""}`}>
       <SiteNavigation
@@ -47,7 +54,12 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
             <Image src="/images/logo/clash-crown-purple-wide.png" alt="Clash Crown" width={315} height={100} priority />
           </Link>
         }
-        renderSearch={(onNavigate) => <ProfileSearch compact onNavigate={onNavigate} />}
+        renderSearch={(onNavigate) => (
+          <div className="nav-search-tools">
+            <ProfileSearch compact onNavigate={onNavigate} />
+            <LocaleSwitcher />
+          </div>
+        )}
       />
       <main>{children}</main>
       <SiteFooter />
@@ -56,6 +68,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
 }
 
 function SiteFooter() {
+  const { t } = useI18n();
   return (
     <footer className="site-footer">
       <div className="footer-inner">
@@ -67,14 +80,17 @@ function SiteFooter() {
         <div className="footer-links">
           <Link href="/leaderboards">Leaderboards</Link>
           <Link href="/cards">Card Library</Link>
-          <Link href="/decks">Deck Builder</Link>
+          <Link href="/decks">Deck Discovery</Link>
           <Link href="/clans/search">Clan Search</Link>
           <Link href="/tournaments">Tournaments</Link>
           <Link href="/meta">Meta Report</Link>
           <Link href="/players">Player Lookup</Link>
+          <Link href="/news">{t("nav.news")}</Link>
+          <Link href="/guides">{t("nav.guides")}</Link>
+          <Link href="/tools">{t("nav.tools")}</Link>
         </div>
         <p>
-          This material is unofficial and is not endorsed by Supercell. For more information see Supercell&rsquo;s Fan
+          {t("footer.disclaimer")} For more information see Supercell&rsquo;s Fan
           Content Policy:{" "}
           <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
             supercell.com/fan-content-policy
