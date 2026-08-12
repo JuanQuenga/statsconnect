@@ -74,8 +74,8 @@ export default function HomePage() {
           </div>
         </div>
         <div className="command-stats">
-          <Metric icon={<Trophy size={19} />} value={demoPlayer.trophies.toLocaleString()} label="live trophies" />
-          <Metric icon={<Crown size={19} />} value={demoPlayer.bestTrophies.toLocaleString()} label="best trophies" />
+          <Metric icon={<Trophy size={19} />} value={demoPlayer.trophies?.toLocaleString() ?? "—"} label="demo trophies" />
+          <Metric icon={<Crown size={19} />} value={demoPlayer.bestTrophies?.toLocaleString() ?? "—"} label="demo best trophies" />
           <Metric icon={<Swords size={19} />} value={selectedBattle.result} label="last battle" />
           <button type="button" onClick={() => playerQuery.refetch()} className={playerQuery.isFetching ? "is-fetching" : ""}>
             <RefreshCcw size={17} />Refresh snapshot

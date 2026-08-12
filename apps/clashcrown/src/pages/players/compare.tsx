@@ -144,9 +144,9 @@ function ComparisonView({ first, second }: { first: Player; second: Player }) {
         <h2>Profile comparison</h2>
         {metrics.map((metric) => (
           <div className={styles.comparisonRow} key={metric.label}>
-            <div className={`${styles.value} ${metric.firstBetter ? styles.better : ""}`}>{metric.format(metric.first)}</div>
+            <div className={`${styles.value} ${metric.firstBetter ? styles.better : ""}`}>{formatMetricValue(metric, metric.first)}</div>
             <span className={styles.label}>{metric.label}</span>
-            <div className={`${styles.value} ${metric.secondBetter ? styles.better : ""}`}>{metric.format(metric.second)}</div>
+            <div className={`${styles.value} ${metric.secondBetter ? styles.better : ""}`}>{formatMetricValue(metric, metric.second)}</div>
           </div>
         ))}
         <div className={styles.comparisonRow}>
@@ -220,8 +220,8 @@ function DeckColumn({ cards, shared }: { cards: Card[]; shared: Set<string> }) {
 
 type ComparisonMetric = {
   label: string;
-  first: number;
-  second: number;
+  first?: number;
+  second?: number;
   firstBetter: boolean;
   secondBetter: boolean;
   format: (value: number) => string;
@@ -240,13 +240,13 @@ function comparisonMetrics(first: Player, second: Player): ComparisonMetric[] {
     metric("King level", first.level, second.level),
     metric("Cards found", first.cards.length, second.cards.length),
     metric("Donations", firstStats.donations, secondStats.donations)
-  ];
+  ].filter((item) => item.first !== undefined || item.second !== undefined);
 }
 
 function metric(
   label: string,
-  first: number,
-  second: number,
+  first: number | undefined,
+  second: number | undefined,
   direction: "higher" | "lower" = "higher",
   format: (value: number) => string = (value) => value.toLocaleString()
 ): ComparisonMetric {
@@ -254,8 +254,8 @@ function metric(
     label,
     first,
     second,
-    firstBetter: first !== second && (direction === "higher" ? first > second : first < second),
-    secondBetter: first !== second && (direction === "higher" ? second > first : second < first),
+    firstBetter: first !== undefined && second !== undefined && first !== second && (direction === "higher" ? first > second : first < second),
+    secondBetter: first !== undefined && second !== undefined && first !== second && (direction === "higher" ? second > first : second < first),
     format
   };
 }
@@ -268,13 +268,19 @@ function numericStats(player: Player) {
     losses,
     threeCrownWins: statNumber(player, "3 crown wins"),
     donations: statNumber(player, "Total donations"),
-    winRate: wins + losses ? (wins / (wins + losses)) * 100 : 0
+    winRate: wins !== undefined && losses !== undefined && wins + losses > 0 ? (wins / (wins + losses)) * 100 : undefined
   };
 }
 
 function statNumber(player: Player, label: string) {
-  const value = Number.parseInt(player.stats[label]?.replaceAll(",", "") ?? "0", 10);
-  return Number.isFinite(value) ? value : 0;
+  const source = player.stats[label];
+  if (!source) return undefined;
+  const value = Number.parseInt(source.replaceAll(",", ""), 10);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function formatMetricValue(metric: ComparisonMetric, value: number | undefined) {
+  return value === undefined ? "Not reported" : metric.format(value);
 }
 
 function cardKey(card: Card) {

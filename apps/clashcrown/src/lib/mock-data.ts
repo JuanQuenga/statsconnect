@@ -18,6 +18,24 @@ export type Card = {
   variant?: "Evolution" | "Hero";
   isEvolution?: boolean;
   canEvolve?: boolean;
+  /** Set on a player collection once it has been reconciled with the catalog. */
+  owned?: boolean;
+};
+
+export type PlayerBadge = {
+  name: string;
+  level?: number;
+  maxLevel?: number;
+  progress?: number;
+  image?: string;
+};
+
+export type PlayerAchievement = {
+  name: string;
+  stars?: number;
+  value?: number;
+  target?: number;
+  info?: string;
 };
 
 export type Battle = {
@@ -64,9 +82,9 @@ export type PathOfLegendsResult = {
 export type Player = {
   tag: string;
   name: string;
-  level: number;
-  trophies: number;
-  bestTrophies: number;
+  level?: number;
+  trophies?: number;
+  bestTrophies?: number;
   arena: string;
   arenaImage: string;
   clan: string;
@@ -83,11 +101,25 @@ export type Player = {
     last?: PathOfLegendsResult;
     best?: PathOfLegendsResult;
   };
-  favoriteCard: Card;
+  favoriteCard?: Card;
+  starPoints?: number;
+  experiencePoints?: number;
+  totalExperiencePoints?: number;
+  legacyTrophyRoadHighScore?: number;
+  tournamentBattleCount?: number;
+  clanCardsCollected?: number;
+  donationsReceived?: number;
+  role?: string;
+  badges?: PlayerBadge[];
+  achievements?: PlayerAchievement[];
   stats: Record<string, string>;
   deck: Card[];
   /** Tower Troop equipped with the current deck. */
   supportCards?: Card[];
+  /** Every Tower Troop the player owns, when the API returns that collection. */
+  supportCardCollection?: Card[];
+  /** Distinguishes a known empty collection from an omitted API field. */
+  cardCollectionAvailable?: boolean;
   cards: Card[];
   chests: Chest[];
   battles: Battle[];
