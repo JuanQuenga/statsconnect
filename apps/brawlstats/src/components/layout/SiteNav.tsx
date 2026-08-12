@@ -9,7 +9,10 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/players", label: "Players" },
   { href: "/clubs", label: "Clubs" },
+  { href: "/brawlers", label: "Brawlers" },
   { href: "/maps", label: "Maps" },
+  { href: "/meta", label: "Meta" },
+  { href: "/progression", label: "Progression" },
   { href: "/leaderboards", label: "Leaderboards" },
 ] as const;
 

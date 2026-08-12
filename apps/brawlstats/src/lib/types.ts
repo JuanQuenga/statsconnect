@@ -1,13 +1,27 @@
+export type CatalogAbility = {
+  id: number;
+  name: string;
+  description: string;
+  imageUrl?: string;
+  released: boolean;
+};
+
 export type BrawlerCatalogItem = {
   id: number;
   name: string;
+  hash: string;
+  version: number;
   rarity: string;
   color: string;
   role: string;
   description: string;
   gadget: string;
   starPower: string;
+  gadgets: CatalogAbility[];
+  starPowers: CatalogAbility[];
   imageUrl?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
   released?: boolean;
 };
 
@@ -30,6 +44,9 @@ export type PlayerProfile = {
     rank: number;
     trophies: number;
     highestTrophies: number;
+    gears?: Array<{ id: number; name: string; level?: number }>;
+    gadgets?: Array<{ id: number; name: string }>;
+    starPowers?: Array<{ id: number; name: string }>;
   }>;
 };
 
@@ -193,4 +210,48 @@ export type MapDetailResponse = {
   teams: MapTeamStat[];
   sampleSize: number;
   minPicks: number;
+};
+
+export type BrawlerMapStat = {
+  mapId: number;
+  brawlerId: number;
+  wins: number;
+  losses: number;
+  picks: number;
+  starPlayer: number;
+  winRate: number;
+  starRate: number;
+  trophyBucket: string;
+};
+
+export type BrawlerTeamStat = {
+  mapId: number;
+  brawlerIds: number[];
+  wins: number;
+  losses: number;
+  picks: number;
+  winRate: number;
+  trophyBucket: string;
+};
+
+export type BrawlerMetaResponse = {
+  stats: BrawlerMapStat[];
+  teams: BrawlerTeamStat[];
+  totals: {
+    wins: number;
+    losses: number;
+    picks: number;
+    starPlayer: number;
+    winRate: number;
+    starRate: number;
+  };
+  minPicks: number;
+  limitations: string[];
+};
+
+export type MetaResearchResponse = {
+  stats: BrawlerMapStat[];
+  sampleSize: number;
+  minPicks: number;
+  capped: boolean;
 };
