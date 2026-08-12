@@ -34,32 +34,32 @@ function SettingsPage() {
   async function toggleAlerts() {
     if (!preferences.alertsEnabled) {
       if (!("Notification" in window)) {
-        setStatus("This browser does not support notifications.");
+        setStatus(t("settings.notificationsUnsupported"));
         return;
       }
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        setStatus("Notification permission was not granted.");
+        setStatus(t("settings.notificationsDenied"));
         return;
       }
     }
     setAlertsEnabled(!preferences.alertsEnabled);
-    setStatus(preferences.alertsEnabled ? "Rotation alerts disabled." : "Rotation alerts enabled.");
+    setStatus(preferences.alertsEnabled ? t("settings.alertsDisabled") : t("settings.alertsEnabled"));
   }
 
   async function importFile(file?: File) {
     if (!file) return;
     const ok = importPreferences(await file.text());
-    setStatus(ok ? "Preferences imported." : "That preferences file is invalid.");
+    setStatus(ok ? t("settings.imported") : t("settings.invalidFile"));
   }
 
   return (
     <div className="page-shell">
       <div>
-        <p className="eyebrow">Personal companion</p>
-        <h1 className="font-display text-4xl">{t("settings")}</h1>
+        <p className="eyebrow">{t("settings.eyebrow")}</p>
+        <h1 className="font-display text-4xl">{t("nav.settings")}</h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
-          Profiles and preferences stay on this device. Export them whenever you want a backup or another browser.
+          {t("settings.deviceDetail")}
         </p>
       </div>
 
@@ -68,8 +68,8 @@ function SettingsPage() {
       <section className="grid gap-5 lg:grid-cols-3">
         <Card className="p-5 py-5">
           <Languages className="size-6 text-primary" />
-          <h2 className="font-display text-2xl">{t("language")}</h2>
-          <p className="text-sm text-muted-foreground">Navigation and companion tools support seven languages.</p>
+          <h2 className="font-display text-2xl">{t("common.language")}</h2>
+          <p className="text-sm text-muted-foreground">{t("settings.languageDetail")}</p>
           <Select value={locale} onValueChange={(value) => value && setLocale(value as Locale)}>
             <SelectTrigger className="w-full"><SelectValue>{localeLabels[locale]}</SelectValue></SelectTrigger>
             <SelectContent>
@@ -80,19 +80,19 @@ function SettingsPage() {
 
         <Card className="p-5 py-5">
           {preferences.alertsEnabled ? <Bell className="size-6 text-accent" /> : <BellOff className="size-6 text-muted-foreground" />}
-          <h2 className="font-display text-2xl">{t("alerts")}</h2>
-          <p className="text-sm text-muted-foreground">Get a browser notification when the live event rotation changes while BrawlStats is active.</p>
+          <h2 className="font-display text-2xl">{t("common.alerts")}</h2>
+          <p className="text-sm text-muted-foreground">{t("settings.alertDetail")}</p>
           <Button onClick={toggleAlerts} variant={preferences.alertsEnabled ? "secondary" : "default"}>
-            {preferences.alertsEnabled ? "Disable alerts" : "Enable alerts"}
+            {preferences.alertsEnabled ? t("settings.disableAlerts") : t("settings.enableAlerts")}
           </Button>
         </Card>
 
         <Card className="p-5 py-5">
           <MonitorDown className="size-6 text-primary" />
-          <h2 className="font-display text-2xl">{t("install")}</h2>
-          <p className="text-sm text-muted-foreground">Install BrawlStats for a standalone window, offline shell, and faster return visits.</p>
+          <h2 className="font-display text-2xl">{t("common.install")}</h2>
+          <p className="text-sm text-muted-foreground">{t("settings.installDetail")}</p>
           <Button onClick={() => installPrompt.install()} disabled={!installPrompt.available}>
-            {installPrompt.available ? "Install BrawlStats" : "Already installed or unavailable"}
+            {installPrompt.available ? t("settings.installApp") : t("settings.installed")}
           </Button>
         </Card>
       </section>
@@ -100,15 +100,15 @@ function SettingsPage() {
       <section>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="eyebrow">Profile switcher</p>
-            <h2 className="font-display text-3xl">{t("savedProfiles")}</h2>
+            <p className="eyebrow">{t("settings.profileSwitcher")}</p>
+            <h2 className="font-display text-3xl">{t("nav.savedProfiles")}</h2>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => downloadText("brawlstats-preferences.json", exportPreferences(), "application/json")}>
-              <Download /> Export
+              <Download /> {t("settings.export")}
             </Button>
             <input ref={importRef} type="file" accept="application/json" className="hidden" onChange={(event) => importFile(event.target.files?.[0])} />
-            <Button variant="outline" onClick={() => importRef.current?.click()}><Upload /> Import</Button>
+            <Button variant="outline" onClick={() => importRef.current?.click()}><Upload /> {t("settings.import")}</Button>
           </div>
         </div>
 
@@ -120,17 +120,17 @@ function SettingsPage() {
                   <Link to="/players" search={{ tag: `#${profile.tag}` }} className="block truncate font-medium hover:text-primary">
                     {profile.name || `#${profile.tag}`}
                   </Link>
-                  <p className="text-xs text-muted-foreground">#{profile.tag}{profile.trophies ? ` · ${profile.trophies.toLocaleString()} trophies` : ""}</p>
+                  <p className="text-xs text-muted-foreground">#{profile.tag}{profile.trophies ? ` · ${new Intl.NumberFormat(locale).format(profile.trophies)} ${t("common.trophies").toLocaleLowerCase()}` : ""}</p>
                 </div>
-                <Button size="icon-sm" variant="ghost" aria-label={`Remove ${profile.name || profile.tag}`} onClick={() => removeSavedProfile(profile.tag)}><Trash2 /></Button>
+                <Button size="icon-sm" variant="ghost" aria-label={t("settings.removeProfile", { name: profile.name || profile.tag })} onClick={() => removeSavedProfile(profile.tag)}><Trash2 /></Button>
               </Card>
             ))}
           </div>
-        ) : <p className="data-surface p-6 text-muted-foreground">{t("noSavedProfiles")}</p>}
+        ) : <p className="data-surface p-6 text-muted-foreground">{t("nav.noSavedProfiles")}</p>}
 
         {preferences.recentProfiles.length ? (
           <div className="mt-6">
-            <h3 className="mb-3 font-display text-xl">Recently viewed</h3>
+            <h3 className="mb-3 font-display text-xl">{t("settings.recent")}</h3>
             <div className="flex flex-wrap gap-2">
               {preferences.recentProfiles.map((profile) => (
                 <Button key={profile.tag} size="sm" variant="outline" onClick={() => saveProfile(profile)}>
@@ -144,11 +144,11 @@ function SettingsPage() {
 
       <Card className="flex-row flex-wrap items-center justify-between gap-4 p-5 py-5">
         <div>
-          <h2 className="font-display text-2xl">Share BrawlStats</h2>
-          <p className="text-sm text-muted-foreground">Send the live maps, profiles, and Draft Lab to your team.</p>
+          <h2 className="font-display text-2xl">{t("settings.shareTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("settings.shareDetail")}</p>
         </div>
-        <Button variant="outline" onClick={() => shareContent({ title: "BrawlStats.io", text: "Live Brawl Stars stats and draft recommendations", url: window.location.origin })}>
-          <Share2 /> Share
+        <Button variant="outline" onClick={() => shareContent({ title: "BrawlStats.io", text: t("settings.shareText"), url: window.location.origin })}>
+          <Share2 /> {t("common.share")}
         </Button>
       </Card>
     </div>

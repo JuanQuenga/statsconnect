@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { removeSavedProfile, saveProfile, usePreferences } from "@/lib/preferences";
 import { shareContent } from "@/lib/share";
+import { useI18n } from "@/lib/i18n";
 
 type ProfileActionsProps = {
   profile: {
@@ -15,7 +16,8 @@ type ProfileActionsProps = {
 
 export function ProfileActions({ profile }: ProfileActionsProps) {
   const preferences = usePreferences();
-  const [shareLabel, setShareLabel] = useState("Share");
+  const { t, number } = useI18n();
+  const [shareLabel, setShareLabel] = useState<string | null>(null);
   const cleanTag = profile.tag.replace(/^#/, "");
   const saved = preferences.savedProfiles.some((item) => item.tag === cleanTag);
 
@@ -23,13 +25,15 @@ export function ProfileActions({ profile }: ProfileActionsProps) {
     try {
       const result = await shareContent({
         title: `${profile.name} · BrawlStats`,
-        text: `${profile.name} (#${cleanTag})${typeof profile.trophies === "number" ? ` · ${profile.trophies.toLocaleString()} trophies` : ""}`,
+        text: typeof profile.trophies === "number"
+          ? t("profile.shareText", { name: profile.name, tag: cleanTag, trophies: number(profile.trophies) })
+          : `${profile.name} (#${cleanTag})`,
         url: window.location.href,
       });
-      setShareLabel(result === "copied" ? "Link copied" : "Shared");
-      window.setTimeout(() => setShareLabel("Share"), 1800);
+      setShareLabel(result === "copied" ? t("profile.linkCopied") : t("profile.shared"));
+      window.setTimeout(() => setShareLabel(null), 1800);
     } catch {
-      setShareLabel("Not shared");
+      setShareLabel(t("profile.notShared"));
     }
   }
 
@@ -42,11 +46,11 @@ export function ProfileActions({ profile }: ProfileActionsProps) {
         onClick={() => saved ? removeSavedProfile(cleanTag) : saveProfile({ ...profile, tag: cleanTag })}
       >
         {saved ? <BookmarkCheck /> : <Bookmark />}
-        {saved ? "Saved" : "Save profile"}
+        {saved ? t("common.saved") : t("profile.save")}
       </Button>
       <Button type="button" size="sm" variant="outline" onClick={share}>
         <Share2 />
-        {shareLabel}
+        {shareLabel || t("common.share")}
       </Button>
     </div>
   );

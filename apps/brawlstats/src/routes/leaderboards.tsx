@@ -10,6 +10,7 @@ import { apiFetch, brawlerBorderUrl, clubBadgeUrl, collection, profileIconUrl } 
 import { normalizeCatalog } from "@/lib/brawlers";
 import { trophies } from "@/lib/format";
 import type { RankingClub, RankingPlayer } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 const regions = [
   ["Global", "global"],
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/leaderboards")({
 });
 
 function LeaderboardsPage() {
+  const { t } = useI18n();
   const [region, setRegion] = useState("global");
   const [selectedBrawlerId, setSelectedBrawlerId] = useState<number | null>(null);
 
@@ -66,10 +68,10 @@ function LeaderboardsPage() {
   return (
     <div className="page-shell">
       <div>
-        <p className="eyebrow">Official rankings</p>
-        <h1 className="font-display text-4xl">Leaderboards</h1>
+        <p className="eyebrow">{t("leaderboard.eyebrow")}</p>
+        <h1 className="font-display text-4xl">{t("leaderboard.title")}</h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
-          Current-season player, club, and per-brawler rankings from the Brawl Stars API.
+          {t("leaderboard.description")}
         </p>
       </div>
 
@@ -87,25 +89,25 @@ function LeaderboardsPage() {
       </div>
 
       {error ? (
-        <PageStatus tone="error">{error instanceof Error ? error.message : "Failed to load rankings."}</PageStatus>
+        <PageStatus tone="error">{error instanceof Error ? error.message : t("leaderboard.loadFailed")}</PageStatus>
       ) : null}
 
       <Tabs defaultValue="players">
         <TabsList>
-          <TabsTrigger value="players">Players ({playersQuery.data?.length || 0})</TabsTrigger>
-          <TabsTrigger value="clubs">Clubs ({clubsQuery.data?.length || 0})</TabsTrigger>
-          <TabsTrigger value="brawlers">Brawlers</TabsTrigger>
+          <TabsTrigger value="players">{t("common.players")} ({playersQuery.data?.length || 0})</TabsTrigger>
+          <TabsTrigger value="clubs">{t("common.clubs")} ({clubsQuery.data?.length || 0})</TabsTrigger>
+          <TabsTrigger value="brawlers">{t("common.brawlers")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="players" className="mt-4">
-          {playersQuery.isLoading ? <PageStatus tone="loading">Loading players…</PageStatus> : null}
+          {playersQuery.isLoading ? <PageStatus tone="loading">{t("leaderboard.loadingPlayers")}</PageStatus> : null}
           <RankingTable
             rows={(playersQuery.data || []).map((player, index) => ({
               key: player.tag,
               rank: index + 1,
               icon: profileIconUrl(player.icon?.id),
               title: player.name,
-              subtitle: player.club?.name || "No club",
+              subtitle: player.club?.name || t("common.noClub"),
               href: `/players?tag=${encodeURIComponent(player.tag)}`,
               score: trophies(player.trophies),
             }))}
@@ -113,7 +115,7 @@ function LeaderboardsPage() {
         </TabsContent>
 
         <TabsContent value="clubs" className="mt-4">
-          {clubsQuery.isLoading ? <PageStatus tone="loading">Loading clubs…</PageStatus> : null}
+          {clubsQuery.isLoading ? <PageStatus tone="loading">{t("leaderboard.loadingClubs")}</PageStatus> : null}
           <RankingTable
             rows={(clubsQuery.data || []).map((club, index) => ({
               key: club.tag,
@@ -143,9 +145,9 @@ function LeaderboardsPage() {
             ))}
           </div>
           <p className="text-sm text-muted-foreground">
-            {selectedBrawler ? `${selectedBrawler.name} · ${selectedBrawler.rarity}` : "Select a brawler"}
+            {selectedBrawler ? `${selectedBrawler.name} · ${selectedBrawler.rarity}` : t("leaderboard.selectBrawler")}
           </p>
-          {brawlerRankingsQuery.isLoading ? <PageStatus tone="loading">Loading brawler rankings…</PageStatus> : null}
+          {brawlerRankingsQuery.isLoading ? <PageStatus tone="loading">{t("leaderboard.loadingBrawler")}</PageStatus> : null}
           <RankingTable
             rows={(brawlerRankingsQuery.data || []).map((player, index) => ({
               key: `${player.tag}-${index}`,
@@ -168,7 +170,8 @@ function RankingTable({
 }: {
   rows: Array<{ key: string; rank: number; icon: string; title: string; subtitle: string; href: string; score: string }>;
 }) {
-  if (!rows.length) return <EmptyState title="No rankings available" />;
+  const { t } = useI18n();
+  if (!rows.length) return <EmptyState title={t("leaderboard.empty")} />;
   return (
     <div className="data-surface overflow-hidden">
       <Table>

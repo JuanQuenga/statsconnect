@@ -12,6 +12,7 @@ const ROTATION_KEY = "brawlstats.rotation.v1";
 
 function useRotationAlerts() {
   const { alertsEnabled } = usePreferences();
+  const { t } = useI18n();
   const eventsQuery = useQuery({
     queryKey: ["events", "rotation-alerts"],
     enabled: alertsEnabled,
@@ -29,16 +30,16 @@ function useRotationAlerts() {
     window.localStorage.setItem(ROTATION_KEY, signature);
     if (!previous || previous === signature || !("Notification" in window) || Notification.permission !== "granted") return;
     const first = eventsQuery.data[0];
-    const title = "Brawl Stars rotation changed";
+    const title = t("alerts.changed");
     const body = first?.event?.map
-      ? `${first.event.map} · ${first.event.mode || "New event"}`
-      : "New maps and modes are active.";
+      ? `${first.event.map} · ${first.event.mode || t("alerts.newEvent")}`
+      : t("alerts.newActive");
     navigator.serviceWorker?.ready
       .then((registration) => registration.showNotification(title, { body, icon: `${import.meta.env.BASE_URL}assets/img/bs-stats.png` }))
       .catch(() => {
         if ("Notification" in window) new Notification(title, { body });
       });
-  }, [alertsEnabled, eventsQuery.data]);
+  }, [alertsEnabled, eventsQuery.data, t]);
 }
 
 export function CompanionBar() {
@@ -58,10 +59,10 @@ export function CompanionBar() {
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
         >
           <FlaskConical className="size-3.5" />
-          {t("assistant")}
+          {t("nav.assistant")}
         </Link>
         {preferences.savedProfiles.length ? (
-          <div className="flex items-center gap-1.5" aria-label={t("savedProfiles")}>
+          <div className="flex items-center gap-1.5" aria-label={t("nav.savedProfiles")}>
             <Star className="size-3.5 shrink-0 text-primary" />
             {preferences.savedProfiles.slice(0, 5).map((profile) => (
               <Link
@@ -76,16 +77,16 @@ export function CompanionBar() {
           </div>
         ) : null}
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {preferences.alertsEnabled ? <Bell className="size-3.5 text-accent" aria-label={t("alerts")} /> : null}
+          {preferences.alertsEnabled ? <Bell className="size-3.5 text-accent" aria-label={t("common.alerts")} /> : null}
           <Select value={locale} onValueChange={(value) => value && setLocale(value as Locale)}>
-            <SelectTrigger size="sm" aria-label={t("language")}>
+            <SelectTrigger size="sm" aria-label={t("common.language")}>
               <SelectValue>{localeLabels[locale]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {supportedLocales.map((item) => <SelectItem key={item} value={item}>{localeLabels[item]}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Link to="/settings" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-foreground" aria-label={t("settings")}>
+          <Link to="/settings" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-foreground" aria-label={t("nav.settings")}>
             <Settings className="size-4" />
           </Link>
         </div>

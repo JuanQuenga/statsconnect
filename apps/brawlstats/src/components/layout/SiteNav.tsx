@@ -27,14 +27,14 @@ function BrawlStatsLink({ children, className, href, onNavigate }: SiteNavigatio
 export function SiteNav() {
   const { t } = useI18n();
   const links = [
-    { href: "/", label: t("home") },
-    { href: "/players", label: t("players") },
-    { href: "/clubs", label: t("clubs") },
-    { href: "/maps", label: t("maps") },
-    { href: "/brawlers", label: t("brawlers") },
-    { href: "/meta", label: t("meta") },
-    { href: "/progression", label: t("progression") },
-    { href: "/leaderboards", label: t("leaderboards") },
+    { href: "/", label: t("nav.home") },
+    { href: "/players", label: t("nav.players") },
+    { href: "/clubs", label: t("nav.clubs") },
+    { href: "/maps", label: t("nav.maps") },
+    { href: "/brawlers", label: t("nav.brawlers") },
+    { href: "/meta", label: t("nav.meta") },
+    { href: "/progression", label: t("nav.progression") },
+    { href: "/leaderboards", label: t("nav.leaderboards") },
   ];
   return (
     <SiteNavigation
@@ -52,7 +52,7 @@ export function SiteNav() {
         </Link>
       }
       renderSearch={(onNavigate) => (
-        <PlayerSearch compact buttonLabel={t("search")} onNavigate={onNavigate} />
+        <PlayerSearch compact buttonLabel={t("common.search")} onNavigate={onNavigate} />
       )}
     />
   );
