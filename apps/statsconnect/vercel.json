@@ -1,1 +1,29 @@
-{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- . ../../packages/site-nav ../../packages/site-errors ../../package.json ../../pnpm-lock.yaml ../../pnpm-workspace.yaml",
+  "redirects": [
+    {
+      "source": "/brawlstars",
+      "destination": "https://brawlstats.juanquenga.com",
+      "permanent": true
+    },
+    {
+      "source": "/brawlstars/:path*",
+      "destination": "https://brawlstats.juanquenga.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/clashroyale",
+      "destination": "https://clashcrown.juanquenga.com",
+      "permanent": true
+    },
+    {
+      "source": "/clashroyale/:path*",
+      "destination": "https://clashcrown.juanquenga.com/:path*",
+      "permanent": true
+    }
+  ],
+  "rewrites": [{ "source": "/:path*", "destination": "/index.html" }]
+}

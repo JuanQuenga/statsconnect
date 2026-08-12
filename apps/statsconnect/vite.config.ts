@@ -4,8 +4,6 @@ import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 
-const unifiedBuild = process.env.STATSCONNECT_UNIFIED_BUILD === "1";
-
 export default defineConfig({
   plugins: [
     TanStackRouterVite({
@@ -23,10 +21,4 @@ export default defineConfig({
     },
   },
   publicDir: "public",
-  build: unifiedBuild
-    ? {
-        outDir: "../../dist",
-        emptyOutDir: true,
-      }
-    : undefined,
 });
