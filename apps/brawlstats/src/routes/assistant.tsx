@@ -95,7 +95,7 @@ function AssistantPage() {
           <label className="text-sm">
             <span className="mb-1.5 block text-muted-foreground">{t("assistant.trophyRange")}</span>
             <Select value={bucket} onValueChange={(value) => navigate({ search: (current) => ({ ...current, bucket: value || "all" }) })}>
-              <SelectTrigger className="h-10 min-w-40"><SelectValue>{bucket === "all" ? t("common.allTrophies") : t("common.trophyRange", { range: bucket })}</SelectValue></SelectTrigger>
+              <SelectTrigger className="h-10 min-w-40" aria-label={t("assistant.trophyRange")}><SelectValue>{bucket === "all" ? t("common.allTrophies") : t("common.trophyRange", { range: bucket })}</SelectValue></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("common.allTrophies")}</SelectItem>
                 <SelectItem value="0-499">{t("common.trophyRange", { range: "0–499" })}</SelectItem>
@@ -289,7 +289,7 @@ function DraftAssistant({
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
         <Select value={selectedMap} onValueChange={(value) => value && onMapChange(value)}>
-          <SelectTrigger className="h-10 w-full"><SelectValue>{detailQuery.data?.map.name || t("assistant.chooseMap")}</SelectValue></SelectTrigger>
+          <SelectTrigger className="h-10 w-full" aria-label={t("assistant.chooseMap")}><SelectValue>{detailQuery.data?.map.name || t("assistant.chooseMap")}</SelectValue></SelectTrigger>
           <SelectContent>
             {maps.filter((map) => !map.disabled).map((map) => <SelectItem key={map.id} value={String(map.id)}>{map.name} · {map.gameMode?.name}</SelectItem>)}
           </SelectContent>
@@ -307,7 +307,7 @@ function DraftAssistant({
             <Button size="sm" variant={side === "enemy" ? "default" : "outline"} onClick={() => setSide("enemy")}><Swords /> {t("assistant.opponents", { count: enemies.length })}</Button>
             <Button size="sm" variant={side === "ban" ? "default" : "outline"} onClick={() => setSide("ban")}><Ban /> {t("assistant.bans", { count: bans.length })}</Button>
           </div>
-          <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t("assistant.filterBrawlers")} className="mt-4" />
+          <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t("assistant.filterBrawlers")} aria-label={t("assistant.filterBrawlers")} className="mt-4" />
           <div className="mt-4 grid max-h-[500px] grid-cols-4 gap-2 overflow-y-auto pr-1 sm:grid-cols-6 md:grid-cols-8">
             {visibleCatalog.map((brawler) => {
               const selected = occupied.has(brawler.id);

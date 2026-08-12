@@ -71,7 +71,7 @@ function SettingsPage() {
           <h2 className="font-display text-2xl">{t("common.language")}</h2>
           <p className="text-sm text-muted-foreground">{t("settings.languageDetail")}</p>
           <Select value={locale} onValueChange={(value) => value && setLocale(value as Locale)}>
-            <SelectTrigger className="w-full"><SelectValue>{localeLabels[locale]}</SelectValue></SelectTrigger>
+            <SelectTrigger className="w-full" aria-label={t("common.language")}><SelectValue>{localeLabels[locale]}</SelectValue></SelectTrigger>
             <SelectContent>
               {supportedLocales.map((item) => <SelectItem key={item} value={item}>{localeLabels[item]}</SelectItem>)}
             </SelectContent>

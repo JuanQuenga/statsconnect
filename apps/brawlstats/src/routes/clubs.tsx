@@ -265,7 +265,7 @@ function ClubsPage() {
         <h1 className="font-display text-4xl">{t("club.title")}</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t("club.description")}</p>
         <form onSubmit={onSearch} className="mt-4 flex max-w-lg gap-2">
-          <Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="#CLUB_TAG" className="h-10" />
+          <Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="#CLUB_TAG" aria-label={t("club.enter")} className="h-10" />
           <Button type="submit">{t("common.load")}</Button>
         </form>
       </div>
@@ -326,9 +326,9 @@ function ClubsPage() {
             </TabsList>
             <TabsContent value="roster" className="space-y-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                <Input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder={t("club.filterRoster")} className="lg:max-w-xs" />
-                <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value || "all")}><SelectTrigger><SelectValue placeholder={t("club.allRoles")} /></SelectTrigger><SelectContent><SelectItem value="all">{t("club.allRoles")}</SelectItem>{roles.map((role) => <SelectItem key={role} value={role}>{readableMode(role)}</SelectItem>)}</SelectContent></Select>
-                <Select value={rosterSort} onValueChange={(value) => setRosterSort((value || "trophies") as RosterSort)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trophies">{t("club.sortTrophies")}</SelectItem><SelectItem value="change">{t("club.sortChange")}</SelectItem><SelectItem value="activity">{t("club.sortActivity")}</SelectItem><SelectItem value="name">{t("club.sortName")}</SelectItem><SelectItem value="role">{t("club.sortRole")}</SelectItem></SelectContent></Select>
+                <Input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder={t("club.filterRoster")} aria-label={t("club.filterRoster")} className="lg:max-w-xs" />
+                <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value || "all")}><SelectTrigger aria-label={t("club.allRoles")}><SelectValue placeholder={t("club.allRoles")} /></SelectTrigger><SelectContent><SelectItem value="all">{t("club.allRoles")}</SelectItem>{roles.map((role) => <SelectItem key={role} value={role}>{readableMode(role)}</SelectItem>)}</SelectContent></Select>
+                <Select value={rosterSort} onValueChange={(value) => setRosterSort((value || "trophies") as RosterSort)}><SelectTrigger aria-label={t("club.sortTrophies")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trophies">{t("club.sortTrophies")}</SelectItem><SelectItem value="change">{t("club.sortChange")}</SelectItem><SelectItem value="activity">{t("club.sortActivity")}</SelectItem><SelectItem value="name">{t("club.sortName")}</SelectItem><SelectItem value="role">{t("club.sortRole")}</SelectItem></SelectContent></Select>
                 <Button type="button" variant="outline" className="lg:ml-auto" onClick={exportRoster}><Download /> {t("club.exportRoster")}</Button>
               </div>
               <div className="data-surface overflow-x-auto">

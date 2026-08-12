@@ -89,11 +89,19 @@
   h1,
   h2,
   h3,
-  .font-display {
+  .font-display,
+  .game-label,
+  .game-rank,
+  .game-stat {
     font-family: var(--font-display);
     font-weight: 800;
     font-synthesis: none;
     letter-spacing: -0.03em;
+  }
+
+  .game-rank,
+  .game-stat {
+    font-variant-numeric: tabular-nums;
   }
 
   ::selection {

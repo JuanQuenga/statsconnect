@@ -33,7 +33,7 @@ function GameModePage() {
         <p className="mt-2 text-muted-foreground">{maps.length} maps in catalog</p>
       </div>
       {mapsQuery.isLoading ? <PageStatus tone="loading">{t("mode.loading")}</PageStatus> : null}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {maps.map((map) => (
           <Link
             key={map.id}
@@ -47,8 +47,8 @@ function GameModePage() {
               alt={map.name}
               className="aspect-video w-full object-cover"
             />
-            <div className="p-3">
-              <p className="font-display text-lg">{map.name}</p>
+            <div className="p-2.5 sm:p-3">
+              <p className="font-display text-base sm:text-lg">{map.name}</p>
               {map.disabled ? <p className="text-xs text-muted-foreground">{t("common.disabled")}</p> : null}
             </div>
           </Link>

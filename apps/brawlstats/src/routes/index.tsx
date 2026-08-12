@@ -117,7 +117,7 @@ function HomePage() {
             <p className="eyebrow">{t("home.liveData")}</p>
             <h2 className="section-title">{t("home.newest")}</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {newest.map((brawler, index) => (
               <Card
                 key={brawler.id}
@@ -129,7 +129,7 @@ function HomePage() {
                   alt={brawler.name}
                   className="aspect-square w-full object-cover"
                 />
-                <CardContent className="space-y-2 p-4">
+                <CardContent className="space-y-2 p-3 sm:p-4">
                   <Badge style={{ background: brawler.color, color: "#141414" }}>{brawler.rarity}</Badge>
                   <h3 className="font-display text-xl">{brawler.name}</h3>
                   <p className="text-sm text-muted-foreground">
@@ -189,7 +189,7 @@ function HomePage() {
                 <TableBody>
                   {(playersQuery.data || []).map((player, index) => (
                     <TableRow key={player.tag}>
-                      <TableCell className="w-10 px-3 text-muted-foreground">{index + 1}</TableCell>
+                      <TableCell className="game-rank w-10 px-3 text-muted-foreground">{index + 1}</TableCell>
                       <TableCell className="w-12 px-0">
                         <img src={profileIconUrl(player.icon?.id)} alt="" className="size-8 rounded-full" />
                       </TableCell>
@@ -197,13 +197,13 @@ function HomePage() {
                         <Link
                           to="/players"
                           search={{ tag: player.tag }}
-                          className="font-display hover:text-primary"
+                          className="game-label hover:text-primary"
                         >
                           {player.name}
                         </Link>
                         <p className="text-xs text-muted-foreground">{player.club?.name || t("common.noClub")}</p>
                       </TableCell>
-                      <TableCell className="px-3 text-right font-display text-primary">{trophies(player.trophies)}</TableCell>
+                      <TableCell className="game-stat px-3 text-right text-primary">{trophies(player.trophies)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
