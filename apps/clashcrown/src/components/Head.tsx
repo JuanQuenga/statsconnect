@@ -6,6 +6,8 @@ type HeadElementProps = {
   name?: string;
   property?: string;
   content?: string;
+  rel?: string;
+  href?: string;
 };
 type MetaValue = { attribute: "name" | "property"; key: string; content: string };
 
@@ -18,10 +20,12 @@ function textContent(value: ReactNode): string {
 export default function Head({ children }: HeadProps) {
   let title: string | undefined;
   const meta: MetaValue[] = [];
+  let canonical: string | undefined;
 
   for (const child of Children.toArray(children)) {
     if (!isValidElement<HeadElementProps>(child)) continue;
     if (child.type === "title") title = textContent(child.props.children);
+    if (child.type === "link" && child.props.rel === "canonical" && child.props.href) canonical = child.props.href;
     if (child.type !== "meta" || typeof child.props.content !== "string") continue;
     if (child.props.name) meta.push({ attribute: "name", key: child.props.name, content: child.props.content });
     if (child.props.property) meta.push({ attribute: "property", key: child.props.property, content: child.props.content });
@@ -48,6 +52,20 @@ export default function Head({ children }: HeadProps) {
       return { element, created: !existing, previousContent };
     });
 
+    const existingCanonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    const canonicalElement = canonical ? (existingCanonical ?? document.createElement("link")) : null;
+    const previousCanonical = existingCanonical?.getAttribute("href") ?? null;
+    if (canonicalElement && canonical) {
+      if (!existingCanonical) {
+        canonicalElement.rel = "canonical";
+        document.head.append(canonicalElement);
+      }
+      canonicalElement.href = new URL(
+        `${import.meta.env.BASE_URL}${canonical.replace(/^\/+/, "")}`,
+        window.location.origin,
+      ).toString();
+    }
+
     return () => {
       if (title) document.title = previousTitle;
       for (const change of changes) {
@@ -55,8 +73,13 @@ export default function Head({ children }: HeadProps) {
         else if (change.previousContent === null) change.element.removeAttribute("content");
         else change.element.setAttribute("content", change.previousContent);
       }
+      if (canonicalElement) {
+        if (!existingCanonical) canonicalElement.remove();
+        else if (previousCanonical === null) canonicalElement.removeAttribute("href");
+        else canonicalElement.setAttribute("href", previousCanonical);
+      }
     };
-  }, [title, metaSignature]);
+  }, [title, metaSignature, canonical]);
 
   return null;
 }

@@ -14,11 +14,15 @@ import { Route as BetaRouteImport } from './routes/beta'
 import { Route as DecksRouteImport } from './routes/decks'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as MetaRouteImport } from './routes/meta'
+import { Route as NewsRouteImport } from './routes/news'
+import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as CardsIndexRouteImport } from './routes/cards/index'
 import { Route as CardsSlugRouteImport } from './routes/cards/$slug'
 import { Route as ClansTagRouteImport } from './routes/clans/$tag'
 import { Route as ClansSearchRouteImport } from './routes/clans/search'
+import { Route as GuidesIndexRouteImport } from './routes/guides/index'
+import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as PlayersTagRouteImport } from './routes/players/$tag'
 import { Route as PlayersCompareRouteImport } from './routes/players/compare'
@@ -50,6 +54,16 @@ const MetaRoute = MetaRouteImport.update({
   path: '/meta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TournamentsRoute = TournamentsRouteImport.update({
   id: '/tournaments',
   path: '/tournaments',
@@ -73,6 +87,16 @@ const ClansTagRoute = ClansTagRouteImport.update({
 const ClansSearchRoute = ClansSearchRouteImport.update({
   id: '/clans/search',
   path: '/clans/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayersIndexRoute = PlayersIndexRouteImport.update({
@@ -107,13 +131,17 @@ export interface FileRoutesByFullPath {
   '/decks': typeof DecksRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
+  '/news': typeof NewsRoute
+  '/tools': typeof ToolsRoute
   '/tournaments': typeof TournamentsRoute
   '/cards/$slug': typeof CardsSlugRoute
   '/clans/$tag': typeof ClansTagRoute
   '/clans/search': typeof ClansSearchRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/players/$tag': typeof PlayersTagRoute
   '/players/compare': typeof PlayersCompareRoute
   '/cards/': typeof CardsIndexRoute
+  '/guides/': typeof GuidesIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
@@ -124,13 +152,17 @@ export interface FileRoutesByTo {
   '/decks': typeof DecksRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
+  '/news': typeof NewsRoute
+  '/tools': typeof ToolsRoute
   '/tournaments': typeof TournamentsRoute
   '/cards/$slug': typeof CardsSlugRoute
   '/clans/$tag': typeof ClansTagRoute
   '/clans/search': typeof ClansSearchRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/players/$tag': typeof PlayersTagRoute
   '/players/compare': typeof PlayersCompareRoute
   '/cards': typeof CardsIndexRoute
+  '/guides': typeof GuidesIndexRoute
   '/players': typeof PlayersIndexRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
@@ -142,13 +174,17 @@ export interface FileRoutesById {
   '/decks': typeof DecksRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
+  '/news': typeof NewsRoute
+  '/tools': typeof ToolsRoute
   '/tournaments': typeof TournamentsRoute
   '/cards/$slug': typeof CardsSlugRoute
   '/clans/$tag': typeof ClansTagRoute
   '/clans/search': typeof ClansSearchRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/players/$tag': typeof PlayersTagRoute
   '/players/compare': typeof PlayersCompareRoute
   '/cards/': typeof CardsIndexRoute
+  '/guides/': typeof GuidesIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/clans/$tag_/war': typeof ClansTagWarRoute
   '/players/$tag_/upgrades': typeof PlayersTagUpgradesRoute
@@ -161,13 +197,17 @@ export interface FileRouteTypes {
     | '/decks'
     | '/leaderboards'
     | '/meta'
+    | '/news'
+    | '/tools'
     | '/tournaments'
     | '/cards/$slug'
     | '/clans/$tag'
     | '/clans/search'
+    | '/guides/$slug'
     | '/players/$tag'
     | '/players/compare'
     | '/cards/'
+    | '/guides/'
     | '/players/'
     | '/clans/$tag/war'
     | '/players/$tag/upgrades'
@@ -178,13 +218,17 @@ export interface FileRouteTypes {
     | '/decks'
     | '/leaderboards'
     | '/meta'
+    | '/news'
+    | '/tools'
     | '/tournaments'
     | '/cards/$slug'
     | '/clans/$tag'
     | '/clans/search'
+    | '/guides/$slug'
     | '/players/$tag'
     | '/players/compare'
     | '/cards'
+    | '/guides'
     | '/players'
     | '/clans/$tag/war'
     | '/players/$tag/upgrades'
@@ -195,13 +239,17 @@ export interface FileRouteTypes {
     | '/decks'
     | '/leaderboards'
     | '/meta'
+    | '/news'
+    | '/tools'
     | '/tournaments'
     | '/cards/$slug'
     | '/clans/$tag'
     | '/clans/search'
+    | '/guides/$slug'
     | '/players/$tag'
     | '/players/compare'
     | '/cards/'
+    | '/guides/'
     | '/players/'
     | '/clans/$tag_/war'
     | '/players/$tag_/upgrades'
@@ -213,13 +261,17 @@ export interface RootRouteChildren {
   DecksRoute: typeof DecksRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
   MetaRoute: typeof MetaRoute
+  NewsRoute: typeof NewsRoute
+  ToolsRoute: typeof ToolsRoute
   TournamentsRoute: typeof TournamentsRoute
   CardsSlugRoute: typeof CardsSlugRoute
   ClansTagRoute: typeof ClansTagRoute
   ClansSearchRoute: typeof ClansSearchRoute
+  GuidesSlugRoute: typeof GuidesSlugRoute
   PlayersTagRoute: typeof PlayersTagRoute
   PlayersCompareRoute: typeof PlayersCompareRoute
   CardsIndexRoute: typeof CardsIndexRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
   ClansTagWarRoute: typeof ClansTagWarRoute
   PlayersTagUpgradesRoute: typeof PlayersTagUpgradesRoute
@@ -262,6 +314,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MetaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tournaments': {
       id: '/tournaments'
       path: '/tournaments'
@@ -295,6 +361,20 @@ declare module '@tanstack/react-router' {
       path: '/clans/search'
       fullPath: '/clans/search'
       preLoaderRoute: typeof ClansSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/': {
+      id: '/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/players/': {
@@ -341,13 +421,17 @@ const rootRouteChildren: RootRouteChildren = {
   DecksRoute: DecksRoute,
   LeaderboardsRoute: LeaderboardsRoute,
   MetaRoute: MetaRoute,
+  NewsRoute: NewsRoute,
+  ToolsRoute: ToolsRoute,
   TournamentsRoute: TournamentsRoute,
   CardsSlugRoute: CardsSlugRoute,
   ClansTagRoute: ClansTagRoute,
   ClansSearchRoute: ClansSearchRoute,
+  GuidesSlugRoute: GuidesSlugRoute,
   PlayersTagRoute: PlayersTagRoute,
   PlayersCompareRoute: PlayersCompareRoute,
   CardsIndexRoute: CardsIndexRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
   ClansTagWarRoute: ClansTagWarRoute,
   PlayersTagUpgradesRoute: PlayersTagUpgradesRoute,

@@ -11,6 +11,7 @@ import { player as mockPlayer, type Player } from "@/lib/mock-data";
 import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
 import { mapPlayerBundle } from "@/lib/clash/mappers";
 import { rememberProfile } from "@/lib/recentProfiles";
+import { useI18n } from "@/lib/i18n";
 
 export default function PlayerPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function PlayerPage() {
 }
 
 function LivePlayer({ tag }: { tag: string }) {
+  const { locale } = useI18n();
   const getPlayerBundle = useAction(playerBundleAction);
   const [refreshKey, setRefreshKey] = useState(0);
   const query = useQuery({
@@ -34,12 +36,13 @@ function LivePlayer({ tag }: { tag: string }) {
 
   if (query.isLoading) return <Layout><LoadingState label="player" /></Layout>;
   if (query.error) return <Layout><ErrorState message={errorMessage(query.error)} /></Layout>;
-  if (!query.data) return <Layout><ErrorState message="No player data was returned." /></Layout>;
+  if (!query.data) return <Layout><ErrorState message={locale === "es" ? "No se recibieron datos del jugador." : "No player data was returned."} /></Layout>;
 
   return <PlayerDashboard player={query.data} isRefreshing={query.isFetching} onRefresh={() => setRefreshKey((value) => value + 1)} />;
 }
 
 function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undefined }: { player: Player; isRefreshing?: boolean; onRefresh?: () => void }) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<PlayerTab>("Statistics");
 
   // Visiting a profile is what teaches this browser the player's name, so the
@@ -70,7 +73,7 @@ function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undef
           <>
             <div className="section-heading compact-heading">
               <span />
-              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="pink-button">Upgrade Planner</Link>
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="pink-button">{t("player.upgradePlanner")}</Link>
               <span />
             </div>
             <CardCollection cards={player.cards} />

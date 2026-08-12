@@ -13,7 +13,8 @@ export const cacheKind = v.union(
   v.literal("leaderboards"),
   v.literal("leaderboard"),
   v.literal("clanSearch"),
-  v.literal("tournaments")
+  v.literal("tournaments"),
+  v.literal("news")
 );
 
 /** Mirrors META_MODES in src/lib/clash/battles.ts. */

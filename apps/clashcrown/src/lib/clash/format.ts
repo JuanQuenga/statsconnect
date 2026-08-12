@@ -14,19 +14,25 @@ export function parseApiDate(value?: string): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-export function formatApiDate(value?: string, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) {
+export function formatApiDate(
+  value?: string,
+  options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" },
+  locale: Locale = getLocale(),
+) {
   const date = parseApiDate(value);
   if (!date) return value ?? "—";
-  return new Intl.DateTimeFormat("en", options).format(date);
+  return new Intl.DateTimeFormat(locale, options).format(date);
 }
 
-export function relativeTime(value?: string) {
+export function relativeTime(value?: string, locale: Locale = getLocale()) {
   const date = parseApiDate(value);
   if (!date) return "—";
   const minutes = Math.round((Date.now() - date.getTime()) / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return locale === "es" ? "ahora mismo" : "just now";
+  if (minutes < 60) return locale === "es" ? `hace ${minutes} min` : `${minutes}m ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 24) return locale === "es" ? `hace ${hours} h` : `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return locale === "es" ? `hace ${days} d` : `${days}d ago`;
 }
+import { getLocale, type Locale } from "@/lib/i18n";

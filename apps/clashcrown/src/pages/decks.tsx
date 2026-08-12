@@ -14,6 +14,7 @@ import { cardSlug } from "@/lib/clash/cards";
 import { deckHash, META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { DEFAULT_META_MODE, DEFAULT_META_WINDOW } from "@/lib/useCardMeta";
 import { cardsAction, deckMetaQuery, errorMessage, isConvexConfigured } from "@/lib/convex";
+import { useI18n } from "@/lib/i18n";
 
 /** `/decks?include=<card-slug>` seeds the builder with that card, linked from card detail pages. */
 function useIncludedSlug() {
@@ -22,10 +23,12 @@ function useIncludedSlug() {
 }
 
 export default function DecksPage() {
-  return isConvexConfigured ? <LiveDeckBuilder /> : <DeckBuilder cards={localCards} source="Local catalog" />;
+  const { locale } = useI18n();
+  return isConvexConfigured ? <LiveDeckBuilder /> : <DeckBuilder cards={localCards} source={locale === "es" ? "Catálogo local · sin datos en vivo" : "Local catalog · not live data"} />;
 }
 
 function LiveDeckBuilder() {
+  const { locale, t } = useI18n();
   const getCards = useAction(cardsAction);
   const [refreshKey, setRefreshKey] = useState(0);
   const query = useQuery({
@@ -36,14 +39,14 @@ function LiveDeckBuilder() {
   });
 
   if (query.isLoading) {
-    return <Layout><div className="data-state"><LoaderCircle className="state-spinner" size={38} /><h1>Loading the card library</h1><p>Syncing cards from the Clash Royale API.</p></div></Layout>;
+    return <Layout><div className="data-state"><LoaderCircle className="state-spinner" size={38} /><h1>{t("deck.loading")}</h1><p>{locale === "es" ? "Sincronizando cartas desde la API de Clash Royale." : "Syncing cards from the Clash Royale API."}</p></div></Layout>;
   }
 
   if (query.error || !query.data) {
-    return <DeckBuilder cards={localCards} source={`Local fallback · ${errorMessage(query.error)}`} />;
+    return <DeckBuilder cards={localCards} source={`${locale === "es" ? "Respaldo local" : "Local fallback"} · ${errorMessage(query.error)}`} />;
   }
 
-  return <DeckBuilder cards={query.data} source="Live Clash Royale card catalog" onRefresh={() => setRefreshKey((value) => value + 1)} isRefreshing={query.isFetching} />;
+  return <DeckBuilder cards={query.data} source={locale === "es" ? "Catálogo en vivo de Clash Royale" : "Live Clash Royale card catalog"} onRefresh={() => setRefreshKey((value) => value + 1)} isRefreshing={query.isFetching} />;
 }
 
 /**
@@ -54,6 +57,7 @@ function LiveDeckBuilder() {
  * this asks for the un-evolved variant, which is what the builder describes.
  */
 function DeckPerformance({ cards }: { cards: Card[] }) {
+  const { formatNumber, locale, t } = useI18n();
   const [mode, setMode] = useState<MetaMode>(DEFAULT_META_MODE);
 
   const ids = cards.map((card) => card.id).filter((id): id is number => typeof id === "number");
@@ -68,7 +72,7 @@ function DeckPerformance({ cards }: { cards: Card[] }) {
   return (
     <section className="profile-section">
       <div className="section-heading">
-        <h2>How this deck performs</h2>
+        <h2>{locale === "es" ? "Rendimiento del mazo" : "How this deck performs"}</h2>
       </div>
       <div className="beta-tabs" role="group" aria-label="Battle mode">
         {META_MODES.map((item) => (
@@ -84,44 +88,42 @@ function DeckPerformance({ cards }: { cards: Card[] }) {
       </div>
 
       {!complete ? (
-        <p className="empty-results">Pick all eight cards to look this deck up in the battle-log statistics.</p>
+        <p className="empty-results">{t("deck.pickAll")}</p>
       ) : stats === undefined ? (
-        <p className="empty-results">Looking up this deck…</p>
+        <p className="empty-results">{t("meta.loading")}</p>
       ) : stats.uses === 0 ? (
         <p className="empty-results">
-          This exact eight-card list has not appeared in the {modeLabel(mode)} battles crawled over the last{" "}
-          {DEFAULT_META_WINDOW} days. That makes it rare in the sample, not bad — swap a card to compare against a
-          deck that has been seen.
+          {t("deck.noStats")} {locale === "es" ? "Eso significa que es raro en la muestra, no que sea malo." : "That makes it rare in the sample, not bad."}
         </p>
       ) : (
         <div className="beta-grid">
           <div className="beta-tile">
-            <span>Games observed</span>
-            <strong>{stats.uses.toLocaleString()}</strong>
-            <small>last {stats.windowDays} days</small>
+            <span>{locale === "es" ? "Partidas observadas" : "Games observed"}</span>
+            <strong>{formatNumber(stats.uses)}</strong>
+            <small>{locale === "es" ? `últimos ${stats.windowDays} días` : `last ${stats.windowDays} days`}</small>
           </div>
           <div className="beta-tile">
-            <span>Win rate</span>
+            <span>{locale === "es" ? "Porcentaje de victoria" : "Win rate"}</span>
             <strong>{(stats.winRate * 100).toFixed(1)}%</strong>
-            <small>{stats.wins.toLocaleString()} wins</small>
+            <small>{formatNumber(stats.wins)} {locale === "es" ? "victorias" : "wins"}</small>
           </div>
           <div className="beta-tile">
-            <span>Crowns per game</span>
+            <span>{locale === "es" ? "Coronas por partida" : "Crowns per game"}</span>
             <strong>{stats.crownsPerGame.toFixed(2)}</strong>
-            <small>towers taken</small>
+            <small>{locale === "es" ? "torres derribadas" : "towers taken"}</small>
           </div>
         </div>
       )}
 
       <p className="table-note">
-        Matched on the exact eight cards, ignoring Evolutions and Tower Troops. Numbers come from crawled battle logs,
-        not from the official API. <Link href="/meta">See the decks that top the meta</Link>.
+        {t("meta.sourceNote")} <Link href="/meta">{t("guides.liveMeta")}</Link>.
       </p>
     </section>
   );
 }
 
 function DeckBuilder({ cards, source, onRefresh, isRefreshing = false }: { cards: Card[]; source: string; onRefresh?: () => void; isRefreshing?: boolean }) {
+  const { locale, t } = useI18n();
   const include = useIncludedSlug();
   // Empty, not the first eight cards of the catalog: that seeded a deck nobody
   // chose and the panel below then reported it as never seen in the meta — the
@@ -182,21 +184,21 @@ function DeckBuilder({ cards, source, onRefresh, isRefreshing = false }: { cards
 
   return (
     <Layout>
-      <Head><title>Deck Builder | Clash Crown</title><meta name="description" content="Build an eight-card Clash Royale deck from the live card catalog." /></Head>
+      <Head><title>{t("deck.title")} | Clash Crown</title><meta name="description" content={t("deck.pickEight")} /><link rel="canonical" href="/decks" /></Head>
       <div className="decks-page builder-page">
         <section className="decks-hero">
           <span className="eyebrow">{source}</span>
-          <h1>Deck Builder</h1>
-          <p>Choose eight cards, balance your elixir cost, and copy the finished deck into Clash Royale.</p>
+          <h1>{t("deck.title")}</h1>
+          <p>{t("deck.pickEight")}</p>
         </section>
 
         <section className="builder-workspace profile-section">
           <div className="builder-summary">
-            <div><span>Cards</span><strong>{selected.length}/8</strong></div>
-            <div><span>Average elixir</span><strong>{average.toFixed(1)}</strong></div>
-            <div><span>4-card cycle</span><strong>{cycle}</strong></div>
-            <button type="button" onClick={() => setSelected([])}><Trash2 size={17} />Clear</button>
-            <button type="button" className="pink-button" onClick={copyDeck}><Copy size={17} />Copy deck</button>
+            <div><span>{t("player.cards")}</span><strong>{selected.length}/8</strong></div>
+            <div><span>{locale === "es" ? "Elixir medio" : "Average elixir"}</span><strong>{average.toFixed(1)}</strong></div>
+            <div><span>{locale === "es" ? "Ciclo de 4 cartas" : "4-card cycle"}</span><strong>{cycle}</strong></div>
+            <button type="button" onClick={() => setSelected([])}><Trash2 size={17} />{t("search.clear")}</button>
+            <button type="button" className="pink-button" onClick={copyDeck}><Copy size={17} />{locale === "es" ? "Copiar mazo" : "Copy deck"}</button>
           </div>
           <div className="selected-deck" aria-label="Selected deck">
             {Array.from({ length: 8 }).map((_, index) => {
@@ -215,9 +217,9 @@ function DeckBuilder({ cards, source, onRefresh, isRefreshing = false }: { cards
 
         <section className="card-browser profile-section">
           <div className="browser-toolbar">
-            <label className="card-search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search cards" aria-label="Search cards" /></label>
+            <label className="card-search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("deck.searchCards")} aria-label={t("deck.searchCards")} /></label>
             <label className="rarity-filter"><span className="sr-only">Filter rarity</span><select value={rarity} onChange={(event) => setRarity(event.target.value)}><option>All</option><option>Common</option><option>Rare</option><option>Epic</option><option>Legendary</option><option>Champion</option></select></label>
-            {onRefresh ? <button type="button" className="refresh-catalog" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={17} />Refresh catalog</button> : null}
+            {onRefresh ? <button type="button" className="refresh-catalog" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={17} />{isRefreshing ? t("common.refreshing") : t("common.refresh")}</button> : null}
           </div>
           <div className="card-library">
             {filteredCards.map((card) => {
@@ -231,7 +233,7 @@ function DeckBuilder({ cards, source, onRefresh, isRefreshing = false }: { cards
               );
             })}
           </div>
-          {!filteredCards.length ? <p className="empty-results">No cards match those filters.</p> : null}
+          {!filteredCards.length ? <p className="empty-results">{t("deck.noCards")}</p> : null}
         </section>
       </div>
     </Layout>
