@@ -42,6 +42,10 @@ function trophyBucket(value: string | null): "all" | "0-499" | "500-999" | "1000
       : null;
 }
 
+function trendWindow(value: string | null): "7" | "30" | "90" | "all" | null {
+  return value === "7" || value === "30" || value === "90" || value === "all" ? value : null;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
 }
@@ -392,6 +396,24 @@ const metaResearch = httpAction(async (ctx, request) => {
   return json(await ctx.runQuery(api.brawl.stats.getMetaResearch, { trophyBucket: selectedTrophyBucket }));
 });
 
+const metaTrends = httpAction(async (ctx, request) => {
+  const search = new URL(request.url).searchParams;
+  const selectedTrophyBucket = trophyBucket(search.get("trophyBucket"));
+  const selectedWindow = trendWindow(search.get("window"));
+  if (!selectedTrophyBucket) return json({ error: "INVALID_TROPHY_BUCKET", message: "Choose a supported trophy bracket." }, 400);
+  if (!selectedWindow) return json({ error: "INVALID_TREND_WINDOW", message: "Choose 7, 30, 90, or all." }, 400);
+  const rawBrawlerId = search.get("brawlerId");
+  const brawlerId = rawBrawlerId === null ? undefined : Number(rawBrawlerId);
+  if (brawlerId !== undefined && (!Number.isInteger(brawlerId) || brawlerId <= 0)) {
+    return json({ error: "INVALID_BRAWLER", message: "A numeric brawler id is required." }, 400);
+  }
+  return json(await ctx.runQuery(internal.brawl.stats.getMetaTrends, {
+    trophyBucket: selectedTrophyBucket,
+    window: selectedWindow,
+    brawlerId,
+  }));
+});
+
 const options = httpAction(async () => new Response(null, { headers: corsHeaders, status: 204 }));
 
 const paths = [
@@ -409,6 +431,7 @@ const paths = [
   "/api/gamemodes",
   "/api/brawler-meta",
   "/api/meta",
+  "/api/meta-trends",
 ];
 
 for (const path of paths) {
@@ -432,5 +455,6 @@ http.route({ method: "GET", pathPrefix: "/api/maps/", handler: mapDetail });
 http.route({ method: "GET", path: "/api/gamemodes", handler: gamemodes });
 http.route({ method: "GET", path: "/api/brawler-meta", handler: brawlerMeta });
 http.route({ method: "GET", path: "/api/meta", handler: metaResearch });
+http.route({ method: "GET", path: "/api/meta-trends", handler: metaTrends });
 
 export default http;
