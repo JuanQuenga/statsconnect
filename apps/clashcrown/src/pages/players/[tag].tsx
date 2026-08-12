@@ -7,10 +7,13 @@ import { useAction } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { BattleHistory, CardCollection, ChestList, DeckAnalyticsSection, DeckOverview, PathOfLegendsSeasons, PerformanceSection, PlayerHero, PlayerStats, PlayerTabs, ProgressionChart, type PlayerTab } from "@/components/portfolio/PlayerSections";
+import { PlayerAchievementsSection, PlayerBadgeSection, PlayerProfileDetails } from "@/components/portfolio/PlayerProfileSections";
 import { player as mockPlayer, type Player } from "@/lib/mock-data";
 import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
 import { mapPlayerBundle } from "@/lib/clash/mappers";
 import { rememberProfile } from "@/lib/recentProfiles";
+import { useCardLibrary } from "@/lib/useCardCatalog";
+import type { Card } from "@/lib/mock-data";
 
 export default function PlayerPage() {
   const router = useRouter();
@@ -24,6 +27,7 @@ export default function PlayerPage() {
 
 function LivePlayer({ tag }: { tag: string }) {
   const getPlayerBundle = useAction(playerBundleAction);
+  const cardLibrary = useCardLibrary();
   const [refreshKey, setRefreshKey] = useState(0);
   const query = useQuery({
     queryKey: ["player", tag, refreshKey],
@@ -36,10 +40,33 @@ function LivePlayer({ tag }: { tag: string }) {
   if (query.error) return <Layout><ErrorState message={errorMessage(query.error)} /></Layout>;
   if (!query.data) return <Layout><ErrorState message="No player data was returned." /></Layout>;
 
-  return <PlayerDashboard player={query.data} isRefreshing={query.isFetching} onRefresh={() => setRefreshKey((value) => value + 1)} />;
+  return (
+    <PlayerDashboard
+      player={query.data}
+      isRefreshing={query.isFetching}
+      onRefresh={() => setRefreshKey((value) => value + 1)}
+      catalogCards={cardLibrary.cards}
+      catalogLoading={cardLibrary.isLoading}
+      catalogError={Boolean(cardLibrary.error)}
+    />
+  );
 }
 
-function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undefined }: { player: Player; isRefreshing?: boolean; onRefresh?: () => void }) {
+function PlayerDashboard({
+  player,
+  isRefreshing = false,
+  onRefresh = () => undefined,
+  catalogCards,
+  catalogLoading = false,
+  catalogError = false
+}: {
+  player: Player;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
+  catalogCards?: Card[];
+  catalogLoading?: boolean;
+  catalogError?: boolean;
+}) {
   const [activeTab, setActiveTab] = useState<PlayerTab>("Statistics");
 
   // Visiting a profile is what teaches this browser the player's name, so the
@@ -59,6 +86,9 @@ function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undef
         {activeTab === "Statistics" ? (
           <>
             <PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} />
+            <PlayerProfileDetails player={player} />
+            <PlayerBadgeSection badges={player.badges} />
+            <PlayerAchievementsSection achievements={player.achievements} />
             <PerformanceSection battles={player.battles} />
             <ProgressionChart player={player} />
             <PathOfLegendsSeasons player={player} />
@@ -73,7 +103,7 @@ function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undef
               <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="pink-button">Upgrade Planner</Link>
               <span />
             </div>
-            <CardCollection cards={player.cards} />
+            <CardCollection player={player} catalogCards={catalogCards} catalogLoading={catalogLoading} catalogError={catalogError} />
           </>
         ) : null}
         <ChestList chests={player.chests} />

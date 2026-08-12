@@ -1,4 +1,14 @@
-import type { Battle, Card, Chest, Clan, ClanMember, PathOfLegendsResult, Player } from "@/lib/mock-data";
+import type {
+  Battle,
+  Card,
+  Chest,
+  Clan,
+  ClanMember,
+  PathOfLegendsResult,
+  Player,
+  PlayerAchievement,
+  PlayerBadge
+} from "@/lib/mock-data";
 import {
   arenaImage,
   badgeImage,
@@ -116,20 +126,68 @@ function mapPathOfLegends(source: ApiPlayer): Player["pathOfLegends"] {
   return { current, last, best };
 }
 
+function mapBadge(badge: NonNullable<ApiPlayer["badges"]>[number]): PlayerBadge | undefined {
+  if (!badge.name) return undefined;
+  return {
+    name: badge.name,
+    level: badge.level,
+    maxLevel: badge.maxLevel,
+    progress: badge.progress,
+    image: badge.iconUrls?.large ?? badge.iconUrls?.medium ?? badge.iconUrls?.small
+  };
+}
+
+function mapAchievement(
+  achievement: NonNullable<ApiPlayer["achievements"]>[number]
+): PlayerAchievement | undefined {
+  if (!achievement.name) return undefined;
+  return {
+    name: achievement.name,
+    stars: achievement.stars,
+    value: achievement.value,
+    target: achievement.target,
+    info: achievement.info
+  };
+}
+
+function presentValues<T>(values: Array<T | undefined>): T[] {
+  return values.filter((value): value is T => value !== undefined);
+}
+
+function playerStats(source: ApiPlayer): Record<string, string> {
+  const stats: Record<string, string> = {};
+  const addNumber = (label: string, value: number | undefined) => {
+    if (value !== undefined) stats[label] = value.toLocaleString();
+  };
+
+  addNumber("Last known trophies", source.trophies);
+  addNumber("Challenge cards won", source.challengeCardsWon);
+  addNumber("Challenge max wins", source.challengeMaxWins);
+  addNumber("Tourney cards won", source.tournamentCardsWon);
+  addNumber("Total donations", source.totalDonations ?? source.donations);
+  addNumber("War day wins", source.warDayWins);
+  addNumber("Wins", source.wins);
+  addNumber("Losses", source.losses);
+  addNumber("3 crown wins", source.threeCrownWins);
+  addNumber("Battles", source.battleCount);
+  if (source.arena?.name) stats.Arena = source.arena.name;
+  return stats;
+}
+
 export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
   const source = payload.player.data;
   const currentDeck = source.currentDeck?.map(mapCard) ?? [];
-  const allCards = source.cards?.map(mapCard) ?? currentDeck;
-  const favoriteCard = mapCard(source.currentFavouriteCard ?? source.currentDeck?.[0]);
+  const allCards = source.cards?.map((card) => ({ ...mapCard(card), owned: true })) ?? [];
+  const favoriteCard = source.currentFavouriteCard ? mapCard(source.currentFavouriteCard) : undefined;
 
   const pathOfLegends = mapPathOfLegends(source);
 
   return {
     tag: source.tag.replace(/^#/, ""),
     name: source.name,
-    level: source.expLevel ?? 1,
-    trophies: source.trophies ?? 0,
-    bestTrophies: source.bestTrophies ?? source.trophies ?? 0,
+    level: source.expLevel,
+    trophies: source.trophies,
+    bestTrophies: source.bestTrophies,
     arena: source.arena?.name ?? "Unknown Arena",
     arenaImage: arenaImage(source.arena),
     clan: source.clan?.name ?? "No clan",
@@ -137,21 +195,21 @@ export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
     clanBadge: source.clan ? badgeImage(source.clan.badgeId, source.clan.badgeUrls) : undefined,
     pathOfLegends,
     supportCards: source.currentDeckSupportCards?.map(mapCard) ?? [],
+    supportCardCollection: source.supportCards?.map((card) => ({ ...mapCard(card), owned: true })),
     favoriteCard,
-    stats: {
-      "Last known trophies": (source.trophies ?? 0).toLocaleString(),
-      "Challenge cards won": (source.challengeCardsWon ?? 0).toLocaleString(),
-      "Challenge max wins": (source.challengeMaxWins ?? 0).toLocaleString(),
-      "Tourney cards won": (source.tournamentCardsWon ?? 0).toLocaleString(),
-      "Total donations": (source.totalDonations ?? source.donations ?? 0).toLocaleString(),
-      "War day wins": (source.warDayWins ?? 0).toLocaleString(),
-      Wins: (source.wins ?? 0).toLocaleString(),
-      Losses: (source.losses ?? 0).toLocaleString(),
-      "3 crown wins": (source.threeCrownWins ?? 0).toLocaleString(),
-      Battles: (source.battleCount ?? 0).toLocaleString(),
-      Arena: source.arena?.name ?? "Unknown"
-    },
+    starPoints: source.starPoints,
+    experiencePoints: source.expPoints,
+    totalExperiencePoints: source.totalExpPoints,
+    legacyTrophyRoadHighScore: source.legacyTrophyRoadHighScore,
+    tournamentBattleCount: source.tournamentBattleCount,
+    clanCardsCollected: source.clanCardsCollected,
+    donationsReceived: source.donationsReceived,
+    role: source.role ? roleLabel(source.role) : undefined,
+    badges: presentValues((source.badges ?? []).map(mapBadge)),
+    achievements: presentValues((source.achievements ?? []).map(mapAchievement)),
+    stats: playerStats(source),
     deck: currentDeck,
+    cardCollectionAvailable: source.cards !== undefined,
     cards: allCards,
     chests: mapChestList(payload.chests.data),
     battles: payload.battles.data.map(mapBattle),

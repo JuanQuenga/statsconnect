@@ -7,6 +7,8 @@ import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollection";
+import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
 import type { ProfileHistoryPoint } from "@/lib/clash/types";
 
@@ -15,22 +17,6 @@ const tabItems = [
   { label: "Battles", icon: "/images/icons/sword.png" },
   { label: "Decks", icon: "/images/icons/cardsq.png" },
   { label: "Cards", icon: "/images/icons/book-cards.png" }
-];
-
-/** Placeholder is the arena the player is actually in, filled in per render. */
-const statIcons = [
-  "/images/icons/trophy.png",
-  "/images/icons/trophy.png",
-  "/images/icons/cardsq.png",
-  "/images/icons/ranklegendary.png",
-  "arena",
-  "arena",
-  "arena",
-  "arena",
-  "/images/icons/sword.png",
-  "/images/icons/sword.png",
-  "/images/icons/crown-2d.png",
-  "/images/icons/crown-gold.png"
 ];
 
 export function PlayerHero({ player }: { player: Player }) {
@@ -47,7 +33,7 @@ export function PlayerHero({ player }: { player: Player }) {
       <span>
         {player.clanTag ? <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>{player.clan} &gt;</Link> : `${player.clan} >`}
       </span>
-      <h1>{player.name}<span className="hero-level" aria-label={`Level ${player.level}`}>{player.level}</span></h1>
+      <h1>{player.name}{player.level !== undefined ? <span className="hero-level" aria-label={`Level ${player.level}`}>{player.level}</span> : null}</h1>
       <strong>#{player.tag}</strong>
       <div className="card-detail-meta hero-chips">
         <span className="status-chip">
@@ -66,6 +52,7 @@ export function PlayerHero({ player }: { player: Player }) {
           </Link>
         ) : null}
       </div>
+      <PlayerShareActions player={player} />
     </section>
   );
 }
@@ -87,7 +74,7 @@ export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: 
 
 export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Player; onRefresh: () => void; isRefreshing: boolean }) {
   const rows = [
-    ["Highest trophies", player.bestTrophies.toLocaleString()],
+    ...(player.bestTrophies !== undefined ? [["Highest trophies", player.bestTrophies.toLocaleString()]] : []),
     ...Object.entries(player.stats)
   ];
 
@@ -97,17 +84,19 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
         <FilterButton />
         <div className="update-tools"><span>{updatedLabel(player.fetchedAt)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? "Refreshing" : "Refresh"}</button></div>
       </div>
-      <div className="stat-matrix">
-        {rows.map(([label, value], index) => (
-          <div key={label} className="stat-cell">
-            <Image src={statIcon(statIcons[index], player.arenaImage)} alt="" width={46} height={46} />
-            <div>
-              <strong>{value}</strong>
-              <span>{label}</span>
+      {rows.length ? (
+        <div className="stat-matrix">
+          {rows.map(([label, value]) => (
+            <div key={label} className="stat-cell">
+              <Image src={statIcon(label, player.arenaImage)} alt="" width={46} height={46} />
+              <div>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : <p className="empty-results">The API did not report player statistics for this profile.</p>}
     </section>
   );
 }
@@ -210,9 +199,13 @@ function PerformanceStyles() {
   );
 }
 
-function statIcon(icon: string | undefined, arenaImage: string) {
-  if (!icon) return "/images/icons/trophy.png";
-  return icon === "arena" ? arenaImage : icon;
+function statIcon(label: string, arenaImage: string) {
+  if (label === "Arena") return arenaImage;
+  if (label.includes("card")) return "/images/icons/cardsq.png";
+  if (label.includes("3 crown")) return "/images/icons/crown-gold.png";
+  if (label.includes("donation")) return "/images/icons/crown-2d.png";
+  if (label.includes("win") || label === "Losses" || label === "Battles") return "/images/icons/sword.png";
+  return "/images/icons/trophy.png";
 }
 
 /**
@@ -357,16 +350,18 @@ function DeckAnalyticsStyles() {
   );
 }
 
-export function CardCollection({ cards }: { cards: Card[] }) {
-  if (!cards.length) return <EmptyPanel title="No cards available" copy="The API did not return this player's card collection." />;
-  return (
-    <section className="profile-section">
-      <div className="section-heading compact-heading"><span className="filter-button static">{cards.length} cards</span><h2>Card Collection</h2><span /></div>
-      <div className="collection-grid">
-        {cards.map((card, index) => <CollectionCard key={`${card.name}-${index}`} card={card} />)}
-      </div>
-    </section>
-  );
+export function CardCollection({
+  player,
+  catalogCards,
+  catalogLoading,
+  catalogError
+}: {
+  player: Player;
+  catalogCards?: Card[];
+  catalogLoading?: boolean;
+  catalogError?: boolean;
+}) {
+  return <PlayerCardCollection player={player} catalogCards={catalogCards} catalogLoading={catalogLoading} catalogError={catalogError} />;
 }
 
 function MiniDeck({ cards }: { cards: Card[] }) {
@@ -503,6 +498,9 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
  * history, and the note under the chart says so.
  */
 function InferredProgressionChart({ player }: { player: Player }) {
+  if (player.trophies === undefined) {
+    return <EmptyPanel title="No trophy activity available" copy="The API did not report a current trophy count for this player." />;
+  }
   const recentBattles = player.battles.slice(0, 10).reverse();
   const startingTrophies = player.trophies - recentBattles.reduce((total, battle) => total + battle.trophyChange, 0);
   const values = recentBattles.reduce<number[]>((points, battle) => {
@@ -570,6 +568,7 @@ function InferredProgressionChart({ player }: { player: Player }) {
 }
 
 export function ChestList({ chests }: { chests: Chest[] }) {
+  if (!chests.length) return null;
   return (
     <section className="chest-footer">
       {/* "My Chests" on someone else's profile read as the viewer's own. */}
