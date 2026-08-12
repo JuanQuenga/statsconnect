@@ -369,6 +369,7 @@ const mapDetail = httpAction(async (ctx, request) => {
     map,
     stats: meta.stats,
     teams: meta.teams,
+    matchups: meta.matchups,
     sampleSize: meta.sampleSize,
     minPicks: meta.minPicks ?? MIN_META_PICKS,
   });
