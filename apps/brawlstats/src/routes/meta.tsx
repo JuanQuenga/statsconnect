@@ -87,7 +87,7 @@ function MetaResearchPage() {
   const error = primaryQuery.error || catalogQuery.error || mapsQuery.error || comparisonQuery.error;
   return (
     <div className="page-shell">
-      <header><p className="eyebrow">{t("meta.eyebrow")}</p><h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1><p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p></header>
+      <header className="page-intro"><p className="eyebrow">{t("meta.eyebrow")}</p><h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1><p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p></header>
 
       <div className="data-surface grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
         <Filter label={t("meta.winRate")} value={metric} options={[["win", t("meta.winRate")], ["use", t("meta.useRate")], ["picks", t("meta.sampleSize")], ["star", t("meta.starRate")]]} onChange={(value) => update({ metric: value as Metric })} />

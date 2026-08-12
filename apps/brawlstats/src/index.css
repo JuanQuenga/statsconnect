@@ -40,7 +40,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --font-sans: ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-display: "TotalBlack VF", ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Lilita One", "TotalBlack VF", ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -94,9 +94,9 @@
   .game-rank,
   .game-stat {
     font-family: var(--font-display);
-    font-weight: 800;
+    font-weight: 400;
     font-synthesis: none;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
   }
 
   .game-rank,
@@ -167,6 +167,21 @@
 
   .page-shell {
     @apply mx-auto w-full max-w-7xl space-y-8 px-4 py-8 md:px-6 md:py-12;
+  }
+
+  .page-intro :is(h1, .eyebrow, .text-muted-foreground),
+  .brawl-hero-copy :is(h1, .eyebrow, .text-muted-foreground) {
+    text-shadow: 0 2px 18px rgba(2, 7, 14, 0.92);
+  }
+
+  .page-intro .eyebrow,
+  .brawl-hero-copy .eyebrow {
+    color: #72e0d2;
+  }
+
+  .page-intro .text-muted-foreground,
+  .brawl-hero-copy .text-muted-foreground {
+    color: #d5dde9;
   }
 
   .eyebrow {

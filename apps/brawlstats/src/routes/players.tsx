@@ -97,7 +97,7 @@ function PlayersPage() {
 
   return (
     <div className="page-shell">
-      <div>
+      <div className="page-intro">
         <p className="eyebrow">{t("player.eyebrow")}</p>
         <h1 className="font-display text-4xl">{t("player.title")}</h1>
         <PlayerSearchBox initialValue={rawTag || nameQuery} className="mt-4 max-w-lg" buttonLabel={t("common.find")} />

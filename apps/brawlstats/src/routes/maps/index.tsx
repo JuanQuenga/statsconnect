@@ -75,7 +75,7 @@ function MapsPage() {
 
   return (
     <div className="page-shell space-y-10">
-      <div>
+      <div className="page-intro">
         <p className="eyebrow">{t("maps.eyebrow")}</p>
         <h1 className="font-display text-4xl md:text-5xl">{t("maps.title")}</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
@@ -85,7 +85,7 @@ function MapsPage() {
       </div>
 
       <section>
-        <div className="mb-4 flex items-end justify-between gap-3">
+        <div className="page-intro mb-4 flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-medium text-muted-foreground">{t("maps.liveRotation")}</p>
             <h2 className="section-title">{t("maps.activeNow")}</h2>

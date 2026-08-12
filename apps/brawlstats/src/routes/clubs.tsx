@@ -260,7 +260,7 @@ function ClubsPage() {
 
   return (
     <div className="page-shell">
-      <div>
+      <div className="page-intro">
         <p className="eyebrow">{t("club.intelligence")}</p>
         <h1 className="font-display text-4xl">{t("club.title")}</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t("club.description")}</p>

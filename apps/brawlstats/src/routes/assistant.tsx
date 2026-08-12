@@ -69,7 +69,7 @@ function AssistantPage() {
 
   return (
     <div className="page-shell">
-      <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div className="page-intro grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
           <p className="eyebrow">{t("assistant.eyebrow")}</p>
           <h1 className="font-display text-4xl md:text-5xl">{t("assistant.title")}</h1>

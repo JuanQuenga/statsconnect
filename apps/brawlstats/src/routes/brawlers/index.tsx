@@ -80,7 +80,7 @@ function BrawlersPage() {
 
   return (
     <div className="page-shell">
-      <header>
+      <header className="page-intro">
         <p className="eyebrow">{t("brawlers.eyebrow")}</p>
         <h1 className="font-display text-4xl md:text-5xl">{t("brawlers.title")}</h1>
         <p className="mt-3 max-w-3xl text-muted-foreground">

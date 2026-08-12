@@ -62,7 +62,7 @@ function ProgressionPage() {
 
   return (
     <div className="page-shell">
-      <header>
+      <header className="page-intro">
         <p className="eyebrow">{t("progression.eyebrow")}</p>
         <h1 className="font-display text-4xl md:text-5xl">{t("progression.title")}</h1>
         <p className="mt-3 max-w-3xl text-muted-foreground">{t("progression.description")}</p>

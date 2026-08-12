@@ -67,7 +67,7 @@ function LeaderboardsPage() {
 
   return (
     <div className="page-shell">
-      <div>
+      <div className="page-intro">
         <p className="eyebrow">{t("leaderboard.eyebrow")}</p>
         <h1 className="font-display text-4xl">{t("leaderboard.title")}</h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
