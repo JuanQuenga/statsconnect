@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { apiFetch, profileIconUrl } from "@/lib/api";
 import { normalizeTag, trophies } from "@/lib/format";
 import { appPath } from "@/lib/paths";
+import { rememberRecentProfile } from "@/lib/preferences";
 import type { PlayerDirectoryResult, PlayerSearchResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,13 @@ export function PlayerSearch({
   }, [searchQuery.data]);
 
   function navigateToPlayer(tag: string) {
+    const match = choices.players.find((player) => player.tag === tag.replace(/^#/, ""));
+    rememberRecentProfile({
+      tag,
+      name: match?.name,
+      iconId: match?.iconId,
+      trophies: match?.trophies,
+    });
     onNavigate?.();
     window.location.assign(
       appPath(`/players?tag=${encodeURIComponent(`#${tag.replace(/^#/, "")}`)}`),

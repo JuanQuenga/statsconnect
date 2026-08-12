@@ -1,4 +1,5 @@
 import { FooterNotice } from "@/components/layout/FooterNotice";
+import { CompanionBar } from "@/components/layout/CompanionBar";
 import { SiteNav } from "@/components/layout/SiteNav";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
       <SiteNav />
+      <CompanionBar />
       <main id="maincontent" className="flex-1" tabIndex={-1}>
         {children}
       </main>

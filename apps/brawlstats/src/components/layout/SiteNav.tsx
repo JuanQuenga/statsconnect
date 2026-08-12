@@ -4,14 +4,7 @@ import {
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 import { PlayerSearch } from "@/components/PlayerSearch";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/players", label: "Players" },
-  { href: "/clubs", label: "Clubs" },
-  { href: "/maps", label: "Maps" },
-  { href: "/leaderboards", label: "Leaderboards" },
-] as const;
+import { useI18n } from "@/lib/i18n";
 
 const statsConnectOrigin = import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim();
 
@@ -32,6 +25,15 @@ function BrawlStatsLink({ children, className, href, onNavigate }: SiteNavigatio
 }
 
 export function SiteNav() {
+  const { t } = useI18n();
+  const links = [
+    { href: "/", label: t("home") },
+    { href: "/players", label: t("players") },
+    { href: "/clubs", label: t("clubs") },
+    { href: "/maps", label: t("maps") },
+    { href: "/brawlers", label: t("brawlers") },
+    { href: "/leaderboards", label: t("leaderboards") },
+  ];
   return (
     <SiteNavigation
       accentColor="#f5c85b"
@@ -48,7 +50,7 @@ export function SiteNav() {
         </Link>
       }
       renderSearch={(onNavigate) => (
-        <PlayerSearch compact buttonLabel="Search" onNavigate={onNavigate} />
+        <PlayerSearch compact buttonLabel={t("search")} onNavigate={onNavigate} />
       )}
     />
   );

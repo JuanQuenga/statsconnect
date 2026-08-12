@@ -10,11 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as BandsRouteImport } from './routes/bands'
 import { Route as BetaRouteImport } from './routes/beta'
 import { Route as ClubsRouteImport } from './routes/clubs'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as PlayersRouteImport } from './routes/players'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as GamemodesModeIdRouteImport } from './routes/gamemodes/$modeId'
 import { Route as MapsIndexRouteImport } from './routes/maps/index'
 import { Route as MapsMapIdRouteImport } from './routes/maps/$mapId'
@@ -22,6 +24,11 @@ import { Route as MapsMapIdRouteImport } from './routes/maps/$mapId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BandsRoute = BandsRouteImport.update({
@@ -49,6 +56,11 @@ const PlayersRoute = PlayersRouteImport.update({
   path: '/players',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamemodesModeIdRoute = GamemodesModeIdRouteImport.update({
   id: '/gamemodes/$modeId',
   path: '/gamemodes/$modeId',
@@ -67,22 +79,26 @@ const MapsMapIdRoute = MapsMapIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/bands': typeof BandsRoute
   '/beta': typeof BetaRoute
   '/clubs': typeof ClubsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/players': typeof PlayersRoute
+  '/settings': typeof SettingsRoute
   '/gamemodes/$modeId': typeof GamemodesModeIdRoute
   '/maps/$mapId': typeof MapsMapIdRoute
   '/maps/': typeof MapsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/bands': typeof BandsRoute
   '/beta': typeof BetaRoute
   '/clubs': typeof ClubsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/players': typeof PlayersRoute
+  '/settings': typeof SettingsRoute
   '/gamemodes/$modeId': typeof GamemodesModeIdRoute
   '/maps/$mapId': typeof MapsMapIdRoute
   '/maps': typeof MapsIndexRoute
@@ -90,11 +106,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/bands': typeof BandsRoute
   '/beta': typeof BetaRoute
   '/clubs': typeof ClubsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/players': typeof PlayersRoute
+  '/settings': typeof SettingsRoute
   '/gamemodes/$modeId': typeof GamemodesModeIdRoute
   '/maps/$mapId': typeof MapsMapIdRoute
   '/maps/': typeof MapsIndexRoute
@@ -103,33 +121,39 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assistant'
     | '/bands'
     | '/beta'
     | '/clubs'
     | '/leaderboards'
     | '/players'
+    | '/settings'
     | '/gamemodes/$modeId'
     | '/maps/$mapId'
     | '/maps/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assistant'
     | '/bands'
     | '/beta'
     | '/clubs'
     | '/leaderboards'
     | '/players'
+    | '/settings'
     | '/gamemodes/$modeId'
     | '/maps/$mapId'
     | '/maps'
   id:
     | '__root__'
     | '/'
+    | '/assistant'
     | '/bands'
     | '/beta'
     | '/clubs'
     | '/leaderboards'
     | '/players'
+    | '/settings'
     | '/gamemodes/$modeId'
     | '/maps/$mapId'
     | '/maps/'
@@ -137,11 +161,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistantRoute: typeof AssistantRoute
   BandsRoute: typeof BandsRoute
   BetaRoute: typeof BetaRoute
   ClubsRoute: typeof ClubsRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
   PlayersRoute: typeof PlayersRoute
+  SettingsRoute: typeof SettingsRoute
   GamemodesModeIdRoute: typeof GamemodesModeIdRoute
   MapsMapIdRoute: typeof MapsMapIdRoute
   MapsIndexRoute: typeof MapsIndexRoute
@@ -154,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bands': {
@@ -191,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gamemodes/$modeId': {
       id: '/gamemodes/$modeId'
       path: '/gamemodes/$modeId'
@@ -217,11 +257,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistantRoute: AssistantRoute,
   BandsRoute: BandsRoute,
   BetaRoute: BetaRoute,
   ClubsRoute: ClubsRoute,
   LeaderboardsRoute: LeaderboardsRoute,
   PlayersRoute: PlayersRoute,
+  SettingsRoute: SettingsRoute,
   GamemodesModeIdRoute: GamemodesModeIdRoute,
   MapsMapIdRoute: MapsMapIdRoute,
   MapsIndexRoute: MapsIndexRoute,

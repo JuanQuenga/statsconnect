@@ -1,0 +1,18 @@
+{
+  "name": "BrawlStats.io",
+  "short_name": "BrawlStats",
+  "description": "Live Brawl Stars profiles, progression, map meta, and draft recommendations.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a101a",
+  "theme_color": "#0a101a",
+  "icons": [
+    {
+      "src": "assets/img/bs-stats.png",
+      "type": "image/png",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}
