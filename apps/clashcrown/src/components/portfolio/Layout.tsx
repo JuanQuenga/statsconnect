@@ -12,7 +12,7 @@ const navItems = [
   { href: "/meta", label: "Meta" },
   { href: "/leaderboards", label: "Leaderboards" },
   { href: "/cards", label: "Cards" },
-  { href: "/decks", label: "Deck Builder" },
+  { href: "/decks", label: "Decks" },
   { href: "/clans/search", label: "Clans" },
   { href: "/tournaments", label: "Tournaments" }
 ];
@@ -67,7 +67,7 @@ function SiteFooter() {
         <div className="footer-links">
           <Link href="/leaderboards">Leaderboards</Link>
           <Link href="/cards">Card Library</Link>
-          <Link href="/decks">Deck Builder</Link>
+          <Link href="/decks">Deck Discovery</Link>
           <Link href="/clans/search">Clan Search</Link>
           <Link href="/tournaments">Tournaments</Link>
           <Link href="/meta">Meta Report</Link>

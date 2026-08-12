@@ -102,7 +102,12 @@ export default defineSchema({
     evolutionIds: v.array(v.number()),
     uses: v.number(),
     wins: v.number(),
-    crowns: v.number()
+    crowns: v.number(),
+    /** Optional because existing aggregates predate trophy/arena capture. */
+    trophySum: v.optional(v.number()),
+    trophySamples: v.optional(v.number()),
+    arenaIds: v.optional(v.array(v.number())),
+    arenaNames: v.optional(v.array(v.string()))
   })
     .index("by_day_and_mode_and_deck", ["day", "mode", "deckHash"])
     .index("by_day_and_mode", ["day", "mode"])
@@ -164,6 +169,10 @@ export default defineSchema({
     wins: v.number(),
     winRate: v.number(),
     usageRate: v.number(),
+    averageTrophies: v.optional(v.number()),
+    trophySamples: v.optional(v.number()),
+    arenaIds: v.optional(v.array(v.number())),
+    arenaNames: v.optional(v.array(v.string())),
     computedAt: v.number()
   })
     .index("by_window_and_mode_and_rank", ["windowDays", "mode", "rank"])

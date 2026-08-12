@@ -37,6 +37,10 @@ export type DeckObservation = {
   cardIds: number[];
   evolutionIds: number[];
   towerCardId?: number;
+  /** Starting trophies are only present in modes that report them. */
+  trophies?: number;
+  arenaId?: number;
+  arenaName?: string;
   won: boolean;
   crowns: number;
   opponentCrowns: number;
@@ -214,6 +218,7 @@ function side(participant: ApiBattleParticipant) {
     cardIds,
     evolutionIds,
     towerCardId: participant.supportCards?.[0]?.id,
+    trophies: participant.startingTrophies,
     crowns: participant.crowns ?? 0
   };
 }
@@ -261,6 +266,9 @@ export function battleObservations(battle: ApiBattle): DeckObservation[] {
       cardIds: self.cardIds,
       evolutionIds: self.evolutionIds,
       towerCardId: self.towerCardId,
+      trophies: self.trophies,
+      arenaId: battle.arena?.id,
+      arenaName: battle.arena?.name,
       won: self.crowns > other.crowns,
       crowns: self.crowns,
       opponentCrowns: other.crowns

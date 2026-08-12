@@ -28,6 +28,9 @@ const observation = v.object({
   cardIds: v.array(v.number()),
   evolutionIds: v.array(v.number()),
   towerCardId: v.optional(v.number()),
+  trophies: v.optional(v.number()),
+  arenaId: v.optional(v.number()),
+  arenaName: v.optional(v.string()),
   won: v.boolean(),
   crowns: v.number(),
   opponentCrowns: v.number()
@@ -127,6 +130,7 @@ export const ingestBattles = internalMutation({
     revisitSeconds: v.number(),
     failed: v.optional(v.boolean())
   },
+  returns: v.object({ battles: v.number(), observations: v.number() }),
   handler: async (ctx, args) => {
     const now = Date.now();
 
@@ -186,6 +190,10 @@ export const ingestBattles = internalMutation({
       uses: number;
       wins: number;
       crowns: number;
+      trophySum: number;
+      trophySamples: number;
+      arenaIds: Set<number>;
+      arenaNames: Set<string>;
     };
     const deckDeltas = new Map<string, DeckDelta>();
     const cardDeltas = new Map<string, { day: number; mode: MetaMode; cardId: number; uses: number; wins: number }>();
@@ -217,11 +225,21 @@ export const ingestBattles = internalMutation({
         evolutionIds: item.evolutionIds,
         uses: 0,
         wins: 0,
-        crowns: 0
+        crowns: 0,
+        trophySum: 0,
+        trophySamples: 0,
+        arenaIds: new Set<number>(),
+        arenaNames: new Set<string>()
       };
       deck.uses += 1;
       deck.wins += item.won ? 1 : 0;
       deck.crowns += item.crowns;
+      if (item.trophies !== undefined) {
+        deck.trophySum += item.trophies;
+        deck.trophySamples += 1;
+      }
+      if (item.arenaId !== undefined) deck.arenaIds.add(item.arenaId);
+      if (item.arenaName) deck.arenaNames.add(item.arenaName);
       deckDeltas.set(deckKey, deck);
 
       for (const cardId of item.cardIds) {
@@ -292,10 +310,18 @@ export const ingestBattles = internalMutation({
         await ctx.db.patch(existing._id, {
           uses: existing.uses + delta.uses,
           wins: existing.wins + delta.wins,
-          crowns: existing.crowns + delta.crowns
+          crowns: existing.crowns + delta.crowns,
+          trophySum: (existing.trophySum ?? 0) + delta.trophySum,
+          trophySamples: (existing.trophySamples ?? 0) + delta.trophySamples,
+          arenaIds: [...new Set([...(existing.arenaIds ?? []), ...delta.arenaIds])],
+          arenaNames: [...new Set([...(existing.arenaNames ?? []), ...delta.arenaNames])]
         });
       } else {
-        await ctx.db.insert("deckStats", delta);
+        await ctx.db.insert("deckStats", {
+          ...delta,
+          arenaIds: [...delta.arenaIds],
+          arenaNames: [...delta.arenaNames]
+        });
       }
     }
 
@@ -376,10 +402,15 @@ export const writeDeckRankings = internalMutation({
         uses: v.number(),
         wins: v.number(),
         winRate: v.number(),
-        usageRate: v.number()
+        usageRate: v.number(),
+        averageTrophies: v.optional(v.number()),
+        trophySamples: v.optional(v.number()),
+        arenaIds: v.optional(v.array(v.number())),
+        arenaNames: v.optional(v.array(v.string()))
       })
     )
   },
+  returns: v.object({ written: v.number() }),
   handler: async (ctx, args) => {
     const stale = await ctx.db
       .query("deckRankings")
@@ -598,6 +629,131 @@ export const topDecks = query({
       .withIndex("by_window_and_mode_and_rank", (q) => q.eq("windowDays", windowDays).eq("mode", args.mode))
       .take(Math.min(args.limit ?? 20, 100));
     return { windowDays, decks: rows };
+  }
+});
+
+const discoverySort = v.union(v.literal("rating"), v.literal("popularity"), v.literal("winRate"));
+const discoveryDeck = v.object({
+  deckHash: v.string(),
+  rank: v.number(),
+  cardIds: v.array(v.number()),
+  evolutionIds: v.array(v.number()),
+  uses: v.number(),
+  wins: v.number(),
+  winRate: v.number(),
+  usageRate: v.number(),
+  rating: v.number(),
+  computedAt: v.number(),
+  averageTrophies: v.union(v.number(), v.null()),
+  trophySamples: v.number(),
+  arenaIds: v.array(v.number()),
+  arenaNames: v.array(v.string())
+});
+
+/** Wilson lower bound: conservative performance signal for uneven samples. */
+function observedRating(wins: number, uses: number, usageRate: number, maxUsageRate: number) {
+  if (!uses) return 0;
+  const z = 1.96;
+  const proportion = wins / uses;
+  const denominator = 1 + (z * z) / uses;
+  const centre = proportion + (z * z) / (2 * uses);
+  const spread = z * Math.sqrt((proportion * (1 - proportion) + (z * z) / (4 * uses)) / uses);
+  const lowerBound = (centre - spread) / denominator;
+  const popularity = maxUsageRate ? Math.sqrt(usageRate / maxUsageRate) : 0;
+  return Math.max(0, Math.min(1, lowerBound * 0.8 + popularity * 0.2));
+}
+
+/** Bounded search over the materialised top deck sample. */
+export const discoverDecks = query({
+  args: {
+    mode: metaMode,
+    windowDays: v.optional(v.number()),
+    includeCardIds: v.optional(v.array(v.number())),
+    excludeCardIds: v.optional(v.array(v.number())),
+    minEvolutions: v.optional(v.number()),
+    maxEvolutions: v.optional(v.number()),
+    minTrophies: v.optional(v.number()),
+    maxTrophies: v.optional(v.number()),
+    arenaName: v.optional(v.string()),
+    sort: v.optional(discoverySort),
+    limit: v.optional(v.number())
+  },
+  returns: v.object({
+    windowDays: v.number(),
+    totalRanked: v.number(),
+    matched: v.number(),
+    computedAt: v.union(v.number(), v.null()),
+    trophyCoverage: v.object({ decks: v.number(), samples: v.number() }),
+    arenaCoverage: v.number(),
+    trophyFilterApplied: v.boolean(),
+    arenaFilterApplied: v.boolean(),
+    decks: v.array(discoveryDeck)
+  }),
+  handler: async (ctx, args) => {
+    const windowDays = RANKING_WINDOWS.includes(args.windowDays as 1 | 7) ? args.windowDays! : 7;
+    const rows = await ctx.db
+      .query("deckRankings")
+      .withIndex("by_window_and_mode_and_rank", (q) => q.eq("windowDays", windowDays).eq("mode", args.mode))
+      .take(100);
+    const maxUsageRate = Math.max(0, ...rows.map((row) => row.usageRate));
+    const trophyCoverage = {
+      decks: rows.filter((row) => (row.trophySamples ?? 0) > 0).length,
+      samples: rows.reduce((total, row) => total + (row.trophySamples ?? 0), 0)
+    };
+    const arenaCoverage = rows.filter((row) => (row.arenaNames?.length ?? 0) > 0).length;
+    const wantsTrophies = args.minTrophies !== undefined || args.maxTrophies !== undefined;
+    const normalizedArena = args.arenaName?.trim().toLowerCase() ?? "";
+    const trophyFilterApplied = wantsTrophies && trophyCoverage.decks > 0;
+    const arenaFilterApplied = Boolean(normalizedArena) && arenaCoverage > 0;
+    const include = new Set(args.includeCardIds ?? []);
+    const exclude = new Set(args.excludeCardIds ?? []);
+
+    const decks = rows
+      .map((row) => ({
+        deckHash: row.deckHash,
+        rank: row.rank,
+        cardIds: row.cardIds,
+        evolutionIds: row.evolutionIds,
+        uses: row.uses,
+        wins: row.wins,
+        winRate: row.winRate,
+        usageRate: row.usageRate,
+        rating: observedRating(row.wins, row.uses, row.usageRate, maxUsageRate),
+        computedAt: row.computedAt,
+        averageTrophies: row.averageTrophies ?? null,
+        trophySamples: row.trophySamples ?? 0,
+        arenaIds: row.arenaIds ?? [],
+        arenaNames: row.arenaNames ?? []
+      }))
+      .filter((row) => [...include].every((cardId) => row.cardIds.includes(cardId)))
+      .filter((row) => [...exclude].every((cardId) => !row.cardIds.includes(cardId)))
+      .filter((row) => row.evolutionIds.length >= Math.max(0, args.minEvolutions ?? 0))
+      .filter((row) => row.evolutionIds.length <= Math.max(0, args.maxEvolutions ?? 8))
+      .filter((row) => !trophyFilterApplied || (
+        row.averageTrophies !== null &&
+        row.averageTrophies >= (args.minTrophies ?? 0) &&
+        row.averageTrophies <= (args.maxTrophies ?? Number.MAX_SAFE_INTEGER)
+      ))
+      .filter((row) => !arenaFilterApplied || row.arenaNames.some((name) => name.toLowerCase().includes(normalizedArena)));
+
+    const sort = args.sort ?? "rating";
+    decks.sort((left, right) => {
+      if (sort === "popularity") return right.uses - left.uses || right.rating - left.rating;
+      if (sort === "winRate") return right.winRate - left.winRate || right.uses - left.uses;
+      return right.rating - left.rating || right.uses - left.uses;
+    });
+
+    return {
+      windowDays,
+      totalRanked: rows.length,
+      matched: decks.length,
+      computedAt: rows[0]?.computedAt ?? null,
+      trophyCoverage,
+      arenaCoverage,
+      trophyFilterApplied,
+      arenaFilterApplied,
+      decks: decks.slice(0, Math.min(Math.max(args.limit ?? 100, 1), 100))
+    };
   }
 });
 
