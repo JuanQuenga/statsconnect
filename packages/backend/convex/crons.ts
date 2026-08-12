@@ -54,5 +54,17 @@ crons.interval(
   internal.clash.crawler.prune,
   {},
 );
+crons.interval(
+  "clash: observe tracked clans",
+  { minutes: 30 },
+  internal.clash.clanManagementActions.pollTrackedClans,
+  {},
+);
+crons.interval(
+  "clash: prune clan management history",
+  { hours: 6 },
+  internal.clash.clanManagementActions.pruneHistory,
+  {},
+);
 
 export default crons;

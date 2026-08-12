@@ -44,6 +44,10 @@ async function logFetch(ctx: ActionCtx, endpoint: string, status: number, ok: bo
 }
 
 type RunResult = { note?: string; counters?: Record<string, number> };
+const runResult = v.object({
+  note: v.optional(v.string()),
+  counters: v.optional(v.record(v.string(), v.number()))
+});
 
 type Sighting = { tag: string; name: string; clanTag?: string; clanName?: string; trophies?: number };
 
@@ -117,14 +121,33 @@ export const discover = internalAction({
       await logFetch(ctx, "/leaderboards", boards.status, boards.ok);
       // Many boards come back with a null name, and ids climb with each new
       // instance of an event, so the highest named id is the live one.
-      const boardId = boards.ok
-        ? (boards.data.items ?? []).filter((board) => board.name).sort((a, b) => b.id - a.id)[0]?.id
+      const activeBoard = boards.ok
+        ? (boards.data.items ?? []).filter((board) => board.name).sort((a, b) => b.id - a.id)[0]
         : undefined;
 
-      if (typeof boardId === "number") {
-        const top = await clashRequest<ApiPaged<ApiPlayerRanking>>(`/leaderboard/${boardId}?limit=${limit}`);
+      if (activeBoard) {
+        const top = await clashRequest<ApiPaged<ApiPlayerRanking>>(`/leaderboard/${activeBoard.id}?limit=${limit}`);
         await logFetch(ctx, "/leaderboard/{id}", top.status, top.ok);
         if (top.ok) {
+          const observedAt = Date.now();
+          await ctx.runMutation(internal.clash.history.recordLeaderboardSnapshot, {
+            board: {
+              key: `event:${activeBoard.id}`,
+              kind: "event",
+              name: activeBoard.name ?? `Leaderboard #${activeBoard.id}`,
+              boardId: activeBoard.id
+            },
+            entries: (top.data.items ?? []).slice(0, 200).map((player, index) => ({
+              rank: player.rank ?? index + 1,
+              tag: player.tag.replace(/^#/, "").toUpperCase(),
+              name: player.name,
+              ...(player.score !== undefined && player.score !== 2147483647 ? { score: player.score } : {}),
+              ...(player.trophies !== undefined ? { trophies: player.trophies } : {}),
+              ...(player.clan?.tag ? { clanTag: player.clan.tag.replace(/^#/, "") } : {}),
+              ...(player.clan?.name ? { clanName: player.clan.name } : {})
+            })),
+            observedAt
+          });
           for (const [index, player] of (top.data.items ?? []).entries()) {
             if (!player.tag) continue;
             const tag = player.tag.replace(/^#/, "");
@@ -135,8 +158,8 @@ export const discover = internalAction({
                 name: player.name,
                 clanTag: player.clan?.tag,
                 clanName: player.clan?.name,
-                // Event boards report `score`; the trophy field is absent there.
-                trophies: player.trophies ?? player.score
+                // Event scores are not trophies, so only persist the actual trophy field.
+                trophies: player.trophies
               });
             }
           }
@@ -225,11 +248,24 @@ export const crawl = internalAction({
         }
 
         const collected: DeckObservation[] = [];
+        let targetSnapshot: {
+          player: {
+            tag: string;
+            name: string;
+            trophies?: number;
+            clanTag?: string;
+            clanName?: string;
+            currentDeck?: Array<{ id: number; level?: number; evolutionLevel?: number }>;
+          };
+          observedAt: number;
+        } | undefined;
         for (const battle of response.data ?? []) {
+          const parsed = battleObservations(battle);
           for (const participant of [...(battle.team ?? []), ...(battle.opponent ?? [])]) {
             if (!participant.tag || !participant.name) continue;
+            const participantTag = participant.tag.replace(/^#/, "").toUpperCase();
             sightings.push({
-              tag: participant.tag.replace(/^#/, ""),
+              tag: participantTag,
               name: participant.name,
               clanTag: participant.clan?.tag?.replace(/^#/, ""),
               clanName: participant.clan?.name,
@@ -237,13 +273,39 @@ export const crawl = internalAction({
               // which is the closest thing to a current count they carry.
               trophies: participant.startingTrophies
             });
+            if (!targetSnapshot && participantTag === target.tag.toUpperCase() && parsed[0]?.battleTime) {
+              targetSnapshot = {
+                player: {
+                  tag: participantTag,
+                  name: participant.name,
+                  ...(participant.startingTrophies !== undefined ? { trophies: participant.startingTrophies } : {}),
+                  ...(participant.clan?.tag ? { clanTag: participant.clan.tag.replace(/^#/, "") } : {}),
+                  ...(participant.clan?.name ? { clanName: participant.clan.name } : {}),
+                  ...(participant.cards?.length ? {
+                    currentDeck: participant.cards.map((card) => ({
+                      id: card.id,
+                      ...(card.level !== undefined ? { level: card.level } : {}),
+                      ...(card.evolutionLevel !== undefined ? { evolutionLevel: card.evolutionLevel } : {})
+                    }))
+                  } : {})
+                },
+                observedAt: parsed[0].battleTime
+              };
+            }
           }
 
           // Anything at or before the newest battle we already stored is a
           // re-read; the log is ordered newest first but not guaranteed to be.
-          const items = battleObservations(battle);
+          const items = parsed;
           if (items.length && target.lastBattleTime && items[0].battleTime <= target.lastBattleTime) continue;
           collected.push(...items);
+        }
+
+        if (targetSnapshot) {
+          await ctx.runMutation(internal.clash.history.recordPlayerSnapshot, {
+            ...targetSnapshot,
+            source: "battle_log"
+          });
         }
 
         const result = await ctx.runMutation(internal.clash.meta.ingestBattles, {
@@ -273,6 +335,10 @@ type Aggregate = {
   evolutionIds: number[];
   uses: number;
   wins: number;
+  trophySum: number;
+  trophySamples: number;
+  arenaIds: Set<number>;
+  arenaNames: Set<string>;
 };
 
 async function aggregateWindow(ctx: ActionCtx, days: number) {
@@ -305,10 +371,18 @@ async function aggregateWindow(ctx: ActionCtx, days: number) {
           cardIds: row.cardIds,
           evolutionIds: row.evolutionIds,
           uses: 0,
-          wins: 0
+          wins: 0,
+          trophySum: 0,
+          trophySamples: 0,
+          arenaIds: new Set<number>(),
+          arenaNames: new Set<string>()
         };
         entry.uses += row.uses;
         entry.wins += row.wins;
+        entry.trophySum += row.trophySum ?? 0;
+        entry.trophySamples += row.trophySamples ?? 0;
+        for (const arenaId of row.arenaIds ?? []) entry.arenaIds.add(arenaId);
+        for (const arenaName of row.arenaNames ?? []) entry.arenaNames.add(arenaName);
         decks.set(row.deckHash, entry);
         byMode.set(mode, decks);
         totals.set(mode, (totals.get(mode) ?? 0) + row.uses);
@@ -329,6 +403,7 @@ async function aggregateWindow(ctx: ActionCtx, days: number) {
 
 export const rollup = internalAction({
   args: {},
+  returns: runResult,
   handler: async (ctx) => {
     const topN = envNumber("CLASH_RANKING_SIZE", 100);
 
@@ -358,7 +433,12 @@ export const rollup = internalAction({
               uses: entry.uses,
               wins: entry.wins,
               winRate: entry.uses ? entry.wins / entry.uses : 0,
-              usageRate: total ? entry.uses / total : 0
+              usageRate: total ? entry.uses / total : 0,
+              ...(entry.trophySamples
+                ? { averageTrophies: entry.trophySum / entry.trophySamples, trophySamples: entry.trophySamples }
+                : {}),
+              ...(entry.arenaIds.size ? { arenaIds: [...entry.arenaIds] } : {}),
+              ...(entry.arenaNames.size ? { arenaNames: [...entry.arenaNames] } : {})
             }));
 
           const result = await ctx.runMutation(internal.clash.meta.writeDeckRankings, { windowDays, mode, rows });
@@ -385,9 +465,12 @@ export const prune = internalAction({
       // Bounded so a backlog cannot turn one cron tick into an endless loop;
       // the next tick picks up whatever is left.
       for (let pass = 0; pass < 40; pass += 1) {
-        const result = await ctx.runMutation(internal.clash.meta.pruneBatch, {});
-        deleted += result.deleted;
-        if (!result.more) break;
+        const [pipeline, history] = await Promise.all([
+          ctx.runMutation(internal.clash.meta.pruneBatch, {}),
+          ctx.runMutation(internal.clash.history.pruneHistoryBatch, {})
+        ]);
+        deleted += pipeline.deleted + history.deleted;
+        if (!pipeline.more && !history.more) break;
       }
       return { note: `${deleted} rows deleted`, counters: { deleted } };
     });
