@@ -78,6 +78,11 @@ function battleTimestamp(value?: string): number | null {
   return Number.isFinite(timestamp) ? timestamp : null;
 }
 
+function utcDayStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 function personalResult(battle: BattleLogItem["battle"]): "victory" | "defeat" | "draw" | "unknown" {
   if (battle?.result === "victory" || battle?.result === "defeat" || battle?.result === "draw") return battle.result;
   if (battle?.rank === 1) return "victory";
@@ -161,6 +166,8 @@ export const ingestBattleLogItems = internalMutation({
         .sort();
       const battleTime = String(raw.battleTime || "");
       if (!battleTime || tags.length === 0) continue;
+      const observedAt = battleTimestamp(battleTime);
+      const trendDay = observedAt === null ? null : utcDayStart(observedAt);
 
       const dedupeKey = `${battleTime}|${tags.join(",")}`;
       const existing = await ctx.db
@@ -218,6 +225,17 @@ export const ingestBattleLogItems = internalMutation({
             won,
             isStar,
           });
+          if (trendDay !== null && observedAt !== null) {
+            await bumpDailyBrawlerStat(ctx, {
+              day: trendDay,
+              observedAt,
+              mapId,
+              brawlerId,
+              trophyBucket,
+              won,
+              isStar,
+            });
+          }
         }
       }
 
@@ -269,6 +287,17 @@ export const ingestBattleLogItems = internalMutation({
                   opponentBrawlerId,
                   won: teamWon,
                 });
+                if (trendDay !== null && observedAt !== null) {
+                  await bumpDailyMatchupStat(ctx, {
+                    day: trendDay,
+                    observedAt,
+                    mapId,
+                    trophyBucket,
+                    brawlerId,
+                    opponentBrawlerId,
+                    won: teamWon,
+                  });
+                }
               }
             }
           }
@@ -314,6 +343,49 @@ async function bumpBrawlerStat(
     brawlerId: args.brawlerId,
     trophyBucket: args.trophyBucket,
     ...patch,
+  });
+}
+
+async function bumpDailyBrawlerStat(
+  ctx: MutationCtx,
+  args: {
+    day: number;
+    observedAt: number;
+    mapId: number;
+    brawlerId: number;
+    trophyBucket: string;
+    won: boolean | null;
+    isStar: boolean;
+  },
+) {
+  const existing = await ctx.db
+    .query("dailyMapBrawlerStats")
+    .withIndex("by_map_brawler_bucket_and_day", (q) =>
+      q
+        .eq("mapId", args.mapId)
+        .eq("brawlerId", args.brawlerId)
+        .eq("trophyBucket", args.trophyBucket)
+        .eq("day", args.day),
+    )
+    .unique();
+  const values = {
+    picks: (existing?.picks || 0) + 1,
+    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
+    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
+    starPlayer: (existing?.starPlayer || 0) + (args.isStar ? 1 : 0),
+    firstBattleAt: Math.min(existing?.firstBattleAt ?? args.observedAt, args.observedAt),
+    lastBattleAt: Math.max(existing?.lastBattleAt ?? args.observedAt, args.observedAt),
+  };
+  if (existing) {
+    await ctx.db.patch(existing._id, values);
+    return;
+  }
+  await ctx.db.insert("dailyMapBrawlerStats", {
+    day: args.day,
+    mapId: args.mapId,
+    brawlerId: args.brawlerId,
+    trophyBucket: args.trophyBucket,
+    ...values,
   });
 }
 
@@ -389,6 +461,50 @@ async function bumpMatchupStat(
     brawlerId: args.brawlerId,
     opponentBrawlerId: args.opponentBrawlerId,
     ...patch,
+  });
+}
+
+async function bumpDailyMatchupStat(
+  ctx: MutationCtx,
+  args: {
+    day: number;
+    observedAt: number;
+    mapId: number;
+    trophyBucket: string;
+    brawlerId: number;
+    opponentBrawlerId: number;
+    won: boolean | null;
+  },
+) {
+  const existing = await ctx.db
+    .query("dailyBrawlerMatchups")
+    .withIndex("by_map_bucket_brawler_opponent_and_day", (q) =>
+      q
+        .eq("mapId", args.mapId)
+        .eq("trophyBucket", args.trophyBucket)
+        .eq("brawlerId", args.brawlerId)
+        .eq("opponentBrawlerId", args.opponentBrawlerId)
+        .eq("day", args.day),
+    )
+    .unique();
+  const values = {
+    picks: (existing?.picks || 0) + 1,
+    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
+    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
+    firstBattleAt: Math.min(existing?.firstBattleAt ?? args.observedAt, args.observedAt),
+    lastBattleAt: Math.max(existing?.lastBattleAt ?? args.observedAt, args.observedAt),
+  };
+  if (existing) {
+    await ctx.db.patch(existing._id, values);
+    return;
+  }
+  await ctx.db.insert("dailyBrawlerMatchups", {
+    day: args.day,
+    mapId: args.mapId,
+    trophyBucket: args.trophyBucket,
+    brawlerId: args.brawlerId,
+    opponentBrawlerId: args.opponentBrawlerId,
+    ...values,
   });
 }
 

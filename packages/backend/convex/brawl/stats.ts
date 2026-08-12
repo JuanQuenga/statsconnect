@@ -5,11 +5,21 @@ export const MIN_META_PICKS = 25;
 const META_ROW_LIMIT = 10_000;
 const TEAM_ROW_LIMIT = 5_000;
 const MAX_MAP_MATCHUPS = 1_000;
+const DAILY_META_ROW_LIMIT = 7_000;
+const DAILY_BRAWLER_ROW_LIMIT = 3_500;
+const DAILY_MATCHUP_ROW_LIMIT = 1_500;
+const DAY_MS = 86_400_000;
 const trophyBucketValidator = v.union(
   v.literal("all"),
   v.literal("0-499"),
   v.literal("500-999"),
   v.literal("1000+"),
+);
+const trendWindowValidator = v.union(
+  v.literal("7"),
+  v.literal("30"),
+  v.literal("90"),
+  v.literal("all"),
 );
 
 const statResult = v.object({
@@ -44,6 +54,46 @@ const matchupResult = v.object({
   winRate: v.number(),
   trophyBucket: v.string(),
 });
+
+const dailyPointResult = v.object({
+  day: v.number(),
+  wins: v.number(),
+  losses: v.number(),
+  picks: v.number(),
+  starPlayer: v.number(),
+  winRate: v.number(),
+  starRate: v.number(),
+});
+
+const trendPeriodResult = v.object({
+  stats: v.array(statResult),
+  days: v.array(dailyPointResult),
+  sampleSize: v.number(),
+  startAt: v.number(),
+  endAt: v.number(),
+  capped: v.boolean(),
+});
+
+type DailyStatRow = {
+  day: number;
+  mapId: number;
+  brawlerId: number;
+  trophyBucket: string;
+  wins: number;
+  losses: number;
+  picks: number;
+  starPlayer: number;
+};
+
+type DailyMatchupRow = {
+  mapId: number;
+  trophyBucket: string;
+  brawlerId: number;
+  opponentBrawlerId: number;
+  wins: number;
+  losses: number;
+  picks: number;
+};
 
 function toStatResult(row: {
   mapId: number;
@@ -86,6 +136,89 @@ function toTeamResult(row: {
     winRate: decided ? (row.wins / decided) * 100 : 0,
     trophyBucket: row.trophyBucket,
   };
+}
+
+function utcDayStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function buildTrendPeriod(
+  rows: DailyStatRow[],
+  startAt: number,
+  endAt: number,
+  capped: boolean,
+) {
+  const grouped = new Map<string, DailyStatRow>();
+  const days = new Map<number, { day: number; wins: number; losses: number; picks: number; starPlayer: number }>();
+  for (const row of rows) {
+    const key = `${row.mapId}:${row.brawlerId}`;
+    const aggregate = grouped.get(key) || {
+      day: row.day,
+      mapId: row.mapId,
+      brawlerId: row.brawlerId,
+      trophyBucket: row.trophyBucket,
+      wins: 0,
+      losses: 0,
+      picks: 0,
+      starPlayer: 0,
+    };
+    aggregate.wins += row.wins;
+    aggregate.losses += row.losses;
+    aggregate.picks += row.picks;
+    aggregate.starPlayer += row.starPlayer;
+    grouped.set(key, aggregate);
+
+    const day = days.get(row.day) || { day: row.day, wins: 0, losses: 0, picks: 0, starPlayer: 0 };
+    day.wins += row.wins;
+    day.losses += row.losses;
+    day.picks += row.picks;
+    day.starPlayer += row.starPlayer;
+    days.set(row.day, day);
+  }
+  const stats = [...grouped.values()].map(toStatResult);
+  const dailyPoints = [...days.values()]
+    .sort((a, b) => a.day - b.day)
+    .map((day) => {
+      const decided = day.wins + day.losses;
+      return {
+        ...day,
+        winRate: decided ? (day.wins / decided) * 100 : 0,
+        starRate: day.picks ? (day.starPlayer / day.picks) * 100 : 0,
+      };
+    });
+  return {
+    stats,
+    days: dailyPoints,
+    sampleSize: rows.reduce((sum, row) => sum + row.picks, 0),
+    startAt,
+    endAt,
+    capped,
+  };
+}
+
+function buildTrendMatchups(rows: DailyMatchupRow[]) {
+  const grouped = new Map<string, DailyMatchupRow>();
+  for (const row of rows) {
+    const key = `${row.mapId}:${row.brawlerId}:${row.opponentBrawlerId}`;
+    const aggregate = grouped.get(key) || {
+      mapId: row.mapId,
+      trophyBucket: row.trophyBucket,
+      brawlerId: row.brawlerId,
+      opponentBrawlerId: row.opponentBrawlerId,
+      wins: 0,
+      losses: 0,
+      picks: 0,
+    };
+    aggregate.wins += row.wins;
+    aggregate.losses += row.losses;
+    aggregate.picks += row.picks;
+    grouped.set(key, aggregate);
+  }
+  return [...grouped.values()].map((row) => {
+    const decided = row.wins + row.losses;
+    return { ...row, winRate: decided ? (row.wins / decided) * 100 : 0 };
+  });
 }
 
 export function trophyBucketFromTrophies(trophies: number): "0-499" | "500-999" | "1000+" {
@@ -311,6 +444,173 @@ export const getMetaResearch = query({
       sampleSize: visibleRows.reduce((sum, row) => sum + row.picks, 0),
       minPicks: MIN_META_PICKS,
       capped,
+    };
+  },
+});
+
+export const getMetaTrends = internalQuery({
+  args: {
+    trophyBucket: v.optional(trophyBucketValidator),
+    window: trendWindowValidator,
+    brawlerId: v.optional(v.number()),
+  },
+  returns: v.object({
+    window: trendWindowValidator,
+    windowDays: v.union(v.number(), v.null()),
+    coverageStartAt: v.union(v.number(), v.null()),
+    current: trendPeriodResult,
+    previous: v.union(trendPeriodResult, v.null()),
+    currentMatchups: v.array(matchupResult),
+    previousMatchups: v.union(v.array(matchupResult), v.null()),
+    matchupCapped: v.boolean(),
+    comparisonReady: v.boolean(),
+    currentCoverageComplete: v.boolean(),
+    minPicks: v.number(),
+    rowLimit: v.number(),
+    matchupRowLimit: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const trophyBucket = args.trophyBucket || "all";
+    const today = utcDayStart(Date.now());
+    const windowDays = args.window === "all" ? null : Number(args.window);
+    const rowLimit = args.brawlerId ? DAILY_BRAWLER_ROW_LIMIT : DAILY_META_ROW_LIMIT;
+    const firstRow = args.brawlerId
+      ? await ctx.db
+          .query("dailyMapBrawlerStats")
+          .withIndex("by_brawler_bucket_and_day", (q) =>
+            q.eq("brawlerId", args.brawlerId!).eq("trophyBucket", trophyBucket),
+          )
+          .order("asc")
+          .first()
+      : await ctx.db
+          .query("dailyMapBrawlerStats")
+          .withIndex("by_bucket_and_day", (q) => q.eq("trophyBucket", trophyBucket))
+          .order("asc")
+          .first();
+    const coverageStartAt = firstRow?.day ?? null;
+    const currentStart = windowDays === null
+      ? coverageStartAt ?? today
+      : today - (windowDays - 1) * DAY_MS;
+    const currentEnd = today;
+
+    const currentRowsWithOverflow = args.brawlerId
+      ? await ctx.db
+          .query("dailyMapBrawlerStats")
+          .withIndex("by_brawler_bucket_and_day", (q) =>
+            q
+              .eq("brawlerId", args.brawlerId!)
+              .eq("trophyBucket", trophyBucket)
+              .gte("day", currentStart)
+              .lte("day", currentEnd),
+          )
+          .take(rowLimit + 1)
+      : await ctx.db
+          .query("dailyMapBrawlerStats")
+          .withIndex("by_bucket_and_day", (q) =>
+            q.eq("trophyBucket", trophyBucket).gte("day", currentStart).lte("day", currentEnd),
+          )
+          .take(rowLimit + 1);
+    const currentCapped = currentRowsWithOverflow.length > rowLimit;
+    const current = buildTrendPeriod(
+      currentRowsWithOverflow.slice(0, rowLimit),
+      currentStart,
+      currentEnd,
+      currentCapped,
+    );
+    const currentMatchupRowsWithOverflow = args.brawlerId
+      ? await ctx.db
+          .query("dailyBrawlerMatchups")
+          .withIndex("by_brawler_bucket_and_day", (q) =>
+            q
+              .eq("brawlerId", args.brawlerId!)
+              .eq("trophyBucket", trophyBucket)
+              .gte("day", currentStart)
+              .lte("day", currentEnd),
+          )
+          .take(DAILY_MATCHUP_ROW_LIMIT + 1)
+      : [];
+    const currentMatchupCapped = currentMatchupRowsWithOverflow.length > DAILY_MATCHUP_ROW_LIMIT;
+    const currentMatchups = buildTrendMatchups(currentMatchupRowsWithOverflow.slice(0, DAILY_MATCHUP_ROW_LIMIT));
+
+    if (windowDays === null) {
+      return {
+        window: args.window,
+        windowDays,
+        coverageStartAt,
+        current,
+        previous: null,
+        currentMatchups,
+        previousMatchups: null,
+        matchupCapped: currentMatchupCapped,
+        comparisonReady: false,
+        currentCoverageComplete: coverageStartAt !== null && !currentCapped,
+        minPicks: MIN_META_PICKS,
+        rowLimit,
+        matchupRowLimit: DAILY_MATCHUP_ROW_LIMIT,
+      };
+    }
+
+    const previousEnd = currentStart - DAY_MS;
+    const previousStart = previousEnd - (windowDays - 1) * DAY_MS;
+    const previousRowsWithOverflow = args.brawlerId
+      ? await ctx.db
+          .query("dailyMapBrawlerStats")
+          .withIndex("by_brawler_bucket_and_day", (q) =>
+            q
+              .eq("brawlerId", args.brawlerId!)
+              .eq("trophyBucket", trophyBucket)
+              .gte("day", previousStart)
+              .lte("day", previousEnd),
+          )
+          .take(rowLimit + 1)
+      : await ctx.db
+          .query("dailyMapBrawlerStats")
+          .withIndex("by_bucket_and_day", (q) =>
+            q.eq("trophyBucket", trophyBucket).gte("day", previousStart).lte("day", previousEnd),
+          )
+          .take(rowLimit + 1);
+    const previousCapped = previousRowsWithOverflow.length > rowLimit;
+    const previous = buildTrendPeriod(
+      previousRowsWithOverflow.slice(0, rowLimit),
+      previousStart,
+      previousEnd,
+      previousCapped,
+    );
+    const previousMatchupRowsWithOverflow = args.brawlerId
+      ? await ctx.db
+          .query("dailyBrawlerMatchups")
+          .withIndex("by_brawler_bucket_and_day", (q) =>
+            q
+              .eq("brawlerId", args.brawlerId!)
+              .eq("trophyBucket", trophyBucket)
+              .gte("day", previousStart)
+              .lte("day", previousEnd),
+          )
+          .take(DAILY_MATCHUP_ROW_LIMIT + 1)
+      : [];
+    const previousMatchupCapped = previousMatchupRowsWithOverflow.length > DAILY_MATCHUP_ROW_LIMIT;
+    const previousMatchups = buildTrendMatchups(previousMatchupRowsWithOverflow.slice(0, DAILY_MATCHUP_ROW_LIMIT));
+    const comparisonReady =
+      coverageStartAt !== null &&
+      coverageStartAt <= previousStart &&
+      !currentCapped &&
+      !previousCapped &&
+      current.sampleSize > 0 &&
+      previous.sampleSize > 0;
+    return {
+      window: args.window,
+      windowDays,
+      coverageStartAt,
+      current,
+      previous,
+      currentMatchups,
+      previousMatchups,
+      matchupCapped: currentMatchupCapped || previousMatchupCapped,
+      comparisonReady,
+      currentCoverageComplete: coverageStartAt !== null && coverageStartAt <= currentStart && !currentCapped,
+      minPicks: MIN_META_PICKS,
+      rowLimit,
+      matchupRowLimit: DAILY_MATCHUP_ROW_LIMIT,
     };
   },
 });

@@ -391,3 +391,40 @@ export type MetaResearchResponse = {
   minPicks: number;
   capped: boolean;
 };
+
+export type MetaTrendWindow = "7" | "30" | "90" | "all";
+
+export type MetaDailyPoint = {
+  day: number;
+  wins: number;
+  losses: number;
+  picks: number;
+  starPlayer: number;
+  winRate: number;
+  starRate: number;
+};
+
+export type MetaTrendPeriod = {
+  stats: BrawlerMapStat[];
+  days: MetaDailyPoint[];
+  sampleSize: number;
+  startAt: number;
+  endAt: number;
+  capped: boolean;
+};
+
+export type MetaTrendsResponse = {
+  window: MetaTrendWindow;
+  windowDays: number | null;
+  coverageStartAt: number | null;
+  current: MetaTrendPeriod;
+  previous: MetaTrendPeriod | null;
+  currentMatchups: BrawlerMatchupStat[];
+  previousMatchups: BrawlerMatchupStat[] | null;
+  matchupCapped: boolean;
+  comparisonReady: boolean;
+  currentCoverageComplete: boolean;
+  minPicks: number;
+  rowLimit: number;
+  matchupRowLimit: number;
+};

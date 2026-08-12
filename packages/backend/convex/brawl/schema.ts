@@ -73,6 +73,43 @@ export const brawlTables = {
     "opponentBrawlerId",
   ]).index("by_brawler_and_bucket", ["brawlerId", "trophyBucket"]),
 
+  dailyMapBrawlerStats: defineTable({
+    day: v.number(),
+    mapId: v.number(),
+    brawlerId: v.number(),
+    trophyBucket: v.string(),
+    wins: v.number(),
+    losses: v.number(),
+    picks: v.number(),
+    starPlayer: v.number(),
+    firstBattleAt: v.number(),
+    lastBattleAt: v.number(),
+  })
+    .index("by_map_brawler_bucket_and_day", ["mapId", "brawlerId", "trophyBucket", "day"])
+    .index("by_bucket_and_day", ["trophyBucket", "day"])
+    .index("by_brawler_bucket_and_day", ["brawlerId", "trophyBucket", "day"]),
+
+  dailyBrawlerMatchups: defineTable({
+    day: v.number(),
+    mapId: v.number(),
+    trophyBucket: v.string(),
+    brawlerId: v.number(),
+    opponentBrawlerId: v.number(),
+    wins: v.number(),
+    losses: v.number(),
+    picks: v.number(),
+    firstBattleAt: v.number(),
+    lastBattleAt: v.number(),
+  })
+    .index("by_map_bucket_brawler_opponent_and_day", [
+      "mapId",
+      "trophyBucket",
+      "brawlerId",
+      "opponentBrawlerId",
+      "day",
+    ])
+    .index("by_brawler_bucket_and_day", ["brawlerId", "trophyBucket", "day"]),
+
   brawlPlayerDirectory: defineTable({
     tag: v.string(),
     name: v.string(),
