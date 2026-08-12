@@ -367,9 +367,12 @@ export type BrawlerTeamStat = {
   trophyBucket: string;
 };
 
+export type BrawlerMatchupStat = MapBrawlerMatchup & { mapId: number };
+
 export type BrawlerMetaResponse = {
   stats: BrawlerMapStat[];
   teams: BrawlerTeamStat[];
+  matchups: BrawlerMatchupStat[];
   totals: {
     wins: number;
     losses: number;

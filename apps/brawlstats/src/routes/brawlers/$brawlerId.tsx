@@ -67,6 +67,21 @@ function BrawlerDetailPage() {
     }
     return [...partners.entries()].map(([id, row]) => ({ id, ...row, winRate: row.wins + row.losses ? (row.wins / (row.wins + row.losses)) * 100 : 0 })).filter((row) => row.picks >= 5).sort((a, b) => b.winRate - a.winRate || b.picks - a.picks).slice(0, 12);
   }, [brawlerId, metaQuery.data]);
+  const matchups = useMemo(() => {
+    const opponents = new Map<number, { wins: number; losses: number; picks: number }>();
+    for (const matchup of metaQuery.data?.matchups || []) {
+      const row = opponents.get(matchup.opponentBrawlerId) || { wins: 0, losses: 0, picks: 0 };
+      row.wins += matchup.wins;
+      row.losses += matchup.losses;
+      row.picks += matchup.picks;
+      opponents.set(matchup.opponentBrawlerId, row);
+    }
+    return [...opponents.entries()]
+      .map(([id, row]) => ({ id, ...row, winRate: row.wins + row.losses ? (row.wins / (row.wins + row.losses)) * 100 : 0 }))
+      .filter((row) => row.picks >= 10);
+  }, [metaQuery.data?.matchups]);
+  const counters = useMemo(() => [...matchups].sort((a, b) => b.winRate - a.winRate || b.picks - a.picks).slice(0, 10), [matchups]);
+  const weaknesses = useMemo(() => [...matchups].sort((a, b) => a.winRate - b.winRate || b.picks - a.picks).slice(0, 10), [matchups]);
   const catalog = useMemo(() => new Map((catalogQuery.data || []).map((item) => [item.id, item])), [catalogQuery.data]);
   const loading = catalogQuery.isLoading || metaQuery.isLoading || mapsQuery.isLoading;
 
@@ -123,7 +138,15 @@ function BrawlerDetailPage() {
             <TabsContent value="teams" className="mt-4 space-y-8">
               <section><h2 className="section-title mb-4">Best observed partners</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{synergies.map((row) => <a key={row.id} href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/60"><img src={brawlerBorderUrl(row.id)} alt="" className="size-14 rounded-xl" /><div><p className="font-medium">{catalog.get(row.id)?.name || `Brawler ${row.id}`}</p><p className="text-sm text-primary">{formatPercent(row.winRate)} win rate</p><p className="text-xs text-muted-foreground">{trophies(row.picks)} team samples</p></div></a>)}</div>{!synergies.length ? <EmptyState title="No team pairing has enough samples" /> : null}</section>
               <section><h2 className="section-title mb-4">Top full teams</h2><div className="grid gap-3 lg:grid-cols-2">{(metaQuery.data?.teams || []).filter((team) => team.picks >= 5).slice(0, 12).map((team) => <Card key={`${team.mapId}-${team.brawlerIds.join("-")}`} className="gap-3 p-4 py-4"><div className="flex -space-x-2">{team.brawlerIds.map((id) => <img key={id} src={brawlerBorderUrl(id)} alt={catalog.get(id)?.name || "Brawler"} className="size-12 rounded-xl border-2 border-card" />)}</div><p className="font-medium">{team.brawlerIds.map((id) => catalog.get(id)?.name || id).join(" · ")}</p><p className="text-sm"><span className="text-primary">{formatPercent(team.winRate)} WR</span> · {trophies(team.picks)} games · {maps.get(team.mapId)?.name || `Map ${team.mapId}`}</p></Card>)}</div></section>
-              <CoverageCard title="Counters and matchup evidence" detail="Historical aggregate rows do not retain opposing team sides. BrawlStats therefore reports teammates, not unsupported head-to-head counter claims." />
+              <section>
+                <h2 className="section-title mb-4">Counters and weaknesses</h2>
+                {matchups.length ? (
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <MatchupList title={`${brawler.name} performs well into`} rows={counters} catalog={catalog} tone="positive" />
+                    <MatchupList title={`Hardest opponents for ${brawler.name}`} rows={weaknesses} catalog={catalog} tone="negative" />
+                  </div>
+                ) : <EmptyState title="Counter samples are still accumulating" detail="Head-to-head evidence begins prospectively and appears after at least 10 tracked games against an opponent." />}
+              </section>
             </TabsContent>
             <TabsContent value="rankings" className="mt-4 space-y-4">
               <div className="flex flex-wrap gap-2">{[["Global", "global"], ["US", "us"], ["GB", "gb"], ["DE", "de"], ["BR", "br"], ["JP", "jp"], ["KR", "kr"]].map(([label, code]) => <Button key={code} size="sm" variant={region === code ? "default" : "outline"} onClick={() => setRegion(code)}>{label}</Button>)}</div>
@@ -151,3 +174,33 @@ function MapList({ title, rows, maps, reverse = false }: { title: string; rows: 
 function AbilityGroup({ title, abilities }: { title: string; abilities: CatalogAbility[] }) { return <section><h2 className="section-title mb-4">{title}</h2><div className="space-y-3">{abilities.map((ability) => <Card key={ability.id} className="flex-row items-start gap-4 p-4 py-4">{ability.imageUrl ? <img src={ability.imageUrl} alt="" className="size-16 rounded-xl bg-secondary p-1" /> : null}<div><h3 className="font-medium">{ability.name}</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{ability.description}</p></div></Card>)}</div></section>; }
 
 function CoverageCard({ title, detail }: { title: string; detail: string }) { return <Card className="gap-0 border border-border p-5 py-5"><p className="font-medium">{title}</p><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{detail}</p></Card>; }
+
+function MatchupList({
+  title,
+  rows,
+  catalog,
+  tone,
+}: {
+  title: string;
+  rows: Array<{ id: number; wins: number; losses: number; picks: number; winRate: number }>;
+  catalog: Map<number, { name: string }>;
+  tone: "positive" | "negative";
+}) {
+  return (
+    <div>
+      <h3 className="mb-3 font-display text-xl">{title}</h3>
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <a key={row.id} href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/60">
+            <img src={brawlerBorderUrl(row.id)} alt="" className="size-12 rounded-lg" />
+            <span className="min-w-0 flex-1">
+              <strong className="block truncate">{catalog.get(row.id)?.name || `Brawler ${row.id}`}</strong>
+              <span className="text-xs text-muted-foreground">{trophies(row.picks)} head-to-head samples</span>
+            </span>
+            <span className={tone === "positive" ? "text-primary" : "text-destructive"}>{formatPercent(row.winRate)}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}

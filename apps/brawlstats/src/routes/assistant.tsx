@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 type AssistantSearch = { tag?: string; map?: string; bucket?: string };
 type DraftSide = "ally" | "enemy" | "ban";
-type MatchupStat = { brawlerId: number; opponentId: number; wins: number; losses: number; picks: number; winRate: number };
+type MatchupStat = { brawlerId: number; opponentBrawlerId: number; wins: number; losses: number; picks: number; winRate: number };
 type DraftMapDetail = MapDetailResponse & { matchups?: MatchupStat[] };
 
 export const Route = createFileRoute("/assistant")({
@@ -257,7 +257,7 @@ function DraftAssistant({
         const synergy = synergySamples
           ? relevantTeams.reduce((sum, team) => sum + (team.winRate - 50) * team.picks, 0) / synergySamples
           : 0;
-        const matchups = (detail.matchups || []).filter((row) => row.brawlerId === stat.brawlerId && enemies.includes(row.opponentId));
+        const matchups = (detail.matchups || []).filter((row) => row.brawlerId === stat.brawlerId && enemies.includes(row.opponentBrawlerId));
         const matchupSamples = matchups.reduce((sum, row) => sum + row.picks, 0);
         const counter = matchupSamples
           ? matchups.reduce((sum, row) => sum + (row.winRate - 50) * row.picks, 0) / matchupSamples

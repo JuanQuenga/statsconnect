@@ -71,7 +71,7 @@ export const brawlTables = {
     "trophyBucket",
     "brawlerId",
     "opponentBrawlerId",
-  ]),
+  ]).index("by_brawler_and_bucket", ["brawlerId", "trophyBucket"]),
 
   brawlPlayerDirectory: defineTable({
     tag: v.string(),

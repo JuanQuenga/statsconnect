@@ -34,6 +34,17 @@ const teamResult = v.object({
   trophyBucket: v.string(),
 });
 
+const matchupResult = v.object({
+  mapId: v.number(),
+  brawlerId: v.number(),
+  opponentBrawlerId: v.number(),
+  wins: v.number(),
+  losses: v.number(),
+  picks: v.number(),
+  winRate: v.number(),
+  trophyBucket: v.string(),
+});
+
 function toStatResult(row: {
   mapId: number;
   brawlerId: number;
@@ -196,6 +207,7 @@ export const getBrawlerStats = query({
   returns: v.object({
     stats: v.array(statResult),
     teams: v.array(teamResult),
+    matchups: v.array(matchupResult),
     totals: v.object({
       wins: v.number(),
       losses: v.number(),
@@ -209,7 +221,7 @@ export const getBrawlerStats = query({
   }),
   handler: async (ctx, args) => {
     const trophyBucket = args.trophyBucket || "all";
-    const [rows, teamRows] = await Promise.all([
+    const [rows, teamRows, matchupRows] = await Promise.all([
       ctx.db
         .query("mapBrawlerStats")
         .withIndex("by_brawler_and_bucket", (q) =>
@@ -220,6 +232,12 @@ export const getBrawlerStats = query({
         .query("mapTeamStats")
         .withIndex("by_trophy_bucket", (q) => q.eq("trophyBucket", trophyBucket))
         .take(TEAM_ROW_LIMIT),
+      ctx.db
+        .query("mapBrawlerMatchups")
+        .withIndex("by_brawler_and_bucket", (q) =>
+          q.eq("brawlerId", args.brawlerId).eq("trophyBucket", trophyBucket),
+        )
+        .take(2_000),
     ]);
 
     const stats = rows.map(toStatResult).sort((a, b) => b.picks - a.picks);
@@ -228,6 +246,21 @@ export const getBrawlerStats = query({
       .map(toTeamResult)
       .sort((a, b) => b.picks - a.picks || b.winRate - a.winRate)
       .slice(0, 100);
+    const matchups = matchupRows
+      .map((row) => {
+        const decided = row.wins + row.losses;
+        return {
+          mapId: row.mapId,
+          brawlerId: row.brawlerId,
+          opponentBrawlerId: row.opponentBrawlerId,
+          wins: row.wins,
+          losses: row.losses,
+          picks: row.picks,
+          winRate: decided ? (row.wins / decided) * 100 : 0,
+          trophyBucket: row.trophyBucket,
+        };
+      })
+      .sort((a, b) => b.picks - a.picks || b.winRate - a.winRate);
     const totals = rows.reduce(
       (result, row) => ({
         wins: result.wins + row.wins,
@@ -242,6 +275,7 @@ export const getBrawlerStats = query({
     return {
       stats,
       teams,
+      matchups,
       totals: {
         ...totals,
         winRate: decided ? (totals.wins / decided) * 100 : 0,
@@ -250,7 +284,7 @@ export const getBrawlerStats = query({
       minPicks: MIN_META_PICKS,
       limitations: [
         "Build choices are not present in official battle logs, so build win rates are not inferred.",
-        "Historical battle rows do not retain team sides, so counter claims are not published.",
+        "Counter evidence begins prospectively; the official API cannot backfill matches from before tracking started.",
       ],
     };
   },
