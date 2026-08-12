@@ -54,6 +54,22 @@ type OwnedBrawler = {
   gears: Equipment[];
   hypercharges: Equipment[];
 };
+type ClubSnapshot = {
+  tag: string;
+  name: string;
+  description?: string;
+  type?: string;
+  badgeId?: number;
+  requiredTrophies?: number;
+  trophies: number;
+  members: Array<{
+    tag: string;
+    name: string;
+    role?: string;
+    trophies: number;
+    iconId?: number;
+  }>;
+};
 
 class UpstreamError extends Error {
   constructor(
@@ -177,6 +193,38 @@ function profileSnapshot(value: unknown): ProfileSnapshot | null {
   };
 }
 
+function clubSnapshot(value: unknown): ClubSnapshot | null {
+  const club = asRecord(value);
+  const tag = cleanTag(club?.tag);
+  const name = typeof club?.name === "string" ? club.name.trim() : "";
+  if (!club || !tag || !name) return null;
+  const badge = asRecord(club.badge);
+  const members = (Array.isArray(club.members) ? club.members : []).flatMap((value) => {
+    const member = asRecord(value);
+    const memberTag = cleanTag(member?.tag);
+    const memberName = typeof member?.name === "string" ? member.name.trim() : "";
+    const icon = asRecord(member?.icon);
+    if (!memberTag || !memberName) return [];
+    return [{
+      tag: memberTag,
+      name: memberName,
+      role: typeof member?.role === "string" ? member.role : undefined,
+      trophies: finiteNumber(member?.trophies) ?? 0,
+      iconId: finiteNumber(icon?.id),
+    }];
+  });
+  return {
+    tag,
+    name,
+    description: typeof club.description === "string" ? club.description : undefined,
+    type: typeof club.type === "string" ? club.type : undefined,
+    badgeId: finiteNumber(club.badgeId) ?? finiteNumber(badge?.id),
+    requiredTrophies: finiteNumber(club.requiredTrophies),
+    trophies: finiteNumber(club.trophies) ?? 0,
+    members,
+  };
+}
+
 function latestBattleTime(items: unknown[]): string | undefined {
   return items.reduce<string | undefined>((latest, item) => {
     const battleTime = asRecord(item)?.battleTime;
@@ -241,9 +289,16 @@ export const discover = internalAction({
 
       for (const clubTag of tagsFromItems(clubRankings)) {
         try {
-          const club = asRecord(
-            await fetchJson(ctx, `/clubs/${encodeURIComponent(`#${clubTag}`)}`, "clubs/detail"),
+          const clubPayload = await fetchJson(
+            ctx,
+            `/clubs/${encodeURIComponent(`#${clubTag}`)}`,
+            "clubs/detail",
           );
+          const club = asRecord(clubPayload);
+          const trackedClub = clubSnapshot(clubPayload);
+          if (trackedClub) {
+            await ctx.runMutation(internal.brawl.clubs.recordClub, { club: trackedClub });
+          }
           const members = club && Array.isArray(club.members) ? club.members : [];
           const clubName = typeof club?.name === "string" ? club.name : undefined;
           for (const member of members) {

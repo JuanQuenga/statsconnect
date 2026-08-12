@@ -112,6 +112,45 @@ function profileSnapshot(value: unknown) {
   };
 }
 
+function clubProfileSnapshot(value: unknown) {
+  const club = asRecord(value);
+  const tag = typeof club?.tag === "string" ? normalizedTag(club.tag) : null;
+  const name = typeof club?.name === "string" ? club.name.trim() : "";
+  if (!club || !tag || !name) return null;
+  const members = Array.isArray(club.members)
+    ? club.members.flatMap((value) => {
+        const member = asRecord(value);
+        const memberTag = typeof member?.tag === "string" ? normalizedTag(member.tag) : null;
+        const memberName = typeof member?.name === "string" ? member.name.trim() : "";
+        const icon = asRecord(member?.icon);
+        if (!memberTag || !memberName) return [];
+        return [{
+          tag: memberTag,
+          name: memberName,
+          role: typeof member?.role === "string" ? member.role : undefined,
+          trophies: finiteNumber(member?.trophies),
+          iconId: typeof icon?.id === "number" ? icon.id : undefined,
+        }];
+      })
+    : [];
+  const badge = asRecord(club.badge);
+  return {
+    tag,
+    name,
+    description: typeof club.description === "string" ? club.description : undefined,
+    type: typeof club.type === "string" ? club.type : undefined,
+    badgeId:
+      typeof club.badgeId === "number"
+        ? club.badgeId
+        : typeof badge?.id === "number"
+          ? badge.id
+          : undefined,
+    requiredTrophies: typeof club.requiredTrophies === "number" ? club.requiredTrophies : undefined,
+    trophies: finiteNumber(club.trophies),
+    members,
+  };
+}
+
 async function upstream(path: string): Promise<Response> {
   const token = apiToken();
   if (!token) {
@@ -230,10 +269,32 @@ const playerAnalytics = httpAction(async (ctx, request) => {
   return json(await ctx.runQuery(api.brawl.players.analytics, { tag, limit, before }));
 });
 
-const club = httpAction(async (_ctx, request) => {
+const club = httpAction(async (ctx, request) => {
   const tag = normalizedTag(new URL(request.url).searchParams.get("tag"));
   if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars club tag." }, 400);
-  return upstream(`/clubs/${encodeURIComponent(tag)}`);
+  const response = await upstream(`/clubs/${encodeURIComponent(tag)}`);
+  if (response.ok) {
+    const payload = await parsed(response.clone());
+    const snapshot = clubProfileSnapshot(payload);
+    if (snapshot) await ctx.runMutation(internal.brawl.clubs.recordClub, { club: snapshot });
+  }
+  return response;
+});
+
+const clubHistory = httpAction(async (ctx, request) => {
+  const tag = normalizedTag(new URL(request.url).searchParams.get("tag"));
+  if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars club tag." }, 400);
+  return json(await ctx.runQuery(api.brawl.clubs.history, {
+    tag,
+    snapshotLimit: 365,
+    eventLimit: 500,
+  }));
+});
+
+const clubCommunity = httpAction(async (ctx, request) => {
+  const requestedLimit = Number(new URL(request.url).searchParams.get("limit") || "20");
+  const limit = Number.isFinite(requestedLimit) ? Math.min(50, Math.max(1, Math.trunc(requestedLimit))) : 20;
+  return json(await ctx.runQuery(api.brawl.clubs.communityActivity, { limit }));
 });
 
 const rankings = httpAction(async (_ctx, request) => {
@@ -312,6 +373,8 @@ const paths = [
   "/api/player-history",
   "/api/player-analytics",
   "/api/club",
+  "/api/club-history",
+  "/api/clubs/activity",
   "/api/rankings",
   "/api/brawlers",
   "/api/events",
@@ -330,6 +393,8 @@ http.route({ method: "GET", path: "/api/player-search", handler: playerSearch })
 http.route({ method: "GET", path: "/api/player-history", handler: playerHistory });
 http.route({ method: "GET", path: "/api/player-analytics", handler: playerAnalytics });
 http.route({ method: "GET", path: "/api/club", handler: club });
+http.route({ method: "GET", path: "/api/club-history", handler: clubHistory });
+http.route({ method: "GET", path: "/api/clubs/activity", handler: clubCommunity });
 http.route({ method: "GET", path: "/api/rankings", handler: rankings });
 http.route({ method: "GET", path: "/api/brawlers", handler: brawlers });
 http.route({ method: "GET", path: "/api/events", handler: events });
