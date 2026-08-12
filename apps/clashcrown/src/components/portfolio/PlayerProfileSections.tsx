@@ -3,6 +3,7 @@ import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
 import { cardSlug } from "@/lib/clash/cards";
 import type { Card, Player, PlayerAchievement, PlayerBadge } from "@/lib/mock-data";
+import { formatOptionalNumber, optionalNumber } from "@/lib/numbers";
 
 type Detail = {
   label: string;
@@ -10,8 +11,9 @@ type Detail = {
   note?: string;
 };
 
-function numberDetail(label: string, value: number | undefined, note?: string): Detail | undefined {
-  return value === undefined ? undefined : { label, value: value.toLocaleString(), note };
+function numberDetail(label: string, value: number | null | undefined, note?: string): Detail | undefined {
+  const formatted = formatOptionalNumber(value);
+  return formatted === undefined ? undefined : { label, value: formatted, note };
 }
 
 function profileDetails(player: Player): Detail[] {
@@ -110,8 +112,11 @@ export function PlayerBadgeSection({ badges = [] }: { badges?: PlayerBadge[] }) 
 }
 
 function BadgeCard({ badge }: { badge: PlayerBadge }) {
-  const levelProgress = badge.level !== undefined && badge.maxLevel !== undefined && badge.maxLevel > 0
-    ? Math.min(100, Math.max(0, (badge.level / badge.maxLevel) * 100))
+  const level = optionalNumber(badge.level);
+  const maxLevel = optionalNumber(badge.maxLevel);
+  const progress = formatOptionalNumber(badge.progress);
+  const levelProgress = level !== undefined && maxLevel !== undefined && maxLevel > 0
+    ? Math.min(100, Math.max(0, (level / maxLevel) * 100))
     : undefined;
   return (
     <article className="profile-badge-card">
@@ -120,10 +125,10 @@ function BadgeCard({ badge }: { badge: PlayerBadge }) {
       </div>
       <div>
         <strong>{badge.name}</strong>
-        {badge.level !== undefined ? (
-          <span>Level {badge.level}{badge.maxLevel !== undefined ? ` of ${badge.maxLevel}` : ""}</span>
+        {level !== undefined ? (
+          <span>Level {level}{maxLevel !== undefined ? ` of ${maxLevel}` : ""}</span>
         ) : null}
-        {badge.progress !== undefined ? <small>{badge.progress.toLocaleString()} progress</small> : null}
+        {progress !== undefined ? <small>{progress} progress</small> : null}
         {levelProgress !== undefined ? (
           <span className="badge-level-track" role="progressbar" aria-label={`${badge.name} badge level`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(levelProgress)}>
             <i style={{ width: `${levelProgress}%` }} />
@@ -155,8 +160,11 @@ export function PlayerAchievementsSection({ achievements = [] }: { achievements?
 }
 
 function AchievementRow({ achievement }: { achievement: PlayerAchievement }) {
-  const hasProgress = achievement.value !== undefined && achievement.target !== undefined && achievement.target > 0;
-  const percentage = hasProgress ? Math.min(100, Math.max(0, (achievement.value! / achievement.target!) * 100)) : undefined;
+  const stars = optionalNumber(achievement.stars);
+  const value = optionalNumber(achievement.value);
+  const target = optionalNumber(achievement.target);
+  const hasProgress = value !== undefined && target !== undefined && target > 0;
+  const percentage = hasProgress ? Math.min(100, Math.max(0, (value / target) * 100)) : undefined;
   return (
     <article className="achievement-row">
       <span className="achievement-icon"><Sparkles size={20} /></span>
@@ -164,20 +172,20 @@ function AchievementRow({ achievement }: { achievement: PlayerAchievement }) {
         <strong>{achievement.name}</strong>
         {achievement.info ? <small>{achievement.info}</small> : null}
       </span>
-      {achievement.stars !== undefined ? (
-        <span className="achievement-stars" aria-label={`${achievement.stars} stars`}>
-          <Star size={13} fill="currentColor" /> {achievement.stars}
+      {stars !== undefined ? (
+        <span className="achievement-stars" aria-label={`${stars} stars`}>
+          <Star size={13} fill="currentColor" /> {stars}
         </span>
       ) : null}
       {hasProgress && percentage !== undefined ? (
         <span className="achievement-progress">
-          <span><small>{achievement.value!.toLocaleString()} / {achievement.target!.toLocaleString()}</small><small>{Math.round(percentage)}%</small></span>
+          <span><small>{value.toLocaleString()} / {target.toLocaleString()}</small><small>{Math.round(percentage)}%</small></span>
           <span className="achievement-track" role="progressbar" aria-label={`${achievement.name} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percentage)}>
             <i style={{ width: `${percentage}%` }} />
           </span>
         </span>
-      ) : achievement.value !== undefined ? (
-        <strong className="achievement-value">{achievement.value.toLocaleString()}</strong>
+      ) : value !== undefined ? (
+        <strong className="achievement-value">{value.toLocaleString()}</strong>
       ) : null}
     </article>
   );

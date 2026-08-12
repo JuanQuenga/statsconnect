@@ -21,6 +21,7 @@ import {
   UNKNOWN_CARD_IMAGE
 } from "./assets";
 import { formatApiDate } from "./format";
+import { optionalNumber } from "@/lib/numbers";
 import type {
   ApiBattle,
   ApiCard,
@@ -64,10 +65,10 @@ export function mapCard(card?: ApiCard): Card {
     image: cardImage(card),
     evolutionImage,
     heroImage: heroCardImage(card),
-    level: card.level,
-    maxLevel: card.maxLevel,
-    starLevel: card.starLevel,
-    count: card.count,
+    level: optionalNumber(card.level),
+    maxLevel: optionalNumber(card.maxLevel),
+    starLevel: optionalNumber(card.starLevel),
+    count: optionalNumber(card.count),
     evolutionLevel,
     variant,
     isEvolution: variant !== undefined,
@@ -103,10 +104,10 @@ function mapBattle(battle: ApiBattle): Battle {
     opponentClan: opponent?.clan?.name,
     opponentDeck: opponent?.cards?.map(mapCard),
     opponentSupportCards: opponent?.supportCards?.map(mapCard),
-    trophyChange: team?.trophyChange,
-    opponentTrophyChange: opponent?.trophyChange,
-    startingTrophies: team?.startingTrophies,
-    opponentStartingTrophies: opponent?.startingTrophies,
+    trophyChange: optionalNumber(team?.trophyChange),
+    opponentTrophyChange: optionalNumber(opponent?.trophyChange),
+    startingTrophies: optionalNumber(team?.startingTrophies),
+    opponentStartingTrophies: optionalNumber(opponent?.startingTrophies),
     kingTowerHitPoints: team?.kingTowerHitPoints,
     opponentKingTowerHitPoints: opponent?.kingTowerHitPoints,
     princessTowersHitPoints: team?.princessTowersHitPoints,
@@ -133,7 +134,7 @@ function mapChestList(payload: ApiChestList): Chest[] {
 function mapPathOfLegendsResult(result?: ApiPlayerLeagueStats): PathOfLegendsResult | undefined {
   if (!result) return undefined;
   if (result.trophies === undefined && result.bestTrophies === undefined && result.rank == null) return undefined;
-  return { trophies: result.trophies, bestTrophies: result.bestTrophies, rank: result.rank ?? null };
+  return { trophies: optionalNumber(result.trophies), bestTrophies: optionalNumber(result.bestTrophies), rank: result.rank ?? null };
 }
 
 function mapPathOfLegends(source: ApiPlayer): Player["pathOfLegends"] {
@@ -150,9 +151,9 @@ function mapBadge(badge: NonNullable<ApiPlayer["badges"]>[number]): PlayerBadge 
   if (!badge.name) return undefined;
   return {
     name: badge.name,
-    level: badge.level,
-    maxLevel: badge.maxLevel,
-    progress: badge.progress,
+    level: optionalNumber(badge.level),
+    maxLevel: optionalNumber(badge.maxLevel),
+    progress: optionalNumber(badge.progress),
     image: badge.iconUrls?.large ?? badge.iconUrls?.medium ?? badge.iconUrls?.small
   };
 }
@@ -163,9 +164,9 @@ function mapAchievement(
   if (!achievement.name) return undefined;
   return {
     name: achievement.name,
-    stars: achievement.stars,
-    value: achievement.value,
-    target: achievement.target,
+    stars: optionalNumber(achievement.stars),
+    value: optionalNumber(achievement.value),
+    target: optionalNumber(achievement.target),
     info: achievement.info
   };
 }
@@ -176,8 +177,9 @@ function presentValues<T>(values: Array<T | undefined>): T[] {
 
 function playerStats(source: ApiPlayer): Record<string, string> {
   const stats: Record<string, string> = {};
-  const addNumber = (label: string, value: number | undefined) => {
-    if (value !== undefined) stats[label] = value.toLocaleString();
+  const addNumber = (label: string, value: number | null | undefined) => {
+    const numeric = optionalNumber(value);
+    if (numeric !== undefined) stats[label] = numeric.toLocaleString();
   };
 
   addNumber("Last known trophies", source.trophies);
@@ -205,9 +207,9 @@ export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
   return {
     tag: source.tag.replace(/^#/, ""),
     name: source.name,
-    level: source.expLevel,
-    trophies: source.trophies,
-    bestTrophies: source.bestTrophies,
+    level: optionalNumber(source.expLevel),
+    trophies: optionalNumber(source.trophies),
+    bestTrophies: optionalNumber(source.bestTrophies),
     arena: source.arena?.name ?? "Unknown Arena",
     arenaImage: arenaImage(source.arena),
     clan: source.clan?.name ?? "No clan",
@@ -217,13 +219,13 @@ export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
     supportCards: source.currentDeckSupportCards?.map(mapCard) ?? [],
     supportCardCollection: source.supportCards?.map((card) => ({ ...mapCard(card), owned: true })),
     favoriteCard,
-    starPoints: source.starPoints,
-    experiencePoints: source.expPoints,
-    totalExperiencePoints: source.totalExpPoints,
-    legacyTrophyRoadHighScore: source.legacyTrophyRoadHighScore,
-    tournamentBattleCount: source.tournamentBattleCount,
-    clanCardsCollected: source.clanCardsCollected,
-    donationsReceived: source.donationsReceived,
+    starPoints: optionalNumber(source.starPoints),
+    experiencePoints: optionalNumber(source.expPoints),
+    totalExperiencePoints: optionalNumber(source.totalExpPoints),
+    legacyTrophyRoadHighScore: optionalNumber(source.legacyTrophyRoadHighScore),
+    tournamentBattleCount: optionalNumber(source.tournamentBattleCount),
+    clanCardsCollected: optionalNumber(source.clanCardsCollected),
+    donationsReceived: optionalNumber(source.donationsReceived),
     role: source.role ? roleLabel(source.role) : undefined,
     badges: presentValues((source.badges ?? []).map(mapBadge)),
     achievements: presentValues((source.achievements ?? []).map(mapAchievement)),
