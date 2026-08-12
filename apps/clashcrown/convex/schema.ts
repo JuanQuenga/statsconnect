@@ -105,11 +105,14 @@ export default defineSchema({
     crowns: v.number()
   })
     .index("by_day_and_mode_and_deck", ["day", "mode", "deckHash"])
+    .index("by_day_and_mode", ["day", "mode"])
     .index("by_day", ["day"]),
 
   /** Per-day ordered deck-vs-deck aggregates, from deckHash's perspective. */
   matchupStats: defineTable({
     day: v.number(),
+    /** Optional only for rows collected before mode-aware matchup analytics shipped. */
+    mode: v.optional(metaMode),
     deckHash: v.string(),
     oppDeckHash: v.string(),
     cardIds: v.array(v.number()),
@@ -119,6 +122,8 @@ export default defineSchema({
   })
     .index("by_day_and_deck_hash_and_opp_deck_hash", ["day", "deckHash", "oppDeckHash"])
     .index("by_day_and_deck_hash", ["day", "deckHash"])
+    .index("by_day_and_mode_and_deck_hash_and_opp_deck_hash", ["day", "mode", "deckHash", "oppDeckHash"])
+    .index("by_day_and_mode", ["day", "mode"])
     .index("by_day", ["day"]),
 
   /** Per-day card aggregates. Small enough to sum directly in a query. */
