@@ -10,6 +10,7 @@ import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { apiFetch, brawlerBorderUrl, collection, profileIconUrl } from "@/lib/api";
 import { normalizeCatalog } from "@/lib/brawlers";
 import { formatPercent, normalizeTag, trophies } from "@/lib/format";
+import { useI18n, type Translator } from "@/lib/i18n";
 import { aggregateMeta, buildProgression } from "@/lib/meta";
 import { appPath } from "@/lib/paths";
 import type { EventItem, MapListItem, MetaResearchResponse, PlayerProfile } from "@/lib/types";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/progression")({
 });
 
 function ProgressionPage() {
+  const { t } = useI18n();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const tag = search.tag ? normalizeTag(search.tag) : null;
@@ -61,49 +63,49 @@ function ProgressionPage() {
   return (
     <div className="page-shell">
       <header>
-        <p className="eyebrow">Account progression planner</p>
-        <h1 className="font-display text-4xl md:text-5xl">Plan the shortest path to a stronger roster</h1>
-        <p className="mt-3 max-w-3xl text-muted-foreground">Enter a player tag to estimate remaining Power Points and coins, measure collection completion, and prioritize upgrades using observed live-map performance.</p>
-        <form onSubmit={submit} className="mt-5 flex max-w-xl gap-2"><Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="#PLAYER_TAG" aria-label="Player tag" /><Button type="submit">Build plan</Button></form>
+        <p className="eyebrow">{t("progression.eyebrow")}</p>
+        <h1 className="font-display text-4xl md:text-5xl">{t("progression.title")}</h1>
+        <p className="mt-3 max-w-3xl text-muted-foreground">{t("progression.description")}</p>
+        <form onSubmit={submit} className="mt-5 flex max-w-xl gap-2"><Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="#PLAYER_TAG" aria-label={t("progression.playerTag")} /><Button type="submit">{t("progression.buildPlan")}</Button></form>
       </header>
 
-      {!tag ? <EmptyState title="Enter a player tag to build a plan" detail="The official profile exposes power levels and owned gadgets, Star Powers, and gears. It does not expose your coin or Power Point balance." /> : null}
-      {tag && (playerQuery.isLoading || catalogQuery.isLoading || metaQuery.isLoading || eventsQuery.isLoading) ? <PageStatus tone="loading">Loading account, live rotation, catalog, and meta…</PageStatus> : null}
-      {playerQuery.error ? <PageStatus tone="error">{playerQuery.error instanceof Error ? playerQuery.error.message : "Could not load that account."}</PageStatus> : null}
+      {!tag ? <EmptyState title={t("progression.empty")} detail={t("progression.emptyDetail")} /> : null}
+      {tag && (playerQuery.isLoading || catalogQuery.isLoading || metaQuery.isLoading || eventsQuery.isLoading) ? <PageStatus tone="loading">{t("progression.loading")}</PageStatus> : null}
+      {playerQuery.error ? <PageStatus tone="error">{playerQuery.error instanceof Error ? playerQuery.error.message : t("progression.loadFailed")}</PageStatus> : null}
 
       {player ? (
         <>
           <Card className="grid items-center gap-5 p-6 py-6 md:grid-cols-[auto_1fr_auto]">
             <img src={profileIconUrl(player.icon?.id)} alt="" className="size-24 rounded-xl border border-border" />
-            <div><p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Live official profile</p><h2 className="font-display text-4xl">{player.name}</h2><p className="text-muted-foreground">{player.tag} · {trophies(player.trophies)} trophies</p></div>
-            <div className="text-left md:text-right"><p className="font-display text-3xl text-primary">{owned.length}/{progression.length}</p><p className="text-xs text-muted-foreground">brawlers unlocked</p></div>
+            <div><p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t("player.liveProfile")}</p><h2 className="font-display text-4xl">{player.name}</h2><p className="text-muted-foreground">{player.tag} · {t("progression.trophies", { count: trophies(player.trophies) })}</p></div>
+            <div className="text-left md:text-right"><p className="font-display text-3xl text-primary">{owned.length}/{progression.length}</p><p className="text-xs text-muted-foreground">{t("progression.unlocked")}</p></div>
           </Card>
 
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <Summary label="Account readiness" value={`${readiness.grade} · ${readiness.score}`} detail="Collection, power, and core loadouts" />
-            <Summary label="Core power completion" value={formatPercent(progression.length ? totals.completion / progression.length : 0)} detail="Across all released brawlers" />
-            <Summary label="Power Points remaining" value={trophies(totals.points)} detail="Estimated to Power 11" />
-            <Summary label="Power-up coins" value={trophies(totals.powerCoins)} detail="Estimated level upgrade cost" />
-            <Summary label="Loadout coins" value={trophies(totals.loadoutCoins)} detail="1 gadget, 1 Star Power, 2 gears" />
+            <Summary label={t("progression.readiness")} value={`${readiness.grade} · ${readiness.score}`} detail={t("progression.readinessDetail")} />
+            <Summary label={t("progression.coreCompletion")} value={formatPercent(progression.length ? totals.completion / progression.length : 0)} detail={t("progression.acrossReleased")} />
+            <Summary label={t("progression.pointsRemaining")} value={trophies(totals.points)} detail={t("progression.estimatedPower11")} />
+            <Summary label={t("progression.powerCoins")} value={trophies(totals.powerCoins)} detail={t("progression.estimatedLevelCost")} />
+            <Summary label={t("progression.loadoutCoins")} value={trophies(totals.loadoutCoins)} detail={t("progression.loadoutTarget")} />
           </section>
 
           <Card className="gap-0 border border-primary/40 p-5 py-5">
-            <p className="font-medium text-primary">How these estimates work</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Power costs use the current level schedule (3,740 Power Points and 7,765 coins from Power 1 to 11). A competitive loadout target adds one gadget, one Star Power, and two standard gears. The readiness score weights collection coverage 40% and the average owned-brawler power/loadout completion 60%; grades are S (90+), A (80+), B (65+), C (50+), or D. It is an account-planning grade—not a fabricated player percentile. Locked brawlers are counted from Power 1. Hypercharge, Buffies, Mythic/Epic gear price differences, current balances, and random rewards are excluded because the official API does not expose enough ownership or economy data. These are planning estimates, not an inventory ledger.</p>
+            <p className="font-medium text-primary">{t("progression.estimatesTitle")}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("progression.estimatesDetail")}</p>
           </Card>
 
           <section>
-            <div className="mb-4"><p className="eyebrow">Meta-aware order</p><h2 className="section-title">Recommended upgrades</h2><p className="mt-2 text-sm text-muted-foreground">Prioritized from observed performance on the current event rotation, current trophies, and how close each owned brawler is to key unlock levels. If live maps have no samples yet, the planner falls back to the full dataset. Samples below 25 picks receive no meta boost.</p></div>
+            <div className="mb-4"><p className="eyebrow">{t("progression.metaAware")}</p><h2 className="section-title">{t("progression.recommended")}</h2><p className="mt-2 text-sm text-muted-foreground">{t("progression.recommendedDetail")}</p></div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {priorities.map((row, index) => <a key={row.id} href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/60"><span className="font-display text-xl text-muted-foreground">{index + 1}</span><img src={brawlerBorderUrl(row.id)} alt="" className="size-14 rounded-xl" /><span className="min-w-0 flex-1"><strong className="block">{row.name}</strong><span className="block text-xs text-muted-foreground">Power {row.power} · {row.recommendation}</span><span className="mt-1 block text-xs text-primary">{trophies(row.pointsRemaining)} PP · {trophies(row.powerCoinsRemaining + row.loadoutCoinsRemaining)} coins</span></span></a>)}
+              {priorities.map((row, index) => <a key={row.id} href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/60"><span className="font-display text-xl text-muted-foreground">{index + 1}</span><img src={brawlerBorderUrl(row.id)} alt="" className="size-14 rounded-xl" /><span className="min-w-0 flex-1"><strong className="block">{row.name}</strong><span className="block text-xs text-muted-foreground">{t("progression.powerRecommendation", { power: row.power, recommendation: recommendationLabel(row.recommendation, t) })}</span><span className="mt-1 block text-xs text-primary">{t("progression.resources", { points: trophies(row.pointsRemaining), coins: trophies(row.powerCoinsRemaining + row.loadoutCoinsRemaining) })}</span></span></a>)}
             </div>
-            {!priorities.length ? <EmptyState title="Your competitive core is complete" detail="No owned brawler has a remaining core or standard-loadout estimate." /> : null}
+            {!priorities.length ? <EmptyState title={t("progression.complete")} detail={t("progression.completeDetail")} /> : null}
           </section>
 
           <section>
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">Full account model</p><h2 className="section-title">Brawler-by-brawler costs</h2></div><Button size="sm" variant={showLocked ? "default" : "outline"} onClick={() => setShowLocked((value) => !value)}>{showLocked ? "Including locked" : "Owned only"}</Button></div>
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">{t("progression.fullModel")}</p><h2 className="section-title">{t("progression.costs")}</h2></div><Button size="sm" variant={showLocked ? "default" : "outline"} onClick={() => setShowLocked((value) => !value)}>{showLocked ? t("progression.includingLocked") : t("progression.ownedOnly")}</Button></div>
             <div className="data-surface overflow-hidden">
-              <Table><TableHeader><TableRow><TableHead>Brawler</TableHead><TableHead>Power</TableHead><TableHead className="text-right">Completion</TableHead><TableHead className="text-right">Power Points</TableHead><TableHead className="text-right">Power coins</TableHead><TableHead className="text-right">Loadout coins</TableHead></TableRow></TableHeader><TableBody>{tableRows.map((row) => <TableRow key={row.id}><TableCell><a href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 hover:text-primary"><img src={brawlerBorderUrl(row.id)} alt="" className="size-10 rounded-lg" /><span><strong className="block">{row.name}</strong><span className="text-xs text-muted-foreground">{row.unlocked ? `${trophies(row.trophies)} trophies` : "Not unlocked"}</span></span></a></TableCell><TableCell><Badge variant={row.power === 11 ? "default" : "secondary"}>{row.power}</Badge></TableCell><TableCell className="text-right">{formatPercent(row.coreCompletion)}</TableCell><TableCell className="text-right">{trophies(row.pointsRemaining)}</TableCell><TableCell className="text-right">{trophies(row.powerCoinsRemaining)}</TableCell><TableCell className="text-right">{trophies(row.loadoutCoinsRemaining)}</TableCell></TableRow>)}</TableBody></Table>
+              <Table><TableHeader><TableRow><TableHead>{t("common.brawlers")}</TableHead><TableHead>{t("progression.power")}</TableHead><TableHead className="text-right">{t("progression.completion")}</TableHead><TableHead className="text-right">{t("progression.powerPoints")}</TableHead><TableHead className="text-right">{t("progression.powerCoins")}</TableHead><TableHead className="text-right">{t("progression.loadoutCoins")}</TableHead></TableRow></TableHeader><TableBody>{tableRows.map((row) => <TableRow key={row.id}><TableCell><a href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 hover:text-primary"><img src={brawlerBorderUrl(row.id)} alt="" className="size-10 rounded-lg" /><span><strong className="block">{row.name}</strong><span className="text-xs text-muted-foreground">{row.unlocked ? t("progression.trophies", { count: trophies(row.trophies) }) : t("progression.notUnlocked")}</span></span></a></TableCell><TableCell><Badge variant={row.power === 11 ? "default" : "secondary"}>{row.power}</Badge></TableCell><TableCell className="text-right">{formatPercent(row.coreCompletion)}</TableCell><TableCell className="text-right">{trophies(row.pointsRemaining)}</TableCell><TableCell className="text-right">{trophies(row.powerCoinsRemaining)}</TableCell><TableCell className="text-right">{trophies(row.loadoutCoinsRemaining)}</TableCell></TableRow>)}</TableBody></Table>
             </div>
           </section>
         </>
@@ -113,6 +115,19 @@ function ProgressionPage() {
 }
 
 function Summary({ label, value, detail }: { label: string; value: string; detail: string }) { return <Card className="gap-0 p-5 py-5"><p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className="mt-2 font-display text-3xl text-primary">{value}</p><p className="text-xs text-muted-foreground">{detail}</p></Card>; }
+
+function recommendationLabel(value: string, t: Translator): string {
+  const keys: Record<string, Parameters<Translator>[0]> = {
+    "Unlock first": "progression.recommendUnlock",
+    "Reach Power 7 for a gadget": "progression.recommendPower7",
+    "Reach Power 9 for a Star Power": "progression.recommendPower9",
+    "Finish the Power 11 upgrade": "progression.recommendPower11",
+    "Complete a competitive loadout": "progression.recommendLoadout",
+    "Core competitive loadout complete": "progression.recommendComplete",
+  };
+  const key = keys[value];
+  return key ? t(key) : t("progression.recommendUnknown");
+}
 
 function accountReadiness(rows: ReturnType<typeof buildProgression>) {
   if (!rows.length) return { score: 0, grade: "D" };

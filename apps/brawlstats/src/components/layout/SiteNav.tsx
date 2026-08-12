@@ -44,7 +44,7 @@ export function SiteNav() {
       linkAdapter={BrawlStatsLink}
       links={links}
       brand={
-        <Link to="/" aria-label="BrawlStats home">
+        <Link to="/" aria-label={t("nav.home")}>
           <img
             src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-logo.png`}
             alt="BrawlStats"

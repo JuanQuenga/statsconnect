@@ -9,6 +9,7 @@ import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { apiFetch, brawlerBorderUrl } from "@/lib/api";
 import { normalizeCatalog } from "@/lib/brawlers";
 import { formatPercent, trophies } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import { aggregateMeta, type TrophyBucket } from "@/lib/meta";
 import { appPath } from "@/lib/paths";
 import type { MapListItem, MetaResearchResponse } from "@/lib/types";
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/brawlers/")({
 });
 
 function BrawlersPage() {
+  const { t } = useI18n();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const trophyBucket = search.trophy || "all";
@@ -71,27 +73,27 @@ function BrawlersPage() {
   return (
     <div className="page-shell">
       <header>
-        <p className="eyebrow">Live catalog and observed meta</p>
-        <h1 className="font-display text-4xl md:text-5xl">Brawler directory</h1>
+        <p className="eyebrow">{t("brawlers.eyebrow")}</p>
+        <h1 className="font-display text-4xl md:text-5xl">{t("brawlers.title")}</h1>
         <p className="mt-3 max-w-3xl text-muted-foreground">
-          Explore every released brawler, their complete catalog loadout, and first-party performance from sampled official battle logs.
+          {t("brawlers.description")}
         </p>
       </header>
 
       <div className="data-surface grid gap-3 p-3 md:grid-cols-2 lg:grid-cols-5">
-        <Input value={search.q || ""} onChange={(event) => update({ q: event.target.value || undefined })} placeholder="Search brawlers" className="lg:col-span-2" />
-        <FilterSelect label="All roles" value={search.role || "all"} options={roles} onChange={(role) => update({ role: role === "all" ? undefined : role })} />
-        <FilterSelect label="All rarities" value={search.rarity || "all"} options={rarities} onChange={(rarity) => update({ rarity: rarity === "all" ? undefined : rarity })} />
-        <FilterSelect label="Sort: name" value={search.sort || "name"} options={["win", "use", "picks"]} labels={{ win: "Sort: win rate", use: "Sort: use rate", picks: "Sort: samples" }} onChange={(sort) => update({ sort: sort as BrawlersSearch["sort"] })} />
-        <FilterSelect label="All trophies" value={trophyBucket} options={["0-499", "500-999", "1000+"]} labels={{ "0-499": "0–499 trophies", "500-999": "500–999 trophies", "1000+": "1,000+ trophies" }} onChange={(trophy) => update({ trophy: trophy as TrophyBucket })} />
+        <Input value={search.q || ""} onChange={(event) => update({ q: event.target.value || undefined })} placeholder={t("brawlers.search")} className="lg:col-span-2" />
+        <FilterSelect label={t("brawlers.allRoles")} value={search.role || "all"} options={roles} onChange={(role) => update({ role: role === "all" ? undefined : role })} />
+        <FilterSelect label={t("brawlers.allRarities")} value={search.rarity || "all"} options={rarities} onChange={(rarity) => update({ rarity: rarity === "all" ? undefined : rarity })} />
+        <FilterSelect label={t("brawlers.sortName")} value={search.sort || "name"} options={["win", "use", "picks"]} labels={{ win: t("brawlers.sortWin"), use: t("brawlers.sortUse"), picks: t("brawlers.sortSamples") }} onChange={(sort) => update({ sort: sort as BrawlersSearch["sort"] })} />
+        <FilterSelect label={t("common.allTrophies")} value={trophyBucket} options={["0-499", "500-999", "1000+"]} labels={{ "0-499": t("common.trophyRange", { range: "0–499" }), "500-999": t("common.trophyRange", { range: "500–999" }), "1000+": t("common.trophyRange", { range: "1,000+" }) }} onChange={(trophy) => update({ trophy: trophy as TrophyBucket })} />
       </div>
 
-      {catalogQuery.isLoading || metaQuery.isLoading ? <PageStatus tone="loading">Loading brawler catalog and meta…</PageStatus> : null}
-      {catalogQuery.error || metaQuery.error ? <PageStatus tone="error">{String((catalogQuery.error || metaQuery.error) instanceof Error ? (catalogQuery.error || metaQuery.error)?.message : "Unable to load brawlers.")}</PageStatus> : null}
+      {catalogQuery.isLoading || metaQuery.isLoading ? <PageStatus tone="loading">{t("brawlers.loading")}</PageStatus> : null}
+      {catalogQuery.error || metaQuery.error ? <PageStatus tone="error">{(catalogQuery.error || metaQuery.error) instanceof Error ? (catalogQuery.error || metaQuery.error)?.message : t("brawlers.loadFailed")}</PageStatus> : null}
 
       <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-        <p>{rows.length} released brawlers</p>
-        <p>{trophies(metaQuery.data?.sampleSize || 0)} observed picks · min 25 per published rate</p>
+        <p>{t("brawlers.released", { count: rows.length })}</p>
+        <p>{t("brawlers.observed", { samples: trophies(metaQuery.data?.sampleSize || 0), minimum: metaQuery.data?.minPicks || 25 })}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -108,12 +110,12 @@ function BrawlersPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div><h2 className="font-display text-2xl">{brawler.name}</h2><p className="text-xs text-muted-foreground">{brawler.role}</p></div>
-                    {eligible ? <span className="text-right text-xs"><strong className="block text-primary">{formatPercent(stat?.winRate || 0)}</strong><span className="text-muted-foreground">win rate</span></span> : null}
+                    {eligible ? <span className="text-right text-xs"><strong className="block text-primary">{formatPercent(stat?.winRate || 0)}</strong><span className="text-muted-foreground">{t("meta.winRate")}</span></span> : null}
                   </div>
                   <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{brawler.description}</p>
                   <div className="mt-4 flex gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
-                    <span>{eligible ? `${formatPercent(stat?.useRate || 0)} use` : "Early sample"}</span>
-                    <span>{trophies(stat?.picks || 0)} picks</span>
+                    <span>{eligible ? t("brawlers.use", { rate: formatPercent(stat?.useRate || 0) }) : t("brawlers.earlySample")}</span>
+                    <span>{t("brawlers.picks", { count: trophies(stat?.picks || 0) })}</span>
                   </div>
                 </div>
               </Card>
@@ -121,7 +123,7 @@ function BrawlersPage() {
           );
         })}
       </div>
-      {!rows.length && !catalogQuery.isLoading ? <EmptyState title="No brawlers match these filters" /> : null}
+      {!rows.length && !catalogQuery.isLoading ? <EmptyState title={t("brawlers.noMatches")} /> : null}
     </div>
   );
 }
