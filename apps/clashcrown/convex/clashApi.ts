@@ -62,7 +62,83 @@ type ApiErrorBody = {
 
 const cacheApi = anyApi.cache;
 const playersApi = anyApi.players;
+const historyApi = anyApi.history;
 type ActionCtx = GenericActionCtx<GenericDataModel>;
+
+function defined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
+}
+
+function pathResult(result: ApiPlayer["currentPathOfLegendSeasonResult"]) {
+  if (!result) return undefined;
+  return defined({ trophies: result.trophies, bestTrophies: result.bestTrophies, rank: result.rank });
+}
+
+function compactPlayerSnapshot(player: ApiPlayer) {
+  const cards = player.cards;
+  const current = pathResult(player.currentPathOfLegendSeasonResult);
+  const last = pathResult(player.lastPathOfLegendSeasonResult);
+  const best = pathResult(player.bestPathOfLegendSeasonResult);
+  return defined({
+    tag: player.tag.replace(/^#/, "").toUpperCase(),
+    name: player.name,
+    trophies: player.trophies,
+    bestTrophies: player.bestTrophies,
+    expLevel: player.expLevel,
+    arenaId: player.arena?.id,
+    arenaName: player.arena?.name,
+    clanTag: player.clan?.tag?.replace(/^#/, ""),
+    clanName: player.clan?.name,
+    currentDeck: player.currentDeck?.map((card) => defined({
+      id: card.id,
+      level: card.level,
+      evolutionLevel: card.evolutionLevel
+    })),
+    collection: cards ? {
+      cardsOwned: cards.length,
+      totalLevels: cards.reduce((sum, card) => sum + (card.level ?? 0), 0),
+      maxedCards: cards.filter((card) => card.level !== undefined && card.maxLevel !== undefined && card.level >= card.maxLevel).length,
+      evolvedCards: cards.filter((card) => (card.evolutionLevel ?? 0) > 0).length,
+      starLevels: cards.reduce((sum, card) => sum + (card.starLevel ?? 0), 0)
+    } : undefined,
+    totals: defined({
+      wins: player.wins,
+      losses: player.losses,
+      battleCount: player.battleCount,
+      threeCrownWins: player.threeCrownWins,
+      challengeCardsWon: player.challengeCardsWon,
+      tournamentCardsWon: player.tournamentCardsWon,
+      donations: player.donations,
+      donationsReceived: player.donationsReceived,
+      totalDonations: player.totalDonations,
+      warDayWins: player.warDayWins,
+      clanCardsCollected: player.clanCardsCollected
+    }),
+    path: current || last || best ? defined({ current, last, best }) : undefined
+  });
+}
+
+function compactLeaderboardEntries(rows: Array<ApiPlayerRanking | ApiClanRanking>, kind: RankingKind) {
+  return rows.slice(0, 200).map((row, index) => {
+    const player = row as ApiPlayerRanking;
+    const clan = row as ApiClanRanking;
+    return defined({
+      rank: row.rank ?? index + 1,
+      tag: row.tag.replace(/^#/, "").toUpperCase(),
+      name: row.name,
+      score: kind === "clanwars"
+        ? clan.clanWarTrophies
+        : kind === "clans"
+          ? clan.clanScore
+          : player.score === 2147483647
+            ? undefined
+            : player.score,
+      trophies: kind === "players" ? player.trophies : undefined,
+      clanTag: kind === "players" ? player.clan?.tag?.replace(/^#/, "") : undefined,
+      clanName: kind === "players" ? player.clan?.name : undefined
+    });
+  });
+}
 
 /**
  * Adds whoever was just looked up to the name directory, so the next visit can
@@ -239,6 +315,12 @@ export const getPlayerBundle = actionGeneric({
         saveCache(ctx, keys.chests, "chests", chests)
       ]);
 
+      await ctx.runMutation(historyApi.recordPlayerSnapshot, {
+        player: compactPlayerSnapshot(player),
+        source: "api_profile",
+        observedAt: playerFetchedAt
+      });
+
       // The looked-up player plus everyone they recently fought. One tag typed
       // in the search box makes fifty players findable by name.
       await rememberPlayers(ctx, [
@@ -338,7 +420,14 @@ export const getCards = actionGeneric({
  */
 async function cachedFetch<T>(
   ctx: ActionCtx,
-  options: { key: string; kind: CacheKind; endpoint: string; force?: boolean; ttlMs?: number }
+  options: {
+    key: string;
+    kind: CacheKind;
+    endpoint: string;
+    force?: boolean;
+    ttlMs?: number;
+    onFetched?: (data: T, observedAt: number) => Promise<void>;
+  }
 ): Promise<CachedPayload<T>> {
   const cached = (await ctx.runQuery(cacheApi.get, { key: options.key })) as CacheDocument | null;
 
@@ -356,6 +445,7 @@ async function cachedFetch<T>(
       fetchedAt,
       expiresAt: fetchedAt + (options.ttlMs ?? cacheTtlMs())
     });
+    await options.onFetched?.(data, fetchedAt);
     return { data, fetchedAt, stale: false };
   } catch (error) {
     if (cached) return cachedPayload<T>(cached, true);
@@ -425,6 +515,9 @@ export const getRankings = actionGeneric({
     const limit = Math.min(Math.max(args.limit ?? 100, 1), 1000);
     const kind = args.kind as RankingKind;
 
+    const boardName = `${locationId === GLOBAL_LOCATION_ID ? "Global" : `Location ${locationId}`} ${
+      kind === "players" ? "Player" : kind === "clans" ? "Clan" : "Clan War"
+    } Rankings`;
     return {
       kind,
       locationId,
@@ -432,7 +525,14 @@ export const getRankings = actionGeneric({
         key: `rankings:${kind}:${locationId}:${limit}`,
         kind: "rankings",
         endpoint: `/locations/${locationId}/rankings/${kind}?limit=${limit}`,
-        force: args.force
+        force: args.force,
+        onFetched: async (data, observedAt) => {
+          await ctx.runMutation(historyApi.recordLeaderboardSnapshot, {
+            board: { key: `rankings:${kind}:${locationId}`, kind, name: boardName, locationId },
+            entries: compactLeaderboardEntries(data.items ?? [], kind),
+            observedAt
+          });
+        }
       })
     };
   }
@@ -456,12 +556,27 @@ export const getLeaderboard = actionGeneric({
   args: { leaderboardId: v.number(), limit: v.optional(v.number()), force: v.optional(v.boolean()) },
   handler: async (ctx, args): Promise<LeaderboardPayload> => {
     const limit = Math.min(Math.max(args.limit ?? 100, 1), 1000);
+    const boardsCache = (await ctx.runQuery(cacheApi.get, { key: "leaderboards:all" })) as CacheDocument | null;
+    const boards = boardsCache ? (JSON.parse(boardsCache.payload) as ApiPaged<ApiLeaderboard>).items ?? [] : [];
+    const boardName = boards.find((board) => board.id === args.leaderboardId)?.name ?? `Leaderboard #${args.leaderboardId}`;
     return {
       leaderboard: await cachedFetch<ApiPaged<ApiPlayerRanking>>(ctx, {
         key: `leaderboard:${args.leaderboardId}:${limit}`,
         kind: "leaderboard",
         endpoint: `/leaderboard/${args.leaderboardId}?limit=${limit}`,
-        force: args.force
+        force: args.force,
+        onFetched: async (data, observedAt) => {
+          await ctx.runMutation(historyApi.recordLeaderboardSnapshot, {
+            board: {
+              key: `event:${args.leaderboardId}`,
+              kind: "event",
+              name: boardName,
+              boardId: args.leaderboardId
+            },
+            entries: compactLeaderboardEntries(data.items ?? [], "players"),
+            observedAt
+          });
+        }
       })
     };
   }

@@ -54,6 +54,106 @@ export default defineSchema({
     recordedAt: v.number()
   }).index("by_profile", ["kind", "tag", "recordedAt"]),
 
+  /**
+   * Meaningful player-profile changes observed by ClashCrown. This intentionally
+   * stores compact summaries instead of entire API payloads or card collections.
+   */
+  playerSnapshots: defineTable({
+    tag: v.string(),
+    name: v.string(),
+    source: v.union(v.literal("api_profile"), v.literal("battle_log"), v.literal("legacy_trophy")),
+    fingerprint: v.string(),
+    observedAt: v.number(),
+    /** Last API observation that returned the same meaningful state. */
+    lastObservedAt: v.number(),
+    retentionAt: v.number(),
+    trophies: v.optional(v.number()),
+    bestTrophies: v.optional(v.number()),
+    expLevel: v.optional(v.number()),
+    arenaId: v.optional(v.number()),
+    arenaName: v.optional(v.string()),
+    clanTag: v.optional(v.string()),
+    clanName: v.optional(v.string()),
+    currentDeck: v.optional(v.array(v.object({
+      id: v.number(),
+      level: v.optional(v.number()),
+      evolutionLevel: v.optional(v.number())
+    }))),
+    collection: v.optional(v.object({
+      cardsOwned: v.number(),
+      totalLevels: v.number(),
+      maxedCards: v.number(),
+      evolvedCards: v.number(),
+      starLevels: v.number()
+    })),
+    totals: v.optional(v.object({
+      wins: v.optional(v.number()),
+      losses: v.optional(v.number()),
+      battleCount: v.optional(v.number()),
+      threeCrownWins: v.optional(v.number()),
+      challengeCardsWon: v.optional(v.number()),
+      tournamentCardsWon: v.optional(v.number()),
+      donations: v.optional(v.number()),
+      donationsReceived: v.optional(v.number()),
+      totalDonations: v.optional(v.number()),
+      warDayWins: v.optional(v.number()),
+      clanCardsCollected: v.optional(v.number())
+    })),
+    path: v.optional(v.object({
+      current: v.optional(v.object({ trophies: v.optional(v.number()), bestTrophies: v.optional(v.number()), rank: v.optional(v.union(v.number(), v.null())) })),
+      last: v.optional(v.object({ trophies: v.optional(v.number()), bestTrophies: v.optional(v.number()), rank: v.optional(v.union(v.number(), v.null())) })),
+      best: v.optional(v.object({ trophies: v.optional(v.number()), bestTrophies: v.optional(v.number()), rank: v.optional(v.union(v.number(), v.null())) }))
+    })),
+    legacyHistoryId: v.optional(v.id("profileHistory"))
+  })
+    .index("by_tag_and_observed_at", ["tag", "observedAt"])
+    .index("by_tag_and_source_and_observed_at", ["tag", "source", "observedAt"])
+    .index("by_retention_at", ["retentionAt"])
+    .index("by_legacy_history_id", ["legacyHistoryId"]),
+
+  /** Stable catalog for API event boards and location-scoped ranking boards. */
+  leaderboardBoards: defineTable({
+    key: v.string(),
+    kind: v.union(v.literal("event"), v.literal("players"), v.literal("clans"), v.literal("clanwars")),
+    name: v.string(),
+    boardId: v.optional(v.number()),
+    locationId: v.optional(v.number()),
+    firstObservedAt: v.number(),
+    lastObservedAt: v.number(),
+    snapshotCount: v.number()
+  })
+    .index("by_key", ["key"])
+    .index("by_last_observed_at", ["lastObservedAt"]),
+
+  /** Snapshot metadata is separate from entries to stay well below 1 MiB. */
+  leaderboardSnapshots: defineTable({
+    boardKey: v.string(),
+    fingerprint: v.string(),
+    observedAt: v.number(),
+    lastObservedAt: v.number(),
+    entryCount: v.number(),
+    /** First observation per API board is retained; later changes roll off. */
+    baseline: v.boolean(),
+    retentionAt: v.number()
+  })
+    .index("by_board_key_and_observed_at", ["boardKey", "observedAt"])
+    .index("by_retention_at", ["retentionAt"]),
+
+  leaderboardEntries: defineTable({
+    snapshotId: v.id("leaderboardSnapshots"),
+    boardKey: v.string(),
+    observedAt: v.number(),
+    rank: v.number(),
+    tag: v.string(),
+    name: v.string(),
+    score: v.optional(v.number()),
+    trophies: v.optional(v.number()),
+    clanTag: v.optional(v.string()),
+    clanName: v.optional(v.string())
+  })
+    .index("by_snapshot_id_and_rank", ["snapshotId", "rank"])
+    .index("by_tag_and_observed_at", ["tag", "observedAt"]),
+
   apiFetchLogs: defineTable({
     endpoint: v.string(),
     status: v.number(),

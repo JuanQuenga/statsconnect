@@ -11,6 +11,7 @@ const navItems = [
   { href: "/", label: "Home" },
   { href: "/meta", label: "Meta" },
   { href: "/leaderboards", label: "Leaderboards" },
+  { href: "/history", label: "History" },
   { href: "/cards", label: "Cards" },
   { href: "/decks", label: "Decks" },
   { href: "/clans/search", label: "Clans" },
