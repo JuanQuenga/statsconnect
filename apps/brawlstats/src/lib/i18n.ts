@@ -2669,6 +2669,14 @@ const koBase: Record<BaseTranslationKey, string> = {
 };
 
 const featureEnglish = {
+  "error.eyebrow": "BrawlStats recovery",
+  "error.title": "We hit a snag",
+  "error.description":
+    "This page could not be displayed. Your saved profiles and settings are safe.",
+  "error.retry": "Try again",
+  "error.home": "Return to BrawlStats",
+  "error.reference": "Error reference: {reference}",
+  "error.details": "Technical details",
   "nav.meta": "Meta",
   "nav.progression": "Progression",
   "brawlers.eyebrow": "Live catalog and observed meta",
@@ -2912,6 +2920,14 @@ const featureEnglish = {
 type FeatureTranslationKey = keyof typeof featureEnglish;
 
 const esFeature: Record<FeatureTranslationKey, string> = {
+  "error.eyebrow": "Recuperación de BrawlStats",
+  "error.title": "Algo salió mal",
+  "error.description":
+    "No se pudo mostrar esta página. Tus perfiles guardados y ajustes están seguros.",
+  "error.retry": "Intentar de nuevo",
+  "error.home": "Volver a BrawlStats",
+  "error.reference": "Referencia del error: {reference}",
+  "error.details": "Detalles técnicos",
   "nav.meta": "Meta",
   "nav.progression": "Progreso",
   "brawlers.eyebrow": "Catálogo en vivo y meta observado",
@@ -3156,6 +3172,14 @@ const esFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const deFeature: Record<FeatureTranslationKey, string> = {
+  "error.eyebrow": "BrawlStats-Wiederherstellung",
+  "error.title": "Etwas ist schiefgelaufen",
+  "error.description":
+    "Diese Seite konnte nicht angezeigt werden. Deine gespeicherten Profile und Einstellungen sind sicher.",
+  "error.retry": "Erneut versuchen",
+  "error.home": "Zurück zu BrawlStats",
+  "error.reference": "Fehlerreferenz: {reference}",
+  "error.details": "Technische Details",
   "nav.meta": "Meta",
   "nav.progression": "Fortschritt",
   "brawlers.eyebrow": "Live-Katalog und beobachtete Meta",
@@ -3399,6 +3423,14 @@ const deFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const frFeature: Record<FeatureTranslationKey, string> = {
+  "error.eyebrow": "Récupération de BrawlStats",
+  "error.title": "Un problème est survenu",
+  "error.description":
+    "Cette page n’a pas pu être affichée. Vos profils enregistrés et vos réglages sont en sécurité.",
+  "error.retry": "Réessayer",
+  "error.home": "Retourner à BrawlStats",
+  "error.reference": "Référence de l’erreur : {reference}",
+  "error.details": "Détails techniques",
   "nav.meta": "Méta",
   "nav.progression": "Progression",
   "brawlers.eyebrow": "Catalogue en direct et méta observée",
@@ -3647,6 +3679,14 @@ const frFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const ptFeature: Record<FeatureTranslationKey, string> = {
+  "error.eyebrow": "Recuperação do BrawlStats",
+  "error.title": "Algo deu errado",
+  "error.description":
+    "Não foi possível exibir esta página. Seus perfis salvos e configurações estão seguros.",
+  "error.retry": "Tentar novamente",
+  "error.home": "Voltar ao BrawlStats",
+  "error.reference": "Referência do erro: {reference}",
+  "error.details": "Detalhes técnicos",
   "nav.meta": "Meta",
   "nav.progression": "Progressão",
   "brawlers.eyebrow": "Catálogo ao vivo e meta observado",
@@ -3888,6 +3928,14 @@ const ptFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const jaFeature: Record<FeatureTranslationKey, string> = {
+  "error.eyebrow": "BrawlStats リカバリー",
+  "error.title": "問題が発生しました",
+  "error.description":
+    "このページを表示できませんでした。保存済みプロフィールと設定は安全です。",
+  "error.retry": "もう一度試す",
+  "error.home": "BrawlStats に戻る",
+  "error.reference": "エラー参照: {reference}",
+  "error.details": "技術的な詳細",
   "nav.meta": "メタ",
   "nav.progression": "進行状況",
   "brawlers.eyebrow": "ライブカタログと観測メタ",
@@ -4126,6 +4174,14 @@ const jaFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const koFeature: Record<FeatureTranslationKey, string> = {
+  "error.eyebrow": "BrawlStats 복구",
+  "error.title": "문제가 발생했습니다",
+  "error.description":
+    "이 페이지를 표시할 수 없습니다. 저장된 프로필과 설정은 안전합니다.",
+  "error.retry": "다시 시도",
+  "error.home": "BrawlStats로 돌아가기",
+  "error.reference": "오류 참조: {reference}",
+  "error.details": "기술 세부정보",
   "nav.meta": "메타",
   "nav.progression": "진행도",
   "brawlers.eyebrow": "실시간 카탈로그와 관측 메타",
