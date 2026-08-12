@@ -328,7 +328,7 @@ function SampleDeckOfTheDay() {
     <section className="deck-day page-band">
       <div className="section-title-row">
         <h2>Deck of the day <SampleBadge /></h2>
-        <Link href="/decks" className="pink-button">Open the deck builder</Link>
+        <Link href="/decks?tool=builder" className="pink-button">Open the deck builder</Link>
       </div>
       <div className="archetype-tabs" aria-label="Deck archetype filters">
         {["All", "Control", "Cycle", "Beatdown", "Bait"].map((item) => (

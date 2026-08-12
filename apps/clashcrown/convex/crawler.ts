@@ -42,6 +42,10 @@ async function logFetch(ctx: ActionCtx, endpoint: string, status: number, ok: bo
 }
 
 type RunResult = { note?: string; counters?: Record<string, number> };
+const runResult = v.object({
+  note: v.optional(v.string()),
+  counters: v.optional(v.record(v.string(), v.number()))
+});
 
 type Sighting = { tag: string; name: string; clanTag?: string; clanName?: string; trophies?: number };
 
@@ -271,6 +275,10 @@ type Aggregate = {
   evolutionIds: number[];
   uses: number;
   wins: number;
+  trophySum: number;
+  trophySamples: number;
+  arenaIds: Set<number>;
+  arenaNames: Set<string>;
 };
 
 async function aggregateWindow(ctx: ActionCtx, days: number) {
@@ -303,10 +311,18 @@ async function aggregateWindow(ctx: ActionCtx, days: number) {
           cardIds: row.cardIds,
           evolutionIds: row.evolutionIds,
           uses: 0,
-          wins: 0
+          wins: 0,
+          trophySum: 0,
+          trophySamples: 0,
+          arenaIds: new Set<number>(),
+          arenaNames: new Set<string>()
         };
         entry.uses += row.uses;
         entry.wins += row.wins;
+        entry.trophySum += row.trophySum ?? 0;
+        entry.trophySamples += row.trophySamples ?? 0;
+        for (const arenaId of row.arenaIds ?? []) entry.arenaIds.add(arenaId);
+        for (const arenaName of row.arenaNames ?? []) entry.arenaNames.add(arenaName);
         decks.set(row.deckHash, entry);
         byMode.set(mode, decks);
         totals.set(mode, (totals.get(mode) ?? 0) + row.uses);
@@ -327,6 +343,7 @@ async function aggregateWindow(ctx: ActionCtx, days: number) {
 
 export const rollup = internalAction({
   args: {},
+  returns: runResult,
   handler: async (ctx) => {
     const topN = envNumber("CLASH_RANKING_SIZE", 100);
 
@@ -356,7 +373,12 @@ export const rollup = internalAction({
               uses: entry.uses,
               wins: entry.wins,
               winRate: entry.uses ? entry.wins / entry.uses : 0,
-              usageRate: total ? entry.uses / total : 0
+              usageRate: total ? entry.uses / total : 0,
+              ...(entry.trophySamples
+                ? { averageTrophies: entry.trophySum / entry.trophySamples, trophySamples: entry.trophySamples }
+                : {}),
+              ...(entry.arenaIds.size ? { arenaIds: [...entry.arenaIds] } : {}),
+              ...(entry.arenaNames.size ? { arenaNames: [...entry.arenaNames] } : {})
             }));
 
           const result = await ctx.runMutation(internal.meta.writeDeckRankings, { windowDays, mode, rows });
