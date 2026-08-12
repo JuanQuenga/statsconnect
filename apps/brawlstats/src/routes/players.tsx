@@ -192,7 +192,7 @@ function PlayersPage() {
                 })}
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
               {brawlers.map((item) => {
                 const meta = catalog.get(item.id);
                 return (
@@ -207,7 +207,7 @@ function PlayersPage() {
                         <p className="text-xs text-muted-foreground">{meta?.rarity || t("player.brawler")}</p>
                         <p className="font-display text-sm text-primary">{trophies(item.trophies)} {t("common.trophies").toLocaleLowerCase()}</p>
                         <p className="text-xs text-muted-foreground">
-                          {t("common.rank", { rank: item.rank })} · {t("player.best", { value: trophies(item.highestTrophies || item.trophies) })}
+                          <span className="game-rank">{t("common.rank", { rank: item.rank })}</span> · {t("player.best", { value: trophies(item.highestTrophies || item.trophies) })}
                         </p>
                         <div className="flex flex-wrap gap-1 pt-1">
                           <Badge variant="outline">{t("player.gadgets", { count: item.gadgets?.length || 0 })}</Badge>
@@ -330,8 +330,8 @@ function BattleHistory({ battles }: { battles: PlayerBattle[] }) {
             <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{date(battle.battleTimestamp, { dateStyle: "short", timeStyle: "short" })}</TableCell>
             <TableCell><p>{readableMode(battle.mode)}</p><p className="text-xs text-muted-foreground">{battle.mapName || t("common.unknownMap")}</p></TableCell>
             <TableCell>{battle.brawlerName || t("common.unknown")}</TableCell>
-            <TableCell><Badge variant={battle.result === "victory" ? "default" : "outline"}>{battle.rank ? `#${battle.rank}` : battle.result}{battle.starPlayer ? ` · ${t("common.star")}` : ""}</Badge></TableCell>
-            <TableCell className={`text-right ${(battle.trophyChange || 0) >= 0 ? "text-primary" : "text-destructive"}`}>{battle.trophyChange === undefined ? "—" : `${battle.trophyChange > 0 ? "+" : ""}${battle.trophyChange}`}</TableCell>
+            <TableCell><Badge className="game-label" variant={battle.result === "victory" ? "default" : "outline"}>{battle.rank ? `#${battle.rank}` : battle.result}{battle.starPlayer ? ` · ${t("common.star")}` : ""}</Badge></TableCell>
+            <TableCell className={`game-stat text-right ${(battle.trophyChange || 0) >= 0 ? "text-primary" : "text-destructive"}`}>{battle.trophyChange === undefined ? "—" : `${battle.trophyChange > 0 ? "+" : ""}${battle.trophyChange}`}</TableCell>
           </TableRow>
         ))}</TableBody>
       </Table>

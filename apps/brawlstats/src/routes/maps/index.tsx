@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import type { EventItem, MapListItem } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 
 type MapsSearch = { q?: string; mode?: string; archive?: string };
+const mapPageSize = 48;
 
 export const Route = createFileRoute("/maps/")({
   validateSearch: (search: Record<string, unknown>): MapsSearch => ({
@@ -30,6 +31,7 @@ function MapsPage() {
   const [modeFilter, setModeFilter] = useState(search.mode || "all");
   const [showArchive, setShowArchive] = useState(search.archive === "1");
   const [sort, setSort] = useState<"active" | "name">("active");
+  const [visibleCount, setVisibleCount] = useState(mapPageSize);
 
   const mapsQuery = useQuery({
     queryKey: ["maps"],
@@ -67,6 +69,9 @@ function MapsPage() {
     });
     return rows;
   }, [mapsQuery.data, query, modeFilter, showArchive, sort]);
+
+  useEffect(() => setVisibleCount(mapPageSize), [modeFilter, query, showArchive, sort]);
+  const visibleMaps = filtered.slice(0, visibleCount);
 
   return (
     <div className="page-shell space-y-10">
@@ -118,6 +123,7 @@ function MapsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("maps.search")}
+            aria-label={t("maps.search")}
             className="h-10 max-w-md"
           />
           <div className="flex flex-wrap gap-2">
@@ -155,10 +161,12 @@ function MapsPage() {
           </PageStatus>
         ) : null}
 
-        <p className="text-sm text-muted-foreground">{filtered.length} maps</p>
+        <p className="text-sm text-muted-foreground">
+          {visibleMaps.length} / {filtered.length} {t("common.maps").toLocaleLowerCase()}
+        </p>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.slice(0, 120).map((map) => (
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+          {visibleMaps.map((map) => (
             <Link
               key={map.id}
               to="/maps/$mapId"
@@ -187,18 +195,25 @@ function MapsPage() {
                   </Badge>
                 ) : null}
               </div>
-              <div className="space-y-1 p-3">
+              <div className="space-y-1 p-2.5 sm:p-3">
                 <div className="flex items-center gap-2">
                   {map.gameMode?.imageUrl ? (
                     <img src={map.gameMode.imageUrl} alt="" className="size-5 rounded" />
                   ) : null}
                   <span className="text-xs text-muted-foreground">{map.gameMode?.name || t("common.mode")}</span>
                 </div>
-                <h3 className="font-display text-lg leading-tight">{map.name}</h3>
+                <h3 className="font-display text-base leading-tight sm:text-lg">{map.name}</h3>
               </div>
             </Link>
           ))}
         </div>
+        {visibleMaps.length < filtered.length ? (
+          <div className="flex justify-center">
+            <Button type="button" variant="outline" onClick={() => setVisibleCount((count) => count + mapPageSize)}>
+              {t("common.load")} {Math.min(mapPageSize, filtered.length - visibleMaps.length)} {t("common.maps").toLocaleLowerCase()}
+            </Button>
+          </div>
+        ) : null}
         {!filtered.length && !mapsQuery.isLoading ? <EmptyState title={t("maps.noMatches")} /> : null}
       </section>
     </div>
