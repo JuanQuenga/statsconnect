@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { Copy } from "lucide-react";
 import { Layout } from "@/components/portfolio/Layout";
 import { DeckMatchupPanel } from "@/components/MetaMatchups";
+import { MetaAnalytics } from "@/components/MetaAnalytics";
 import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell } from "@/components/portfolio/DataTable";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
@@ -108,6 +109,7 @@ function MetaReport() {
           mode={mode}
           windowDays={windowDays}
         />
+        <MetaAnalytics mode={mode} windowDays={windowDays} byId={byId} />
       </div>
     </Layout>
   );

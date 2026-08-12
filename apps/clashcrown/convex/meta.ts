@@ -195,6 +195,7 @@ export const ingestBattles = internalMutation({
     >();
     type MatchupDelta = {
       day: number;
+      mode: MetaMode;
       deckHash: string;
       oppDeckHash: string;
       cardIds: number[];
@@ -262,9 +263,10 @@ export const ingestBattles = internalMutation({
         [right, left]
       ] as const) {
         const day = dayKey(self.battleTime);
-        const matchupKey = `${day}:${self.deckHash}:${opponent.deckHash}`;
+        const matchupKey = `${day}:${self.mode}:${self.deckHash}:${opponent.deckHash}`;
         const matchup = matchupDeltas.get(matchupKey) ?? {
           day,
+          mode: self.mode as MetaMode,
           deckHash: self.deckHash,
           oppDeckHash: opponent.deckHash,
           cardIds: self.cardIds,
@@ -324,8 +326,12 @@ export const ingestBattles = internalMutation({
     for (const delta of matchupDeltas.values()) {
       const existing = await ctx.db
         .query("matchupStats")
-        .withIndex("by_day_and_deck_hash_and_opp_deck_hash", (q) =>
-          q.eq("day", delta.day).eq("deckHash", delta.deckHash).eq("oppDeckHash", delta.oppDeckHash)
+        .withIndex("by_day_and_mode_and_deck_hash_and_opp_deck_hash", (q) =>
+          q
+            .eq("day", delta.day)
+            .eq("mode", delta.mode)
+            .eq("deckHash", delta.deckHash)
+            .eq("oppDeckHash", delta.oppDeckHash)
         )
         .unique();
 

@@ -5,6 +5,7 @@ import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { useMemo, useState } from "react";
 import { Layout } from "@/components/portfolio/Layout";
+import { CardDeepAnalytics } from "@/components/CardDeepAnalytics";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { rarityImage } from "@/lib/clash/assets";
 import { cardSlug, findCardBySlug, relatedCards } from "@/lib/clash/cards";
@@ -106,6 +107,7 @@ function CardDetail({ slug }: { slug: string }) {
         </section>
 
         <CardStats card={card} mode={mode} onModeChange={setMode} meta={meta} />
+        <CardDeepAnalytics card={card} mode={mode} byId={library.byId} />
 
         <section className="profile-section">
           <h2>Similar cards</h2>
