@@ -109,6 +109,71 @@
 
 .sc-nav__network-menu { display: none; }
 
+.sc-nav__network-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sc-nav__language {
+  height: 30px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid rgba(230, 226, 244, .13);
+  border-radius: 8px;
+  color: var(--sc-nav-muted);
+  background: rgba(255, 255, 255, .035);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+
+.sc-nav__language:hover,
+.sc-nav__language:focus-within {
+  color: var(--sc-nav-text);
+  border-color: color-mix(in srgb, var(--sc-nav-accent) 48%, transparent);
+  background: rgba(255, 255, 255, .06);
+}
+
+.sc-nav__language > svg:first-of-type {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--sc-nav-accent);
+  stroke-width: 1.7;
+}
+
+.sc-nav__language select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.sc-nav__language-chevron {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.sc-nav__sr-only {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 .sc-nav__site {
   border-bottom: 1px solid var(--sc-nav-border);
   background: var(--sc-nav-bg);
@@ -261,7 +326,7 @@
   .sc-nav__network-brand { min-width: 0; padding-right: 14px; border-right: 0; }
   .sc-nav__network-brand strong { font-size: 12px; }
   .sc-nav__network-sites { display: none; }
-  .sc-nav__network-menu { margin-left: auto; display: flex; align-items: center; }
+  .sc-nav__network-menu { display: flex; align-items: center; }
   .sc-nav__network-menu .sc-nav__games summary { height: 30px; border: 0; background: transparent; }
   .sc-nav__network-menu .sc-nav__game-menu { right: 0; left: auto; }
   .sc-nav__brand { max-width: 152px; }

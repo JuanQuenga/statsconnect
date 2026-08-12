@@ -1,6 +1,8 @@
-export { SiteNavigation } from "./SiteNavigation";
+export { SiteNavigation, siteNavigationLanguages } from "./SiteNavigation";
 export type {
   SiteId,
+  SiteNavigationLanguage,
+  SiteNavigationLanguageOption,
   SiteNavigationLink,
   SiteNavigationLinkAdapter,
   SiteNavigationLinkAdapterProps,

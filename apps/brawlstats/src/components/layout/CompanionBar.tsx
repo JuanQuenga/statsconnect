@@ -2,10 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Bell, FlaskConical, Settings, Star } from "lucide-react";
 import { useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiFetch, collection } from "@/lib/api";
-import { localeLabels, useI18n } from "@/lib/i18n";
-import { setLocale, supportedLocales, usePreferences, type Locale } from "@/lib/preferences";
+import { useI18n } from "@/lib/i18n";
+import { usePreferences } from "@/lib/preferences";
 import type { EventItem } from "@/lib/types";
 
 const ROTATION_KEY = "brawlstats.rotation.v1";
@@ -78,14 +77,6 @@ export function CompanionBar() {
         ) : null}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {preferences.alertsEnabled ? <Bell className="size-3.5 text-accent" aria-label={t("common.alerts")} /> : null}
-          <Select value={locale} onValueChange={(value) => value && setLocale(value as Locale)}>
-            <SelectTrigger size="sm" aria-label={t("common.language")}>
-              <SelectValue>{localeLabels[locale]}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {supportedLocales.map((item) => <SelectItem key={item} value={item}>{localeLabels[item]}</SelectItem>)}
-            </SelectContent>
-          </Select>
           <Link to="/settings" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-foreground" aria-label={t("nav.settings")}>
             <Settings className="size-4" />
           </Link>

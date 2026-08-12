@@ -1,10 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   SiteNavigation,
+  siteNavigationLanguages,
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 import { PlayerSearch } from "@/components/PlayerSearch";
 import { useI18n } from "@/lib/i18n";
+import { setLocale, supportedLocales, type Locale } from "@/lib/preferences";
 
 const statsConnectOrigin = import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim();
 
@@ -25,7 +27,7 @@ function BrawlStatsLink({ children, className, href, onNavigate }: SiteNavigatio
 }
 
 export function SiteNav() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const links = [
     { href: "/", label: t("nav.home") },
     { href: "/players", label: t("nav.players") },
@@ -43,6 +45,12 @@ export function SiteNav() {
       statsConnectOrigin={statsConnectOrigin}
       linkAdapter={BrawlStatsLink}
       links={links}
+      language={{
+        label: t("common.language"),
+        value: locale,
+        options: siteNavigationLanguages.filter((option) => supportedLocales.includes(option.value as Locale)),
+        onChange: (value) => setLocale(value as Locale),
+      }}
       brand={
         <Link to="/" aria-label={t("nav.home")}>
           <img

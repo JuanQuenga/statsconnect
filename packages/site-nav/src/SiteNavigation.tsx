@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import "./site-navigation.css";
 
 export type SiteId = "statsconnect" | "brawl-stars" | "clash-royale";
@@ -17,6 +17,19 @@ export type SiteNavigationLinkAdapterProps = {
 
 export type SiteNavigationLinkAdapter = ComponentType<SiteNavigationLinkAdapterProps>;
 
+export type SiteNavigationLanguageOption = {
+  label: string;
+  shortLabel: string;
+  value: string;
+};
+
+export type SiteNavigationLanguage = {
+  label: string;
+  onChange: (value: string) => void;
+  options: readonly SiteNavigationLanguageOption[];
+  value: string;
+};
+
 type NavigationStyle = CSSProperties & {
   "--sc-nav-accent"?: string;
 };
@@ -28,6 +41,7 @@ export type SiteNavigationProps = {
   endContent?: ReactNode;
   links: readonly SiteNavigationLink[];
   linkAdapter: SiteNavigationLinkAdapter;
+  language?: SiteNavigationLanguage;
   renderSearch?: (onNavigate: () => void) => ReactNode;
   statsConnectOrigin?: string;
 };
@@ -37,6 +51,49 @@ const sites = [
   { id: "brawl-stars", label: "Brawl Stars", detail: "Open BrawlStats", path: "/launch/brawl-stars", icon: "★" },
   { id: "clash-royale", label: "Clash Royale", detail: "Open ClashCrown", path: "/launch/clash-royale", icon: "♛" },
 ] as const;
+
+export const siteNavigationLanguages = [
+  { value: "en", shortLabel: "EN", label: "English" },
+  { value: "es", shortLabel: "ES", label: "Español" },
+  { value: "de", shortLabel: "DE", label: "Deutsch" },
+  { value: "fr", shortLabel: "FR", label: "Français" },
+  { value: "pt", shortLabel: "PT", label: "Português" },
+  { value: "ja", shortLabel: "JA", label: "日本語" },
+  { value: "ko", shortLabel: "KO", label: "한국어" },
+] as const satisfies readonly SiteNavigationLanguageOption[];
+
+const LANGUAGE_STORAGE_KEY = "statsconnect.locale.v1";
+const LANGUAGE_COOKIE_KEY = "statsconnect_locale";
+const LANGUAGE_EVENT = "statsconnect:locale-change";
+
+function readSharedLanguage(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const cookie = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${LANGUAGE_COOKIE_KEY}=`));
+    if (cookie) return decodeURIComponent(cookie.slice(LANGUAGE_COOKIE_KEY.length + 1));
+    return window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeSharedLanguage(value: string) {
+  if (typeof window === "undefined") return;
+  document.documentElement.lang = value;
+  try {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, value);
+    const sharedDomain = window.location.hostname === "juanquenga.com" || window.location.hostname.endsWith(".juanquenga.com")
+      ? "; Domain=.juanquenga.com"
+      : "";
+    document.cookie = `${LANGUAGE_COOKIE_KEY}=${encodeURIComponent(value)}; Max-Age=31536000; Path=/; SameSite=Lax${sharedDomain}`;
+  } catch {
+    // The current page can still update when browser storage is unavailable.
+  }
+  window.dispatchEvent(new CustomEvent(LANGUAGE_EVENT, { detail: value }));
+}
 
 function normalizeOrigin(origin: string | undefined): string {
   return (origin?.trim() || "https://stats.juanquenga.com").replace(/\/$/, "");
@@ -116,11 +173,96 @@ function GamesMenu({ currentSite, origin }: { currentSite: SiteId; origin: strin
   );
 }
 
+function LanguageIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  );
+}
+
+function LanguageSelector({ language }: { language?: SiteNavigationLanguage }) {
+  const options = language?.options ?? siteNavigationLanguages;
+  const controlledValue = language?.value;
+  const previousControlledValue = useRef(controlledValue);
+  const [value, setValue] = useState(() => {
+    const shared = readSharedLanguage();
+    if (shared && options.some((option) => option.value === shared)) return shared;
+    if (controlledValue && options.some((option) => option.value === controlledValue)) return controlledValue;
+    return options[0]?.value ?? "en";
+  });
+
+  useEffect(() => {
+    const shared = readSharedLanguage();
+    if (shared && options.some((option) => option.value === shared)) {
+      setValue(shared);
+      document.documentElement.lang = shared;
+      if (controlledValue !== undefined && controlledValue !== shared) language?.onChange(shared);
+    } else if (shared) {
+      // Preserve a network-wide preference that this site does not translate yet.
+      if (controlledValue) setValue(controlledValue);
+    } else if (controlledValue) {
+      setValue(controlledValue);
+      writeSharedLanguage(controlledValue);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (controlledValue === undefined || controlledValue === previousControlledValue.current) return;
+    previousControlledValue.current = controlledValue;
+    setValue(controlledValue);
+    writeSharedLanguage(controlledValue);
+  }, [controlledValue]);
+
+  useEffect(() => {
+    const sync = (event: Event) => {
+      const next = event instanceof CustomEvent && typeof event.detail === "string"
+        ? event.detail
+        : readSharedLanguage();
+      if (!next || !options.some((option) => option.value === next)) return;
+      setValue(next);
+      if (controlledValue !== undefined && controlledValue !== next) language?.onChange(next);
+    };
+    window.addEventListener("storage", sync);
+    window.addEventListener(LANGUAGE_EVENT, sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener(LANGUAGE_EVENT, sync);
+    };
+  }, [controlledValue, language, options]);
+
+  const selectedValue = controlledValue ?? value;
+  const selected = options.find((option) => option.value === selectedValue) ?? options[0];
+
+  return (
+    <label className="sc-nav__language">
+      <span className="sc-nav__sr-only">{language?.label ?? "Language"}</span>
+      <LanguageIcon />
+      <span aria-hidden>{selected?.shortLabel}</span>
+      <select
+        aria-label={language?.label ?? "Language"}
+        value={selected?.value}
+        onChange={(event) => {
+          const next = event.target.value;
+          setValue(next);
+          writeSharedLanguage(next);
+          language?.onChange(next);
+        }}
+      >
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <svg className="sc-nav__language-chevron" viewBox="0 0 24 24" aria-hidden><path d="m7 10 5 5 5-5" /></svg>
+    </label>
+  );
+}
+
 export function SiteNavigation({
   accentColor,
   brand,
   currentSite,
   endContent,
+  language,
   links,
   linkAdapter: LinkAdapter,
   renderSearch,
@@ -137,7 +279,10 @@ export function SiteNavigation({
         <div className="sc-nav__network-inner">
           <NetworkBrand currentSite={currentSite} origin={origin} />
           <NetworkSites currentSite={currentSite} origin={origin} />
-          <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} origin={origin} /></div>
+          <div className="sc-nav__network-actions">
+            <LanguageSelector language={language} />
+            <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} origin={origin} /></div>
+          </div>
         </div>
       </div>
 

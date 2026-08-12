@@ -1,11 +1,11 @@
 import Image from "@/components/Image";
 import Link from "@/components/Link";
-import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
-import { useI18n } from "@/lib/i18n";
+import { supportedLocales, useI18n, type Locale } from "@/lib/i18n";
 import { useRouterState } from "@tanstack/react-router";
 import {
   SiteNavigation,
+  siteNavigationLanguages,
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 
@@ -26,7 +26,7 @@ function ClashCrownLink({ children, className, href, onNavigate }: SiteNavigatio
 }
 
 export function Layout({ children, variant = "profile" }: { children: React.ReactNode; variant?: "home" | "profile" }) {
-  const { t } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const navItems = [
     { href: "/", label: t("nav.home") },
     { href: "/meta", label: t("nav.meta") },
@@ -49,6 +49,12 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         statsConnectOrigin={statsConnectOrigin}
         linkAdapter={ClashCrownLink}
         links={navItems}
+        language={{
+          label: t("locale.label"),
+          value: locale,
+          options: siteNavigationLanguages.filter((option) => supportedLocales.includes(option.value as Locale)),
+          onChange: (value) => setLocale(value as Locale),
+        }}
         brand={
           <Link href="/" aria-label="Clash Crown home">
             <Image src="/images/logo/clash-crown-purple-wide.png" alt="Clash Crown" width={315} height={100} priority />
@@ -57,7 +63,6 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         renderSearch={(onNavigate) => (
           <div className="nav-search-tools">
             <ProfileSearch compact onNavigate={onNavigate} />
-            <LocaleSwitcher />
           </div>
         )}
       />
