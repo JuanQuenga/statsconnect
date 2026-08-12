@@ -14,6 +14,8 @@ export type Card = {
   starLevel?: number;
   count?: number;
   evolutionLevel?: number;
+  /** Active deck-slot treatment. Hero battle slots often omit `heroImage`, so this is retained separately. */
+  variant?: "Evolution" | "Hero";
   isEvolution?: boolean;
   canEvolve?: boolean;
 };
@@ -21,13 +23,24 @@ export type Card = {
 export type Battle = {
   mode: string;
   date: string;
+  time?: string;
   result: "Win" | "Loss" | "Draw";
   crowns: [number, number];
   opponent: string;
+  opponentTag?: string;
   opponentClan?: string;
   opponentDeck?: Card[];
-  trophyChange: number;
+  opponentSupportCards?: Card[];
+  trophyChange?: number;
+  opponentTrophyChange?: number;
+  startingTrophies?: number;
+  opponentStartingTrophies?: number;
+  kingTowerHitPoints?: number | null;
+  opponentKingTowerHitPoints?: number | null;
+  princessTowersHitPoints?: number[] | null;
+  opponentPrincessTowersHitPoints?: number[] | null;
   deck: Card[];
+  supportCards?: Card[];
 };
 
 export type Chest = {

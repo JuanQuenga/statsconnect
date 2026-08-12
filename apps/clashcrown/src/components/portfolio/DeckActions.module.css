@@ -1,0 +1,70 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.actions button,
+.actions a {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgba(113, 145, 190, .48);
+  border-radius: 6px;
+  background: rgba(14, 42, 77, .94);
+  color: #eff7ff;
+  font: 700 10px var(--font-ui);
+  white-space: nowrap;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.actions button:hover:not(:disabled),
+.actions a:hover {
+  border-color: rgba(238, 102, 239, .72);
+  background: rgba(111, 35, 123, .7);
+}
+
+.actions button:focus-visible,
+.actions a:focus-visible {
+  outline: 3px solid rgba(89, 190, 255, .65);
+  outline-offset: 2px;
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.notice {
+  width: 100%;
+  color: #ff9db1;
+  font: 9px var(--font-ui);
+  text-align: right;
+}
+
+.compact button,
+.compact a {
+  min-height: 30px;
+  padding: 0 8px;
+}
+
+@media (max-width: 680px) {
+  .actions {
+    justify-content: flex-start;
+  }
+
+  .actions button,
+  .actions a {
+    min-height: 38px;
+  }
+
+  .notice {
+    text-align: left;
+  }
+}

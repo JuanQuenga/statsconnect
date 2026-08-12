@@ -1,5 +1,6 @@
 import type { Battle, Card, Chest, Clan, ClanMember, PathOfLegendsResult, Player } from "@/lib/mock-data";
 import {
+  activeCardVariant,
   arenaImage,
   badgeImage,
   cardImage,
@@ -43,6 +44,7 @@ export function mapCard(card?: ApiCard): Card {
 
   const evolutionLevel = card.evolutionLevel ?? 0;
   const evolutionImage = evolutionCardImage(card);
+  const variant = activeCardVariant(card);
 
   return {
     id: card.id,
@@ -57,7 +59,8 @@ export function mapCard(card?: ApiCard): Card {
     starLevel: card.starLevel,
     count: card.count,
     evolutionLevel,
-    isEvolution: evolutionLevel > 0,
+    variant,
+    isEvolution: variant !== undefined,
     canEvolve: Boolean(evolutionImage)
   };
 }
@@ -65,6 +68,12 @@ export function mapCard(card?: ApiCard): Card {
 function formatBattleDate(value?: string) {
   if (!value) return "Recent battle";
   return formatApiDate(value, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatBattleTime(value?: string) {
+  if (!value) return undefined;
+  const formatted = formatApiDate(value, { hour: "numeric", minute: "2-digit" });
+  return formatted === value ? undefined : formatted;
 }
 
 function mapBattle(battle: ApiBattle): Battle {
@@ -76,13 +85,24 @@ function mapBattle(battle: ApiBattle): Battle {
   return {
     mode: battle.gameMode?.name ?? battle.type ?? "Battle",
     date: formatBattleDate(battle.battleTime),
+    time: formatBattleTime(battle.battleTime),
     result: ourCrowns > theirCrowns ? "Win" : ourCrowns < theirCrowns ? "Loss" : "Draw",
     crowns: [ourCrowns, theirCrowns],
     opponent: opponent?.name ?? "Unknown player",
+    opponentTag: opponent?.tag?.replace(/^#/, ""),
     opponentClan: opponent?.clan?.name,
     opponentDeck: opponent?.cards?.map(mapCard),
-    trophyChange: team?.trophyChange ?? 0,
-    deck: team?.cards?.map(mapCard) ?? []
+    opponentSupportCards: opponent?.supportCards?.map(mapCard),
+    trophyChange: team?.trophyChange,
+    opponentTrophyChange: opponent?.trophyChange,
+    startingTrophies: team?.startingTrophies,
+    opponentStartingTrophies: opponent?.startingTrophies,
+    kingTowerHitPoints: team?.kingTowerHitPoints,
+    opponentKingTowerHitPoints: opponent?.kingTowerHitPoints,
+    princessTowersHitPoints: team?.princessTowersHitPoints,
+    opponentPrincessTowersHitPoints: opponent?.princessTowersHitPoints,
+    deck: team?.cards?.map(mapCard) ?? [],
+    supportCards: team?.supportCards?.map(mapCard)
   };
 }
 
