@@ -42,6 +42,24 @@ function finiteNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function optionalNumber(...values: unknown[]): number | undefined {
+  return values.find((value): value is number => typeof value === "number" && Number.isFinite(value));
+}
+
+function optionalString(...values: unknown[]): string | undefined {
+  return values.find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim();
+}
+
+function equipment(value: unknown): Array<{ id: number; name: string }> {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const record = asRecord(item);
+    const id = optionalNumber(record?.id);
+    const name = optionalString(record?.name);
+    return id !== undefined && name ? [{ id, name }] : [];
+  });
+}
+
 function profileSnapshot(value: unknown) {
   const profile = asRecord(value);
   const tag = typeof profile?.tag === "string" ? normalizedTag(profile.tag) : null;
@@ -50,6 +68,26 @@ function profileSnapshot(value: unknown) {
   const club = asRecord(profile.club);
   const icon = asRecord(profile.icon);
   const brawlers = Array.isArray(profile.brawlers) ? profile.brawlers : [];
+  const ranked = asRecord(profile.ranked);
+  const rankedSeason = asRecord(profile.rankedSeason ?? profile.currentRankedSeason);
+  const normalizedBrawlers = brawlers.flatMap((value) => {
+    const brawler = asRecord(value);
+    const id = optionalNumber(brawler?.id);
+    const brawlerName = optionalString(brawler?.name);
+    if (id === undefined || !brawlerName) return [];
+    return [{
+      id,
+      name: brawlerName,
+      power: finiteNumber(brawler?.power),
+      rank: finiteNumber(brawler?.rank),
+      trophies: finiteNumber(brawler?.trophies),
+      highestTrophies: finiteNumber(brawler?.highestTrophies),
+      gadgets: equipment(brawler?.gadgets),
+      starPowers: equipment(brawler?.starPowers),
+      gears: equipment(brawler?.gears),
+      hypercharges: equipment(brawler?.hypercharges ?? brawler?.hypercharge ?? brawler?.buffies),
+    }];
+  });
   return {
     tag,
     name,
@@ -64,6 +102,13 @@ function profileSnapshot(value: unknown) {
     iconId: typeof icon?.id === "number" ? icon.id : undefined,
     brawlerCount: brawlers.length,
     power11Count: brawlers.filter((brawler) => finiteNumber(asRecord(brawler)?.power) === 11).length,
+    rankedCurrent: optionalNumber(ranked?.currentRank, ranked?.current, profile.rankedCurrent),
+    rankedCurrentName: optionalString(ranked?.currentRankName, ranked?.currentName, profile.rankedCurrentName),
+    rankedSeasonBest: optionalNumber(ranked?.seasonBestRank, rankedSeason?.bestRank, profile.rankedSeasonBest),
+    rankedSeasonBestName: optionalString(ranked?.seasonBestRankName, rankedSeason?.bestRankName, profile.rankedSeasonBestName),
+    rankedBest: optionalNumber(ranked?.bestRank, ranked?.highestRank, profile.rankedBest),
+    rankedBestName: optionalString(ranked?.bestRankName, ranked?.highestRankName, profile.rankedBestName),
+    brawlers: normalizedBrawlers,
   };
 }
 
@@ -174,6 +219,17 @@ const playerHistory = httpAction(async (ctx, request) => {
   return json({ snapshots: await ctx.runQuery(api.brawl.players.history, { tag, limit: 180 }) });
 });
 
+const playerAnalytics = httpAction(async (ctx, request) => {
+  const search = new URL(request.url).searchParams;
+  const tag = normalizedTag(search.get("tag"));
+  if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars player tag." }, 400);
+  const requestedLimit = Number(search.get("limit") || "50");
+  const beforeValue = Number(search.get("before"));
+  const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, Math.trunc(requestedLimit))) : 50;
+  const before = Number.isFinite(beforeValue) && beforeValue > 0 ? beforeValue : undefined;
+  return json(await ctx.runQuery(api.brawl.players.analytics, { tag, limit, before }));
+});
+
 const club = httpAction(async (_ctx, request) => {
   const tag = normalizedTag(new URL(request.url).searchParams.get("tag"));
   if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars club tag." }, 400);
@@ -254,6 +310,7 @@ const paths = [
   "/api/player",
   "/api/player-search",
   "/api/player-history",
+  "/api/player-analytics",
   "/api/club",
   "/api/rankings",
   "/api/brawlers",
@@ -271,6 +328,7 @@ http.route({ method: "OPTIONS", pathPrefix: "/api/maps/", handler: options });
 http.route({ method: "GET", path: "/api/player", handler: player });
 http.route({ method: "GET", path: "/api/player-search", handler: playerSearch });
 http.route({ method: "GET", path: "/api/player-history", handler: playerHistory });
+http.route({ method: "GET", path: "/api/player-analytics", handler: playerAnalytics });
 http.route({ method: "GET", path: "/api/club", handler: club });
 http.route({ method: "GET", path: "/api/rankings", handler: rankings });
 http.route({ method: "GET", path: "/api/brawlers", handler: brawlers });

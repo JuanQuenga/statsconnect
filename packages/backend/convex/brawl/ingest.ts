@@ -10,7 +10,7 @@ declare const process: { env: Record<string, string | undefined> };
 type BattlePlayer = {
   tag?: string;
   name?: string;
-  brawler?: { id?: number; trophies?: number };
+  brawler?: { id?: number; name?: string; power?: number; trophies?: number };
 };
 
 type BattleLogItem = {
@@ -20,6 +20,8 @@ type BattleLogItem = {
     mode?: string;
     type?: string;
     result?: string;
+    rank?: number;
+    trophyChange?: number;
     starPlayer?: { tag?: string; brawler?: { id?: number } };
     teams?: BattlePlayer[][];
     players?: BattlePlayer[];
@@ -69,6 +71,20 @@ function teamHash(ids: number[]) {
   return [...ids].sort((a, b) => a - b).join("-");
 }
 
+function battleTimestamp(value?: string): number | null {
+  const match = String(value || "").match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+  if (!match) return null;
+  const timestamp = Date.parse(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}Z`);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function personalResult(battle: BattleLogItem["battle"]): "victory" | "defeat" | "draw" | "unknown" {
+  if (battle?.result === "victory" || battle?.result === "defeat" || battle?.result === "draw") return battle.result;
+  if (battle?.rank === 1) return "victory";
+  if (typeof battle?.rank === "number" && battle.rank > 1) return "defeat";
+  return "unknown";
+}
+
 export const ingestBattleLogItems = internalMutation({
   args: {
     items: v.array(v.any()),
@@ -94,6 +110,47 @@ export const ingestBattleLogItems = internalMutation({
     }
 
     for (const raw of args.items as BattleLogItem[]) {
+      if (focus) {
+        const focusPlayer = participants(raw.battle).find((person) => normalizedTag(person.tag || null) === focus);
+        const timestamp = battleTimestamp(raw.battleTime);
+        if (focusPlayer && timestamp !== null && raw.battleTime) {
+          const playerTag = focus.slice(1);
+          const mode = String(raw.event?.mode || raw.battle?.mode || "unknown");
+          const dedupeKey = `${raw.battleTime}|${mode}|${focusPlayer.brawler?.id ?? 0}`;
+          const existingPlayerBattle = await ctx.db
+            .query("playerBattles")
+            .withIndex("by_player_and_dedupe", (q) => q.eq("playerTag", playerTag).eq("dedupeKey", dedupeKey))
+            .unique();
+          if (!existingPlayerBattle) {
+            const mapId = Number(raw.event?.id);
+            const rank = Number(raw.battle?.rank);
+            const trophyChange = Number(raw.battle?.trophyChange);
+            const brawlerId = Number(focusPlayer.brawler?.id);
+            const brawlerPower = Number(focusPlayer.brawler?.power);
+            const brawlerTrophies = Number(focusPlayer.brawler?.trophies);
+            await ctx.db.insert("playerBattles", {
+              playerTag,
+              dedupeKey,
+              battleTime: raw.battleTime,
+              battleTimestamp: timestamp,
+              ingestedAt: Date.now(),
+              mapId: Number.isFinite(mapId) && mapId > 0 ? mapId : undefined,
+              mapName: raw.event?.map,
+              mode,
+              battleType: raw.battle?.type,
+              result: personalResult(raw.battle),
+              rank: Number.isFinite(rank) && rank > 0 ? rank : undefined,
+              trophyChange: Number.isFinite(trophyChange) ? trophyChange : undefined,
+              brawlerId: Number.isFinite(brawlerId) && brawlerId > 0 ? brawlerId : undefined,
+              brawlerName: focusPlayer.brawler?.name,
+              brawlerPower: Number.isFinite(brawlerPower) && brawlerPower > 0 ? brawlerPower : undefined,
+              brawlerTrophies: Number.isFinite(brawlerTrophies) ? brawlerTrophies : undefined,
+              starPlayer: normalizedTag(raw.battle?.starPlayer?.tag || null) === focus,
+            });
+          }
+        }
+      }
+
       const mapId = Number(raw.event?.id);
       if (!Number.isFinite(mapId) || mapId <= 0) continue;
 

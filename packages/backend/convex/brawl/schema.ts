@@ -79,9 +79,50 @@ export const brawlTables = {
     iconId: v.optional(v.number()),
     brawlerCount: v.number(),
     power11Count: v.number(),
+    rankedCurrent: v.optional(v.number()),
+    rankedCurrentName: v.optional(v.string()),
+    rankedSeasonBest: v.optional(v.number()),
+    rankedSeasonBestName: v.optional(v.string()),
+    rankedBest: v.optional(v.number()),
+    rankedBestName: v.optional(v.string()),
+    brawlers: v.optional(v.array(v.object({
+      id: v.number(),
+      name: v.string(),
+      power: v.number(),
+      rank: v.number(),
+      trophies: v.number(),
+      highestTrophies: v.number(),
+      gadgets: v.array(v.object({ id: v.number(), name: v.string() })),
+      starPowers: v.array(v.object({ id: v.number(), name: v.string() })),
+      gears: v.array(v.object({ id: v.number(), name: v.string() })),
+      hypercharges: v.array(v.object({ id: v.number(), name: v.string() })),
+    }))),
   })
     .index("by_tag_and_day", ["tag", "day"])
     .index("by_recorded_at", ["recordedAt"]),
+
+  playerBattles: defineTable({
+    playerTag: v.string(),
+    dedupeKey: v.string(),
+    battleTime: v.string(),
+    battleTimestamp: v.number(),
+    ingestedAt: v.number(),
+    mapId: v.optional(v.number()),
+    mapName: v.optional(v.string()),
+    mode: v.string(),
+    battleType: v.optional(v.string()),
+    result: v.union(v.literal("victory"), v.literal("defeat"), v.literal("draw"), v.literal("unknown")),
+    rank: v.optional(v.number()),
+    trophyChange: v.optional(v.number()),
+    brawlerId: v.optional(v.number()),
+    brawlerName: v.optional(v.string()),
+    brawlerPower: v.optional(v.number()),
+    brawlerTrophies: v.optional(v.number()),
+    starPlayer: v.boolean(),
+  })
+    .index("by_player_and_dedupe", ["playerTag", "dedupeKey"])
+    .index("by_player_and_battle_time", ["playerTag", "battleTimestamp"])
+    .index("by_ingested_at", ["ingestedAt"]),
 
   ingestCursors: defineTable({
     key: v.string(),
