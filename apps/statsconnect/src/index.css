@@ -135,7 +135,16 @@
 
 @layer utilities {
   .content-column {
+    --content-column-padding: 1.25rem;
     @apply mx-auto w-full max-w-[1280px] px-5 sm:px-7 lg:px-8;
+  }
+
+  @media (min-width: 40rem) {
+    .content-column { --content-column-padding: 1.75rem; }
+  }
+
+  @media (min-width: 64rem) {
+    .content-column { --content-column-padding: 2rem; }
   }
 
   .eyebrow {
@@ -275,13 +284,13 @@
 
 .hub-hero {
   position: relative;
-  width: 100vw;
+  width: calc(100% + (var(--content-column-padding) * 2));
   min-height: min(700px, calc(100vh - 8.5rem));
   display: flex;
   align-items: center;
   overflow: hidden;
   margin-top: -2.5rem;
-  margin-left: calc(50% - 50vw);
+  margin-left: calc(var(--content-column-padding) * -1);
   padding-block: clamp(3rem, 7vw, 6rem);
   padding-inline: max(1.25rem, calc((100vw - 1280px) / 2 + 2rem));
   background: #111014;
@@ -405,8 +414,9 @@
 .hub-footer { position: relative; z-index: 10; border-top: 1px solid var(--border); background: #0b0a0c; }
 .hub-footer__inner { min-height: 7rem; display: grid; grid-template-columns: auto 1fr minmax(15rem, 28rem); align-items: center; gap: 2rem; }
 .hub-footer__brand { display: flex; align-items: center; gap: 0.7rem; }
-.hub-footer nav { display: flex; justify-content: center; gap: 1.5rem; color: #9691a1; font-size: 0.75rem; }
-.hub-footer p { color: #777281; font-size: 0.68rem; line-height: 1.6; text-align: right; }
+.hub-footer nav { display: flex; justify-content: center; gap: 1rem; color: #9691a1; font-size: 0.75rem; }
+.hub-footer nav a { display: inline-flex; min-height: 2.75rem; align-items: center; padding-inline: 0.25rem; }
+.hub-footer p { color: #85808f; font-size: 0.68rem; line-height: 1.6; text-align: right; }
 
 .lobby-stage {
   position: relative;

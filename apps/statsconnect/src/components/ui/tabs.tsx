@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import type { KeyboardEvent } from "react";
 
 type TabsProps<T extends string> = {
   items: ReadonlyArray<{ value: T; label: string }>;
@@ -13,15 +14,40 @@ export function Tabs<T extends string>({
   onValueChange,
   className,
 }: TabsProps<T>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const lastIndex = items.length - 1;
+    const nextIndex =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? (index + 1) % items.length
+        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? (index - 1 + items.length) % items.length
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? lastIndex
+              : null;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const next = items[nextIndex];
+    if (!next) return;
+    onValueChange(next.value);
+    event.currentTarget.parentElement
+      ?.querySelectorAll<HTMLButtonElement>("[role='tab']")
+      .item(nextIndex)
+      .focus();
+  }
+
   return (
     <div
       role="tablist"
+      aria-label="Dashboard sections"
       className={cn(
         "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
-      {items.map((item) => {
+      {items.map((item, index) => {
         const selected = item.value === value;
         return (
           <button
@@ -31,6 +57,7 @@ export function Tabs<T extends string>({
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
             onClick={() => onValueChange(item.value)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
               "bevel bevel-sm relative shrink-0 border px-5 py-3 font-display text-xs font-semibold uppercase tracking-[0.18em] transition-colors",
               selected
