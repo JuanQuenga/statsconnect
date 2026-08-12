@@ -34,6 +34,14 @@ export const crawlSource = v.union(
   v.literal("manual")
 );
 
+export const clanEventKind = v.union(
+  v.literal("joined"),
+  v.literal("left"),
+  v.literal("roleChanged"),
+  v.literal("becameInactive"),
+  v.literal("warDecksMissed")
+);
+
 export default defineSchema({
   apiCache: defineTable({
     key: v.string(),
@@ -390,5 +398,102 @@ export default defineSchema({
     observedAt: v.number()
   })
     .index("by_account_id", ["accountId"])
-    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"])
+    .index("by_account_id_and_kind_and_tag", ["accountId", "kind", "tag"]),
+
+  /** Clans explicitly opened in the management view; observed at most every six hours. */
+  trackedClans: defineTable({
+    tag: v.string(),
+    name: v.optional(v.string()),
+    trackingStartedAt: v.number(),
+    lastObservedAt: v.optional(v.number()),
+    nextObservationAt: v.number(),
+    observationCount: v.number(),
+    consecutiveFailures: v.number(),
+    lastError: v.optional(v.string())
+  })
+    .index("by_tag", ["tag"])
+    .index("by_next_observation_at", ["nextObservationAt"]),
+
+  /** One bounded-retention clan-level observation. Member rows live separately. */
+  clanRosterSnapshots: defineTable({
+    clanTag: v.string(),
+    clanName: v.string(),
+    observedAt: v.number(),
+    memberCount: v.number(),
+    clanScore: v.number(),
+    warTrophies: v.number(),
+    donationsPerWeek: v.number(),
+    donationsChange: v.optional(v.number())
+  })
+    .index("by_clan_tag_and_observed_at", ["clanTag", "observedAt"])
+    .index("by_observed_at", ["observedAt"]),
+
+  /** Immutable member rows backing joins/leaves and observation-window movement. */
+  clanMemberSnapshots: defineTable({
+    clanTag: v.string(),
+    observedAt: v.number(),
+    memberTag: v.string(),
+    name: v.string(),
+    role: v.string(),
+    trophies: v.number(),
+    trophyChange: v.optional(v.number()),
+    donations: v.number(),
+    donationChange: v.optional(v.number()),
+    donationsReceived: v.number(),
+    lastSeenAt: v.optional(v.number())
+  })
+    .index("by_clan_tag_and_observed_at", ["clanTag", "observedAt"])
+    .index("by_observed_at", ["observedAt"]),
+
+  /** Current roster projection, capped naturally by Clash Royale's 50-member limit. */
+  clanActiveMembers: defineTable({
+    clanTag: v.string(),
+    memberTag: v.string(),
+    name: v.string(),
+    role: v.string(),
+    trophies: v.number(),
+    trophyChange: v.number(),
+    donations: v.number(),
+    donationChange: v.number(),
+    donationsReceived: v.number(),
+    lastSeenAt: v.optional(v.number()),
+    joinedObservedAt: v.number(),
+    lastObservedAt: v.number(),
+    inactiveSince: v.optional(v.number())
+  }).index("by_clan_tag_and_member_tag", ["clanTag", "memberTag"]),
+
+  /** Sparse, explainable changes used by the timeline and opt-in browser alerts. */
+  clanManagementEvents: defineTable({
+    clanTag: v.string(),
+    observedAt: v.number(),
+    kind: clanEventKind,
+    memberTag: v.string(),
+    memberName: v.string(),
+    summary: v.string(),
+    detail: v.string()
+  })
+    .index("by_clan_tag_and_observed_at", ["clanTag", "observedAt"])
+    .index("by_observed_at", ["observedAt"]),
+
+  /** One member's best-known River Race totals for one observed week. */
+  clanWarMemberWeeks: defineTable({
+    clanTag: v.string(),
+    weekKey: v.string(),
+    memberTag: v.string(),
+    memberName: v.string(),
+    seasonId: v.optional(v.number()),
+    sectionIndex: v.optional(v.number()),
+    completed: v.boolean(),
+    fame: v.number(),
+    repairPoints: v.number(),
+    boatAttacks: v.number(),
+    decksUsed: v.number(),
+    decksUsedToday: v.optional(v.number()),
+    missedDecks: v.optional(v.number()),
+    firstObservedAt: v.number(),
+    lastObservedAt: v.number()
+  })
+    .index("by_clan_tag_and_week_key_and_member_tag", ["clanTag", "weekKey", "memberTag"])
+    .index("by_clan_tag_and_member_tag", ["clanTag", "memberTag"])
+    .index("by_last_observed_at", ["lastObservedAt"])
 });

@@ -24,6 +24,7 @@ import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as PlayersTagRouteImport } from './routes/players/$tag'
 import { Route as PlayersCompareRouteImport } from './routes/players/compare'
 import { Route as ClansTagWarRouteImport } from './routes/clans/$tag_.war'
+import { Route as ClansTagManageRouteImport } from './routes/clans/$tag_.manage'
 import { Route as PlayersTagUpgradesRouteImport } from './routes/players/$tag_.upgrades'
 import { Route as PlayersTagHistoryRouteImport } from './routes/players/$tag_.history'
 
@@ -102,6 +103,11 @@ const ClansTagWarRoute = ClansTagWarRouteImport.update({
   path: '/clans/$tag/war',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClansTagManageRoute = ClansTagManageRouteImport.update({
+  id: '/clans/$tag_/manage',
+  path: '/clans/$tag/manage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayersTagUpgradesRoute = PlayersTagUpgradesRouteImport.update({
   id: '/players/$tag_/upgrades',
   path: '/players/$tag/upgrades',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/cards/': typeof CardsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
+  '/clans/$tag/manage': typeof ClansTagManageRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
   '/players/$tag/history': typeof PlayersTagHistoryRoute
 }
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/cards': typeof CardsIndexRoute
   '/players': typeof PlayersIndexRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
+  '/clans/$tag/manage': typeof ClansTagManageRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
   '/players/$tag/history': typeof PlayersTagHistoryRoute
 }
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/cards/': typeof CardsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/clans/$tag_/war': typeof ClansTagWarRoute
+  '/clans/$tag_/manage': typeof ClansTagManageRoute
   '/players/$tag_/upgrades': typeof PlayersTagUpgradesRoute
   '/players/$tag_/history': typeof PlayersTagHistoryRoute
 }
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/cards/'
     | '/players/'
     | '/clans/$tag/war'
+    | '/clans/$tag/manage'
     | '/players/$tag/upgrades'
     | '/players/$tag/history'
   fileRoutesByTo: FileRoutesByTo
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/cards'
     | '/players'
     | '/clans/$tag/war'
+    | '/clans/$tag/manage'
     | '/players/$tag/upgrades'
     | '/players/$tag/history'
   id:
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/cards/'
     | '/players/'
     | '/clans/$tag_/war'
+    | '/clans/$tag_/manage'
     | '/players/$tag_/upgrades'
     | '/players/$tag_/history'
   fileRoutesById: FileRoutesById
@@ -247,6 +259,7 @@ export interface RootRouteChildren {
   CardsIndexRoute: typeof CardsIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
   ClansTagWarRoute: typeof ClansTagWarRoute
+  ClansTagManageRoute: typeof ClansTagManageRoute
   PlayersTagUpgradesRoute: typeof PlayersTagUpgradesRoute
   PlayersTagHistoryRoute: typeof PlayersTagHistoryRoute
 }
@@ -358,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClansTagWarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clans/$tag_/manage': {
+      id: '/clans/$tag_/manage'
+      path: '/clans/$tag/manage'
+      fullPath: '/clans/$tag/manage'
+      preLoaderRoute: typeof ClansTagManageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/players/$tag_/upgrades': {
       id: '/players/$tag_/upgrades'
       path: '/players/$tag/upgrades'
@@ -391,6 +411,7 @@ const rootRouteChildren: RootRouteChildren = {
   CardsIndexRoute: CardsIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
   ClansTagWarRoute: ClansTagWarRoute,
+  ClansTagManageRoute: ClansTagManageRoute,
   PlayersTagUpgradesRoute: PlayersTagUpgradesRoute,
   PlayersTagHistoryRoute: PlayersTagHistoryRoute,
 }

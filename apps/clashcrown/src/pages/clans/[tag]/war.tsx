@@ -11,6 +11,7 @@ import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { formatApiDate } from "@/lib/clash/format";
 import type { ApiCurrentRiverRace, ApiRiverRaceClan, ApiRiverRaceLog } from "@/lib/clash/types";
 import { clanWarAction, errorMessage, isConvexConfigured } from "@/lib/convex";
+import { ClanWarInsights } from "@/components/clans/ClanWarInsights";
 
 /** Each clan gets four war-day decks per member per day. */
 const DECKS_PER_MEMBER_PER_DAY = 4;
@@ -83,6 +84,7 @@ function ClanWar({ tag }: { tag: string }) {
 
         {current ? <RaceStandings race={current} /> : null}
         {current?.clan ? <Participation clan={current.clan} periodIndex={current.periodIndex} /> : null}
+        <ClanWarInsights tag={tag} />
         {log ? <RaceLog log={log} /> : null}
       </div>
     </Layout>
