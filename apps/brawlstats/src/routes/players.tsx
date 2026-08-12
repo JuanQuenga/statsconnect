@@ -1,15 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlayerSearch as PlayerSearchBox } from "@/components/PlayerSearch";
+import { ProfileActions } from "@/components/ProfileActions";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { apiFetch, brawlerBorderUrl, collection, profileIconUrl } from "@/lib/api";
 import { normalizeCatalog } from "@/lib/brawlers";
 import { formatPercent, normalizeTag, readableMode, trophies } from "@/lib/format";
+import { rememberRecentProfile } from "@/lib/preferences";
 import type { BattleLogItem, PlayerAnalytics, PlayerBattle, PlayerProfile, PlayerSearchResponse, PlayerSnapshot } from "@/lib/types";
 
 type PlayerSearch = { tag?: string; q?: string };
@@ -80,6 +83,16 @@ function PlayersPage() {
   const analytics = analyticsQuery.data?.pages[0];
   const trackedBattles = analyticsQuery.data?.pages.flatMap((page) => page.battles) || [];
 
+  useEffect(() => {
+    if (!player) return;
+    rememberRecentProfile({
+      tag: player.tag,
+      name: player.name,
+      iconId: player.icon?.id,
+      trophies: player.trophies,
+    });
+  }, [player]);
+
   return (
     <div className="page-shell">
       <div>
@@ -115,9 +128,7 @@ function PlayersPage() {
                 <Button size="sm" variant="outline" onClick={() => downloadProfileCard(player, analytics)}>
                   Download profile card
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => shareProfile(player)}>
-                  Share profile
-                </Button>
+                <ProfileActions profile={{ tag: player.tag, name: player.name, iconId: player.icon?.id, trophies: player.trophies }} />
               </div>
               <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 lg:grid-cols-4">
                 {[
@@ -378,13 +389,6 @@ function downloadProfileCard(player: PlayerProfile, analytics?: PlayerAnalytics)
   anchor.download = `${player.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-brawlstats.svg`;
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function shareProfile(player: PlayerProfile) {
-  const url = new URL(window.location.href);
-  url.search = new URLSearchParams({ tag: player.tag }).toString();
-  if (navigator.share) void navigator.share({ title: `${player.name} on BrawlStats`, text: `${player.trophies.toLocaleString()} trophies`, url: url.toString() }).catch(() => undefined);
-  else void navigator.clipboard.writeText(url.toString());
 }
 
 function PlayerResults({ query, results }: { query: string; results: PlayerSearchResponse }) {

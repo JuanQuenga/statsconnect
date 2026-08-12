@@ -27,7 +27,7 @@ function useRotationAlerts() {
       .join("|");
     const previous = window.localStorage.getItem(ROTATION_KEY);
     window.localStorage.setItem(ROTATION_KEY, signature);
-    if (!previous || previous === signature || Notification.permission !== "granted") return;
+    if (!previous || previous === signature || !("Notification" in window) || Notification.permission !== "granted") return;
     const first = eventsQuery.data[0];
     const title = "Brawl Stars rotation changed";
     const body = first?.event?.map
@@ -35,7 +35,9 @@ function useRotationAlerts() {
       : "New maps and modes are active.";
     navigator.serviceWorker?.ready
       .then((registration) => registration.showNotification(title, { body, icon: `${import.meta.env.BASE_URL}assets/img/bs-stats.png` }))
-      .catch(() => new Notification(title, { body }));
+      .catch(() => {
+        if ("Notification" in window) new Notification(title, { body });
+      });
   }, [alertsEnabled, eventsQuery.data]);
 }
 
