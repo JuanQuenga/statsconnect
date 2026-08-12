@@ -254,11 +254,11 @@ function StatGrid({
           >
             <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-14 rounded-xl" />
             <div className="min-w-0 flex-1">
-              <p className="font-medium">{meta?.name || `Brawler ${row.brawlerId}`}</p>
+              <p className="font-display">{meta?.name || `Brawler ${row.brawlerId}`}</p>
               <p className="text-xs text-muted-foreground">{meta?.rarity || "Brawler"} · {trophies(row.picks)} picks</p>
               <div className="mt-1 flex gap-3 text-sm">
-                <span className="text-primary">{formatPercent(row.winRate)} WR</span>
-                <span className="text-accent">{formatPercent(row.useRate)} UR</span>
+                <span className="font-display text-primary">{formatPercent(row.winRate)} WR</span>
+                <span className="font-display text-accent">{formatPercent(row.useRate)} UR</span>
               </div>
             </div>
           </Card>
@@ -293,11 +293,11 @@ function TeamGrid({
               />
             ))}
           </div>
-          <p className="mt-3 truncate font-medium">
+          <p className="mt-3 truncate font-display">
             {row.brawlerIds.map((id) => catalog.get(id)?.name || `#${id}`).join(" · ")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            <span className="text-primary">{formatPercent(row.winRate)} win rate</span> · {trophies(row.picks)} games
+            <span className="font-display text-primary">{formatPercent(row.winRate)} win rate</span> · {trophies(row.picks)} games
           </p>
         </Card>
       ))}

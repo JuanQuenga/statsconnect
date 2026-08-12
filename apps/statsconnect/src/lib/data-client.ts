@@ -19,12 +19,12 @@ const convexUrl = import.meta.env.VITE_CONVEX_URL?.trim();
 const convex = convexUrl ? new ConvexHttpClient(convexUrl, { logger: false }) : null;
 
 const refs = {
-  getHubState: makeFunctionReference<"query", { viewerId: string }, HubState>("profiles:getHubState"),
-  preview: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, AdapterResult<ProfileSummary>>("profiles:preview"),
-  connect: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, { profile: ConnectedProfile; activeProfileId: ProfileId; summary: AdapterResult<ProfileSummary> }>("profiles:connect"),
-  disconnect: makeFunctionReference<"mutation", { viewerId: string; profileId: ProfileId }, { removed: boolean; activeProfileId: ProfileId | null }>("profiles:disconnect"),
-  setActive: makeFunctionReference<"mutation", { viewerId: string; profileId: ProfileId }, { activeProfileId: ProfileId }>("profiles:setActive"),
-  getStats: makeFunctionReference<"action", { viewerId: string; profileId: ProfileId }, AdapterResult<ProfileStats>>("profileData:getStats"),
+  getHubState: makeFunctionReference<"query", { viewerId: string }, HubState>("hub/profiles:getHubState"),
+  preview: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, AdapterResult<ProfileSummary>>("hub/profiles:preview"),
+  connect: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, { profile: ConnectedProfile; activeProfileId: ProfileId; summary: AdapterResult<ProfileSummary> }>("hub/profiles:connect"),
+  disconnect: makeFunctionReference<"mutation", { viewerId: string; profileId: ProfileId }, { removed: boolean; activeProfileId: ProfileId | null }>("hub/profiles:disconnect"),
+  setActive: makeFunctionReference<"mutation", { viewerId: string; profileId: ProfileId }, { activeProfileId: ProfileId }>("hub/profiles:setActive"),
+  getStats: makeFunctionReference<"action", { viewerId: string; profileId: ProfileId }, AdapterResult<ProfileStats>>("hub/profileData:getStats"),
 };
 
 const errorCodes: ReadonlySet<string> = new Set<ProfileErrorCode>([

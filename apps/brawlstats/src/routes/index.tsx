@@ -79,7 +79,7 @@ function HomePage() {
 
           <div className="relative min-h-[430px] self-end lg:min-h-[650px]">
             <img
-              src="/assets/generated/brawlstats-hero-official.webp"
+              src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-hero-official.webp`}
               alt="Colt, Shelly, and Spike from Brawl Stars"
               width={900}
               height={1125}
@@ -196,13 +196,13 @@ function HomePage() {
                         <Link
                           to="/players"
                           search={{ tag: player.tag }}
-                          className="font-medium hover:text-primary"
+                          className="font-display hover:text-primary"
                         >
                           {player.name}
                         </Link>
                         <p className="text-xs text-muted-foreground">{player.club?.name || "No club"}</p>
                       </TableCell>
-                      <TableCell className="px-3 text-right font-medium text-primary">{trophies(player.trophies)}</TableCell>
+                      <TableCell className="px-3 text-right font-display text-primary">{trophies(player.trophies)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

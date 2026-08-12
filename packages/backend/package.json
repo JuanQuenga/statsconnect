@@ -1,0 +1,19 @@
+{
+  "name": "@statsconnect/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.12.3",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "deploy:with-frontend": "convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'pnpm --dir ../.. build:unified'",
+    "typecheck": "tsc --noEmit -p convex/tsconfig.json"
+  },
+  "dependencies": {
+    "convex": "^1.42.2"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

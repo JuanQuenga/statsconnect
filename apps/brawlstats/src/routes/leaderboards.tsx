@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
+import { appPath } from "@/lib/paths";
 import { apiFetch, brawlerBorderUrl, clubBadgeUrl, collection, profileIconUrl } from "@/lib/api";
 import { normalizeCatalog } from "@/lib/brawlers";
 import { trophies } from "@/lib/format";
@@ -179,12 +180,12 @@ function RankingTable({
                 <img src={row.icon} alt="" className="size-8 rounded-full object-cover" />
               </TableCell>
               <TableCell className="max-w-40 overflow-hidden sm:max-w-none">
-                <a href={row.href} className="block truncate font-medium hover:text-primary">
+                <a href={appPath(row.href)} className="block truncate font-display hover:text-primary">
                   {row.title}
                 </a>
                 <p className="truncate text-xs text-muted-foreground">{row.subtitle}</p>
               </TableCell>
-              <TableCell className="px-3 text-right text-primary">{row.score}</TableCell>
+              <TableCell className="px-3 text-right font-display text-primary">{row.score}</TableCell>
             </TableRow>
           ))}
         </TableBody>

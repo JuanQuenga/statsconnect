@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Supercell Magic";
+  src: url("/fonts/supercell-webfont.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   --page-width: 1280px;
   --font-ui: ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Supercell Magic", var(--font-ui);
   --bg: #03101c;
   --panel: rgba(11, 29, 53, 0.78);
   --panel-strong: #102846;
@@ -40,8 +49,48 @@ h3,
 h4,
 h5,
 h6 {
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis: none;
   letter-spacing: -.025em;
+}
+
+.command-metric strong,
+.player-mini strong,
+.score-card strong,
+.deck-row .elixir-pill strong,
+.deck-demo-copy strong,
+.deck-metrics strong,
+.spark-label strong,
+.popular-card-center strong,
+.event-card strong,
+.chest-demo-row strong,
+.deck-list-title h3,
+.deck-list-metrics strong,
+.profile-hero strong,
+.clan-hero strong,
+.stat-cell strong,
+.chest-item strong,
+.summary-tile strong,
+.progress-item strong,
+.pol-card strong,
+.members-table td strong,
+.battle-result strong,
+.battle-opponent strong,
+.battle-score strong,
+.collection-card strong,
+.builder-summary strong,
+.card-library strong,
+.card-tile strong,
+.rank-cell strong,
+.trophy-cell,
+.entity-cell strong,
+.beta-tile strong,
+.search-option strong {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: -.02em;
 }
 
 a { color: inherit; text-decoration: none; }

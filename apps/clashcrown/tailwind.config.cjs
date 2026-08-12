@@ -43,7 +43,7 @@ module.exports = {
         body: "#020d1b",
       },
       fontFamily: {
-        supercell: ["Suppercell", "sans-serif"],
+        supercell: ["Supercell Magic", "sans-serif"],
       },
     },
   },

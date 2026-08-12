@@ -39,7 +39,7 @@ const sites = [
 ] as const;
 
 function normalizeOrigin(origin: string | undefined): string {
-  return (origin?.trim() || "https://statsconnect.com").replace(/\/$/, "");
+  return (origin?.trim() || "https://stats.juanquenga.com").replace(/\/$/, "");
 }
 
 function MenuIcon({ open }: { open: boolean }) {
@@ -56,6 +56,36 @@ function GamepadIcon() {
       <path d="M7 8h10a4 4 0 0 1 3.8 5.2l-1.1 3.4a2 2 0 0 1-3.3.8L14.8 16H9.2l-1.6 1.4a2 2 0 0 1-3.3-.8l-1.1-3.4A4 4 0 0 1 7 8Z" />
       <path d="M7 12h4M9 10v4M16.5 11.5h.01M18.5 13.5h.01" />
     </svg>
+  );
+}
+
+function NetworkBrand({ currentSite, origin }: { currentSite: SiteId; origin: string }) {
+  return (
+    <a
+      className="sc-nav__network-brand"
+      href={`${origin}/`}
+      aria-label="StatsConnect hub"
+      aria-current={currentSite === "statsconnect" ? "page" : undefined}
+    >
+      <span className="sc-nav__network-mark" aria-hidden>SC</span>
+      <strong>StatsConnect</strong>
+    </a>
+  );
+}
+
+function NetworkSites({ currentSite, origin }: { currentSite: SiteId; origin: string }) {
+  return (
+    <nav className="sc-nav__network-sites" aria-label="StatsConnect game sites">
+      {sites.slice(1).map((site) => {
+        const current = site.id === currentSite;
+        return (
+          <a key={site.id} href={`${origin}${site.path}`} aria-current={current ? "page" : undefined}>
+            <span className="sc-nav__network-game-icon" aria-hidden>{site.icon}</span>
+            <span>{site.label}</span>
+          </a>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -103,33 +133,41 @@ export function SiteNavigation({
 
   return (
     <header className="sc-nav" style={style}>
-      <div className="sc-nav__inner">
-        <div className="sc-nav__brand">{brand}</div>
-        <div className="sc-nav__desktop-games"><GamesMenu currentSite={currentSite} origin={origin} /></div>
-        <nav className="sc-nav__links" aria-label="Primary navigation">
-          {links.map((link) => (
-            <LinkAdapter key={link.href} href={link.href} className="sc-nav__link" onNavigate={close}>
-              {link.label}
-            </LinkAdapter>
-          ))}
-        </nav>
-        {renderSearch ? <div className="sc-nav__search">{renderSearch(close)}</div> : null}
-        {endContent ? <div className="sc-nav__end">{endContent}</div> : null}
-        <button
-          type="button"
-          className="sc-nav__menu-button"
-          aria-label="Toggle primary navigation"
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <MenuIcon open={open} />
-        </button>
+      <div className="sc-nav__network">
+        <div className="sc-nav__network-inner">
+          <NetworkBrand currentSite={currentSite} origin={origin} />
+          <NetworkSites currentSite={currentSite} origin={origin} />
+          <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} origin={origin} /></div>
+        </div>
+      </div>
+
+      <div className="sc-nav__site">
+        <div className={`sc-nav__inner${currentSite === "statsconnect" ? " sc-nav__inner--hub" : ""}`}>
+          <div className="sc-nav__brand">{brand}</div>
+          <nav className="sc-nav__links" aria-label="Primary navigation">
+            {links.map((link) => (
+              <LinkAdapter key={link.href} href={link.href} className="sc-nav__link" onNavigate={close}>
+                {link.label}
+              </LinkAdapter>
+            ))}
+          </nav>
+          {renderSearch ? <div className="sc-nav__search">{renderSearch(close)}</div> : null}
+          {endContent ? <div className="sc-nav__end">{endContent}</div> : null}
+          <button
+            type="button"
+            className="sc-nav__menu-button"
+            aria-label="Toggle primary navigation"
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <MenuIcon open={open} />
+          </button>
+        </div>
       </div>
 
       <div className={`sc-nav__mobile${open ? " is-open" : ""}`}>
         {open ? (
           <>
-            <div className="sc-nav__mobile-games"><GamesMenu currentSite={currentSite} origin={origin} /></div>
             {renderSearch ? <div className="sc-nav__mobile-search">{renderSearch(close)}</div> : null}
             <nav className="sc-nav__mobile-links" aria-label="Mobile primary navigation">
               {links.map((link) => (

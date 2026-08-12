@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiFetch, profileIconUrl } from "@/lib/api";
 import { normalizeTag, trophies } from "@/lib/format";
+import { appPath } from "@/lib/paths";
 import type { PlayerDirectoryResult, PlayerSearchResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +57,9 @@ export function PlayerSearch({
 
   function navigateToPlayer(tag: string) {
     onNavigate?.();
-    window.location.assign(`/players?tag=${encodeURIComponent(`#${tag.replace(/^#/, "")}`)}`);
+    window.location.assign(
+      appPath(`/players?tag=${encodeURIComponent(`#${tag.replace(/^#/, "")}`)}`),
+    );
   }
 
   function submit(event: FormEvent) {
@@ -68,7 +71,7 @@ export function PlayerSearch({
       if (tag) return navigateToPlayer(tag);
     }
     onNavigate?.();
-    window.location.assign(`/players?q=${encodeURIComponent(raw)}`);
+    window.location.assign(appPath(`/players?q=${encodeURIComponent(raw)}`));
   }
 
   function choose(index: number) {
@@ -184,13 +187,13 @@ function PlayerChoice({
     >
       <img src={profileIconUrl(player.iconId)} alt="" className="size-9 rounded-lg" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{player.name}</span>
+        <span className="block truncate font-display text-sm">{player.name}</span>
         <span className="block truncate text-xs text-muted-foreground">
           #{player.tag} · {player.clubName || "No tracked club"}
         </span>
       </span>
       {typeof player.trophies === "number" ? (
-        <span className="text-xs font-medium text-primary">{trophies(player.trophies)}</span>
+        <span className="font-display text-xs text-primary">{trophies(player.trophies)}</span>
       ) : null}
     </Button>
   );

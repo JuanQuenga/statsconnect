@@ -42,7 +42,7 @@ function ConnectionsPage() {
   return (
     <section className="boot-in mx-auto max-w-4xl">
       <p className="eyebrow text-[var(--ambient)]">Settings</p>
-      <h1 className="mt-4 font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">
+      <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
         Connections
       </h1>
       <p className="mt-4 max-w-xl text-muted-foreground">
@@ -58,17 +58,23 @@ function ConnectionsPage() {
             <article
               key={game.id}
               data-game={game.id}
-              className="bevel bevel-lg relative border border-border/60 bg-card/60 p-6 backdrop-blur-sm sm:p-7"
+              className="connection-row bevel bevel-lg relative overflow-hidden border border-border/60 bg-card/60 p-6 backdrop-blur-sm sm:p-7"
             >
+              <img
+                src={`/games/${game.id}.png`}
+                alt=""
+                aria-hidden
+                className="connection-row__art"
+              />
               <span
                 className="absolute inset-y-0 left-0 w-1 bg-[var(--game-accent)]"
                 style={{ opacity: profile ? 0.8 : 0.2 }}
                 aria-hidden
               />
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+              <div className="relative z-[1] flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-display text-xl font-bold uppercase tracking-[0.08em]">
+                    <h2 className="font-display text-xl font-semibold tracking-tight">
                       {game.name}
                     </h2>
                     {profile?.id === hubQuery.data.activeProfileId ? (

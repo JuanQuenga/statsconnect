@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { apiFetch, clubBadgeUrl, profileIconUrl } from "@/lib/api";
 import { normalizeTag, readableMode, trophies } from "@/lib/format";
+import { appPath } from "@/lib/paths";
 import type { ClubProfile } from "@/lib/types";
 
 type ClubSearch = { tag?: string };
@@ -34,7 +35,7 @@ function ClubsPage() {
     event.preventDefault();
     const next = normalizeTag(draft);
     if (!next) return;
-    window.location.assign(`/clubs?tag=${encodeURIComponent(next)}`);
+    window.location.assign(appPath(`/clubs?tag=${encodeURIComponent(next)}`));
   }
 
   const club = clubQuery.data;
@@ -97,7 +98,7 @@ function ClubsPage() {
               <div className="space-y-2">
                 {members.slice(0, 3).map((member) => (
                   <div key={member.tag} className="data-surface px-4 py-3">
-                    <p className="font-medium">{member.name}</p>
+                    <p className="font-display">{member.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {trophies(member.trophies)} trophies · {readableMode(member.role)}
                     </p>
@@ -138,14 +139,14 @@ function ClubsPage() {
                         <img src={profileIconUrl(member.icon?.id)} alt="" className="size-8 rounded-full" />
                       </TableCell>
                       <TableCell>
-                        <Link to="/players" search={{ tag: member.tag }} className="font-medium hover:text-primary">
+                        <Link to="/players" search={{ tag: member.tag }} className="font-display hover:text-primary">
                           {member.name}
                         </Link>
                         <p className="text-xs text-muted-foreground">
                           {readableMode(member.role)} · {member.tag}
                         </p>
                       </TableCell>
-                      <TableCell className="px-3 text-right text-primary">{trophies(member.trophies)}</TableCell>
+                      <TableCell className="px-3 text-right font-display text-primary">{trophies(member.trophies)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

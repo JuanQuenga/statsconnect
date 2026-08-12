@@ -27,13 +27,16 @@ export function ConnectedGameBoard({ hub }: { hub: HubState }) {
   );
 
   return (
-    <section className="space-y-10">
-      <header className="boot-in flex flex-wrap items-end justify-between gap-4">
+    <section className="lobby-stage space-y-10">
+      <header className="boot-in flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="eyebrow text-[var(--ambient)]">Lobby</p>
-          <h1 className="mt-3 font-display text-4xl font-bold uppercase tracking-[0.02em] sm:text-5xl">
-            Select a profile
+          <p className="eyebrow text-[var(--ambient)]">Your game network</p>
+          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+            Pick up where you left off.
           </h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Every connected profile stays one click away, with live game data ready to launch.
+          </p>
         </div>
         <p className="numeric text-5xl text-muted-foreground/50 sm:text-6xl">
           {String(hub.profiles.length).padStart(2, "0")}
@@ -70,17 +73,18 @@ export function ConnectedGameBoard({ hub }: { hub: HubState }) {
             className="tile bevel bevel-lg relative flex min-h-[210px] flex-col justify-center gap-3 overflow-hidden border border-dashed border-border/70 bg-white/[0.015] p-8 text-center"
           >
             <img
-              src={`/games/${game.id}.png`}
+              src={`/games/generated/${game.id}-channel.webp`}
               alt=""
               aria-hidden
               loading="lazy"
-              className="tile-art tile-art-faded"
+              className="channel-art channel-art--faded"
             />
+            <span className="channel-art__scrim" aria-hidden />
             <Plus
               className="relative mx-auto size-8 text-muted-foreground"
               aria-hidden
             />
-            <p className="relative font-display text-lg font-semibold uppercase tracking-[0.16em]">
+            <p className="relative font-display text-lg font-semibold">
               Connect {game.name}
             </p>
             <p className="relative mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground">
@@ -109,19 +113,14 @@ function ActiveProfileHero({
       className="tile bevel bevel-lg relative flex flex-col gap-8 overflow-hidden border border-border/60 bg-card/70 p-7 no-underline backdrop-blur-sm sm:p-10 lg:flex-row lg:items-center lg:gap-12"
       {...stageLight}
     >
-      <span className="tile-glow" aria-hidden />
+      <img
+        src={`/games/generated/${profile.game}-channel.webp`}
+        alt=""
+        aria-hidden
+        className="profile-game-art profile-game-art--hero"
+      />
       <span
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[var(--game-accent)]"
-        aria-hidden
-      />
-      <span
-        className="pointer-events-none absolute -right-24 -top-28 size-80 rounded-full opacity-25 blur-3xl"
-        style={{ backgroundColor: "var(--game-accent)" }}
-        aria-hidden
-      />
-      <span
-        className="pointer-events-none absolute -bottom-24 left-1/3 size-72 rounded-full opacity-15 blur-3xl"
-        style={{ backgroundColor: "var(--game-accent-2)" }}
         aria-hidden
       />
 
@@ -141,7 +140,7 @@ function ActiveProfileHero({
           <p className="eyebrow text-[var(--game-accent)]">
             {gameName(profile.game)}
           </p>
-          <h2 className="mt-2 truncate font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl md:text-6xl">
+          <h2 className="mt-2 truncate font-display text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
             {profile.display.name}
           </h2>
           <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -195,14 +194,14 @@ function ProfileTile({
       className="tile bevel bevel-lg relative flex min-h-[210px] flex-col justify-between overflow-hidden border border-border/60 bg-card/70 p-7 backdrop-blur-sm"
       {...stageLight}
     >
-      <span className="tile-glow" aria-hidden />
-      <span
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[var(--game-accent)] opacity-60"
+      <img
+        src={`/games/generated/${profile.game}-channel.webp`}
+        alt=""
         aria-hidden
+        className="profile-game-art"
       />
       <span
-        className="pointer-events-none absolute -right-16 -top-16 size-52 rounded-full opacity-25 blur-3xl"
-        style={{ backgroundColor: "var(--game-accent)" }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[var(--game-accent)] opacity-60"
         aria-hidden
       />
 

@@ -11,11 +11,14 @@ function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
 
 export default function Link({ href, onClick, target, ...props }: LinkProps) {
   const router = useRouter();
+  const renderedHref = href.startsWith("/")
+    ? `${import.meta.env.BASE_URL}${href.replace(/^\/+/, "")}`
+    : href;
 
   return (
     <a
       {...props}
-      href={href}
+      href={renderedHref}
       target={target}
       onClick={(event) => {
         onClick?.(event);

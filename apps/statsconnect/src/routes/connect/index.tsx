@@ -12,7 +12,7 @@ function ConnectPage() {
   return (
     <section className="boot-in mx-auto max-w-4xl">
       <p className="eyebrow text-[var(--ambient)]">Connect</p>
-      <h1 className="mt-4 font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">
+      <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
         Choose a game
       </h1>
       <p className="mt-4 max-w-xl text-muted-foreground">

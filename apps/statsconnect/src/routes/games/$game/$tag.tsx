@@ -19,7 +19,7 @@ function DashboardRoute() {
   let requestedTag: string;
   try { requestedTag = normalizeTag(tag); } catch { return <ErrorState title="Invalid player tag" detail="This dashboard URL does not contain a valid player tag." />; }
   if (!profile || normalizeTag(profile.playerTag) !== requestedTag) {
-    return <section data-game={game} className="boot-in bevel bevel-lg mx-auto max-w-2xl border border-border/60 bg-card/55 p-10 text-center backdrop-blur-sm"><p className="eyebrow text-[var(--game-accent)]">Read-only profile</p><h1 className="mt-4 font-display text-3xl font-bold uppercase tracking-tight">Connect this profile to view its dashboard</h1><p className="mx-auto mt-4 max-w-lg text-muted-foreground">StatsConnect only loads full statistics for a profile connected to this browser.</p><Link to="/connect/$game" params={{ game }} className={`${buttonVariants({ size: "lg" })} mt-8`}>Connect {gameName(game)}</Link></section>;
+    return <section data-game={game} className="boot-in bevel bevel-lg mx-auto max-w-2xl border border-border/60 bg-card/55 p-10 text-center backdrop-blur-sm"><p className="eyebrow text-[var(--game-accent)]">Read-only profile</p><h1 className="mt-4 font-display text-3xl font-semibold tracking-tight">Connect this profile to view its dashboard</h1><p className="mx-auto mt-4 max-w-lg text-muted-foreground">StatsConnect only loads full statistics for a profile connected to this browser.</p><Link to="/connect/$game" params={{ game }} className={`${buttonVariants({ size: "lg" })} mt-8`}>Connect {gameName(game)}</Link></section>;
   }
   return <GameDashboard profile={profile} />;
 }

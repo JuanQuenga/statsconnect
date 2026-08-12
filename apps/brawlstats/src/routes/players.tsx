@@ -198,7 +198,7 @@ function PlayersPage() {
                     <div className="space-y-1 p-3">
                       <h4 className="font-display text-lg">{item.name}</h4>
                       <p className="text-xs text-muted-foreground">{meta?.rarity || "Brawler"}</p>
-                      <p className="text-sm text-primary">{trophies(item.trophies)} trophies</p>
+                      <p className="font-display text-sm text-primary">{trophies(item.trophies)} trophies</p>
                       <p className="text-xs text-muted-foreground">
                         Rank {item.rank} · Best {trophies(item.highestTrophies || item.trophies)}
                       </p>
@@ -238,11 +238,11 @@ function PlayerResults({ query, results }: { query: string; results: PlayerSearc
           >
             <img src={profileIconUrl(player.iconId)} alt="" className="size-12 rounded-xl" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{player.name}</span>
+              <span className="block truncate font-display">{player.name}</span>
               <span className="block text-xs text-muted-foreground">#{player.tag} · {player.clubName || "No tracked club"}</span>
             </span>
             {typeof player.trophies === "number" ? (
-              <span className="text-sm font-medium text-primary">{trophies(player.trophies)}</span>
+              <span className="font-display text-sm text-primary">{trophies(player.trophies)}</span>
             ) : null}
           </Link>
         ))}
@@ -266,7 +266,7 @@ function PlayerHistory({ snapshots }: { snapshots: PlayerSnapshot[] }) {
           <p className="text-xs uppercase tracking-[0.2em] text-accent">Continuously tracked</p>
           <h3 className="font-display text-2xl">Trophy history</h3>
         </div>
-        <p className={change >= 0 ? "text-primary" : "text-destructive"}>
+        <p className={`font-display ${change >= 0 ? "text-primary" : "text-destructive"}`}>
           {change > 0 ? "+" : ""}{trophies(change)} since first snapshot
         </p>
       </div>
