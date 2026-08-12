@@ -1,6 +1,6 @@
 import Image from "@/components/Image";
 import Link from "@/components/Link";
-import { RefreshCcw, Swords, User } from "lucide-react";
+import { RefreshCcw, Settings2, Swords, User } from "lucide-react";
 import { RankCell } from "@/components/portfolio/DataTable";
 import { relativeTime } from "@/lib/clash/format";
 import type { Clan } from "@/lib/mock-data";
@@ -21,9 +21,16 @@ export function ClanProfile({ clan }: { clan: Clan }) {
         <Summary icon="/images/icons/cardsq.png" value={clan.donations.toLocaleString()} label="Donations / Week" />
         <Summary icon={clan.warBadge} value={clan.warTrophies.toLocaleString()} label={clan.warLeague ?? "War Trophies"} />
       </div>
-      <Link href={`/clans/${clan.tag}/war`} className="pink-button">
-        <Swords size={17} /> Clan war
-      </Link>
+      <div className="clan-hero-actions">
+        <Link href={`/clans/${clan.tag}/war`} className="pink-button">
+          <Swords size={17} /> Clan war
+        </Link>
+        {clan.fetchedAt ? (
+          <Link href={`/clans/${clan.tag}/manage`} className="management-button management-button-muted">
+            <Settings2 size={17} /> Leader workspace
+          </Link>
+        ) : null}
+      </div>
     </section>
   );
 }

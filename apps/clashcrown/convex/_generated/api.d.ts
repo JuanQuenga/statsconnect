@@ -11,6 +11,8 @@
 import type * as cache from "../cache.js";
 import type * as clashApi from "../clashApi.js";
 import type * as clashFetch from "../clashFetch.js";
+import type * as clanManagement from "../clanManagement.js";
+import type * as clanManagementActions from "../clanManagementActions.js";
 import type * as crawler from "../crawler.js";
 import type * as crons from "../crons.js";
 import type * as meta from "../meta.js";
@@ -26,6 +28,8 @@ declare const fullApi: ApiFromModules<{
   cache: typeof cache;
   clashApi: typeof clashApi;
   clashFetch: typeof clashFetch;
+  clanManagement: typeof clanManagement;
+  clanManagementActions: typeof clanManagementActions;
   crawler: typeof crawler;
   crons: typeof crons;
   meta: typeof meta;
