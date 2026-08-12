@@ -246,7 +246,14 @@ export const GLOBAL_LOCATION_ID = 57000006;
 export function errorMessage(error: unknown) {
   if (error instanceof Error) {
     const data = (error as Error & { data?: { message?: string } }).data;
-    return data?.message ?? error.message.replace(/^\[CONVEX[^\]]*\]\s*/, "");
+    const message = (data?.message ?? error.message)
+      .replace(/^\[CONVEX[^\]]*\]\s*/, "")
+      .replace(/^\[Request ID:[^\]]+\]\s*/, "")
+      .trim();
+    if (/^(server error|called by client)/i.test(message) || /server error\s+called by client/i.test(message)) {
+      return "The Clash Royale data service could not complete this request. Please try again.";
+    }
+    return message || "Something went wrong while loading Clash Royale data.";
   }
   return "Something went wrong while loading Clash Royale data.";
 }

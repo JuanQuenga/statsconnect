@@ -320,14 +320,14 @@ function DeckAnalyticsStyles() {
   return (
     <style>{`
       .deck-analytics-table td:first-child { width: 48%; }
-      .personal-deck-cards { display: grid; grid-template-columns: repeat(8, minmax(27px, 1fr)); gap: 4px; align-items: center; min-width: 280px; }
+      .personal-deck-cards { display: grid; grid-template-columns: repeat(4, minmax(42px, 1fr)); gap: 4px; align-items: center; min-width: 220px; }
       .personal-deck-cards img { width: 100%; height: auto; max-height: 54px; object-fit: contain; margin: 0; }
       .deck-analytics-table td { vertical-align: middle; }
       .deck-analytics-table td strong { color: #f4fbff; }
       .deck-record { display: block; margin-top: 4px; color: #8ea2c4; font: 10px var(--font-ui); }
       .deck-modes { white-space: normal !important; line-height: 1.5; }
       @media (max-width: 980px) {
-        .personal-deck-cards { min-width: 240px; }
+        .personal-deck-cards { min-width: 220px; }
       }
       @media (max-width: 680px) {
         .deck-analytics-table th:nth-child(4), .deck-analytics-table td:nth-child(4), .deck-analytics-table th:nth-child(5), .deck-analytics-table td:nth-child(5) { display: none; }
