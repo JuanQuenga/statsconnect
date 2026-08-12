@@ -8,6 +8,13 @@ export const crawlSource = v.union(
   v.literal("manual"),
 );
 
+export const clubActivityType = v.union(
+  v.literal("join"),
+  v.literal("leave"),
+  v.literal("role_change"),
+  v.literal("trophy_change"),
+);
+
 export const brawlTables = {
   brawlSeenBattles: defineTable({
     dedupeKey: v.string(),
@@ -82,6 +89,83 @@ export const brawlTables = {
   })
     .index("by_tag_and_day", ["tag", "day"])
     .index("by_recorded_at", ["recordedAt"]),
+
+  brawlClubDirectory: defineTable({
+    tag: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    type: v.optional(v.string()),
+    badgeId: v.optional(v.number()),
+    requiredTrophies: v.optional(v.number()),
+    trophies: v.number(),
+    memberCount: v.number(),
+    trackedSinceAt: v.number(),
+    lastSeenAt: v.number(),
+  })
+    .index("by_tag", ["tag"])
+    .index("by_last_seen_at", ["lastSeenAt"]),
+
+  brawlClubSnapshots: defineTable({
+    tag: v.string(),
+    day: v.number(),
+    recordedAt: v.number(),
+    name: v.string(),
+    trophies: v.number(),
+    memberCount: v.number(),
+    requiredTrophies: v.optional(v.number()),
+  })
+    .index("by_tag_and_day", ["tag", "day"])
+    .index("by_recorded_at", ["recordedAt"]),
+
+  brawlClubMemberStates: defineTable({
+    clubTag: v.string(),
+    playerTag: v.string(),
+    name: v.string(),
+    role: v.string(),
+    trophies: v.number(),
+    iconId: v.optional(v.number()),
+    active: v.boolean(),
+    firstSeenAt: v.number(),
+    lastSeenAt: v.number(),
+    joinedAt: v.number(),
+    leftAt: v.optional(v.number()),
+  })
+    .index("by_club_tag_and_player_tag", ["clubTag", "playerTag"])
+    .index("by_club_tag_and_active", ["clubTag", "active"])
+    .index("by_player_tag", ["playerTag"]),
+
+  brawlClubMemberSnapshots: defineTable({
+    dedupeKey: v.string(),
+    clubTag: v.string(),
+    playerTag: v.string(),
+    recordedAt: v.number(),
+    name: v.string(),
+    role: v.string(),
+    trophies: v.number(),
+    iconId: v.optional(v.number()),
+    present: v.boolean(),
+  })
+    .index("by_dedupe_key", ["dedupeKey"])
+    .index("by_club_tag_and_recorded_at", ["clubTag", "recordedAt"])
+    .index("by_player_tag_and_recorded_at", ["playerTag", "recordedAt"]),
+
+  brawlClubActivityEvents: defineTable({
+    dedupeKey: v.string(),
+    clubTag: v.string(),
+    playerTag: v.string(),
+    playerName: v.string(),
+    recordedAt: v.number(),
+    type: clubActivityType,
+    fromRole: v.optional(v.string()),
+    toRole: v.optional(v.string()),
+    fromTrophies: v.optional(v.number()),
+    toTrophies: v.optional(v.number()),
+    trophyDelta: v.optional(v.number()),
+  })
+    .index("by_dedupe_key", ["dedupeKey"])
+    .index("by_club_tag_and_recorded_at", ["clubTag", "recordedAt"])
+    .index("by_player_tag_and_recorded_at", ["playerTag", "recordedAt"])
+    .index("by_type_and_recorded_at", ["type", "recordedAt"]),
 
   ingestCursors: defineTable({
     key: v.string(),

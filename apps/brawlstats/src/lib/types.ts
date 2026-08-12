@@ -83,6 +83,70 @@ export type ClubProfile = {
   }>;
 };
 
+export type ClubActivityType = "join" | "leave" | "role_change" | "trophy_change";
+
+export type ClubSnapshot = {
+  day: number;
+  recordedAt: number;
+  name: string;
+  trophies: number;
+  memberCount: number;
+  requiredTrophies?: number;
+};
+
+export type ClubActivityEvent = {
+  recordedAt: number;
+  playerTag: string;
+  playerName: string;
+  type: ClubActivityType;
+  fromRole?: string;
+  toRole?: string;
+  fromTrophies?: number;
+  toTrophies?: number;
+  trophyDelta?: number;
+};
+
+export type TrackedClubMember = {
+  tag: string;
+  name: string;
+  role: string;
+  trophies: number;
+  iconId?: number;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  joinedAt: number;
+  lastProfileAt?: number;
+};
+
+export type ClubHistoryResponse = {
+  trackedSinceAt?: number;
+  lastSeenAt?: number;
+  snapshots: ClubSnapshot[];
+  events: ClubActivityEvent[];
+  roster: TrackedClubMember[];
+  summary: {
+    joins: number;
+    leaves: number;
+    roleChanges: number;
+    trophyChange: number;
+    activeMembers: number;
+  };
+};
+
+export type TrackedClubSummary = {
+  tag: string;
+  name: string;
+  badgeId?: number;
+  trophies: number;
+  memberCount: number;
+  trackedSinceAt: number;
+  lastSeenAt: number;
+  activity7d: number;
+  trophyChange7d: number;
+};
+
+export type ClubCommunityResponse = { clubs: TrackedClubSummary[] };
+
 export type RankingPlayer = {
   tag: string;
   name: string;

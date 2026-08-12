@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as brawl_clubs from "../brawl/clubs.js";
 import type * as brawl_crawler from "../brawl/crawler.js";
 import type * as brawl_ingest from "../brawl/ingest.js";
 import type * as brawl_pipeline from "../brawl/pipeline.js";
@@ -49,6 +50,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "brawl/clubs": typeof brawl_clubs;
   "brawl/crawler": typeof brawl_crawler;
   "brawl/ingest": typeof brawl_ingest;
   "brawl/pipeline": typeof brawl_pipeline;
