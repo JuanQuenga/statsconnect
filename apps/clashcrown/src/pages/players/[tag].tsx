@@ -62,6 +62,14 @@ function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undef
             <PerformanceSection battles={player.battles} />
             <ProgressionChart player={player} />
             <PathOfLegendsSeasons player={player} />
+            <section className="history-callout">
+              <div>
+                <span className="eyebrow">ClashCrown observed</span>
+                <h2>Profile history</h2>
+                <p>Review timestamped trophy, Path, collection, deck, clan, and profile-total changes without treating gaps as continuous tracking.</p>
+              </div>
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/history`} className="pink-button">Open history</Link>
+            </section>
           </>
         ) : null}
         {activeTab === "Battles" ? <BattleHistory battles={player.battles} /> : null}

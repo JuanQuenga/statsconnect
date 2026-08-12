@@ -13,6 +13,7 @@ import type * as clashApi from "../clashApi.js";
 import type * as clashFetch from "../clashFetch.js";
 import type * as crawler from "../crawler.js";
 import type * as crons from "../crons.js";
+import type * as history from "../history.js";
 import type * as meta from "../meta.js";
 import type * as players from "../players.js";
 
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   clashFetch: typeof clashFetch;
   crawler: typeof crawler;
   crons: typeof crons;
+  history: typeof history;
   meta: typeof meta;
   players: typeof players;
 }>;

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BetaRouteImport } from './routes/beta'
 import { Route as DecksRouteImport } from './routes/decks'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as MetaRouteImport } from './routes/meta'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
@@ -24,6 +25,7 @@ import { Route as PlayersTagRouteImport } from './routes/players/$tag'
 import { Route as PlayersCompareRouteImport } from './routes/players/compare'
 import { Route as ClansTagWarRouteImport } from './routes/clans/$tag_.war'
 import { Route as PlayersTagUpgradesRouteImport } from './routes/players/$tag_.upgrades'
+import { Route as PlayersTagHistoryRouteImport } from './routes/players/$tag_.history'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -38,6 +40,11 @@ const BetaRoute = BetaRouteImport.update({
 const DecksRoute = DecksRouteImport.update({
   id: '/decks',
   path: '/decks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
@@ -100,11 +107,17 @@ const PlayersTagUpgradesRoute = PlayersTagUpgradesRouteImport.update({
   path: '/players/$tag/upgrades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayersTagHistoryRoute = PlayersTagHistoryRouteImport.update({
+  id: '/players/$tag_/history',
+  path: '/players/$tag/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/beta': typeof BetaRoute
   '/decks': typeof DecksRoute
+  '/history': typeof HistoryRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
   '/tournaments': typeof TournamentsRoute
@@ -117,11 +130,13 @@ export interface FileRoutesByFullPath {
   '/players/': typeof PlayersIndexRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
+  '/players/$tag/history': typeof PlayersTagHistoryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/beta': typeof BetaRoute
   '/decks': typeof DecksRoute
+  '/history': typeof HistoryRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
   '/tournaments': typeof TournamentsRoute
@@ -134,12 +149,14 @@ export interface FileRoutesByTo {
   '/players': typeof PlayersIndexRoute
   '/clans/$tag/war': typeof ClansTagWarRoute
   '/players/$tag/upgrades': typeof PlayersTagUpgradesRoute
+  '/players/$tag/history': typeof PlayersTagHistoryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/beta': typeof BetaRoute
   '/decks': typeof DecksRoute
+  '/history': typeof HistoryRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
   '/tournaments': typeof TournamentsRoute
@@ -152,6 +169,7 @@ export interface FileRoutesById {
   '/players/': typeof PlayersIndexRoute
   '/clans/$tag_/war': typeof ClansTagWarRoute
   '/players/$tag_/upgrades': typeof PlayersTagUpgradesRoute
+  '/players/$tag_/history': typeof PlayersTagHistoryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -159,6 +177,7 @@ export interface FileRouteTypes {
     | '/'
     | '/beta'
     | '/decks'
+    | '/history'
     | '/leaderboards'
     | '/meta'
     | '/tournaments'
@@ -171,11 +190,13 @@ export interface FileRouteTypes {
     | '/players/'
     | '/clans/$tag/war'
     | '/players/$tag/upgrades'
+    | '/players/$tag/history'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/beta'
     | '/decks'
+    | '/history'
     | '/leaderboards'
     | '/meta'
     | '/tournaments'
@@ -188,11 +209,13 @@ export interface FileRouteTypes {
     | '/players'
     | '/clans/$tag/war'
     | '/players/$tag/upgrades'
+    | '/players/$tag/history'
   id:
     | '__root__'
     | '/'
     | '/beta'
     | '/decks'
+    | '/history'
     | '/leaderboards'
     | '/meta'
     | '/tournaments'
@@ -205,12 +228,14 @@ export interface FileRouteTypes {
     | '/players/'
     | '/clans/$tag_/war'
     | '/players/$tag_/upgrades'
+    | '/players/$tag_/history'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BetaRoute: typeof BetaRoute
   DecksRoute: typeof DecksRoute
+  HistoryRoute: typeof HistoryRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
   MetaRoute: typeof MetaRoute
   TournamentsRoute: typeof TournamentsRoute
@@ -223,6 +248,7 @@ export interface RootRouteChildren {
   PlayersIndexRoute: typeof PlayersIndexRoute
   ClansTagWarRoute: typeof ClansTagWarRoute
   PlayersTagUpgradesRoute: typeof PlayersTagUpgradesRoute
+  PlayersTagHistoryRoute: typeof PlayersTagHistoryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -246,6 +272,13 @@ declare module '@tanstack/react-router' {
       path: '/decks'
       fullPath: '/decks'
       preLoaderRoute: typeof DecksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboards': {
@@ -332,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersTagUpgradesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/players/$tag_/history': {
+      id: '/players/$tag_/history'
+      path: '/players/$tag/history'
+      fullPath: '/players/$tag/history'
+      preLoaderRoute: typeof PlayersTagHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -339,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BetaRoute: BetaRoute,
   DecksRoute: DecksRoute,
+  HistoryRoute: HistoryRoute,
   LeaderboardsRoute: LeaderboardsRoute,
   MetaRoute: MetaRoute,
   TournamentsRoute: TournamentsRoute,
@@ -351,6 +392,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlayersIndexRoute: PlayersIndexRoute,
   ClansTagWarRoute: ClansTagWarRoute,
   PlayersTagUpgradesRoute: PlayersTagUpgradesRoute,
+  PlayersTagHistoryRoute: PlayersTagHistoryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
