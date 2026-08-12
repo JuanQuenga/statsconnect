@@ -191,28 +191,30 @@ function PlayersPage() {
               {brawlers.map((item) => {
                 const meta = catalog.get(item.id);
                 return (
-                  <Card key={item.id} className="gap-0 overflow-hidden py-0">
-                    <div className="relative">
-                      <img src={brawlerBorderUrl(item.id)} alt={item.name} className="aspect-square w-full object-cover" />
-                      <Badge className="absolute top-2 right-2">{item.power}</Badge>
-                    </div>
-                    <div className="space-y-1 p-3">
-                      <h4 className="font-display text-lg">{item.name}</h4>
-                      <p className="text-xs text-muted-foreground">{meta?.rarity || "Brawler"}</p>
-                      <p className="text-sm text-primary">{trophies(item.trophies)} trophies</p>
-                      <p className="text-xs text-muted-foreground">
-                        Rank {item.rank} · Best {trophies(item.highestTrophies || item.trophies)}
-                      </p>
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        <Badge variant="outline">{item.gadgets?.length || 0} gadgets</Badge>
-                        <Badge variant="outline">{item.starPowers?.length || 0} powers</Badge>
-                        <Badge variant="outline">{item.gears?.length || 0} gears</Badge>
-                        {(item.hypercharges?.length || item.buffies?.length) ? (
-                          <Badge variant="outline">{(item.hypercharges?.length || item.buffies?.length) ?? 0} hypercharge</Badge>
-                        ) : null}
+                  <Link key={item.id} to="/brawlers/$brawlerId" params={{ brawlerId: String(item.id) }} className="group">
+                    <Card className="h-full gap-0 overflow-hidden py-0 transition-colors group-hover:border-primary/60">
+                      <div className="relative">
+                        <img src={brawlerBorderUrl(item.id)} alt={item.name} className="aspect-square w-full object-cover" />
+                        <Badge className="absolute top-2 right-2">{item.power}</Badge>
                       </div>
-                    </div>
-                  </Card>
+                      <div className="space-y-1 p-3">
+                        <h4 className="font-display text-lg group-hover:text-primary">{item.name}</h4>
+                        <p className="text-xs text-muted-foreground">{meta?.rarity || "Brawler"}</p>
+                        <p className="text-sm text-primary">{trophies(item.trophies)} trophies</p>
+                        <p className="text-xs text-muted-foreground">
+                          Rank {item.rank} · Best {trophies(item.highestTrophies || item.trophies)}
+                        </p>
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          <Badge variant="outline">{item.gadgets?.length || 0} gadgets</Badge>
+                          <Badge variant="outline">{item.starPowers?.length || 0} powers</Badge>
+                          <Badge variant="outline">{item.gears?.length || 0} gears</Badge>
+                          {(item.hypercharges?.length || item.buffies?.length) ? (
+                            <Badge variant="outline">{(item.hypercharges?.length || item.buffies?.length) ?? 0} hypercharge</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
                 );
               })}
             </div>

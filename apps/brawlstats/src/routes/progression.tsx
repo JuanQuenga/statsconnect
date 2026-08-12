@@ -47,6 +47,7 @@ function ProgressionPage() {
   const progression = useMemo(() => playerQuery.data ? buildProgression(playerQuery.data, catalogQuery.data || [], metaRows) : [], [catalogQuery.data, metaRows, playerQuery.data]);
   const owned = progression.filter((row) => row.unlocked);
   const totals = progression.reduce((result, row) => ({ points: result.points + row.pointsRemaining, powerCoins: result.powerCoins + row.powerCoinsRemaining, loadoutCoins: result.loadoutCoins + row.loadoutCoinsRemaining, completion: result.completion + row.coreCompletion }), { points: 0, powerCoins: 0, loadoutCoins: 0, completion: 0 });
+  const readiness = accountReadiness(progression);
   const priorities = [...owned].filter((row) => row.pointsRemaining || row.loadoutCoinsRemaining).sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 12);
   const tableRows = [...progression].filter((row) => showLocked || row.unlocked).sort((a, b) => Number(b.unlocked) - Number(a.unlocked) || b.priorityScore - a.priorityScore);
   const player = playerQuery.data;
@@ -78,7 +79,8 @@ function ProgressionPage() {
             <div className="text-left md:text-right"><p className="font-display text-3xl text-primary">{owned.length}/{progression.length}</p><p className="text-xs text-muted-foreground">brawlers unlocked</p></div>
           </Card>
 
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Summary label="Account readiness" value={`${readiness.grade} · ${readiness.score}`} detail="Collection, power, and core loadouts" />
             <Summary label="Core power completion" value={formatPercent(progression.length ? totals.completion / progression.length : 0)} detail="Across all released brawlers" />
             <Summary label="Power Points remaining" value={trophies(totals.points)} detail="Estimated to Power 11" />
             <Summary label="Power-up coins" value={trophies(totals.powerCoins)} detail="Estimated level upgrade cost" />
@@ -87,7 +89,7 @@ function ProgressionPage() {
 
           <Card className="gap-0 border border-primary/40 p-5 py-5">
             <p className="font-medium text-primary">How these estimates work</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Power costs use the current level schedule (3,740 Power Points and 7,765 coins from Power 1 to 11). A competitive loadout target adds one gadget, one Star Power, and two standard gears. Locked brawlers are counted from Power 1. Hypercharge, Buffies, Mythic/Epic gear price differences, current balances, and random rewards are excluded because the official API does not expose enough ownership or economy data. These are planning estimates, not an inventory ledger.</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Power costs use the current level schedule (3,740 Power Points and 7,765 coins from Power 1 to 11). A competitive loadout target adds one gadget, one Star Power, and two standard gears. The readiness score weights collection coverage 40% and the average owned-brawler power/loadout completion 60%; grades are S (90+), A (80+), B (65+), C (50+), or D. It is an account-planning grade—not a fabricated player percentile. Locked brawlers are counted from Power 1. Hypercharge, Buffies, Mythic/Epic gear price differences, current balances, and random rewards are excluded because the official API does not expose enough ownership or economy data. These are planning estimates, not an inventory ledger.</p>
           </Card>
 
           <section>
@@ -111,3 +113,18 @@ function ProgressionPage() {
 }
 
 function Summary({ label, value, detail }: { label: string; value: string; detail: string }) { return <Card className="gap-0 p-5 py-5"><p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className="mt-2 font-display text-3xl text-primary">{value}</p><p className="text-xs text-muted-foreground">{detail}</p></Card>; }
+
+function accountReadiness(rows: ReturnType<typeof buildProgression>) {
+  if (!rows.length) return { score: 0, grade: "D" };
+  const owned = rows.filter((row) => row.unlocked);
+  const collectionScore = (owned.length / rows.length) * 100;
+  const competitiveScore = owned.length
+    ? owned.reduce((sum, row) => {
+      const loadoutCompletion = Math.max(0, 100 - (row.loadoutCoinsRemaining / 5_000) * 100);
+      return sum + row.coreCompletion * 0.7 + loadoutCompletion * 0.3;
+    }, 0) / owned.length
+    : 0;
+  const score = Math.round(collectionScore * 0.4 + competitiveScore * 0.6);
+  const grade = score >= 90 ? "S" : score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : "D";
+  return { score, grade };
+}
