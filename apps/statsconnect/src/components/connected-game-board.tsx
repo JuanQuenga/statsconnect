@@ -124,7 +124,7 @@ function ActiveProfileHero({
         aria-hidden
       />
 
-      <div className="relative flex min-w-0 flex-1 items-center gap-5 sm:gap-7">
+      <div className="relative flex min-w-0 flex-1 flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7">
         {profile.display.avatarUrl ? (
           <img
             src={profile.display.avatarUrl}
@@ -140,7 +140,7 @@ function ActiveProfileHero({
           <p className="eyebrow text-[var(--game-accent)]">
             {gameName(profile.game)}
           </p>
-          <h2 className="mt-2 truncate font-display text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
+          <h2 className="mt-2 break-words font-display text-4xl font-semibold tracking-tight sm:truncate sm:text-5xl md:text-6xl">
             {profile.display.name}
           </h2>
           <div className="mt-3 flex flex-wrap items-center gap-3">

@@ -69,7 +69,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
       <div>
         <label htmlFor="player-tag" className="eyebrow block">{gameName(game)} player tag</label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <Input id="player-tag" value={tag} onChange={(event) => { setTag(event.target.value); previewMutation.reset(); }} placeholder="#2PPGL9YL" autoCapitalize="characters" autoComplete="off" aria-describedby="tag-help tag-error" aria-invalid={Boolean(validation)} />
+          <Input id="player-tag" value={tag} onChange={(event) => { setTag(event.target.value); previewMutation.reset(); }} placeholder="#2PPGL9YL" autoCapitalize="characters" autoComplete="off" aria-describedby={validation ? "tag-help tag-error" : "tag-help"} aria-invalid={Boolean(validation)} />
           <Button type="submit" size="lg" className="shrink-0" disabled={!tag || Boolean(validation) || previewMutation.isPending}>{previewMutation.isPending ? "Checking…" : "Check tag"}<Search className="size-4" /></Button>
         </div>
         <p id="tag-help" className="mt-2 text-xs leading-relaxed text-muted-foreground">Enter the player tag from the in-game profile. Spaces and a leading # are accepted.</p>

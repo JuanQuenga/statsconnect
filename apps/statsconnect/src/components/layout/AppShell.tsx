@@ -1,13 +1,16 @@
-import { Outlet } from "@tanstack/react-router";
+import { HeadContent, Outlet } from "@tanstack/react-router";
 import { AmbientProvider, useAmbient } from "@/components/lobby/ambient";
 import { FooterNotice } from "./FooterNotice";
 import { SiteNav } from "./SiteNav";
 
 export function AppShell() {
   return (
-    <AmbientProvider>
-      <Stage />
-    </AmbientProvider>
+    <>
+      <HeadContent />
+      <AmbientProvider>
+        <Stage />
+      </AmbientProvider>
+    </>
   );
 }
 

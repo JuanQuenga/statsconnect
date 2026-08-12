@@ -149,9 +149,9 @@ export function ErrorState({
       >
         <AlertCircle className="size-5" />
       </div>
-      <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
         {title}
-      </h2>
+      </h1>
       {detail ? (
         <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
           {detail}
