@@ -284,8 +284,8 @@
 .sc-nav__mobile { display: none; }
 
 .sc-nav__menu-button {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   margin-left: auto;
   padding: 0;
   place-items: center;
@@ -313,7 +313,7 @@
   .sc-nav__mobile.is-open { display: block; }
   .sc-nav__mobile-search { padding-top: 10px; }
   .sc-nav__mobile-links { margin-top: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
-  .sc-nav__mobile-link { padding: 11px 12px; border-radius: 7px; color: var(--sc-nav-muted); background: rgba(255, 255, 255, .045); font-size: 13px; font-weight: 500; }
+  .sc-nav__mobile-link { min-height: 44px; padding: 11px 12px; display: flex; align-items: center; border-radius: 7px; color: var(--sc-nav-muted); background: rgba(255, 255, 255, .045); font-size: 13px; font-weight: 500; }
   .sc-nav__mobile-link:hover,
   .sc-nav__mobile-link[aria-current="page"] { color: var(--sc-nav-text); background: rgba(255, 255, 255, .08); }
   .sc-nav__mobile-games { display: none; padding-top: 10px; }
@@ -327,7 +327,8 @@
   .sc-nav__network-brand strong { font-size: 12px; }
   .sc-nav__network-sites { display: none; }
   .sc-nav__network-menu { display: flex; align-items: center; }
-  .sc-nav__network-menu .sc-nav__games summary { height: 30px; border: 0; background: transparent; }
+  .sc-nav__language { height: 44px; }
+  .sc-nav__network-menu .sc-nav__games summary { min-width: 44px; height: 44px; border: 0; background: transparent; }
   .sc-nav__network-menu .sc-nav__game-menu { right: 0; left: auto; }
   .sc-nav__brand { max-width: 152px; }
   .sc-nav__brand img { max-width: 146px; max-height: 42px; }
