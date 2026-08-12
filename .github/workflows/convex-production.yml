@@ -36,6 +36,6 @@ jobs:
         run: pnpm --filter @statsconnect/backend typecheck
 
       - name: Deploy Convex functions
-        run: pnpm --filter @statsconnect/backend deploy
+        run: pnpm --filter @statsconnect/backend run deploy
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
