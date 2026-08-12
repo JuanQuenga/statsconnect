@@ -41,7 +41,10 @@ export function SiteNav() {
       links={links}
       brand={
         <Link to="/" aria-label="BrawlStats home">
-          <img src="/assets/generated/brawlstats-logo.png" alt="BrawlStats" />
+          <img
+            src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-logo.png`}
+            alt="BrawlStats"
+          />
         </Link>
       }
       renderSearch={(onNavigate) => (

@@ -18,8 +18,8 @@ function NotFoundPage() {
       <p className="numeric text-[7rem] leading-none text-[var(--ambient)]/25 sm:text-[10rem]">
         404
       </p>
-      <p className="eyebrow mt-2">Signal lost</p>
-      <h1 className="mt-4 font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl">
+      <p className="eyebrow mt-2">Page not found</p>
+      <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
         This page does not exist
       </h1>
       <p className="mt-4 max-w-md text-muted-foreground">

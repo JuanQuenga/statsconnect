@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { apiFetch, clubBadgeUrl, profileIconUrl } from "@/lib/api";
 import { normalizeTag, readableMode, trophies } from "@/lib/format";
+import { appPath } from "@/lib/paths";
 import type { ClubProfile } from "@/lib/types";
 
 type ClubSearch = { tag?: string };
@@ -34,7 +35,7 @@ function ClubsPage() {
     event.preventDefault();
     const next = normalizeTag(draft);
     if (!next) return;
-    window.location.assign(`/clubs?tag=${encodeURIComponent(next)}`);
+    window.location.assign(appPath(`/clubs?tag=${encodeURIComponent(next)}`));
   }
 
   const club = clubQuery.data;

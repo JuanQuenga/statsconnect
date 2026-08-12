@@ -93,6 +93,27 @@
 }
 
 @layer components {
+  .brawl-site-frame {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(6, 13, 24, 0.18) 0,
+        rgba(10, 16, 26, 0.3) 18rem,
+        rgba(10, 16, 26, 0.82) 40rem,
+        var(--background) 58rem,
+        var(--background) 100%
+      ),
+      linear-gradient(
+        90deg,
+        rgba(6, 13, 24, 0.56) 0,
+        transparent 18%,
+        transparent 82%,
+        rgba(6, 13, 24, 0.56) 100%
+      ),
+      var(--brawl-arena-image) top center / 1920px auto no-repeat,
+      var(--background);
+  }
+
   .brawl-hero {
     position: relative;
     isolation: isolate;
@@ -105,7 +126,7 @@
     z-index: -2;
     inset: 0;
     content: "";
-    background: url("/assets/generated/brawlstats-arena.webp") center top / cover no-repeat;
+    background: var(--brawl-arena-image) center top / cover no-repeat;
   }
 
   .brawl-hero::after {

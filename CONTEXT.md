@@ -24,12 +24,17 @@ _Avoid_: App switcher, product picker
 A Hub route that resolves a connected profile before opening the requested Game Site.
 _Avoid_: Redirect link, deep link
 
+**Platform Backend**:
+The shared Convex deployment that owns Hub data and namespaced game-statistics Modules.
+_Avoid_: Global database, shared service
+
 ## Relationships
 
 - The **Hub** publishes one **Launch Route** for each **Game Site**.
 - Every **Game Site** uses the shared **Site Navigation**.
 - The **Site Navigation** contains exactly one **Game Switcher**.
 - The **Game Switcher** targets the **Hub** and its canonical **Launch Routes**.
+- The **Platform Backend** keeps Hub and Game Site data in independently owned namespaces.
 
 ## Example dialogue
 

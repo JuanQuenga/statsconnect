@@ -16,7 +16,11 @@ const queryClient = new QueryClient({
   },
 });
 
-const router = createRouter({ routeTree, defaultPreload: "intent" });
+const router = createRouter({
+  routeTree,
+  defaultPreload: "intent",
+  basepath: import.meta.env.BASE_URL.replace(/\/$/, "") || "/",
+});
 const convexClient = isConvexConfigured ? new ConvexReactClient(convexUrl) : null;
 
 declare module "@tanstack/react-router" {

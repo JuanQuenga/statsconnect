@@ -200,6 +200,16 @@ importers:
         specifier: ^8.1.4
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.27.0)(jiti@2.7.0)
 
+  packages/backend:
+    dependencies:
+      convex:
+        specifier: ^1.42.2
+        version: 1.43.0(react@19.2.8)
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/site-nav:
     devDependencies:
       '@types/react':

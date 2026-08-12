@@ -76,7 +76,7 @@ export function EmptyState({
       >
         <Inbox className="size-5" />
       </div>
-      <h2 className="font-display text-2xl font-bold uppercase tracking-[0.06em] sm:text-3xl">
+      <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
         {title}
       </h2>
       {detail ? (
@@ -149,7 +149,7 @@ export function ErrorState({
       >
         <AlertCircle className="size-5" />
       </div>
-      <h2 className="font-display text-2xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-3xl">
+      <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
         {title}
       </h2>
       {detail ? (

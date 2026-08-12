@@ -30,87 +30,87 @@ export const playerBundleAction = makeFunctionReference<
   "action",
   { tag: string; force?: boolean },
   PlayerBundlePayload
->("clashApi:getPlayerBundle");
+>("clash/clashApi:getPlayerBundle");
 
 export const clanBundleAction = makeFunctionReference<
   "action",
   { tag: string; force?: boolean },
   ClanBundlePayload
->("clashApi:getClanBundle");
+>("clash/clashApi:getClanBundle");
 
-export const cardsAction = makeFunctionReference<"action", { force?: boolean }, CardsPayload>("clashApi:getCards");
+export const cardsAction = makeFunctionReference<"action", { force?: boolean }, CardsPayload>("clash/clashApi:getCards");
 
 export const clanWarAction = makeFunctionReference<
   "action",
   { tag: string; force?: boolean },
   ClanWarPayload
->("clashApi:getClanWar");
+>("clash/clashApi:getClanWar");
 
 export const locationsAction = makeFunctionReference<"action", { force?: boolean }, LocationsPayload>(
-  "clashApi:getLocations"
+  "clash/clashApi:getLocations"
 );
 
 export const rankingsAction = makeFunctionReference<
   "action",
   { kind: RankingKind; locationId?: number; limit?: number; force?: boolean },
   RankingsPayload
->("clashApi:getRankings");
+>("clash/clashApi:getRankings");
 
 export const leaderboardsAction = makeFunctionReference<"action", { force?: boolean }, LeaderboardListPayload>(
-  "clashApi:getLeaderboards"
+  "clash/clashApi:getLeaderboards"
 );
 
 export const leaderboardAction = makeFunctionReference<
   "action",
   { leaderboardId: number; limit?: number; force?: boolean },
   LeaderboardPayload
->("clashApi:getLeaderboard");
+>("clash/clashApi:getLeaderboard");
 
 export const searchClansAction = makeFunctionReference<
   "action",
   { name?: string; locationId?: number; minMembers?: number; maxMembers?: number; minScore?: number; limit?: number; force?: boolean },
   ClanSearchPayload
->("clashApi:searchClans");
+>("clash/clashApi:searchClans");
 
 export const globalTournamentsAction = makeFunctionReference<"action", { force?: boolean }, TournamentsPayload>(
-  "clashApi:getGlobalTournaments"
+  "clash/clashApi:getGlobalTournaments"
 );
 
 export const searchTournamentsAction = makeFunctionReference<
   "action",
   { name: string; limit?: number; force?: boolean },
   TournamentsPayload
->("clashApi:searchTournaments");
+>("clash/clashApi:searchTournaments");
 
 // --- Battle-log pipeline --------------------------------------------------
 
 export const pipelineStatusQuery = makeFunctionReference<"query", Record<string, never>, PipelineStatusPayload>(
-  "meta:pipelineStatus"
+  "clash/meta:pipelineStatus"
 );
 
 export const topDecksQuery = makeFunctionReference<
   "query",
   { mode: MetaMode; windowDays?: number; limit?: number },
   TopDecksPayload
->("meta:topDecks");
+>("clash/meta:topDecks");
 
 export const topCardsQuery = makeFunctionReference<
   "query",
   { mode: MetaMode; windowDays?: number; limit?: number },
   TopCardsPayload
->("meta:topCards");
+>("clash/meta:topCards");
 
 export const topTowerTroopsQuery = makeFunctionReference<
   "query",
   { mode: MetaMode; windowDays?: number; limit?: number },
   TopTowerTroopsPayload
->("meta:topTowerTroops");
+>("clash/meta:topTowerTroops");
 
 export const deckMetaQuery = makeFunctionReference<
   "query",
   { deckHash: string; mode: MetaMode; windowDays?: number },
   DeckMetaPayload
->("meta:deckMeta");
+>("clash/meta:deckMeta");
 
 // --- Player name directory ------------------------------------------------
 
@@ -118,10 +118,10 @@ export const searchPlayersQuery = makeFunctionReference<
   "query",
   { query: string; limit?: number },
   PlayerSearchPayload
->("players:search");
+>("clash/players:search");
 
 export const directorySizeQuery = makeFunctionReference<"query", Record<string, never>, number>(
-  "players:directorySize"
+  "clash/players:directorySize"
 );
 
 // --- Profile history --------------------------------------------------
@@ -130,13 +130,13 @@ export const profileHistoryQuery = makeFunctionReference<
   "query",
   { kind: "player" | "clan"; tag: string },
   ProfileHistoryPoint[]
->("cache:history");
+>("clash/cache:history");
 
 export const seedTagMutation = makeFunctionReference<
   "mutation",
   { tag: string; key: string },
   { ok: boolean; message: string }
->("meta:seedTag");
+>("clash/meta:seedTag");
 
 /** Matches GLOBAL_LOCATION_ID in convex/clashApi.ts. "International", not Europe. */
 export const GLOBAL_LOCATION_ID = 57000006;

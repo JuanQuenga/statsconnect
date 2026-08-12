@@ -37,7 +37,7 @@ export function ProfileHero({ summary }: { summary: ProfileSummary }) {
             <p className="eyebrow text-[var(--game-accent)]">
               {gameName(summary.game)}
             </p>
-            <h1 className="mt-2 truncate font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">
+            <h1 className="mt-2 truncate font-display text-4xl font-semibold tracking-tight sm:text-5xl">
               {summary.display.name}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-3">

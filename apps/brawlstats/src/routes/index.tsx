@@ -79,7 +79,7 @@ function HomePage() {
 
           <div className="relative min-h-[430px] self-end lg:min-h-[650px]">
             <img
-              src="/assets/generated/brawlstats-hero-official.webp"
+              src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-hero-official.webp`}
               alt="Colt, Shelly, and Spike from Brawl Stars"
               width={900}
               height={1125}

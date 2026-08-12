@@ -4,7 +4,10 @@ import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 
+const unifiedBuild = process.env.STATSCONNECT_UNIFIED_BUILD === "1";
+
 export default defineConfig({
+  base: unifiedBuild ? "/brawlstars/" : "/",
   plugins: [
     TanStackRouterVite({
       target: "react",
@@ -21,4 +24,10 @@ export default defineConfig({
     },
   },
   publicDir: "public",
+  build: unifiedBuild
+    ? {
+        outDir: "../../dist/brawlstars",
+        emptyOutDir: false,
+      }
+    : undefined,
 });

@@ -47,7 +47,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
           <CardContent className="space-y-5 p-6">
             <div className="flex items-start gap-4">
               <div className="bevel bevel-sm flex size-12 shrink-0 items-center justify-center bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="size-5" /></div>
-              <div className="min-w-0"><p className="eyebrow text-emerald-300">Profile found</p><h2 className="mt-2 truncate font-display text-2xl font-bold uppercase tracking-tight">{preview.data.display.name}</h2><p className="font-numeric text-lg tracking-[0.14em] text-muted-foreground">{preview.data.playerTag}</p></div>
+              <div className="min-w-0"><p className="eyebrow text-emerald-300">Profile found</p><h2 className="mt-2 truncate font-display text-2xl font-semibold tracking-tight">{preview.data.display.name}</h2><p className="font-numeric text-lg tracking-[0.14em] text-muted-foreground">{preview.data.playerTag}</p></div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {preview.data.display.headline ? <div className="bevel bevel-sm border border-border/60 bg-black/30 p-4"><p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{preview.data.display.headline.label}</p><p className="numeric mt-2 text-4xl text-[var(--game-accent)]">{preview.data.display.headline.value.toLocaleString()}</p></div> : null}

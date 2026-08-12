@@ -41,12 +41,12 @@ export function SiteNav() {
           <Wordmark className="hidden sm:inline" />
         </Link>
       }
-      endContent={<SystemClock />}
+      endContent={<LiveDataStatus />}
     />
   );
 }
 
-function SystemClock() {
+function LiveDataStatus() {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -55,8 +55,8 @@ function SystemClock() {
   }, []);
 
   return (
-    <time className="numeric text-lg text-muted-foreground" dateTime={now.toISOString()}>
-      {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-    </time>
+    <span className="hub-nav-status" title={`Updated ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}>
+      <i aria-hidden /> Live data
+    </span>
   );
 }

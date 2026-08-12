@@ -15,13 +15,20 @@ const parameterRoutes = [
   { pattern: /^\/cards\/([^/]+)\/?$/, key: "slug" },
 ] as const;
 
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function withoutBasePath(pathname: string): string {
+  if (!basePath || basePath === "/") return pathname;
+  return pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname;
+}
+
 function routeQuery(href: string): Record<string, QueryValue> {
   const url = new URL(href, window.location.origin);
   const query: Record<string, QueryValue> = {};
 
   for (const [key, value] of url.searchParams) query[key] = value;
   for (const route of parameterRoutes) {
-    const match = url.pathname.match(route.pattern);
+    const match = withoutBasePath(url.pathname).match(route.pattern);
     if (match?.[1]) query[route.key] = decodeURIComponent(match[1]);
   }
 

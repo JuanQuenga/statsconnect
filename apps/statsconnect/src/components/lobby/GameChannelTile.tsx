@@ -23,20 +23,17 @@ export function GameChannelTile({
       className="tile bevel bevel-lg relative flex items-center gap-5 overflow-hidden border border-border/60 bg-card/60 p-7 backdrop-blur-sm"
       {...stageLight}
     >
-      <span className="tile-glow" aria-hidden />
       <img
-        src={`/games/${id}.png`}
+        src={`/games/generated/${id}-channel.webp`}
         alt=""
         aria-hidden
         loading="lazy"
-        className="tile-art"
+        className="channel-art"
       />
-      <span
-        className="absolute inset-y-0 left-0 w-1 bg-[var(--game-accent)] opacity-70"
-        aria-hidden
-      />
+      <span className="channel-art__scrim" aria-hidden />
       <div className="relative z-[1] min-w-0 flex-1">
-        <h2 className="font-display text-2xl font-bold uppercase tracking-[0.04em]">
+        <p className="eyebrow mb-3 text-[var(--game-accent)]">Open game site</p>
+        <h2 className="font-display text-2xl font-semibold">
           {name}
         </h2>
         <p className="mt-2 max-w-[18rem] text-sm leading-relaxed text-muted-foreground sm:max-w-xs">

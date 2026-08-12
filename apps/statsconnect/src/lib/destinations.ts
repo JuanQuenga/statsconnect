@@ -2,8 +2,8 @@ import type { GameId } from "./contracts";
 import { normalizeTag } from "./tags";
 
 const DEFAULT_ORIGINS: Record<GameId, string> = {
-  "brawl-stars": "https://brawlstats.io",
-  "clash-royale": "https://clashcrown.vercel.app",
+  "brawl-stars": "https://stats.juanquenga.com",
+  "clash-royale": "https://stats.juanquenga.com",
 };
 
 function origin(game: GameId): string {
@@ -21,8 +21,8 @@ export function hubLaunchPath(game: GameId): `/launch/${GameId}` {
 export function destinationUrl(game: GameId, playerTag: string): string {
   const tag = normalizeTag(playerTag);
   const url = game === "brawl-stars"
-    ? new URL("/players", origin(game))
-    : new URL(`/players/${encodeURIComponent(tag)}`, origin(game));
+    ? new URL("/brawlstars/players", origin(game))
+    : new URL(`/clashroyale/players/${encodeURIComponent(tag)}`, origin(game));
 
   if (game === "brawl-stars") url.searchParams.set("tag", tag);
   url.searchParams.set("from", "statsconnect");
