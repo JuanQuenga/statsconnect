@@ -9,5 +9,27 @@
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
   ],
-  "rewrites": [{ "source": "/:path*", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/beta", "destination": "/index.html" },
+    { "source": "/cards", "destination": "/index.html" },
+    { "source": "/cards/:slug", "destination": "/index.html" },
+    { "source": "/clans/search", "destination": "/index.html" },
+    { "source": "/clans/:tag", "destination": "/index.html" },
+    { "source": "/clans/:tag/manage", "destination": "/index.html" },
+    { "source": "/clans/:tag/war", "destination": "/index.html" },
+    { "source": "/decks", "destination": "/index.html" },
+    { "source": "/guides", "destination": "/index.html" },
+    { "source": "/guides/:slug", "destination": "/index.html" },
+    { "source": "/history", "destination": "/index.html" },
+    { "source": "/leaderboards", "destination": "/index.html" },
+    { "source": "/meta", "destination": "/index.html" },
+    { "source": "/news", "destination": "/index.html" },
+    { "source": "/players", "destination": "/index.html" },
+    { "source": "/players/compare", "destination": "/index.html" },
+    { "source": "/players/:tag", "destination": "/index.html" },
+    { "source": "/players/:tag/history", "destination": "/index.html" },
+    { "source": "/players/:tag/upgrades", "destination": "/index.html" },
+    { "source": "/tools", "destination": "/index.html" },
+    { "source": "/tournaments", "destination": "/index.html" }
+  ]
 }

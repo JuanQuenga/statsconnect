@@ -85,7 +85,7 @@ function DeckExperienceShell({ surface, setSurface, children }: { surface: DeckS
   const { locale, t } = useI18n();
   return (
     <Layout>
-      <Head><title>{locale === "es" ? "Descubrimiento y creador de mazos" : "Deck Discovery & Builder"} | Clash Crown</title><meta name="description" content={locale === "es" ? "Encuentra mazos observados, personaliza recomendaciones y crea conjuntos de guerra." : "Find observed Clash Royale decks, personalize recommendations from a player tag, build war sets, and copy decks into the game."} /><link rel="canonical" href="/decks" /></Head>
+      <Head><title>{locale === "es" ? "Descubrimiento y creador de mazos" : "Deck Discovery & Builder"} | Royale Stats</title><meta name="description" content={locale === "es" ? "Encuentra mazos observados, personaliza recomendaciones y crea conjuntos de guerra." : "Find observed Clash Royale decks, personalize recommendations from a player tag, build war sets, and copy decks into the game."} /><link rel="canonical" href="/decks" /></Head>
       <div className="decks-page discovery-page">
         <section className="decks-hero discovery-hero">
           <span className="eyebrow">{locale === "es" ? "Evidencia del registro de batallas, no suposiciones" : "Battle-log evidence, not generated guesses"}</span>

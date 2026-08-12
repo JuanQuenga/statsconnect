@@ -1,5 +1,14 @@
 const CACHE_NAME = "brawlstats-shell-v1";
-const APP_SHELL = ["./", "./manifest.webmanifest", "./assets/img/bs-stats.png"];
+const APP_SHELL = [
+  "./",
+  "./manifest.webmanifest",
+  "./favicon.ico",
+  "./favicon-32x32.png",
+  "./apple-touch-icon.png",
+  "./android-chrome-192x192.png",
+  "./android-chrome-512x512.png",
+  "./assets/img/bs-stats.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));

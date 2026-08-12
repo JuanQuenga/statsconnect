@@ -17,7 +17,7 @@ import { PersonalizationProvider } from "@/components/personalization/Personaliz
 import { routeTree } from "./routeTree.gen";
 import "./styles/globals.css";
 
-const APP_NAME = "ClashCrown";
+const APP_NAME = "Royale Stats";
 const removeGlobalErrorHandlers = installGlobalErrorHandlers(APP_NAME);
 if (import.meta.hot) import.meta.hot.dispose(removeGlobalErrorHandlers);
 
@@ -62,7 +62,7 @@ function Providers({ children }: { children: ReactNode }) {
 }
 
 const rootElement = document.getElementById("root");
-if (!rootElement) throw new Error("ClashCrown could not find its root element.");
+if (!rootElement) throw new Error("Royale Stats could not find its root element.");
 
 createRoot(rootElement, {
   onUncaughtError: (error, errorInfo) => {

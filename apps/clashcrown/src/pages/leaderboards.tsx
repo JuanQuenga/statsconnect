@@ -135,7 +135,7 @@ function Leaderboards() {
   return (
     <Layout>
       <Head>
-        <title>Leaderboards | Clash Crown</title>
+        <title>Leaderboards | Royale Stats</title>
         <meta name="description" content="Global and per-country Clash Royale rankings for players and clans." />
       </Head>
       <div className="profile-page">

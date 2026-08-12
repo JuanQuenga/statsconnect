@@ -49,7 +49,7 @@ export type SiteNavigationProps = {
 const sites = [
   { id: "statsconnect", label: "StatsConnect", detail: "Game hub", path: "/", icon: "⌂" },
   { id: "brawl-stars", label: "Brawl Stars", detail: "Open BrawlStats", path: "/launch/brawl-stars", icon: "★" },
-  { id: "clash-royale", label: "Clash Royale", detail: "Open ClashCrown", path: "/launch/clash-royale", icon: "♛" },
+  { id: "clash-royale", label: "Clash Royale", detail: "Open Royale Stats", path: "/launch/clash-royale", icon: "♛" },
 ] as const;
 
 export const siteNavigationLanguages = [

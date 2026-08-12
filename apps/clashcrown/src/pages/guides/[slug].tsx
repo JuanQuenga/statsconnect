@@ -27,9 +27,9 @@ export default function GuidePage({ slug }: { slug: string }) {
   return (
     <Layout>
       <Head>
-        <title>{title} | Clash Crown</title>
+        <title>{title} | Royale Stats</title>
         <meta name="description" content={summary} />
-        <meta property="og:title" content={`${title} | Clash Crown`} />
+        <meta property="og:title" content={`${title} | Royale Stats`} />
         <meta property="og:description" content={summary} />
         <link rel="canonical" href={`/guides/${guide.slug}`} />
       </Head>

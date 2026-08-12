@@ -49,7 +49,7 @@ export default function PlayerSearchPage() {
   return (
     <Layout>
       <Head>
-        <title>{term ? `${term} | Player Search` : "Player Search"} | Clash Crown</title>
+        <title>{term ? `${term} | Player Search` : "Player Search"} | Royale Stats</title>
         <meta name="description" content="Find a Clash Royale player by name or by tag." />
       </Head>
       <div className="profile-page">
@@ -111,7 +111,7 @@ function Results({
       <section className="profile-section">
         <h2>Search by name</h2>
         <p className="empty-results">
-          Type a player name above. Names come from {known} Clash Crown has seen on leaderboards, in clan rosters and in
+          Type a player name above. Names come from {known} Royale Stats has seen on leaderboards, in clan rosters and in
           battle logs — a tag always works, and using one adds that player to the directory.
         </p>
       </section>

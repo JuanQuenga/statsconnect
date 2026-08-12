@@ -31,22 +31,22 @@ function PlayerHistory({ tag }: { tag: string }) {
   });
 
   if (query.isLoading) return <Layout><LoadingState label="observed player history" /></Layout>;
-  if (query.error) return <Layout><ErrorState message="ClashCrown could not read this player’s history right now." /></Layout>;
+  if (query.error) return <Layout><ErrorState message="Royale Stats could not read this player’s history right now." /></Layout>;
   const snapshots = query.data ?? [];
   const latest = snapshots.find((snapshot) => snapshot.source === "api_profile");
 
   return (
     <Layout>
       <Head>
-        <title>{`${latest?.name ?? `#${tag}`} History | Clash Crown`}</title>
-        <meta name="description" content="Timestamped ClashCrown player observations and API-provided Path of Legends snapshots." />
+        <title>{`${latest?.name ?? `#${tag}`} History | Royale Stats`}</title>
+        <meta name="description" content="Timestamped Royale Stats player observations and API-provided Path of Legends snapshots." />
       </Head>
       <div className="profile-page history-page">
         <section className="decks-hero history-hero">
           <span className="eyebrow">Observed profile record</span>
           <h1>{latest?.name ?? `#${tag}`}</h1>
           <p>
-            A change log built only from profile payloads ClashCrown actually received. Gaps mean the profile was not
+            A change log built only from profile payloads Royale Stats actually received. Gaps mean the profile was not
             observed, not that nothing changed.
           </p>
           <Link className="history-back-link" href={`/players/${tag}`}><ArrowLeft size={16} /> Back to profile</Link>
@@ -56,7 +56,7 @@ function PlayerHistory({ tag }: { tag: string }) {
           <section className="history-empty" aria-live="polite">
             <Database size={34} />
             <h2>No observations yet</h2>
-            <p>Load the live player profile once to create the first snapshot. ClashCrown does not fabricate earlier seasons.</p>
+            <p>Load the live player profile once to create the first snapshot. Royale Stats does not fabricate earlier seasons.</p>
             <Link className="pink-button" href={`/players/${tag}`}>Load player profile</Link>
           </section>
         ) : (
@@ -108,7 +108,7 @@ function ApiPathSection({ snapshot }: { snapshot?: PlayerHistorySnapshot }) {
       </div>
       <p className="table-note">
         Supercell returns current, last, and personal-best results but no stable season identifier. These labels describe
-        the API fields as observed {snapshot ? dateTime.format(snapshot.observedAt) : "—"}; ClashCrown does not assign season names.
+        the API fields as observed {snapshot ? dateTime.format(snapshot.observedAt) : "—"}; Royale Stats does not assign season names.
       </p>
     </section>
   );
@@ -118,7 +118,7 @@ function ObservedTimeline({ snapshots }: { snapshots: PlayerHistorySnapshot[] })
   return (
     <section className="profile-section">
       <div className="section-heading compact-heading">
-        <span className="filter-button static">ClashCrown observed</span>
+        <span className="filter-button static">Royale Stats observed</span>
         <h2>Profile changes</h2>
         <span className="chart-range">Newest first</span>
       </div>

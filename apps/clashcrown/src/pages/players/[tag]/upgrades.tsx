@@ -83,7 +83,7 @@ function UpgradePlanner({ player }: { player: Player }) {
   return (
     <Layout>
       <Head>
-        <title>{`${player.name} upgrades | Clash Crown`}</title>
+        <title>{`${player.name} upgrades | Royale Stats`}</title>
         <meta name="description" content={`Plan ${player.name}'s Clash Royale card upgrades and track the path to a maxed collection.`} />
       </Head>
       <div className="profile-page upgrade-page">

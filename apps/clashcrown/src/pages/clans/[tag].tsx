@@ -49,7 +49,7 @@ function ClanDashboard({ clan, isRefreshing = false, onRefresh = () => undefined
   return (
     <Layout>
       <Head>
-        <title>{`${clan.name} | Clash Crown`}</title>
+        <title>{`${clan.name} | Royale Stats`}</title>
       </Head>
       <div className="profile-page clan-page">
         <ClanProfile clan={clan} />

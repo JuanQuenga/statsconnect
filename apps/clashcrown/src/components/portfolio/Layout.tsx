@@ -56,8 +56,8 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
           onChange: (value) => setLocale(value as Locale),
         }}
         brand={
-          <Link href="/" aria-label="Clash Crown home">
-            <Image src="/images/logo/clash-crown-purple-wide.png" alt="Clash Crown" width={315} height={100} priority />
+          <Link href="/" aria-label="Royale Stats home">
+            <Image src="/images/logo/royale-stats-wide.png" alt="Royale Stats" width={2143} height={667} priority />
           </Link>
         }
         renderSearch={(onNavigate) => (
@@ -102,7 +102,7 @@ function SiteFooter() {
           </a>
           .
         </p>
-        <p>© {new Date().getFullYear()} Clash Crown.</p>
+        <p>© {new Date().getFullYear()} Royale Stats.</p>
       </div>
     </footer>
   );

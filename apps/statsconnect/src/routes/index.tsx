@@ -104,7 +104,7 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
             <GameChannelTile
               key={game.id}
               id={game.id}
-              name={game.id === "brawl-stars" ? "BrawlStats" : "ClashCrown"}
+              name={game.id === "brawl-stars" ? "BrawlStats" : "Royale Stats"}
               description={game.description}
             />
           ))}

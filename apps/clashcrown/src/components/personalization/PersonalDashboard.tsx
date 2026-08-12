@@ -102,7 +102,7 @@ export function PersonalDashboard() {
         <div className={styles.settingsGrid}>
           <section className={styles.settingCard}>
             <h3><Bell size={18} /> Browser alerts</h3>
-            <p>Opt in by signal. Alerts are checked only when a tracked profile is opened or refreshed while ClashCrown is running; there is no background observation.</p>
+            <p>Opt in by signal. Alerts are checked only when a tracked profile is opened or refreshed while Royale Stats is running; there is no background observation.</p>
             <Preference checked={personalization.preferences.chestAlerts} label="Next chest changes" onChange={(checked) => setPreference("chestAlerts", checked)} />
             <Preference checked={personalization.preferences.progressionAlerts} label="Player trophy gains" onChange={(checked) => setPreference("progressionAlerts", checked)} />
             <Preference checked={personalization.preferences.warAlerts} label="Clan war trophy gains" onChange={(checked) => setPreference("warAlerts", checked)} />

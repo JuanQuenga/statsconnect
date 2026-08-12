@@ -57,7 +57,7 @@ function MetaReport() {
   return (
     <Layout>
       <Head>
-        <title>{t("meta.title")} | Clash Crown</title>
+        <title>{t("meta.title")} | Royale Stats</title>
         <meta
           name="description"
           content={locale === "es" ? "Estadísticas en vivo de mazos y cartas de Clash Royale, agregadas desde registros de batalla observados." : "Live Clash Royale deck and card statistics, aggregated from real battle logs."}
@@ -69,7 +69,7 @@ function MetaReport() {
           <span className="eyebrow">{locale === "es" ? "Agregado desde registros de batalla reales" : "Aggregated from real battle logs"}</span>
           <h1>{t("meta.title")}</h1>
           <p>
-            {locale === "es" ? "La API de Clash Royale publica batallas jugador por jugador, pero no estadísticas agregadas. Clash Crown cuenta lo que se jugó y muestra siempre la muestra: " : "The Clash Royale API publishes battles one player at a time, but no aggregate statistics. Clash Crown counts what was actually played and always shows the sample: "}
+            {locale === "es" ? "La API de Clash Royale publica batallas jugador por jugador, pero no estadísticas agregadas. Royale Stats cuenta lo que se jugó y muestra siempre la muestra: " : "The Clash Royale API publishes battles one player at a time, but no aggregate statistics. Royale Stats counts what was actually played and always shows the sample: "}
             <strong>{formatNumber(Math.round(sample))}</strong> {locale === "es" ? "mazos observados" : "decks observed"} · {modeLabel(mode)} ·{" "}
             {windowDays === 1 ? (locale === "es" ? "24 horas" : "24 hours") : `${windowDays} ${locale === "es" ? "días" : "days"}`}.
           </p>

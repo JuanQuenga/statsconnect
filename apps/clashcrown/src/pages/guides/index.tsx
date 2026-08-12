@@ -11,9 +11,9 @@ export default function GuidesPage() {
   return (
     <Layout>
       <Head>
-        <title>{t("guides.title")} | Clash Crown</title>
+        <title>{t("guides.title")} | Royale Stats</title>
         <meta name="description" content={t("guides.description")} />
-        <meta property="og:title" content={`${t("guides.title")} | Clash Crown`} />
+        <meta property="og:title" content={`${t("guides.title")} | Royale Stats`} />
         <meta property="og:description" content={t("guides.description")} />
         <link rel="canonical" href="/guides" />
       </Head>

@@ -43,7 +43,7 @@ function LiveClanManagement({ tag }: { tag: string }) {
 
   return (
     <Layout>
-      <Head><title>{`${dashboard.clan.name ?? `#${tag}`} Management | Clash Crown`}</title></Head>
+      <Head><title>{`${dashboard.clan.name ?? `#${tag}`} Management | Royale Stats`}</title></Head>
       <div className="profile-page management-page">
         <ClanManagementDashboard
           data={dashboard}

@@ -9,10 +9,16 @@
   "theme_color": "#0a101a",
   "icons": [
     {
-      "src": "assets/img/bs-stats.png",
+      "src": "android-chrome-192x192.png",
       "type": "image/png",
-      "sizes": "any",
-      "purpose": "any maskable"
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "android-chrome-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
     }
   ]
 }

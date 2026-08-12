@@ -78,9 +78,9 @@ function NewsLayout({
   return (
     <Layout>
       <Head>
-        <title>{t("news.title")} | Clash Crown</title>
+        <title>{t("news.title")} | Royale Stats</title>
         <meta name="description" content={t("news.description")} />
-        <meta property="og:title" content={`${t("news.title")} | Clash Crown`} />
+        <meta property="og:title" content={`${t("news.title")} | Royale Stats`} />
         <meta property="og:description" content={t("news.description")} />
         <link rel="canonical" href="/news" />
       </Head>
@@ -88,7 +88,7 @@ function NewsLayout({
         <section className="editorial-hero">
           <span className="eyebrow"><ShieldCheck size={14} /> {t("news.official")}</span>
           <h1>{t("news.title")}</h1>
-          <p>{t("news.description")} Clash Crown stores only headline metadata and always sends you to the original article.</p>
+          <p>{t("news.description")} Royale Stats stores only headline metadata and always sends you to the original article.</p>
           <div className="editorial-actions">
             <a className="pink-button" href={sourceUrl} target="_blank" rel="noopener noreferrer">
               {t("common.source")} <ExternalLink size={15} />
