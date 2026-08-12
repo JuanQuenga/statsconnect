@@ -33,6 +33,26 @@ type ProfileSnapshot = {
   iconId?: number;
   brawlerCount: number;
   power11Count: number;
+  rankedCurrent?: number;
+  rankedCurrentName?: string;
+  rankedSeasonBest?: number;
+  rankedSeasonBestName?: string;
+  rankedBest?: number;
+  rankedBestName?: string;
+  brawlers?: OwnedBrawler[];
+};
+type Equipment = { id: number; name: string };
+type OwnedBrawler = {
+  id: number;
+  name: string;
+  power: number;
+  rank: number;
+  trophies: number;
+  highestTrophies: number;
+  gadgets: Equipment[];
+  starPowers: Equipment[];
+  gears: Equipment[];
+  hypercharges: Equipment[];
 };
 
 class UpstreamError extends Error {
@@ -75,6 +95,43 @@ function finiteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function firstNumber(...values: unknown[]): number | undefined {
+  return values.map(finiteNumber).find((value) => value !== undefined);
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  return values.find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim();
+}
+
+function equipment(value: unknown): Equipment[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const record = asRecord(item);
+    const id = finiteNumber(record?.id);
+    const name = firstString(record?.name);
+    return id !== undefined && name ? [{ id, name }] : [];
+  });
+}
+
+function ownedBrawler(value: unknown): OwnedBrawler | null {
+  const record = asRecord(value);
+  const id = finiteNumber(record?.id);
+  const name = firstString(record?.name);
+  if (id === undefined || !name) return null;
+  return {
+    id,
+    name,
+    power: finiteNumber(record?.power) ?? 0,
+    rank: finiteNumber(record?.rank) ?? 0,
+    trophies: finiteNumber(record?.trophies) ?? 0,
+    highestTrophies: finiteNumber(record?.highestTrophies) ?? 0,
+    gadgets: equipment(record?.gadgets),
+    starPowers: equipment(record?.starPowers),
+    gears: equipment(record?.gears),
+    hypercharges: equipment(record?.hypercharges ?? record?.hypercharge ?? record?.buffies),
+  };
+}
+
 function playerSighting(value: unknown, club?: { tag?: string; name?: string }): PlayerSighting | null {
   const record = asRecord(value);
   const tag = cleanTag(record?.tag);
@@ -97,6 +154,9 @@ function profileSnapshot(value: unknown): ProfileSnapshot | null {
   const sighting = playerSighting(value);
   if (!record || !sighting) return null;
   const brawlers = Array.isArray(record.brawlers) ? record.brawlers : [];
+  const ranked = asRecord(record.ranked);
+  const rankedSeason = asRecord(record.rankedSeason ?? record.currentRankedSeason);
+  const normalizedBrawlers = brawlers.map(ownedBrawler).filter((brawler): brawler is OwnedBrawler => brawler !== null);
   return {
     ...sighting,
     trophies: finiteNumber(record.trophies) ?? 0,
@@ -107,6 +167,13 @@ function profileSnapshot(value: unknown): ProfileSnapshot | null {
     duoVictories: finiteNumber(record.duoVictories) ?? 0,
     brawlerCount: brawlers.length,
     power11Count: brawlers.filter((brawler) => finiteNumber(asRecord(brawler)?.power) === 11).length,
+    rankedCurrent: firstNumber(ranked?.currentRank, ranked?.current, record.rankedCurrent),
+    rankedCurrentName: firstString(ranked?.currentRankName, ranked?.currentName, record.rankedCurrentName),
+    rankedSeasonBest: firstNumber(ranked?.seasonBestRank, rankedSeason?.bestRank, record.rankedSeasonBest),
+    rankedSeasonBestName: firstString(ranked?.seasonBestRankName, rankedSeason?.bestRankName, record.rankedSeasonBestName),
+    rankedBest: firstNumber(ranked?.bestRank, ranked?.highestRank, record.rankedBest),
+    rankedBestName: firstString(ranked?.bestRankName, ranked?.highestRankName, record.rankedBestName),
+    brawlers: normalizedBrawlers,
   };
 }
 

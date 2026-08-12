@@ -23,6 +23,14 @@ export type PlayerProfile = {
   duoVictories?: number;
   icon?: { id: number };
   club?: { tag?: string; name?: string };
+  ranked?: {
+    currentRank?: number;
+    currentRankName?: string;
+    seasonBestRank?: number;
+    seasonBestRankName?: string;
+    bestRank?: number;
+    bestRankName?: string;
+  };
   brawlers?: Array<{
     id: number;
     name: string;
@@ -30,6 +38,11 @@ export type PlayerProfile = {
     rank: number;
     trophies: number;
     highestTrophies: number;
+    gadgets?: Array<{ id: number; name: string }>;
+    starPowers?: Array<{ id: number; name: string }>;
+    gears?: Array<{ id: number; name: string }>;
+    hypercharges?: Array<{ id: number; name: string }>;
+    buffies?: Array<{ id: number; name: string }>;
   }>;
 };
 
@@ -64,6 +77,54 @@ export type PlayerSnapshot = {
   iconId?: number;
   brawlerCount: number;
   power11Count: number;
+  rankedCurrent?: number;
+  rankedCurrentName?: string;
+  rankedSeasonBest?: number;
+  rankedSeasonBestName?: string;
+  rankedBest?: number;
+  rankedBestName?: string;
+  brawlers?: PlayerProfile["brawlers"];
+};
+
+export type PlayerBattle = {
+  battleTime: string;
+  battleTimestamp: number;
+  mapId?: number;
+  mapName?: string;
+  mode: string;
+  battleType?: string;
+  result: "victory" | "defeat" | "draw" | "unknown";
+  rank?: number;
+  trophyChange?: number;
+  brawlerId?: number;
+  brawlerName?: string;
+  brawlerPower?: number;
+  brawlerTrophies?: number;
+  starPlayer: boolean;
+};
+
+export type PlayerAggregate = {
+  days: number;
+  battles: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  unknown: number;
+  winRate: number;
+  netTrophies: number;
+  starPlayerRate: number;
+};
+
+export type PlayerAnalytics = {
+  battles: PlayerBattle[];
+  nextCursor?: number;
+  hasMore: boolean;
+  capped: boolean;
+  summaries: PlayerAggregate[];
+  streaks: { current: number; currentResult: PlayerBattle["result"]; longestWin: number };
+  activity: Array<{ day: string; battles: number; wins: number }>;
+  modes: Array<PlayerAggregate & { mode: string }>;
+  brawlers: Array<PlayerAggregate & { brawlerId: number; brawlerName: string }>;
 };
 
 export type ClubProfile = {
