@@ -11,8 +11,8 @@ import { cardSlug } from "@/lib/clash/cards";
 import { buildUpgradePlans, MAX_CARD_LEVEL, type CardUpgradePlan, type UpgradeRarity } from "@/lib/clash/upgradeCosts";
 import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
 import { mapPlayerBundle } from "@/lib/clash/mappers";
-import { rememberProfile } from "@/lib/recentProfiles";
 import { player as mockPlayer, type Player } from "@/lib/mock-data";
+import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 const RARITIES: readonly UpgradeRarity[] = ["Common", "Rare", "Epic", "Legendary", "Champion"];
 const SORTS = ["Progress", "Level", "Name", "Rarity"] as const;
@@ -44,14 +44,15 @@ function LiveUpgrades({ tag }: { tag: string }) {
 }
 
 function UpgradePlanner({ player }: { player: Player }) {
+  const personalization = usePersonalization();
   const [rarity, setRarity] = useState<RarityFilter>("All");
   const [sort, setSort] = useState<Sort>("Progress");
   const [onlyReady, setOnlyReady] = useState(false);
   const plans = useMemo(() => buildUpgradePlans(player.cards), [player.cards]);
 
   useEffect(() => {
-    if (player.tag) rememberProfile({ kind: "players", tag: player.tag, name: player.name });
-  }, [player.tag, player.name]);
+    if (player.tag) void personalization.remember({ kind: "players", tag: player.tag, name: player.name, clan: player.clan }).catch(() => undefined);
+  }, [player.tag, player.name, player.clan]);
 
   const filteredPlans = useMemo(() => {
     const filtered = plans.filter((plan) => (rarity === "All" || plan.rarity === rarity) && (!onlyReady || plan.ready));

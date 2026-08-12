@@ -12,32 +12,29 @@ import { cardSlug } from "@/lib/clash/cards";
 import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
 import { mapPlayerBundle } from "@/lib/clash/mappers";
 import { normalizeTag } from "@/lib/clash/tag";
-import { readFavoriteProfiles, readRecentProfiles, type FavoriteProfile, type RecentProfile } from "@/lib/recentProfiles";
+import type { FavoriteProfile, RecentProfile } from "@/lib/recentProfiles";
 import type { Card, Player } from "@/lib/mock-data";
+import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 export default function PlayerComparePage() {
   const router = useRouter();
+  const personalization = usePersonalization();
   const [draftA, setDraftA] = useState("");
   const [draftB, setDraftB] = useState("");
-  const [favorites, setFavorites] = useState<FavoriteProfile[]>([]);
-  const [recents, setRecents] = useState<RecentProfile[]>([]);
-  const [sourceReady, setSourceReady] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [formError, setFormError] = useState("");
+  const favorites: FavoriteProfile[] = personalization.profiles
+    .filter((profile) => profile.kind === "players")
+    .map(({ tag, name, clan }) => ({ kind: "players" as const, tag, name, clan }));
+  const recents = personalization.recents;
 
   useEffect(() => {
-    setFavorites(readFavoriteProfiles());
-    setRecents(readRecentProfiles());
-    setSourceReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!router.isReady || !sourceReady || initialized) return;
+    if (!router.isReady || initialized) return;
     const available = uniqueProfiles([...favorites, ...recents.filter((profile) => profile.kind === "players")]);
     setDraftA(queryInput(router.query.a) || tagInput(available[0]?.tag));
     setDraftB(queryInput(router.query.b) || tagInput(available.find((profile) => profile.tag !== available[0]?.tag)?.tag));
     setInitialized(true);
-  }, [favorites, initialized, recents, router.isReady, router.query.a, router.query.b, sourceReady]);
+  }, [favorites, initialized, recents, router.isReady, router.query.a, router.query.b]);
 
   const queryA = queryTag(router.query.a);
   const queryB = queryTag(router.query.b);

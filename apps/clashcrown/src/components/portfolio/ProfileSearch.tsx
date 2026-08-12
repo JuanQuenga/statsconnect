@@ -4,9 +4,10 @@ import { Clock, Search, X } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { normalizeTag } from "@/lib/clash/tag";
-import { forgetProfiles, readRecentProfiles, type RecentProfile } from "@/lib/recentProfiles";
+import type { RecentProfile } from "@/lib/recentProfiles";
 import { isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
 import type { DirectoryHit } from "@/lib/clash/types";
+import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 /**
  * Profile lookup by name or by tag.
@@ -39,13 +40,6 @@ function useDebounced(value: string, delay: number) {
     return () => window.clearTimeout(timer);
   }, [value, delay]);
   return settled;
-}
-
-function useRecents() {
-  const [recents, setRecents] = useState<RecentProfile[]>([]);
-  // localStorage is not available during SSR, so recents arrive after mount.
-  useEffect(() => setRecents(readRecentProfiles()), []);
-  return [recents, setRecents] as const;
 }
 
 // --- Rows -----------------------------------------------------------------
@@ -89,7 +83,8 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const [error, setError] = useState("");
-  const [recents, setRecents] = useRecents();
+  const personalization = usePersonalization();
+  const recents = personalization.recents;
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const trimmed = term.trim();
@@ -238,8 +233,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
               <button
                 type="button"
                 onClick={() => {
-                  forgetProfiles();
-                  setRecents([]);
+                  personalization.clearRecents();
                 }}
               >
                 <X size={13} />

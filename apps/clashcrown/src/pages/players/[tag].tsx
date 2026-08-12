@@ -10,7 +10,8 @@ import { BattleHistory, CardCollection, ChestList, DeckAnalyticsSection, DeckOve
 import { player as mockPlayer, type Player } from "@/lib/mock-data";
 import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
 import { mapPlayerBundle } from "@/lib/clash/mappers";
-import { rememberProfile } from "@/lib/recentProfiles";
+import { TrackingControls } from "@/components/personalization/PersonalDashboard";
+import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 export default function PlayerPage() {
   const router = useRouter();
@@ -41,12 +42,22 @@ function LivePlayer({ tag }: { tag: string }) {
 
 function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undefined }: { player: Player; isRefreshing?: boolean; onRefresh?: () => void }) {
   const [activeTab, setActiveTab] = useState<PlayerTab>("Statistics");
+  const personalization = usePersonalization();
 
   // Visiting a profile is what teaches this browser the player's name, so the
   // next lookup can be by name instead of by tag.
   useEffect(() => {
-    if (player.tag) rememberProfile({ kind: "players", tag: player.tag, name: player.name });
-  }, [player.tag, player.name]);
+    if (!player.tag) return;
+    void personalization.remember({ kind: "players", tag: player.tag, name: player.name, clan: player.clan }).catch(() => undefined);
+    void personalization.observe({
+      kind: "players",
+      tag: player.tag,
+      name: player.name,
+      trophies: player.trophies,
+      chestName: player.chests[0]?.name,
+      chestIndex: player.chests[0]?.index,
+    }).catch(() => undefined);
+  }, [player.tag, player.name, player.clan, player.trophies, player.chests]);
 
   return (
     <Layout>
@@ -55,6 +66,7 @@ function PlayerDashboard({ player, isRefreshing = false, onRefresh = () => undef
       </Head>
       <div className="profile-page">
         <PlayerHero player={player} />
+        <TrackingControls profile={{ kind: "players", tag: player.tag, name: player.name, clan: player.clan }} />
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
         {activeTab === "Statistics" ? (
           <>
