@@ -3,8 +3,10 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { CardArt } from "@/components/portfolio/CardArt";
+import Link from "@/components/Link";
 import { copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
+import { cardSlug } from "@/lib/clash/cards";
 import { mapPlayerBundle } from "@/lib/clash/mappers";
 import { normalizeTag } from "@/lib/clash/tag";
 import {
@@ -63,6 +65,7 @@ export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDi
   const [trophyBand, setTrophyBand] = useState<TrophyBand>("all");
   const [arenaName, setArenaName] = useState("");
   const [copyNotice, setCopyNotice] = useState("");
+  const [visibleLimit, setVisibleLimit] = useState(20);
 
   const catalog = useMemo(() => new Map(
     cards.filter((card): card is Card & { id: number } => typeof card.id === "number").map((card) => [card.id, card])
@@ -111,6 +114,7 @@ export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDi
     [costFiltered, player]
   );
   const visibleDecks: Array<DiscoveryDeck | PersonalizedDeck> = personalized ?? costFiltered;
+  const displayedDecks = visibleDecks.slice(0, visibleLimit);
   const personalizedWar = useMemo(
     () => player && warDiscovery ? personalizeDecks(warDiscovery.decks, player) : [],
     [player, warDiscovery]
@@ -213,13 +217,13 @@ export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDi
             <section className="profile-section discovery-results" aria-live="polite">
               <div className="section-heading discovery-heading">
                 <div><span className="eyebrow">Observed decks</span><h2>{player ? `Recommended for ${player.name}` : `${modeLabel(mode)} results`}</h2></div>
-                <p>{visibleDecks.length} shown from {discovery.totalRanked} ranked decks · {discovery.windowDays}-day sample</p>
+                <p>{displayedDecks.length} shown from {discovery.totalRanked} ranked decks · {discovery.windowDays}-day sample</p>
               </div>
               <CoverageNotes discovery={discovery} trophyBand={trophyBand} arenaName={arenaName} player={player} />
               {copyNotice ? <p className="builder-notice" role="status">{copyNotice}</p> : null}
               {visibleDecks.length ? (
                 <div className="discovery-deck-list">
-                  {visibleDecks.map((deck, index) => (
+                  {displayedDecks.map((deck, index) => (
                     <ObservedDeckCard
                       key={deck.deckHash}
                       deck={deck}
@@ -231,6 +235,11 @@ export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDi
                       onUse={loadBuilder}
                     />
                   ))}
+                  {displayedDecks.length < visibleDecks.length ? (
+                    <button type="button" className="deck-results-more" onClick={() => setVisibleLimit((current) => current + 20)}>
+                      Show {Math.min(20, visibleDecks.length - displayedDecks.length)} more decks
+                    </button>
+                  ) : null}
                 </div>
               ) : <EmptyResults hasRanked={discovery.totalRanked > 0} hasCatalog={catalog.size > 0} />}
             </section>
@@ -362,7 +371,10 @@ function ObservedDeckCard({ deck, displayRank, catalog, player, observed, onCopy
   return (
     <article className="observed-deck-card">
       <div className="observed-deck-rank"><span>#{displayRank}</span><strong>{isPersonal ? `${deck.personalScore.toFixed(0)}/100` : `${(deck.rating * 100).toFixed(0)}/100`}</strong><small>{isPersonal ? "personal score" : "observed rating"}</small></div>
-      <DeckCards deck={deck} catalog={catalog} />
+      <div className="observed-deck-main">
+        <h3>{deckSignature(deck, catalog)}</h3>
+        <DeckCards deck={deck} catalog={catalog} />
+      </div>
       <div className="observed-deck-metrics"><div><span>Win rate</span><strong>{(deck.winRate * 100).toFixed(1)}%</strong><small>{deck.wins}/{deck.uses} games won</small></div><div><span>Popularity</span><strong>{(deck.usageRate * 100).toFixed(2)}%</strong><small>{deck.uses.toLocaleString()} observations</small></div><div><span>Elixir / cycle</span><strong>{cost ? `${cost.average.toFixed(1)} / ${cost.cycle}` : "Unavailable"}</strong><small>{deck.evolutionIds.length} evolution{deck.evolutionIds.length === 1 ? "" : "s"}</small></div></div>
       {isPersonal ? <PersonalFit deck={deck} catalog={catalog} replacements={replacements} /> : null}
       <div className="deck-result-actions"><button type="button" onClick={() => onUse(deck)}>Use in builder</button><button type="button" className="pink-button" onClick={() => onCopy(deck)}><Copy size={15} />Copy to game</button></div>
@@ -372,7 +384,22 @@ function ObservedDeckCard({ deck, displayRank, catalog, player, observed, onCopy
 
 function DeckCards({ deck, catalog }: { deck: DiscoveryDeck; catalog: Map<number, Card> }) {
   const evolutions = new Set(deck.evolutionIds);
-  return <div className="observed-card-grid" aria-label="Deck cards">{deck.cardIds.map((cardId) => { const card = catalog.get(cardId); const evolved = evolutions.has(cardId); return <div key={cardId} title={card?.name ?? `Card ${cardId}`}><CardArt src={evolved ? card?.evolutionImage ?? card?.image ?? UNKNOWN_CARD_IMAGE : card?.image ?? UNKNOWN_CARD_IMAGE} alt={card?.name ?? `Unknown card ${cardId}`} width={68} height={84} />{evolved ? <span>EVO</span> : null}</div>; })}</div>;
+  return <div className="observed-card-grid" aria-label="Deck cards">{deck.cardIds.map((cardId) => { const card = catalog.get(cardId); const evolved = evolutions.has(cardId); const label = card?.name ?? `Card ${cardId}`; return card ? <Link key={cardId} href={`/cards/${cardSlug(card.name)}`} title={`View ${card.name} analytics`} aria-label={`View ${card.name} analytics`}><CardArt src={evolved ? card.evolutionImage ?? card.image : card.image} alt={label} width={68} height={84} />{evolved ? <span>EVO</span> : null}</Link> : <div key={cardId} title={label}><CardArt src={UNKNOWN_CARD_IMAGE} alt={`Unknown card ${cardId}`} width={68} height={84} />{evolved ? <span>EVO</span> : null}</div>; })}</div>;
+}
+
+const WIN_CONDITIONS = new Set([
+  "Balloon", "Battle Ram", "Electro Giant", "Elixir Golem", "Giant", "Goblin Barrel", "Goblin Drill",
+  "Goblin Giant", "Golem", "Graveyard", "Hog Rider", "Lava Hound", "Miner", "Mortar", "Ram Rider",
+  "Royal Giant", "Royal Hogs", "Skeleton Barrel", "Three Musketeers", "Wall Breakers", "X-Bow"
+]);
+
+/** A compact, honest label from cards in the deck—not a guessed archetype. */
+function deckSignature(deck: DiscoveryDeck, catalog: Map<number, Card>) {
+  const cards = deck.cardIds.map((cardId) => catalog.get(cardId)).filter((card): card is Card => Boolean(card));
+  const anchors = cards.filter((card) => WIN_CONDITIONS.has(card.name));
+  const fallback = [...cards].sort((left, right) => right.elixir - left.elixir || left.name.localeCompare(right.name));
+  const names = (anchors.length ? anchors : fallback).slice(0, 2).map((card) => card.name);
+  return names.length ? `${names.join(" + ")} deck` : "Observed deck";
 }
 
 function PersonalFit({ deck, catalog, replacements }: { deck: PersonalizedDeck; catalog: Map<number, Card>; replacements: ReturnType<typeof findReplacements> }) {
