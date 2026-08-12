@@ -94,7 +94,12 @@ export default function HomePage() {
           <div className="score-card">
             <span>{selectedBattle.date}</span>
             <strong><i>{selectedBattle.crowns[0]}</i> - <i>{selectedBattle.crowns[1]}</i></strong>
-            <span>{selectedBattle.mode} · {selectedBattle.trophyChange > 0 ? "+" : ""}{selectedBattle.trophyChange}</span>
+            <span>
+              {selectedBattle.mode}
+              {selectedBattle.trophyChange !== undefined
+                ? ` · ${selectedBattle.trophyChange > 0 ? "+" : ""}${selectedBattle.trophyChange}`
+                : ""}
+            </span>
           </div>
           <DeckStrip cards={[...selectedBattle.deck].reverse()} />
           <PlayerMini name={selectedBattle.opponent} clan="Synetics" />

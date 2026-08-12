@@ -2,11 +2,12 @@ import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { useQuery } from "convex/react";
 import { RefreshCcw } from "lucide-react";
-import { NO_CLAN_BADGE_IMAGE, variantArt } from "@/lib/clash/assets";
+import { NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { DeckActions } from "@/components/portfolio/DeckActions";
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
 import type { ProfileHistoryPoint } from "@/lib/clash/types";
 
@@ -254,33 +255,13 @@ export function PathOfLegendsSeasons({ player }: { player: Player }) {
   );
 }
 
-export function BattleHistory({ battles }: { battles: Battle[] }) {
-  if (!battles.length) return <EmptyPanel title="No recent battles" copy="The API did not return any battles for this player." />;
-
-  return (
-    <section className="profile-section">
-      <div className="section-heading compact-heading"><span className="filter-button static">Recent</span><h2>Battle Log</h2><span /></div>
-      <div className="battle-history">
-        {battles.map((battle, index) => (
-          <article key={`${battle.date}-${battle.opponent}-${index}`} className={`battle-card ${battle.result.toLowerCase()}`}>
-            <div className="battle-result"><strong>{battle.result}</strong><span>{battle.mode}</span><small>{battle.date}</small></div>
-            <div className="battle-opponent"><span>Opponent</span><strong>{battle.opponent}</strong><small>{battle.opponentClan ?? "No clan"}</small></div>
-            <div className="battle-score"><strong>{battle.crowns[0]}–{battle.crowns[1]}</strong><span>{battle.trophyChange > 0 ? "+" : ""}{battle.trophyChange} trophies</span></div>
-            <MiniDeck cards={battle.deck} />
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supportCards?: Card[] }) {
   if (!cards.length) return <EmptyPanel title="No current deck" copy="This player's current deck is private or unavailable." />;
   const average = cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length;
   const cycle = [...cards].map((card) => card.elixir).filter((cost) => cost > 0).sort((a, b) => a - b).slice(0, 4).reduce((total, cost) => total + cost, 0);
   return (
     <section className="profile-section deck-overview">
-      <div className="section-heading compact-heading"><span className="filter-button static">{average.toFixed(1)} elixir · {cycle} cycle</span><h2>Current Deck</h2><span /></div>
+      <div className="section-heading compact-heading"><span className="filter-button static">{average.toFixed(1)} elixir · {cycle} cycle</span><h2>Current Deck</h2><DeckActions cards={cards} label="current deck" compact /></div>
       <div className="collection-grid deck-collection">
         {cards.map((card, index) => <CollectionCard key={`${card.name}-${index}`} card={card} />)}
       </div>
@@ -309,7 +290,7 @@ export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
       </div>
       <div className="members-table-wrap">
         <table className="members-table deck-analytics-table">
-          <thead><tr><th>Deck</th><th>Uses</th><th>Win rate</th><th>Avg crowns</th><th>Modes played</th></tr></thead>
+          <thead><tr><th>Deck</th><th>Uses</th><th>Win rate</th><th>Avg crowns</th><th>Modes played</th><th>Actions</th></tr></thead>
           <tbody>
             {decks.map((deck) => (
               <tr key={deck.key}>
@@ -318,6 +299,7 @@ export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
                 <td><strong>{deck.winRate.toFixed(1)}%</strong><small className="deck-record">{deck.wins}–{deck.uses - deck.wins}</small></td>
                 <td>{deck.averageCrowns.toFixed(2)}</td>
                 <td className="deck-modes">{deck.modes.join(" · ")}</td>
+                <td><DeckActions cards={deck.cards} label="historical deck" compact /></td>
               </tr>
             ))}
           </tbody>
@@ -330,9 +312,8 @@ export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
 }
 
 function DeckThumbnail({ card }: { card: Card }) {
-  const variant = variantArt(card);
-  const label = variant ? `${card.name} (${variant.label})` : card.name;
-  return <CardArt src={variant?.src ?? card.image} alt={label} width={42} height={52} />;
+  const label = card.variant ? `${card.name} (${card.variant})` : card.name;
+  return <CardArt src={card.image} alt={label} width={42} height={52} />;
 }
 
 function DeckAnalyticsStyles() {
@@ -369,16 +350,12 @@ export function CardCollection({ cards }: { cards: Card[] }) {
   );
 }
 
-function MiniDeck({ cards }: { cards: Card[] }) {
-  return <div className="mini-deck">{cards.slice(0, 8).map((card, index) => <DeckThumbnail key={`${card.name}-${index}`} card={card} />)}</div>;
-}
-
 function CollectionCard({ card }: { card: Card }) {
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="collection-card">
-      {card.isEvolution ? <span className="evo-flag">{variantArt(card)?.label === "Hero" ? "HERO" : "EVO"}</span> : null}
+      {card.variant ? <span className="evo-flag">{card.variant === "Hero" ? "HERO" : "EVO"}</span> : null}
       {card.level ? <i className="card-level">{card.level}{card.maxLevel ? `/${card.maxLevel}` : ""}</i> : null}
-      <CardArt src={variantArt(card)?.src ?? card.image} alt={card.name} width={82} height={100} />
+      <CardArt src={card.image} alt={card.name} width={82} height={100} />
       <strong>{card.name}</strong>
       <span>{card.rarity} · {card.elixir || "?"} elixir</span>
     </Link>
@@ -503,10 +480,10 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
  * history, and the note under the chart says so.
  */
 function InferredProgressionChart({ player }: { player: Player }) {
-  const recentBattles = player.battles.slice(0, 10).reverse();
-  const startingTrophies = player.trophies - recentBattles.reduce((total, battle) => total + battle.trophyChange, 0);
+  const recentBattles = player.battles.filter((battle) => battle.trophyChange !== undefined).slice(0, 10).reverse();
+  const startingTrophies = player.trophies - recentBattles.reduce((total, battle) => total + (battle.trophyChange ?? 0), 0);
   const values = recentBattles.reduce<number[]>((points, battle) => {
-    points.push((points.at(-1) ?? startingTrophies) + battle.trophyChange);
+    points.push((points.at(-1) ?? startingTrophies) + (battle.trophyChange ?? 0));
     return points;
   }, [startingTrophies]);
   const minimum = Math.min(...values);

@@ -50,6 +50,13 @@ const HERO_CARD_SLUGS = new Set([
   "wizard"
 ]);
 
+/** Identifies the active variant on a deck slot, including battle payloads that omit variant-specific URLs. */
+export function activeCardVariant(card: Pick<ApiCard, "name" | "evolutionLevel" | "iconUrls">): "Evolution" | "Hero" | undefined {
+  if ((card.evolutionLevel ?? 0) <= 0) return undefined;
+  if (card.iconUrls?.heroMedium || HERO_CARD_SLUGS.has(slugify(card.name))) return "Hero";
+  return "Evolution";
+}
+
 export function evolutionCardImage(card: { iconUrls?: ApiIconUrls }): string | undefined {
   return card.iconUrls?.evolutionMedium;
 }
