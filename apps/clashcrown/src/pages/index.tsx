@@ -1,8 +1,8 @@
 import Image from "@/components/Image";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
-import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Crown, RefreshCcw, Swords, Trophy } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
@@ -18,14 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const heroes = [
-  { name: "Hog Rider", copy: "Fast lane pressure for trophy pushing.", art: "/images/art/hog-rider.png" },
-  { name: "Goblinstein", copy: "New champion data joins the deck lab.", art: "/images/art/goblin-giant.png" },
-  { name: "Royal Chef", copy: "Cook rotations before the arena timer burns.", art: "/images/art/royal-recruits.png" }
-];
-
 export default function HomePage() {
-  const [activeHero, setActiveHero] = useState(0);
   const [battleIndex, setBattleIndex] = useState(0);
 
   const playerQuery = useQuery<Player>({
@@ -37,23 +30,15 @@ export default function HomePage() {
   const demoPlayer = playerQuery.data;
   const selectedBattle = demoPlayer.battles[battleIndex % demoPlayer.battles.length];
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setActiveHero((index) => (index + 1) % heroes.length);
-    }, 4200);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
   return (
     <Layout variant="home">
       <section className="royale-hero">
         <div className="royale-hero-inner">
           <div className="royale-hero-copy">
-            <p className="eyebrow">Clash Royale player intelligence</p>
+            <p className="eyebrow">Players, decks, and live meta</p>
             <h1>
-              Climb smarter.<br />
-              <span>Rule the arena.</span>
+              <span className="hero-title-line">Search any tag.</span>
+              <span className="hero-title-line hero-title-accent">See every battle.</span>
             </h1>
             <p className="royale-hero-description">
               Search any player or clan to explore battle history, chest cycles,
@@ -70,60 +55,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="royale-hero-showcase">
-            <div className="royale-hero-art" key={heroes[activeHero].name}>
-              <div className="royale-hero-glow" />
-              <Image
-                src={heroes[activeHero].art}
-                alt={heroes[activeHero].name}
-                width={430}
-                height={500}
-                priority
-              />
-              <div className="royale-hero-card">
-                <Badge variant="outline">Arena spotlight</Badge>
-                <h2>{heroes[activeHero].name}</h2>
-                <p>{heroes[activeHero].copy}</p>
-              </div>
-            </div>
-            <div className="royale-hero-selector" aria-label="Choose featured card">
-              {heroes.map((hero, index) => (
-                <Button
-                  key={hero.name}
-                  type="button"
-                  variant={activeHero === index ? "default" : "outline"}
-                  size="sm"
-                  aria-pressed={activeHero === index}
-                  onClick={() => setActiveHero(index)}
-                >
-                  {hero.name}
-                </Button>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
       <PersonalDashboard />
-
-      <section className="demo-command page-band">
-        <div key={heroes[activeHero].name} className="command-spotlight">
-          <Image src={heroes[activeHero].art} alt="" width={190} height={210} />
-          <div>
-            <span>Sample command center</span>
-            <h2>{heroes[activeHero].name} Console</h2>
-            <p>{heroes[activeHero].copy} The numbers below are a labeled sample. Search any player or clan tag above to load current API data.</p>
-          </div>
-        </div>
-        <div className="command-stats">
-          <Metric icon={<Trophy size={19} />} value={demoPlayer.trophies?.toLocaleString() ?? "—"} label="demo trophies" />
-          <Metric icon={<Crown size={19} />} value={demoPlayer.bestTrophies?.toLocaleString() ?? "—"} label="demo best trophies" />
-          <Metric icon={<Swords size={19} />} value={selectedBattle.result} label="last battle" />
-          <Button variant="ghost" type="button" onClick={() => playerQuery.refetch()} className={playerQuery.isFetching ? "is-fetching" : ""}>
-            <RefreshCcw size={17} />Reload sample
-          </Button>
-        </div>
-      </section>
 
       <section className="game-day page-band">
         <div className="section-title-row">
@@ -440,16 +375,6 @@ function SamplePopularCards() {
         Win-rate and usage statistics come from the battle-log pipeline, which needs a configured Convex deployment.
       </p>
     </section>
-  );
-}
-
-function Metric({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
-  return (
-    <div className="command-metric">
-      {icon}
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
   );
 }
 

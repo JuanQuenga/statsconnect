@@ -148,7 +148,8 @@
   }
 
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground;
+    @apply text-[13px] font-semibold text-muted-foreground;
+    letter-spacing: 0;
   }
 
   .numeric {
@@ -321,29 +322,20 @@
 }
 
 .hub-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: #beb8cb;
-  font-size: 0.76rem;
+  margin: 0;
+  color: #c3bdce;
+  font-size: 0.9rem;
   font-weight: 650;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-}
-
-.hub-kicker span {
-  width: 2.35rem;
-  height: 1px;
-  background: linear-gradient(90deg, var(--ambient), var(--ambient-2));
+  letter-spacing: 0;
 }
 
 .hub-hero h1 {
   max-width: 42rem;
   margin-top: 1.55rem;
-  font-size: clamp(3.5rem, 6vw, 6.2rem);
+  font-size: clamp(3.25rem, 5.5vw, 5.5rem);
   font-weight: 600;
-  line-height: 0.94;
-  letter-spacing: -0.07em;
+  line-height: 0.98;
+  letter-spacing: -0.055em;
 }
 
 .hub-hero h1 span {

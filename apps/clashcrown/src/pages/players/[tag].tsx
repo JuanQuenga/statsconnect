@@ -24,7 +24,7 @@ export default function PlayerPage() {
   const tag = typeof router.query.tag === "string" ? router.query.tag : "";
 
   if (!router.isReady) return <Layout><LoadingState label="player" /></Layout>;
-  if (tag.toUpperCase() === "CCDEMO") return <PlayerDashboard player={mockPlayer} />;
+  if (tag.toUpperCase() === "CCDEMO") return <PlayerDashboard player={mockPlayer} isDemo />;
   if (!isConvexConfigured) return <Layout><SetupState feature="player profiles" /></Layout>;
   return <LivePlayer tag={tag} />;
 }
@@ -63,7 +63,8 @@ function PlayerDashboard({
   onRefresh = () => undefined,
   catalogCards,
   catalogLoading = false,
-  catalogError = false
+  catalogError = false,
+  isDemo = false,
 }: {
   player: Player;
   isRefreshing?: boolean;
@@ -71,6 +72,7 @@ function PlayerDashboard({
   catalogCards?: Card[];
   catalogLoading?: boolean;
   catalogError?: boolean;
+  isDemo?: boolean;
 }) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<PlayerTab>("Statistics");
@@ -79,7 +81,7 @@ function PlayerDashboard({
   // Visiting a profile is what teaches this browser the player's name, so the
   // next lookup can be by name instead of by tag.
   useEffect(() => {
-    if (!player.tag) return;
+    if (isDemo || !player.tag) return;
     void personalization.remember({ kind: "players", tag: player.tag, name: player.name, clan: player.clan }).catch(() => undefined);
     void personalization.observe({
       kind: "players",
@@ -89,7 +91,7 @@ function PlayerDashboard({
       chestName: player.chests[0]?.name,
       chestIndex: player.chests[0]?.index,
     }).catch(() => undefined);
-  }, [player.tag, player.name, player.clan, player.trophies, player.chests]);
+  }, [isDemo, player.tag, player.name, player.clan, player.trophies, player.chests]);
 
   return (
     <Layout>
@@ -99,7 +101,7 @@ function PlayerDashboard({
       <div className="profile-page">
         <PlayerHero
           player={player}
-          actions={<TrackingControls profile={{ kind: "players", tag: player.tag, name: player.name, clan: player.clan }} />}
+          actions={isDemo ? null : <TrackingControls profile={{ kind: "players", tag: player.tag, name: player.name, clan: player.clan }} />}
         />
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
         {activeTab === "Statistics" ? (

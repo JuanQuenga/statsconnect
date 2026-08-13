@@ -60,8 +60,7 @@ export function PersonalDashboard() {
     <section className={`page-band ${styles.dashboard}`} aria-labelledby="personal-dashboard-title">
       <header className={styles.dashboardHeader}>
         <div>
-          <span className="eyebrow">Your command center</span>
-          <h2 id="personal-dashboard-title">Saved arena</h2>
+          <h2 id="personal-dashboard-title">Saved players and clans</h2>
           <p>Tracked players, clans, alerts, and recent lookups—available on this browser even when sync is offline.</p>
         </div>
         <SyncBadge status={personalization.status} />

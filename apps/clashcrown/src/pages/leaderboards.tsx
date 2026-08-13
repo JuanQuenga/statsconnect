@@ -140,7 +140,7 @@ function Leaderboards() {
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">Live Clash Royale rankings</span>
+          <span className="eyebrow">Official player and clan rankings</span>
           <h1>Leaderboards</h1>
           <p>{activeTab.blurb}</p>
         </section>

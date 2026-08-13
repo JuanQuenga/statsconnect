@@ -214,7 +214,7 @@ function ProfileFeatureStyles() {
     .badge-level-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #498fff, #7ae0ff); }
     .achievement-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .achievement-row { min-height: 112px; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px 14px; align-items: center; padding: 15px 16px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 38%, transparent); }
-    .achievement-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--primary); background: rgba(244, 201, 93, .1); }
+    .achievement-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--primary); background: rgba(217, 107, 243, .1); }
     .achievement-copy { min-width: 0; display: grid; gap: 4px; }
     .achievement-copy strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
     .achievement-copy small, .achievement-progress small { color: var(--muted-foreground); font: 10px/1.35 var(--font-ui); }

@@ -11,6 +11,8 @@ import { CardArt } from "@/components/portfolio/CardArt";
 import { DeckActions } from "@/components/portfolio/DeckActions";
 import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollection";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
+import { Badge } from "@/components/ui/badge";
+import { Card as UiCard, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
 import type { ProfileHistoryPoint } from "@/lib/clash/types";
 import { useI18n, type Locale, type MessageKey } from "@/lib/i18n";
@@ -293,20 +295,55 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
   const cycle = [...cards].map((card) => card.elixir).filter((cost) => cost > 0).sort((a, b) => a - b).slice(0, 4).reduce((total, cost) => total + cost, 0);
   return (
     <section className="profile-section deck-overview">
-      <div className="section-heading compact-heading"><span className="filter-button static">{average.toFixed(1)} elixir · {cycle} {locale === "es" ? "ciclo" : "cycle"}</span><h2>{locale === "es" ? "Mazo actual" : "Current Deck"}</h2><DeckActions cards={cards} label="current deck" compact /></div>
-      <div className="collection-grid deck-collection">
-        {cards.map((card, index) => <CollectionCard key={`${card.name}-${index}`} card={card} />)}
+      <div className="profile-section-heading current-deck-heading">
+        <div>
+          <span className="eyebrow">{average.toFixed(1)} elixir · {cycle} {locale === "es" ? "de ciclo" : "cycle"}</span>
+          <h2>{locale === "es" ? "Mazo actual" : "Current deck"}</h2>
+        </div>
+        <DeckActions cards={cards} label="current deck" compact />
+      </div>
+      <div className="current-deck-cluster" aria-label="Current eight-card deck">
+        {cards.map((card, index) => <DeckCardLink key={`${card.name}-${index}`} card={card} />)}
       </div>
       {supportCards.length ? (
-        <>
-          <div className="section-heading compact-heading"><span /><h2>Tower Troop</h2><span /></div>
-          <div className="collection-grid deck-collection">
-            {supportCards.map((card, index) => <CollectionCard key={`${card.name}-${index}`} card={card} />)}
+        <div className="current-deck-support">
+          <div><span className="eyebrow">Support</span><h3>Tower Troop</h3></div>
+          <div className="current-deck-support-cards">
+            {supportCards.map((card, index) => <DeckCardLink key={`${card.name}-${index}`} card={card} />)}
           </div>
-        </>
+        </div>
       ) : null}
+      <CurrentDeckStyles />
     </section>
   );
+}
+
+function DeckCardLink({ card }: { card: Card }) {
+  const label = card.variant ? `${card.name} (${card.variant})` : card.name;
+  return <Link href={`/cards/${cardSlug(card.name)}`} className="current-deck-card" title={label}><CardArt src={card.image} alt={label} width={104} height={130} /></Link>;
+}
+
+function CurrentDeckStyles() {
+  return <style>{`
+    .current-deck-heading > div:first-child { display: grid; gap: 5px; }
+    .current-deck-heading > [aria-label] { flex: none; }
+    .current-deck-cluster { width: min(100%, 472px); display: grid; grid-template-columns: repeat(4, minmax(0, 112px)); justify-content: center; gap: 8px; margin: 8px auto 0; padding: 22px; border: 1px solid var(--border); border-radius: 18px; background: radial-gradient(circle at 50% 25%, rgba(59, 111, 180, .18), transparent 68%), color-mix(in srgb, var(--secondary) 36%, transparent); }
+    .current-deck-card { min-width: 0; display: grid; place-items: center; border-radius: 13px; transition: background .18s ease, transform .18s ease; }
+    .current-deck-card:hover { background: rgba(217, 107, 243, .08); transform: translateY(-3px); }
+    .current-deck-card img { width: 100%; height: 132px; object-fit: contain; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .34)); }
+    .current-deck-support { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .current-deck-support h3 { margin: 4px 0 0; font-size: 16px; }
+    .current-deck-support-cards { display: flex; gap: 8px; }
+    .current-deck-support-cards .current-deck-card { width: 86px; }
+    .current-deck-support-cards .current-deck-card img { height: 104px; }
+    @media (max-width: 680px) {
+      .current-deck-heading { align-items: flex-start; }
+      .current-deck-heading > [aria-label] { width: 100%; }
+      .current-deck-cluster { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 12px 8px; }
+      .current-deck-card img { height: 94px; }
+      .current-deck-support { align-items: flex-start; }
+    }
+  `}</style>;
 }
 
 export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
@@ -315,56 +352,122 @@ export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
 
   return (
     <section className="profile-section deck-analytics-section">
-      <div className="section-heading compact-heading">
-        <span className="filter-button static">{decks.length} decks</span>
-        <h2>Your decks</h2>
-        <span />
+      <div className="profile-section-heading deck-analytics-heading">
+        <div>
+          <span className="eyebrow">Battle log insights · {decks.length} lineups</span>
+          <h2>Recent deck rotation</h2>
+          <p>Each lineup groups battles played with the same eight-card deck.</p>
+        </div>
       </div>
-      <div className="members-table-wrap">
-        <table className="members-table deck-analytics-table">
-          <thead><tr><th>Deck</th><th>Uses</th><th>Win rate</th><th>Avg crowns</th><th>Modes played</th><th>Actions</th></tr></thead>
-          <tbody>
-            {decks.map((deck) => (
-              <tr key={deck.key}>
-                <td><div className="personal-deck-cards">{deck.cards.map((card, index) => <DeckThumbnail key={`${card.name}-${index}`} card={card} />)}</div></td>
-                <td>{deck.uses}</td>
-                <td><strong>{deck.winRate.toFixed(1)}%</strong><small className="deck-record">{deck.wins}–{deck.uses - deck.wins}</small></td>
-                <td>{deck.averageCrowns.toFixed(2)}</td>
-                <td className="deck-modes">{deck.modes.join(" · ")}</td>
-                <td><DeckActions cards={deck.cards} label="historical deck" compact /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="personal-deck-grid">
+        {decks.map((deck, index) => (
+          <UiCard className="personal-deck-card" key={deck.key}>
+            <CardHeader className="personal-deck-header">
+              <div>
+                <span className="personal-deck-index">#{index + 1}</span>
+                <CardTitle>{index === 0 ? "Most played lineup" : `Deck ${index + 1}`}</CardTitle>
+              </div>
+              <Badge variant="outline">{deck.uses} {deck.uses === 1 ? "battle" : "battles"}</Badge>
+            </CardHeader>
+            <CardContent className="personal-deck-content">
+              <div className="personal-deck-cards" aria-label={`Cards in deck ${index + 1}`}>
+                {deck.cards.map((card, cardIndex) => <DeckThumbnail key={`${card.name}-${cardIndex}`} card={card} />)}
+              </div>
+              <div className="personal-deck-metrics">
+                <DeckMetric label="Win rate" value={`${deck.winRate.toFixed(1)}%`} emphasis={winRateTone(deck.winRate)} note={`${deck.wins}–${deck.uses - deck.wins} record`} />
+                <DeckMetric label="Average crowns" value={deck.averageCrowns.toFixed(2)} note="per battle" />
+                <DeckMetric label="Usage" value={`${Math.round((deck.uses / battles.length) * 100)}%`} note={`${deck.uses} of ${battles.length} battles`} />
+              </div>
+              <div className="personal-deck-modes" aria-label="Modes played">
+                {deck.modes.map((mode) => <Badge variant="secondary" key={mode}>{battleModeLabel(mode)}</Badge>)}
+              </div>
+            </CardContent>
+            <CardFooter className="personal-deck-footer">
+              <DeckActions cards={deck.cards} label={`deck ${index + 1}`} compact />
+            </CardFooter>
+          </UiCard>
+        ))}
       </div>
-      <p className="table-note">Grouped by the same eight cards, including whether a slot was played as an Evolution or Hero. Sorted by uses across the last {battles.length} battles.</p>
+      <p className="table-note">Sorted by usage across the last {battles.length} battles. Evolution and Hero slots are treated as distinct lineups.</p>
       <DeckAnalyticsStyles />
     </section>
   );
 }
 
+function DeckMetric({ label, value, note, emphasis = "" }: { label: string; value: string; note: string; emphasis?: string }) {
+  return <div className="personal-deck-metric"><small>{label}</small><strong className={emphasis}>{value}</strong><span>{note}</span></div>;
+}
+
+function winRateTone(winRate: number) {
+  if (winRate >= 60) return "positive";
+  if (winRate < 45) return "negative";
+  return "";
+}
+
+const BATTLE_MODE_LABELS: Record<string, string> = {
+  Ranked1v1_NewArena: "Ranked 1v1",
+  Ranked1v1: "Ranked 1v1",
+  Friendly: "Friendly battle",
+  clanWarCollectionDay: "Clan War collection",
+  clanWarWarDay: "Clan War battle",
+};
+
+function battleModeLabel(mode: string) {
+  return BATTLE_MODE_LABELS[mode] ?? mode
+    .replaceAll("_", " ")
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/\bNew Arena\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function DeckThumbnail({ card }: { card: Card }) {
   const label = card.variant ? `${card.name} (${card.variant})` : card.name;
-  return <CardArt src={card.image} alt={label} width={42} height={52} />;
+  return <CardArt src={card.image} alt={label} width={64} height={80} />;
 }
 
 function DeckAnalyticsStyles() {
   return (
     <style>{`
-      .deck-analytics-table td:first-child { width: 48%; }
-      .personal-deck-cards { display: grid; grid-template-columns: repeat(4, minmax(42px, 1fr)); gap: 4px; align-items: center; min-width: 220px; }
-      .personal-deck-cards img { width: 100%; height: auto; max-height: 54px; object-fit: contain; margin: 0; }
-      .deck-analytics-table td { vertical-align: middle; }
-      .deck-analytics-table td strong { color: #f4fbff; }
-      .deck-record { display: block; margin-top: 4px; color: #8ea2c4; font: 10px var(--font-ui); }
-      .deck-modes { white-space: normal !important; line-height: 1.5; }
+      .deck-analytics-heading { align-items: end; }
+      .deck-analytics-heading p { max-width: 620px; margin: 2px 0 0; color: var(--muted-foreground); font: 12px/1.5 var(--font-ui); }
+      .personal-deck-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .personal-deck-card { min-width: 0; gap: 0; padding: 0; border-radius: 16px; background: color-mix(in srgb, var(--card) 94%, #142a47); box-shadow: none; transition: border-color .18s ease, transform .18s ease; }
+      .personal-deck-card:hover { border-color: color-mix(in srgb, var(--primary) 38%, var(--border)); transform: translateY(-2px); }
+      .personal-deck-header { min-height: 66px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-block: 14px; border-bottom: 1px solid var(--border); }
+      .personal-deck-header > div { min-width: 0; display: flex; align-items: center; gap: 10px; }
+      .personal-deck-header [data-slot="card-title"] { overflow: hidden; font: 700 14px/1.2 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+      .personal-deck-index { width: 28px; height: 28px; display: grid; flex: none; place-items: center; border-radius: 9px; color: var(--primary); background: rgba(217, 107, 243, .1); font: 800 10px var(--font-ui); }
+      .personal-deck-header [data-slot="badge"] { height: 26px; border-color: var(--border); color: var(--muted-foreground); background: var(--secondary); }
+      .personal-deck-content { display: grid; gap: 16px; padding-block: 18px; }
+      .personal-deck-cards { width: min(100%, 408px); display: grid; grid-template-columns: repeat(4, minmax(0, 96px)); justify-content: center; gap: 8px; align-items: center; margin-inline: auto; }
+      .personal-deck-cards img { width: 100%; height: 118px; object-fit: contain; margin: 0; filter: drop-shadow(0 9px 11px rgba(0, 0, 0, .32)); }
+      .personal-deck-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--border); }
+      .personal-deck-metric { min-width: 0; display: grid; align-content: center; gap: 3px; padding: 13px 10px; }
+      .personal-deck-metric + .personal-deck-metric { border-left: 1px solid var(--border); }
+      .personal-deck-metric small, .personal-deck-metric span { overflow: hidden; color: var(--muted-foreground); font: 9px/1.25 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+      .personal-deck-metric strong { color: var(--foreground); font: 750 20px/1.1 var(--font-ui); }
+      .personal-deck-metric strong.positive { color: #63d99b; }
+      .personal-deck-metric strong.negative { color: #ff7e99; }
+      .personal-deck-modes { min-height: 26px; display: flex; flex-wrap: wrap; gap: 6px; }
+      .personal-deck-modes [data-slot="badge"] { max-width: 100%; overflow: hidden; color: #c4d1e5; text-overflow: ellipsis; }
+      .personal-deck-footer { min-height: 54px; justify-content: flex-end; padding-block: 10px; background: color-mix(in srgb, var(--secondary) 24%, transparent); }
+      .personal-deck-footer > div { width: 100%; }
       @media (max-width: 980px) {
-        .personal-deck-cards { min-width: 220px; }
+        .personal-deck-grid { grid-template-columns: 1fr; }
+        .personal-deck-cards { width: min(100%, 472px); grid-template-columns: repeat(4, minmax(0, 112px)); }
+        .personal-deck-cards img { height: 138px; }
       }
       @media (max-width: 680px) {
-        .deck-analytics-table th:nth-child(4), .deck-analytics-table td:nth-child(4), .deck-analytics-table th:nth-child(5), .deck-analytics-table td:nth-child(5) { display: none; }
-        .deck-analytics-table td:first-child { width: auto; }
-        .personal-deck-cards { min-width: 220px; }
+        .deck-analytics-heading h2 { max-width: 100%; font-size: clamp(23px, 7vw, 28px); line-height: 1.05; text-wrap: balance; }
+        .personal-deck-grid { gap: 10px; }
+        .personal-deck-card { border-radius: 14px; }
+        .personal-deck-header { padding-inline: 12px; }
+        .personal-deck-cards { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+        .personal-deck-cards img { height: 88px; }
+        .personal-deck-metric { padding-inline: 8px; }
+        .personal-deck-metric strong { font-size: 17px; }
+        .personal-deck-metric span { display: none; }
       }
     `}</style>
   );
