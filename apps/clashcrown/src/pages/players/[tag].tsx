@@ -97,8 +97,10 @@ function PlayerDashboard({
         <title>{`${player.name} | Royale Stats`}</title>
       </Head>
       <div className="profile-page">
-        <PlayerHero player={player} />
-        <TrackingControls profile={{ kind: "players", tag: player.tag, name: player.name, clan: player.clan }} />
+        <PlayerHero
+          player={player}
+          actions={<TrackingControls profile={{ kind: "players", tag: player.tag, name: player.name, clan: player.clan }} />}
+        />
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
         {activeTab === "Statistics" ? (
           <>

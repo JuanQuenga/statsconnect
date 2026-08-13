@@ -1,7 +1,8 @@
 import Image from "@/components/Image";
 import Link from "@/components/Link";
+import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
-import { RefreshCcw } from "lucide-react";
+import { Crown, RefreshCcw, Shield, Swords, Trophy } from "lucide-react";
 import { NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
@@ -21,43 +22,74 @@ const tabItems = [
   { label: "Cards", message: "player.cards", icon: "/images/icons/book-cards.png" }
 ] satisfies Array<{ label: PlayerTab; message: MessageKey; icon: string }>;
 
-export function PlayerHero({ player }: { player: Player }) {
+export function PlayerHero({ player, actions }: { player: Player; actions?: ReactNode }) {
   const { formatNumber, locale, t } = useI18n();
+  const wins = player.stats.Wins;
+  const battles = player.stats.Battles ?? combinedStat(player.stats.Wins, player.stats.Losses, formatNumber);
+
   return (
     <section className="profile-hero">
-      <CardArt
-        src={player.clanBadge ?? NO_CLAN_BADGE_IMAGE}
-        alt=""
-        width={74}
-        height={92}
-        priority
-        fallback={NO_CLAN_BADGE_IMAGE}
-      />
-      <span>
-        {player.clanTag ? <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>{player.clan} &gt;</Link> : `${player.clan} >`}
-      </span>
-      <h1>{player.name}{player.level !== undefined ? <span className="hero-level" aria-label={`${locale === "es" ? "Nivel" : "Level"} ${player.level}`}>{player.level}</span> : null}</h1>
-      <strong>#{player.tag}</strong>
-      <div className="card-detail-meta hero-chips">
-        <span className="status-chip">
-          <Image src={player.arenaImage} alt="" width={20} height={20} />
-          {player.arena}
-        </span>
-        {player.pathOfLegends?.current?.trophies !== undefined ? (
-          <span className="status-chip">
-            Path of Legends · {formatNumber(player.pathOfLegends.current.trophies)}
-            {player.pathOfLegends.current.rank ? ` · #${formatNumber(player.pathOfLegends.current.rank)}` : ""}
+      <div className="profile-hero-glow" aria-hidden="true" />
+      <div className="profile-identity-art">
+        <Image src={player.arenaImage} alt="" width={150} height={150} priority />
+        {player.level !== undefined ? (
+          <span className="profile-level-badge" aria-label={`${locale === "es" ? "Nivel" : "Level"} ${player.level}`}>
+            <small>{locale === "es" ? "Nivel" : "Level"}</small>
+            {player.level}
           </span>
         ) : null}
-        {player.clanTag ? (
-          <Link className="status-chip" href={`/clans/${player.clanTag.replace(/^#/, "")}/war`}>
-            {t("clan.war")}
-          </Link>
-        ) : null}
       </div>
-      <PlayerShareActions player={player} />
+      <div className="profile-identity-copy">
+        <span className="eyebrow">Clash Royale player profile</span>
+        <h1>{player.name}</h1>
+        <div className="profile-identity-meta">
+          <strong>#{player.tag}</strong>
+          <span aria-hidden="true">•</span>
+          {player.clanTag ? (
+            <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>
+              <CardArt src={player.clanBadge ?? NO_CLAN_BADGE_IMAGE} alt="" width={24} height={28} fallback={NO_CLAN_BADGE_IMAGE} />
+              {player.clan}
+            </Link>
+          ) : player.clan && player.clan !== "No clan" ? (
+            <span className="profile-no-clan"><Shield size={14} /> {player.clan}</span>
+          ) : (
+            <span className="profile-no-clan"><Shield size={14} /> Independent player</span>
+          )}
+        </div>
+        <div className="card-detail-meta hero-chips">
+          <span className="status-chip">{player.arena}</span>
+          {player.pathOfLegends?.current?.trophies !== undefined ? (
+            <span className="status-chip">
+              Path of Legends · {formatNumber(player.pathOfLegends.current.trophies)}
+              {player.pathOfLegends.current.rank ? ` · #${formatNumber(player.pathOfLegends.current.rank)}` : ""}
+            </span>
+          ) : null}
+          {player.clanTag ? <Link className="status-chip" href={`/clans/${player.clanTag.replace(/^#/, "")}/war`}>{t("clan.war")}</Link> : null}
+        </div>
+        <div className="profile-hero-actions">
+          {actions}
+          <PlayerShareActions player={player} compact />
+        </div>
+      </div>
+      <div className="profile-hero-metrics" aria-label="Player highlights">
+        <HeroMetric icon={<Trophy />} label="Trophies" value={player.trophies === undefined ? "—" : formatNumber(player.trophies)} />
+        <HeroMetric icon={<Crown />} label="Personal best" value={player.bestTrophies === undefined ? "—" : formatNumber(player.bestTrophies)} />
+        <HeroMetric icon={<Swords />} label="Wins" value={wins ?? "—"} />
+        <HeroMetric icon={<Shield />} label="Battles" value={battles ?? "—"} />
+      </div>
     </section>
   );
+}
+
+function HeroMetric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return <div className="profile-hero-metric"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>;
+}
+
+function combinedStat(first: string | undefined, second: string | undefined, formatNumber: (value: number) => string) {
+  if (!first || !second) return undefined;
+  const firstValue = Number(first.replace(/[^\d.-]/g, ""));
+  const secondValue = Number(second.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(firstValue) && Number.isFinite(secondValue) ? formatNumber(firstValue + secondValue) : undefined;
 }
 
 export type PlayerTab = "Statistics" | "Battles" | "Decks" | "Cards";
@@ -67,9 +99,9 @@ export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: 
   return (
     <nav className="profile-tabs" aria-label={t("player.sections")}>
       {tabItems.map((tab) => (
-        <button key={tab.label} type="button" className={active === tab.label ? "active" : ""} onClick={() => onChange(tab.label as PlayerTab)}>
-          <Image src={tab.icon} alt="" width={44} height={44} />
-          {t(tab.message)}
+        <button key={tab.label} type="button" className={active === tab.label ? "active" : ""} aria-current={active === tab.label ? "page" : undefined} onClick={() => onChange(tab.label as PlayerTab)}>
+          <Image src={tab.icon} alt="" width={28} height={28} />
+          <span>{t(tab.message)}</span>
         </button>
       ))}
     </nav>
@@ -85,15 +117,15 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
 
   return (
     <section className="profile-section">
-      <div className="section-tools">
-        <FilterButton />
+      <div className="profile-section-heading">
+        <div><span className="eyebrow">Overview</span><h2>Career snapshot</h2></div>
         <div className="update-tools"><span>{updatedLabel(player.fetchedAt, locale)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? t("common.refreshing") : t("common.refresh")}</button></div>
       </div>
       {rows.length ? (
         <div className="stat-matrix">
           {rows.map(([label, value]) => (
             <div key={label} className="stat-cell">
-              <Image src={statIcon(label, player.arenaImage)} alt="" width={46} height={46} />
+              <span className="stat-cell-icon"><Image src={statIcon(label, player.arenaImage)} alt="" width={32} height={32} /></span>
               <div>
                 <strong>{value}</strong>
                 <span>{label}</span>
@@ -559,9 +591,9 @@ export function ChestList({ chests }: { chests: Chest[] }) {
   const { t } = useI18n();
   if (!chests.length) return null;
   return (
-    <section className="chest-footer">
+    <section className="profile-section chest-footer">
       {/* "My Chests" on someone else's profile read as the viewer's own. */}
-      <h2>{t("player.upcomingChests")}</h2>
+      <div className="profile-section-heading"><div><span className="eyebrow">Chest cycle</span><h2>{t("player.upcomingChests")}</h2></div></div>
       <div className="chest-row">
         {chests.map((chest, index) => (
           <div key={`${chest.name}-${index}`} className="chest-item" title={chest.name}>
