@@ -176,7 +176,7 @@
 
   .page-intro .eyebrow,
   .brawl-hero-copy .eyebrow {
-    color: #72e0d2;
+    color: #f5c85b;
   }
 
   .page-intro .text-muted-foreground,
@@ -185,7 +185,9 @@
   }
 
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent;
+    @apply inline-flex items-center border-l-[3px] border-accent pl-3 text-sm font-semibold text-foreground/80;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   .section-title {

@@ -14,6 +14,29 @@ const statsConnectOrigin = (
   import.meta.env.NEXT_PUBLIC_STATSCONNECT_ORIGIN?.trim()
 );
 
+let arenaRouteState: { pathname: string | null; transitionClass: string } = {
+  pathname: null,
+  transitionClass: "",
+};
+
+function arenaTransitionFor(pathname: string): string {
+  if (pathname === arenaRouteState.pathname) return arenaRouteState.transitionClass;
+
+  const previousPathname = arenaRouteState.pathname;
+  const isHome = pathname === "/";
+  const crossedHomeBoundary = previousPathname !== null && (previousPathname === "/") !== isHome;
+  arenaRouteState = {
+    pathname,
+    transitionClass: crossedHomeBoundary
+      ? isHome
+        ? "arena-is-pulling-out"
+        : "arena-is-pushing-in"
+      : "",
+  };
+
+  return arenaRouteState.transitionClass;
+}
+
 function ClashCrownLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const active = href === "/" ? pathname === href : pathname.startsWith(href);
@@ -27,6 +50,9 @@ function ClashCrownLink({ children, className, href, onNavigate }: SiteNavigatio
 
 export function Layout({ children, variant = "profile" }: { children: React.ReactNode; variant?: "home" | "profile" }) {
   const { locale, setLocale, t } = useI18n();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const arenaTransitionClass = arenaTransitionFor(pathname);
+
   const navItems = [
     { href: "/", label: t("nav.home") },
     { href: "/meta", label: t("nav.meta") },
@@ -41,7 +67,8 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
   ];
 
   return (
-    <div className={`site-frame ${variant === "home" ? "site-frame-home" : ""}`}>
+    <div className={`site-frame ${variant === "home" ? "site-frame-home" : ""} ${arenaTransitionClass}`}>
+      <div className="site-arena-backdrop" aria-hidden="true" />
       <a
         href="#maincontent"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
@@ -49,7 +76,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         Skip to content
       </a>
       <SiteNavigation
-        accentColor="#f4c95d"
+        accentColor="#d96bf3"
         currentSite="clash-royale"
         statsConnectOrigin={statsConnectOrigin}
         linkAdapter={ClashCrownLink}

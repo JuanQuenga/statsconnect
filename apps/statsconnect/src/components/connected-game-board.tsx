@@ -30,20 +30,15 @@ export function ConnectedGameBoard({ hub }: { hub: HubState }) {
     <section className="lobby-stage space-y-10">
       <header className="boot-in flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="eyebrow text-[var(--ambient)]">Your game network</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
-            Pick up where you left off.
+          <h1 className="font-display text-4xl font-semibold sm:text-5xl">
+            Your connected profiles
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Every connected profile stays one click away, with live game data ready to launch.
+            Open a saved player or connect another game below.
           </p>
         </div>
-        <p className="numeric text-5xl text-muted-foreground/50 sm:text-6xl">
-          {String(hub.profiles.length).padStart(2, "0")}
-          <span className="text-2xl text-muted-foreground/30">
-            {" "}
-            / {String(games.length).padStart(2, "0")}
-          </span>
+        <p className="text-sm font-medium text-muted-foreground">
+          {hub.profiles.length} of {games.length} game profiles connected
         </p>
       </header>
 
@@ -158,7 +153,7 @@ function ActiveProfileHero({
       <div className="relative flex shrink-0 flex-col gap-6 sm:flex-row sm:items-end lg:flex-col lg:items-end">
         {profile.display.headline ? (
           <div className="lg:text-right">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground">
               {profile.display.headline.label}
             </p>
             <p className="numeric mt-2 text-6xl text-[var(--game-accent)] sm:text-7xl md:text-8xl">
@@ -229,20 +224,20 @@ function ProfileTile({
             <span className="numeric block text-6xl text-[var(--game-accent)] sm:text-7xl">
               {profile.display.headline.value.toLocaleString()}
             </span>
-            <span className="mt-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            <span className="mt-2 block text-xs font-medium text-muted-foreground">
               {profile.display.headline.label}
             </span>
           </p>
         ) : (
           <span />
         )}
-        <span className="flex items-center gap-2 font-display text-xs font-semibold uppercase tracking-[0.18em] text-foreground/80">
+        <span className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
           <Play className="size-4 fill-current" aria-hidden />
           Open
         </span>
       </div>
 
-      <p className="relative mt-4 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
+      <p className="relative mt-4 flex items-center gap-1.5 text-xs text-muted-foreground/70">
         <Clock3 className="size-3" aria-hidden />
         Opened {new Date(profile.updatedAt).toLocaleDateString()}
       </p>

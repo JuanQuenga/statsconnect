@@ -45,21 +45,19 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
       <section className="hub-hero">
         <div className="hub-hero__media" aria-hidden>
           <img
-            src="/games/generated/statsconnect-supercell-hero.webp"
+            src="/games/generated/brawl-stars-channel.webp"
             alt=""
           />
         </div>
         <div className="hub-hero__copy boot-in">
-          <div className="hub-kicker">
-            <span aria-hidden />
-            One home for your game data
-          </div>
+          <p className="hub-kicker">Brawl Stars and Clash Royale</p>
           <h1>
-            Your game stats.
-            <span>All in one place.</span>
+            Your player profiles,
+            <span>connected.</span>
           </h1>
           <p className="hub-hero__lede">
-            Move from player profiles to live statistics and focused game tools without losing context—or entering the same tag twice.
+            Save each player tag once, then jump straight to the stats, battles,
+            decks, and rankings for that game.
           </p>
           <div className="hub-hero__actions">
             <Link to="/connect" className={buttonVariants({ size: "lg" })}>
@@ -71,9 +69,9 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
             </a>
           </div>
           <ul className="hub-proof" aria-label="Platform highlights">
-            <li><Check aria-hidden /> No repeated player tags</li>
-            <li><Check aria-hidden /> Live official data</li>
-            <li><Check aria-hidden /> Built for more games</li>
+            <li><Check aria-hidden /> Save tags once</li>
+            <li><Check aria-hidden /> Official live data</li>
+            <li><Check aria-hidden /> Separate tools for each game</li>
           </ul>
           {backendUnavailable ? (
             <p className="hub-config-note">Profile connections are temporarily unavailable. The game sites remain open.</p>
@@ -86,17 +84,18 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
         <p><strong>2</strong><span>live game experiences</span></p>
         <p><strong>1</strong><span>connected profile layer</span></p>
         <p><strong>24/7</strong><span>statistics pipelines</span></p>
-        <p><strong>∞</strong><span>room to expand</span></p>
+        <p><strong>0</strong><span>repeat tag entry</span></p>
       </section>
 
       <section id="games" className="hub-section scroll-mt-28">
         <div className="hub-section__heading">
           <div>
-            <p className="eyebrow">Game experiences</p>
-            <h2>Specialized tools, connected by design.</h2>
+            <p className="eyebrow">Choose a game</p>
+            <h2>Each game keeps the tools that fit it.</h2>
           </div>
           <p>
-            Each game keeps its own identity and deep statistics while StatsConnect handles the shared profile experience.
+            StatsConnect remembers your profiles. BrawlStats and Royale Stats
+            handle the game-specific detail.
           </p>
         </div>
         <TileNav className="stagger grid gap-5 md:grid-cols-2">
@@ -114,8 +113,8 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
       <section className="hub-section hub-section--platform">
         <div className="hub-section__heading">
           <div>
-            <p className="eyebrow">The platform layer</p>
-            <h2>Less switching. More signal.</h2>
+            <p className="eyebrow">How it works</p>
+            <h2>Your profiles stay connected.</h2>
           </div>
         </div>
         <div className="hub-feature-grid">
@@ -126,18 +125,18 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
           />
           <Feature
             icon={<BarChart3 />}
-            title="Live statistics"
-            copy="Game-specific data pipelines keep rankings, player history, battles, and meta views current."
+            title="Current game data"
+            copy="Open rankings, player history, battles, and meta views without leaving the game site."
           />
           <Feature
             icon={<Layers3 />}
-            title="One coherent system"
-            copy="Shared navigation and account context create continuity without flattening each game's personality."
+            title="Easy game switching"
+            copy="Move between games from the same navigation while each site keeps its own look and tools."
           />
           <Feature
             icon={<ShieldCheck />}
-            title="Built to scale"
-            copy="Clear game namespaces let the platform grow or separate infrastructure without changing the experience."
+            title="Ready for another game"
+            copy="New games can join the same profile hub without changing the profiles you already saved."
           />
         </div>
       </section>

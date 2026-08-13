@@ -51,17 +51,16 @@ function HomePage() {
   });
 
   const newest = [...(catalogQuery.data || [])].sort((a, b) => b.id - a.id).slice(0, 12);
-  const featured = newest[0];
   const error =
     catalogQuery.error || eventsQuery.error || playersQuery.error || clubsQuery.error;
 
   return (
     <div>
       <section className="brawl-hero border-b border-border">
-        <div className="relative mx-auto grid min-h-[680px] max-w-7xl items-center gap-4 px-4 pt-12 md:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:pt-0">
+        <div className="relative mx-auto grid min-h-[620px] max-w-7xl items-center gap-4 px-4 pt-12 md:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:pt-0">
           <div className="brawl-hero-copy relative z-10 self-center pb-4 lg:pb-16">
             <p className="eyebrow">{t("home.eyebrow")}</p>
-            <h1 className="mt-3 font-display text-5xl font-bold md:text-7xl">
+            <h1 className="mt-3 font-display text-5xl font-bold md:text-6xl">
               BrawlStats<span className="text-primary">.io</span>
             </h1>
             <p className="mt-4 max-w-xl text-lg text-muted-foreground">
@@ -87,20 +86,6 @@ function HomePage() {
               fetchPriority="high"
               className="brawl-hero-art absolute right-1/2 bottom-0 w-[min(700px,112%)] max-w-none translate-x-1/2 lg:right-[-1rem] lg:h-[700px] lg:w-auto lg:translate-x-0"
             />
-            {featured ? (
-              <div className="absolute right-0 bottom-6 z-10 hidden items-center gap-3 rounded-xl border border-white/15 bg-card/90 px-4 py-3 shadow-2xl backdrop-blur-md sm:flex lg:right-2 lg:bottom-10">
-                <ImageWithFallback
-                  src={brawlerBorderUrl(featured.id)}
-                  alt=""
-                  className="size-12 rounded-lg object-cover"
-                />
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">{t("home.liveCatalog")}</p>
-                  <p className="font-display text-lg leading-tight">{t("home.newestNamed", { name: featured.name })}</p>
-                  <p className="text-xs text-muted-foreground">{featured.rarity} · {featured.role}</p>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>
