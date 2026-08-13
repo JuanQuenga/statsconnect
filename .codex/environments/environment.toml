@@ -1,0 +1,100 @@
+version = 1
+name = "StatsConnect"
+
+[setup]
+script = "pnpm install --frozen-lockfile"
+
+[[actions]]
+name = "Full Dev"
+icon = "run"
+command = "pnpm dev"
+
+[[actions]]
+name = "StatsConnect Dev"
+icon = "run"
+command = "pnpm dev:hub"
+
+[[actions]]
+name = "BrawlStats Dev"
+icon = "run"
+command = "pnpm dev:brawlstats"
+
+[[actions]]
+name = "ClashCrown Dev"
+icon = "run"
+command = "pnpm dev:clashcrown"
+
+[[actions]]
+name = "Shared Convex Dev"
+icon = "run"
+command = "pnpm --filter @statsconnect/backend dev"
+
+[[actions]]
+name = "BrawlStats Convex Dev"
+icon = "run"
+command = "pnpm --filter brawlstats.io dev:backend"
+
+[[actions]]
+name = "ClashCrown Convex Dev"
+icon = "run"
+command = "pnpm --filter clash-crown convex:dev"
+
+[[actions]]
+name = "Typecheck All"
+icon = "tool"
+command = "pnpm typecheck"
+
+[[actions]]
+name = "Typecheck StatsConnect"
+icon = "tool"
+command = "pnpm --filter statsconnect typecheck"
+
+[[actions]]
+name = "Typecheck BrawlStats"
+icon = "tool"
+command = "pnpm --filter brawlstats.io typecheck"
+
+[[actions]]
+name = "Typecheck ClashCrown"
+icon = "tool"
+command = "pnpm --filter clash-crown typecheck"
+
+[[actions]]
+name = "Build All"
+icon = "tool"
+command = "pnpm build"
+
+[[actions]]
+name = "Build Unified"
+icon = "tool"
+command = "pnpm build:unified"
+
+[[actions]]
+name = "Build StatsConnect"
+icon = "tool"
+command = "pnpm --filter statsconnect build"
+
+[[actions]]
+name = "Build BrawlStats"
+icon = "tool"
+command = "pnpm --filter brawlstats.io build"
+
+[[actions]]
+name = "Build ClashCrown"
+icon = "tool"
+command = "pnpm --filter clash-crown build"
+
+[[actions]]
+name = "Preview ClashCrown"
+icon = "run"
+command = "pnpm --filter clash-crown preview"
+
+[[actions]]
+name = "Deploy Backend"
+icon = "tool"
+command = "pnpm deploy:backend"
+
+[[actions]]
+name = "Deploy Unified"
+icon = "tool"
+command = "pnpm deploy:unified"

@@ -9,6 +9,8 @@ import { useI18n } from "@/lib/i18n";
 import { isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
 import type { DirectoryHit } from "@/lib/clash/types";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 /**
  * Profile lookup by name or by tag.
@@ -206,7 +208,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
           <option value="players">{t("search.players")}</option>
           <option value="clans">{t("search.clans")}</option>
         </select>
-        <input
+        <Input
           aria-label={kind === "players" ? "Player name or tag" : "Clan name or tag"}
           placeholder={kind === "players" ? t("search.playerPlaceholder") : t("search.clanPlaceholder")}
           value={term}
@@ -222,9 +224,9 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
           }}
           onKeyDown={onKeyDown}
         />
-        <button type="submit" className="search-submit" aria-label={`Search ${kind}`}>
+        <Button type="submit" className="search-submit h-full rounded-none" aria-label={`Search ${kind}`}>
           <Search size={compact ? 20 : 27} />
-        </button>
+        </Button>
       </form>
 
       {open && (rows.length > 0 || searching || noMatches) ? (
@@ -232,15 +234,17 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
           {!trimmed && recents.length ? (
             <div className="search-suggestions-head">
               <span>{t("search.recent")}</span>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="xs"
                 onClick={() => {
                   personalization.clearRecents();
                 }}
               >
                 <X size={13} />
                 {t("search.clear")}
-              </button>
+              </Button>
             </div>
           ) : null}
 
@@ -323,15 +327,15 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
           <option value="players">{t("search.playerTag")}</option>
           <option value="clans">{t("search.clanTag")}</option>
         </select>
-        <input
+        <Input
           aria-label={`${kind === "players" ? "Player" : "Clan"} tag`}
           placeholder="#PLAYER_TAG"
           value={tag}
           onChange={(event) => setTag(event.target.value)}
         />
-        <button type="submit" className="search-submit" aria-label={`Search ${kind}`}>
+        <Button type="submit" className="search-submit h-full rounded-none" aria-label={`Search ${kind}`}>
           <Search size={compact ? 20 : 27} />
-        </button>
+        </Button>
       </form>
       {error ? (
         <p className="search-error" role="alert">

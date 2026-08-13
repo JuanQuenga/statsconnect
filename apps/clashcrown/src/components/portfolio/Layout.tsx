@@ -38,13 +38,18 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
     { href: "/news", label: t("nav.news") },
     { href: "/guides", label: t("nav.guides") },
     { href: "/tools", label: t("nav.tools") },
-    { href: "/tournaments", label: "Tournaments" },
   ];
 
   return (
     <div className={`site-frame ${variant === "home" ? "site-frame-home" : ""}`}>
+      <a
+        href="#maincontent"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
       <SiteNavigation
-        accentColor="#ee66ef"
+        accentColor="#f4c95d"
         currentSite="clash-royale"
         statsConnectOrigin={statsConnectOrigin}
         linkAdapter={ClashCrownLink}
@@ -66,7 +71,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
           </div>
         )}
       />
-      <main>{children}</main>
+      <main id="maincontent" tabIndex={-1}>{children}</main>
       <SiteFooter />
     </div>
   );
@@ -77,32 +82,41 @@ function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="footer-inner">
-        <div className="social-row">
-          <span>Facebook</span>
-          <span>Twitter</span>
-          <span>Discord</span>
+        <div className="footer-brand-row">
+          <Link href="/" aria-label="Royale Stats home">
+            <Image src="/images/logo/royale-stats-wide.png" alt="Royale Stats" width={2143} height={667} />
+          </Link>
+          <p>Player profiles, live meta insights, deck tools, and clan intelligence for Clash Royale.</p>
         </div>
-        <div className="footer-links">
-          <Link href="/leaderboards">Leaderboards</Link>
-          <Link href="/cards">Card Library</Link>
-          <Link href="/decks">Deck Discovery</Link>
-          <Link href="/clans/search">Clan Search</Link>
-          <Link href="/tournaments">Tournaments</Link>
-          <Link href="/meta">Meta Report</Link>
-          <Link href="/players">Player Lookup</Link>
-          <Link href="/news">{t("nav.news")}</Link>
-          <Link href="/guides">{t("nav.guides")}</Link>
-          <Link href="/tools">{t("nav.tools")}</Link>
+        <div className="footer-link-groups">
+          <div>
+            <strong>Explore</strong>
+            <Link href="/leaderboards">Leaderboards</Link>
+            <Link href="/meta">Meta Report</Link>
+            <Link href="/players">Player Lookup</Link>
+          </div>
+          <div>
+            <strong>Build</strong>
+            <Link href="/cards">Card Library</Link>
+            <Link href="/decks">Deck Discovery</Link>
+            <Link href="/tools">{t("nav.tools")}</Link>
+          </div>
+          <div>
+            <strong>Discover</strong>
+            <Link href="/clans/search">Clan Search</Link>
+            <Link href="/news">{t("nav.news")}</Link>
+            <Link href="/guides">{t("nav.guides")}</Link>
+          </div>
         </div>
-        <p>
-          {t("footer.disclaimer")} For more information see Supercell&rsquo;s Fan
-          Content Policy:{" "}
-          <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
-            supercell.com/fan-content-policy
-          </a>
-          .
-        </p>
-        <p>© {new Date().getFullYear()} Royale Stats.</p>
+        <div className="footer-legal">
+          <p>
+            {t("footer.disclaimer")} See Supercell&rsquo;s{" "}
+            <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
+              Fan Content Policy
+            </a>.
+          </p>
+          <p>© {new Date().getFullYear()} Royale Stats.</p>
+        </div>
       </div>
     </footer>
   );

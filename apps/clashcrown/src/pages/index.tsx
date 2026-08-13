@@ -1,7 +1,7 @@
 import Image from "@/components/Image";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
-import { ChevronLeft, ChevronRight, Crown, RefreshCcw, Swords, Trophy } from "lucide-react";
+import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Crown, RefreshCcw, Swords, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useQuery as useConvexQuery } from "convex/react";
@@ -14,6 +14,9 @@ import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/ass
 import { useCardCatalog } from "@/lib/useCardCatalog";
 import { isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
 import { demoDecks, demoEvents, player, type Card, type Player } from "@/lib/mock-data";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const heroes = [
   { name: "Hog Rider", copy: "Fast lane pressure for trophy pushing.", art: "/images/art/hog-rider.png" },
@@ -44,24 +47,60 @@ export default function HomePage() {
 
   return (
     <Layout variant="home">
-      <section className="home-hero">
-        <h1>Track Your Clash Royale<br />Stats and Chests</h1>
-        <ProfileSearch />
-        <div className="hero-cards">
-          {heroes.map((hero, index) => (
-            <button
-              key={hero.name}
-              type="button"
-              className={`hero-card ${activeHero === index ? "active" : ""}`}
-              onClick={() => setActiveHero(index)}
-            >
-              <div>
-                <h2>{hero.name}</h2>
-                <p>{hero.copy}</p>
+      <section className="royale-hero">
+        <div className="royale-hero-inner">
+          <div className="royale-hero-copy">
+            <p className="eyebrow">Clash Royale player intelligence</p>
+            <h1>
+              Climb smarter.<br />
+              <span>Rule the arena.</span>
+            </h1>
+            <p className="royale-hero-description">
+              Search any player or clan to explore battle history, chest cycles,
+              deck performance, live rankings, and the cards shaping the meta.
+            </p>
+            <ProfileSearch />
+            <div className="royale-hero-actions">
+              <Link href="/meta" className={cn(buttonVariants({ size: "lg" }), "gap-2")}>
+                Explore the meta <ArrowRight />
+              </Link>
+              <Link href="/decks" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "gap-2")}>
+                <BarChart3 /> Deck tools
+              </Link>
+            </div>
+          </div>
+
+          <div className="royale-hero-showcase">
+            <div className="royale-hero-art" key={heroes[activeHero].name}>
+              <div className="royale-hero-glow" />
+              <Image
+                src={heroes[activeHero].art}
+                alt={heroes[activeHero].name}
+                width={430}
+                height={500}
+                priority
+              />
+              <div className="royale-hero-card">
+                <Badge variant="outline">Arena spotlight</Badge>
+                <h2>{heroes[activeHero].name}</h2>
+                <p>{heroes[activeHero].copy}</p>
               </div>
-              <Image src={hero.art} alt={hero.name} width={220} height={220} />
-            </button>
-          ))}
+            </div>
+            <div className="royale-hero-selector" aria-label="Choose featured card">
+              {heroes.map((hero, index) => (
+                <Button
+                  key={hero.name}
+                  type="button"
+                  variant={activeHero === index ? "default" : "outline"}
+                  size="sm"
+                  aria-pressed={activeHero === index}
+                  onClick={() => setActiveHero(index)}
+                >
+                  {hero.name}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -80,9 +119,9 @@ export default function HomePage() {
           <Metric icon={<Trophy size={19} />} value={demoPlayer.trophies?.toLocaleString() ?? "—"} label="demo trophies" />
           <Metric icon={<Crown size={19} />} value={demoPlayer.bestTrophies?.toLocaleString() ?? "—"} label="demo best trophies" />
           <Metric icon={<Swords size={19} />} value={selectedBattle.result} label="last battle" />
-          <button type="button" onClick={() => playerQuery.refetch()} className={playerQuery.isFetching ? "is-fetching" : ""}>
+          <Button variant="ghost" type="button" onClick={() => playerQuery.refetch()} className={playerQuery.isFetching ? "is-fetching" : ""}>
             <RefreshCcw size={17} />Reload sample
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -140,7 +179,7 @@ export default function HomePage() {
         <div className="section-title-row">
           {/* demoPlayer, same as Event Lab — it needs the same disclosure. */}
           <h2>Chest Timeline <SampleBadge /></h2>
-          <button type="button" className="pink-button" onClick={() => playerQuery.refetch()}>Resync</button>
+          <Button type="button" onClick={() => playerQuery.refetch()}>Resync</Button>
         </div>
         <div className="chest-demo-row">
           {demoPlayer.chests.slice(0, 8).map((chest, index) => (
@@ -160,7 +199,7 @@ export default function HomePage() {
 
 /** Marks a section that renders curated sample data rather than live API results. */
 function SampleBadge() {
-  return <span className="sample-badge">Sample</span>;
+  return <Badge variant="outline" className="sample-badge">Sample</Badge>;
 }
 
 // --- Live meta sections ---------------------------------------------------
@@ -205,9 +244,11 @@ function MetaDeckOfTheDay() {
       </div>
       <div className="archetype-tabs" aria-label="Battle mode">
         {HOME_MODES.map((item) => (
-          <button
+          <Button
             key={item}
             type="button"
+            variant={mode === item ? "default" : "secondary"}
+            size="sm"
             className={mode === item ? "active" : ""}
             onClick={() => {
               setMode(item);
@@ -215,7 +256,7 @@ function MetaDeckOfTheDay() {
             }}
           >
             {modeLabel(item)}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -340,9 +381,11 @@ function SampleDeckOfTheDay() {
       </div>
       <div className="archetype-tabs" aria-label="Deck archetype filters">
         {["All", "Control", "Cycle", "Beatdown", "Bait"].map((item) => (
-          <button
+          <Button
             key={item}
             type="button"
+            variant={archetype === item ? "default" : "secondary"}
+            size="sm"
             className={archetype === item ? "active" : ""}
             onClick={() => {
               setArchetype(item as typeof archetype);
@@ -350,7 +393,7 @@ function SampleDeckOfTheDay() {
             }}
           >
             {item}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="deck-row">
@@ -359,10 +402,10 @@ function SampleDeckOfTheDay() {
           <strong>{selectedDeck.cost.toFixed(1)} elixir<span>average cost</span></strong>
         </div>
         <DeckStrip cards={selectedDeck.cards} />
-        <button type="button" className="copy-deck" onClick={() => setActiveDeck((index) => (index + 1) % filteredDecks.length)}>
+        <Button type="button" size="lg" className="copy-deck" onClick={() => setActiveDeck((index) => (index + 1) % filteredDecks.length)}>
           <Image src="/images/icons/copy.png" alt="" width={26} height={28} />
           Swap Deck
-        </button>
+        </Button>
       </div>
       <div className="deck-demo-copy">
         <strong>{selectedDeck.name}</strong>
@@ -435,8 +478,8 @@ function Pager({ onPrevious, onNext }: { onPrevious?: () => void; onNext?: () =>
   if (!onPrevious && !onNext) return null;
   return (
     <div className="pager">
-      <button type="button" aria-label="Previous" onClick={onPrevious}><ChevronLeft size={18} /></button>
-      <button type="button" aria-label="Next" onClick={onNext}><ChevronRight size={18} /></button>
+      <Button variant="secondary" size="icon" type="button" aria-label="Previous" onClick={onPrevious}><ChevronLeft size={18} /></Button>
+      <Button variant="secondary" size="icon" type="button" aria-label="Next" onClick={onNext}><ChevronRight size={18} /></Button>
     </div>
   );
 }

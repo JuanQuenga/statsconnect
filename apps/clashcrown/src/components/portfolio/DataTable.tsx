@@ -2,6 +2,7 @@ import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { CardArt } from "@/components/portfolio/CardArt";
 import type { ReactNode } from "react";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 /** Renders a rank with its movement since the previous ranking snapshot. */
 export function RankCell({ rank, previousRank }: { rank?: number; previousRank?: number }) {
@@ -87,17 +88,17 @@ export function TableShell({
       {empty ? (
         <p className="empty-results">{emptyMessage ?? "No results."}</p>
       ) : (
-        <div className="members-table-wrap">
-          <table className="members-table">
-            <thead>
-              <tr>
+        <div className="members-table-wrap rounded-xl border border-border bg-card/70">
+          <Table className="members-table">
+            <TableHeader>
+              <TableRow>
                 {head.map((label) => (
-                  <th key={label}>{label}</th>
+                  <TableHead key={label}>{label}</TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>{children}</tbody>
-          </table>
+              </TableRow>
+            </TableHeader>
+            <TableBody>{children}</TableBody>
+          </Table>
         </div>
       )}
       {note ? <p className="table-note">{note}</p> : null}
