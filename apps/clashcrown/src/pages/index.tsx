@@ -2,7 +2,7 @@ import Image from "@/components/Image";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
 import { ArrowRight, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
@@ -18,7 +18,40 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type HeroSpotlight = {
+  name: string;
+  cardName: string;
+  kind: string;
+  copy: string;
+  art: string;
+};
+
+const heroes: HeroSpotlight[] = [
+  {
+    name: "Ronin",
+    cardName: "Ronin",
+    kind: "New legendary",
+    copy: "Twin blades turn close-range pressure into a sharp counterattack.",
+    art: "/images/art/hero-ronin-2026.webp"
+  },
+  {
+    name: "Princess Evolution",
+    cardName: "Princess",
+    kind: "New evolution",
+    copy: "Long-range control gets a colder, more punishing evolution.",
+    art: "/images/art/hero-princess-evolution-2026.webp"
+  },
+  {
+    name: "Hero Tombstone",
+    cardName: "Tombstone",
+    kind: "New hero",
+    copy: "A familiar defensive building returns with a royal reinforcement.",
+    art: "/images/art/hero-tombstone-2026.webp"
+  }
+];
+
 export default function HomePage() {
+  const [activeHero, setActiveHero] = useState(0);
   const [battleIndex, setBattleIndex] = useState(0);
 
   const playerQuery = useQuery<Player>({
@@ -29,6 +62,16 @@ export default function HomePage() {
 
   const demoPlayer = playerQuery.data;
   const selectedBattle = demoPlayer.battles[battleIndex % demoPlayer.battles.length];
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const timer = window.setInterval(() => {
+      setActiveHero((index) => (index + 1) % heroes.length);
+    }, 5200);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <Layout variant="home">
@@ -55,6 +98,35 @@ export default function HomePage() {
             </div>
           </div>
 
+          <div className="royale-hero-showcase">
+            <div className="royale-hero-art">
+              <div className="royale-hero-character" key={heroes[activeHero].name}>
+                <div className="royale-hero-glow" />
+                <Image
+                  src={heroes[activeHero].art}
+                  alt={heroes[activeHero].name}
+                  width={430}
+                  height={500}
+                  priority
+                />
+              </div>
+              <HeroMetaPanel hero={heroes[activeHero]} />
+            </div>
+            <div className="royale-hero-selector" aria-label="Choose featured release">
+              {heroes.map((hero, index) => (
+                <button
+                  key={hero.name}
+                  type="button"
+                  className="royale-hero-selector-card"
+                  aria-label={`Show ${hero.name}`}
+                  aria-pressed={activeHero === index}
+                  onClick={() => setActiveHero(index)}
+                >
+                  <Image src={hero.art} alt="" width={62} height={74} />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -129,6 +201,52 @@ export default function HomePage() {
 
       {isConvexConfigured ? <MetaPopularCards /> : <SamplePopularCards />}
     </Layout>
+  );
+}
+
+function HeroMetaPanel({ hero }: { hero: HeroSpotlight }) {
+  return isConvexConfigured ? <LiveHeroMetaPanel hero={hero} /> : <HeroMetaCard hero={hero} />;
+}
+
+function LiveHeroMetaPanel({ hero }: { hero: HeroSpotlight }) {
+  const byId = useCardCatalog();
+  const payload = useConvexQuery(topCardsQuery, {
+    mode: "pathOfLegends",
+    windowDays: 7,
+    limit: 200
+  });
+  const card = [...byId.values()].find((item) => cardSlug(item.name) === cardSlug(hero.cardName));
+  const stats = card ? payload?.cards.find((item) => item.cardId === card.id) : undefined;
+
+  return <HeroMetaCard hero={hero} stats={stats} loading={payload === undefined} />;
+}
+
+function HeroMetaCard({
+  hero,
+  stats,
+  loading = false
+}: {
+  hero: HeroSpotlight;
+  stats?: { uses: number; winRate: number; usageRate: number };
+  loading?: boolean;
+}) {
+  const status = stats ? "Live meta" : loading ? "Syncing" : "Release spotlight";
+
+  return (
+    <div className="royale-hero-card">
+      <div className="hero-meta-header">
+        <span className={stats ? "is-live" : undefined}><i />{status}</span>
+        <small>Path of Legends, last 7 days</small>
+      </div>
+      <span className="hero-meta-kind">{hero.kind}</span>
+      <h2>{hero.name}</h2>
+      <p>{hero.copy}</p>
+      <div className="hero-meta-stats">
+        <div><span>Win rate</span><strong>{stats ? `${(stats.winRate * 100).toFixed(1)}%` : "—"}</strong></div>
+        <div><span>Usage</span><strong>{stats ? `${(stats.usageRate * 100).toFixed(1)}%` : "—"}</strong></div>
+        <div><span>Games</span><strong>{stats ? stats.uses.toLocaleString() : "—"}</strong></div>
+      </div>
+    </div>
   );
 }
 
