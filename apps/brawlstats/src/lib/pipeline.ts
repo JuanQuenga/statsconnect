@@ -38,7 +38,7 @@ export type PipelineStatus = {
 
 const pipelineStatusQuery = makeFunctionReference<
   "query",
-  Record<string, never>,
+  { now: number },
   PipelineStatus
 >("brawl/pipeline:pipelineStatus");
 
@@ -49,5 +49,5 @@ export async function fetchPipelineStatus(): Promise<PipelineStatus> {
     throw new Error("Set VITE_CONVEX_URL to view crawler health.");
   }
 
-  return await new ConvexHttpClient(deploymentUrl).query(pipelineStatusQuery, {});
+  return await new ConvexHttpClient(deploymentUrl).query(pipelineStatusQuery, { now: Date.now() });
 }
