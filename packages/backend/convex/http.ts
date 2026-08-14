@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import { boundedInteger, envEnabled } from "./brawl/controls";
 import { MIN_META_PICKS } from "./brawl/stats";
 
 declare const process: { env: Record<string, string | undefined> };
@@ -206,6 +207,15 @@ async function parsed(response: Response): Promise<unknown> {
   }
 }
 
+function parsedJson(value: string | undefined): unknown | undefined {
+  if (value === undefined) return undefined;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
 async function brawlApi(path: string): Promise<Response> {
   try {
     const response = await fetch(`https://api.brawlapi.com/v1${path}`, {
@@ -223,24 +233,89 @@ const player = httpAction(async (ctx, request) => {
   const tag = normalizedTag(new URL(request.url).searchParams.get("tag"));
   if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars player tag." }, 400);
 
+  const cacheTag = tag.slice(1);
+  const claim = await ctx.runMutation(internal.brawl.players.claimPlayerCache, {
+    tag: cacheTag,
+    profileTtlMs:
+      boundedInteger(process.env.BRAWL_PLAYER_PROFILE_CACHE_SECONDS, 15 * 60, 30, 24 * 60 * 60) * 1_000,
+    battleLogTtlMs:
+      boundedInteger(process.env.BRAWL_PLAYER_BATTLE_CACHE_SECONDS, 2 * 60, 15, 60 * 60) * 1_000,
+    leaseMs: 30 * 1_000,
+    budgetLimit: boundedInteger(process.env.BRAWL_PUBLIC_MAX_CALLS_PER_HOUR, 1_000, 0, 20_000),
+    upstreamEnabled: envEnabled(process.env.BRAWL_PUBLIC_API_ENABLED),
+  });
+
+  let profile = parsedJson(claim.profileJson);
+  let battleLog = parsedJson(claim.battleLogJson);
+  let freshProfile: unknown | undefined;
+  let freshBattleLog: unknown | undefined;
+  let profileFailure: { status: number; body: unknown } | undefined;
+  const telemetry: Array<{ endpoint: string; status: number }> = [];
   const encodedTag = encodeURIComponent(tag);
   const [profileResponse, battlesResponse] = await Promise.all([
-    upstream(`/players/${encodedTag}`),
-    upstream(`/players/${encodedTag}/battlelog`),
+    claim.fetchProfile ? upstream(`/players/${encodedTag}`) : Promise.resolve(null),
+    claim.fetchBattleLog ? upstream(`/players/${encodedTag}/battlelog`) : Promise.resolve(null),
   ]);
 
-  if (!profileResponse.ok) return profileResponse;
+  if (profileResponse) {
+    telemetry.push({ endpoint: "players/detail", status: profileResponse.status });
+    const body = await parsed(profileResponse);
+    if (profileResponse.ok) {
+      freshProfile = body;
+      profile = body;
+    } else {
+      profileFailure = { status: profileResponse.status, body };
+    }
+  }
+  if (battlesResponse) {
+    telemetry.push({ endpoint: "players/battlelog", status: battlesResponse.status });
+    if (battlesResponse.ok) {
+      freshBattleLog = await parsed(battlesResponse);
+      battleLog = freshBattleLog;
+    }
+  }
 
-  const [profile, battleLog] = await Promise.all([
-    parsed(profileResponse),
-    battlesResponse.ok ? parsed(battlesResponse) : Promise.resolve({ items: [] }),
-  ]);
+  if (claim.fetchProfile || claim.fetchBattleLog) {
+    await Promise.all([
+      ctx.runMutation(internal.brawl.players.completePlayerCache, {
+        tag: cacheTag,
+        profileAttempted: claim.fetchProfile,
+        battleLogAttempted: claim.fetchBattleLog,
+        profileJson: freshProfile === undefined ? undefined : JSON.stringify(freshProfile),
+        battleLogJson: freshBattleLog === undefined ? undefined : JSON.stringify(freshBattleLog),
+      }),
+      ctx.runMutation(internal.brawl.pipeline.recordFetchBatch, {
+        scope: "public",
+        fetches: telemetry,
+      }),
+    ]);
+  }
 
-  const items = Array.isArray((battleLog as { items?: unknown[] })?.items)
-    ? ((battleLog as { items: unknown[] }).items)
+  if (profile === undefined) {
+    if (profileFailure) return json(profileFailure.body, profileFailure.status);
+    if (claim.limited) {
+      return json(
+        { error: "API_BUDGET_EXHAUSTED", message: "Player data is temporarily rate limited. Try again shortly." },
+        429,
+      );
+    }
+    return json(
+      {
+        error: claim.inFlight ? "CACHE_FILL_IN_PROGRESS" : "UPSTREAM_DISABLED",
+        message: claim.inFlight
+          ? "Player data is already being refreshed. Try again shortly."
+          : "Live player lookups are temporarily disabled.",
+      },
+      503,
+    );
+  }
+
+  battleLog ??= { items: [] };
+  const items = Array.isArray((freshBattleLog as { items?: unknown[] } | undefined)?.items)
+    ? ((freshBattleLog as { items: unknown[] }).items)
     : [];
 
-  const snapshot = profileSnapshot(profile);
+  const snapshot = freshProfile === undefined ? null : profileSnapshot(freshProfile);
   if (snapshot) {
     await ctx.runMutation(internal.brawl.players.recordProfile, snapshot);
   }

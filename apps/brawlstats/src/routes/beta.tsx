@@ -30,7 +30,7 @@ function PipelineBetaPage() {
   const status = statusQuery.data;
   const latestCrawl = status?.recentRuns.find((run) => run.job === "crawl");
   const latestDiscovery = status?.recentRuns.find((run) => run.job === "discover");
-  const healthy = Boolean(latestCrawl?.ok && latestDiscovery?.ok);
+  const healthy = Boolean(status?.controls.crawlerEnabled && latestCrawl?.ok && latestDiscovery?.ok);
   const needsConfiguration = latestDiscovery?.note?.includes("not configured") ?? false;
 
   return (
@@ -54,7 +54,7 @@ function PipelineBetaPage() {
             <h1 className="mt-2 font-display text-4xl md:text-5xl">Crawler control room</h1>
             <p className="mt-3 max-w-2xl text-muted-foreground">
               Live coverage and run telemetry for the battle-log crawler behind BrawlStats map and team insights.
-              Rankings, club rosters, and player lookups continuously expand the crawl queue.
+              Rankings and club rosters expand the durable crawl queue; one-time player lookups stay cache-only.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -82,6 +82,10 @@ function PipelineBetaPage() {
         </PageStatus>
       ) : null}
 
+      {status && !status.controls.crawlerEnabled ? (
+        <PageStatus tone="error">The Brawl crawler kill switch is active. Cached player data remains available.</PageStatus>
+      ) : null}
+
       {status ? <PipelineDashboard status={status} /> : null}
     </div>
   );
@@ -93,7 +97,7 @@ function PipelineDashboard({ status }: { status: PipelineStatus }) {
     {
       label: "Crawl targets",
       value: cappedNumber(status.targets.total, status.targets.capped),
-      detail: `${cappedNumber(status.targets.due, status.targets.capped)} due now`,
+      detail: `${cappedNumber(status.targets.due, status.targets.capped)} due · ${number(status.targets.expiring)} legacy expiring`,
       icon: Radar,
     },
     {
@@ -103,15 +107,15 @@ function PipelineDashboard({ status }: { status: PipelineStatus }) {
       icon: Database,
     },
     {
-      label: "API calls · 1h",
+      label: "API calls · current hour",
       value: cappedNumber(status.apiCallsLastHour.total, status.apiCallsLastHour.capped),
-      detail: `${number(status.apiCallsLastHour.failures)} failed`,
+      detail: `${number(status.apiCallsLastHour.failures)} failed · ${number(status.apiCallsLastHour.rateLimited)} rate limited`,
       icon: Activity,
     },
     {
       label: "Lifetime failures",
       value: number(counters.get("api_failures") || 0),
-      detail: `${number(counters.get("player_logs_fetched") || 0)} player logs fetched`,
+      detail: `${number(status.controls.crawlReserved)}/${number(status.controls.crawlHourlyLimit)} crawl budget reserved`,
       icon: TriangleAlert,
     },
   ] as const;
@@ -140,7 +144,7 @@ function PipelineDashboard({ status }: { status: PipelineStatus }) {
         <CardHeader>
           <CardTitle>Recent pipeline runs</CardTitle>
           <CardDescription>
-            Discovery runs refresh the queue every six hours; crawl workers process due players every two minutes.
+            Discovery refreshes durable targets every six hours. Battle logs poll adaptively; profiles refresh separately.
           </CardDescription>
         </CardHeader>
         <CardContent>

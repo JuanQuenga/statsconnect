@@ -8,6 +8,11 @@ export const crawlSource = v.union(
   v.literal("manual"),
 );
 
+export const apiBudgetScope = v.union(
+  v.literal("crawl"),
+  v.literal("public"),
+);
+
 export const clubActivityType = v.union(
   v.literal("join"),
   v.literal("leave"),
@@ -276,11 +281,16 @@ export const brawlTables = {
     priority: v.number(),
     nextDueAt: v.number(),
     lastFetchedAt: v.optional(v.number()),
+    lastProfileAttemptAt: v.optional(v.number()),
+    lastProfileFetchedAt: v.optional(v.number()),
     lastBattleTime: v.optional(v.string()),
     consecutiveFailures: v.number(),
+    consecutiveEmptyPolls: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
     disabled: v.boolean(),
   })
     .index("by_tag", ["tag"])
+    .index("by_source", ["source"])
     .index("by_due", ["disabled", "nextDueAt"]),
 
   brawlPipelineRuns: defineTable({
@@ -301,6 +311,44 @@ export const brawlTables = {
     updatedAt: v.number(),
   }).index("by_name", ["name"]),
 
+  brawlPlayerCache: defineTable({
+    tag: v.string(),
+    profileJson: v.optional(v.string()),
+    profileFetchedAt: v.optional(v.number()),
+    profileLeaseUntil: v.optional(v.number()),
+    battleLogJson: v.optional(v.string()),
+    battleLogFetchedAt: v.optional(v.number()),
+    battleLogLeaseUntil: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_tag", ["tag"])
+    .index("by_updated_at", ["updatedAt"]),
+
+  brawlApiBudgets: defineTable({
+    key: v.string(),
+    scope: apiBudgetScope,
+    bucketStartedAt: v.number(),
+    reserved: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_bucket_started_at", ["bucketStartedAt"]),
+
+  brawlApiTelemetryBuckets: defineTable({
+    key: v.string(),
+    scope: apiBudgetScope,
+    endpoint: v.string(),
+    bucketStartedAt: v.number(),
+    calls: v.number(),
+    failures: v.number(),
+    rateLimited: v.number(),
+    serverErrors: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_bucket_started_at", ["bucketStartedAt"]),
+
+  // Kept temporarily so populated deployments can prune legacy per-request rows.
   brawlApiFetchLogs: defineTable({
     endpoint: v.string(),
     status: v.number(),
