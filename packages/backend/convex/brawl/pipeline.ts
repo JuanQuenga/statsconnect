@@ -373,7 +373,7 @@ export const reserveBudget = internalMutation({
 });
 
 export const pipelineStatus = query({
-  args: {},
+  args: { now: v.number() },
   returns: v.object({
     now: v.number(),
     counters: v.array(v.object({ name: v.string(), value: v.number(), updatedAt: v.number() })),
@@ -408,8 +408,8 @@ export const pipelineStatus = query({
       failures: v.optional(v.number()),
     })),
   }),
-  handler: async (ctx) => {
-    const now = Date.now();
+  handler: async (ctx, args) => {
+    const now = args.now;
     const windowStartedAt = hourBucket(now);
     const crawlBudgetKey = `crawl:${windowStartedAt}`;
     const publicBudgetKey = `public:${windowStartedAt}`;
