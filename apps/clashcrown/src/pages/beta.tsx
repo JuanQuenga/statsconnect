@@ -44,8 +44,9 @@ const WINDOWS = [1, 7] as const;
 function Beta() {
   const [mode, setMode] = useState<MetaMode>("ladder");
   const [windowDays, setWindowDays] = useState<(typeof WINDOWS)[number]>(7);
+  const [now] = useState(() => Date.now());
 
-  const status = useQuery(pipelineStatusQuery, {});
+  const status = useQuery(pipelineStatusQuery, { now });
   const decks = useQuery(topDecksQuery, { mode, windowDays, limit: 20 });
   const cards = useQuery(topCardsQuery, { mode, windowDays, limit: 24 });
 

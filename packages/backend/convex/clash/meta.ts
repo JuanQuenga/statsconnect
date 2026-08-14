@@ -921,7 +921,7 @@ function probe(rows: unknown[], cap: number) {
 }
 
 export const pipelineStatus = query({
-  args: {},
+  args: { now: v.number() },
   returns: v.object({
     now: v.number(),
     counters: v.record(v.string(), v.number()),
@@ -950,9 +950,9 @@ export const pipelineStatus = query({
     })),
     rankingsComputedAt: v.union(v.number(), v.null())
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const counters = await ctx.db.query("clashPipelineCounters").take(20);
-    const now = Date.now();
+    const now = args.now;
 
     const dueRows = await ctx.db
       .query("clashCrawlTargets")

@@ -439,7 +439,7 @@ export const recordObservation = internalMutation({
 });
 
 export const dashboard = query({
-  args: { tag: v.string() },
+  args: { tag: v.string(), now: v.number() },
   returns: dashboardResult,
   handler: async (ctx, args) => {
     const tag = args.tag.replace(/^#/, "").toUpperCase();
@@ -474,7 +474,7 @@ export const dashboard = query({
       weeksByMember.set(week.memberTag, rows);
     }
 
-    const now = Date.now();
+    const now = args.now;
     const members = memberRows.map((member) => {
       const allWeeks = (weeksByMember.get(member.memberTag) ?? []).sort((a, b) => {
         if (a.completed !== b.completed) return a.completed ? 1 : -1;

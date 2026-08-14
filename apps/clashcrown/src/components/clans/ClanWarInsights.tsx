@@ -1,9 +1,14 @@
 import { useQuery } from "convex/react";
+import { useState } from "react";
 import Link from "@/components/Link";
 import { clanManagementDashboardQuery } from "@/lib/clanManagement";
 
 export function ClanWarInsights({ tag }: { tag: string }) {
-  const dashboard = useQuery(clanManagementDashboardQuery, { tag: tag.replace(/^#/, "").toUpperCase() });
+  const [now] = useState(() => Date.now());
+  const dashboard = useQuery(clanManagementDashboardQuery, {
+    tag: tag.replace(/^#/, "").toUpperCase(),
+    now
+  });
 
   if (dashboard === undefined) {
     return <section className="profile-section"><p className="empty-results">Loading observed River Race history…</p></section>;

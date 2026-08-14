@@ -82,6 +82,6 @@ export const watchClanManagementAction = makeFunctionReference<
 
 export const clanManagementDashboardQuery = makeFunctionReference<
   "query",
-  { tag: string },
+  { tag: string; now: number },
   ClanManagementDashboard | null
 >("clash/clanManagement:dashboard");
