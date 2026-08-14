@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
+import { boundedInteger, envEnabled } from "./controls";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -70,6 +71,7 @@ type ClubSnapshot = {
     iconId?: number;
   }>;
 };
+type FetchTelemetry = { endpoint: string; status: number };
 
 class UpstreamError extends Error {
   constructor(
@@ -233,20 +235,29 @@ function latestBattleTime(items: unknown[]): string | undefined {
   }, undefined);
 }
 
-async function fetchJson(ctx: ActionCtx, path: string, endpoint: string): Promise<unknown> {
+async function fetchJson(
+  _ctx: ActionCtx,
+  path: string,
+  endpoint: string,
+  telemetry: FetchTelemetry[],
+): Promise<unknown> {
   const token = process.env.BRAWL_STARS_API_TOKEN?.trim();
-  if (!token) throw new UpstreamError("BRAWL_STARS_API_TOKEN is not configured", 0);
+  if (!token) {
+    telemetry.push({ endpoint, status: 0 });
+    throw new UpstreamError("BRAWL_STARS_API_TOKEN is not configured", 0);
+  }
 
   const baseUrl = (process.env.BRAWL_STARS_API_BASE_URL || "https://api.brawlstars.com/v1").replace(/\/$/, "");
-  const response = await fetch(`${baseUrl}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  await ctx.runMutation(internal.brawl.pipeline.logFetch, {
-    endpoint,
-    status: response.status,
-    ok: response.ok,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error) {
+    telemetry.push({ endpoint, status: 0 });
+    throw error;
+  }
+  telemetry.push({ endpoint, status: response.status });
 
   if (!response.ok) {
     throw new UpstreamError(`Brawl Stars API returned ${response.status}`, response.status);
@@ -254,28 +265,59 @@ async function fetchJson(ctx: ActionCtx, path: string, endpoint: string): Promis
   return await response.json();
 }
 
+async function recordTelemetry(ctx: ActionCtx, fetches: FetchTelemetry[]): Promise<void> {
+  if (!fetches.length) return;
+  await ctx.runMutation(internal.brawl.pipeline.recordFetchBatch, { scope: "crawl", fetches });
+  fetches.length = 0;
+}
+
 export const discover = internalAction({
   args: {},
   returns: v.object({ discovered: v.number(), added: v.number(), failures: v.number() }),
   handler: async (ctx) => {
+    if (!envEnabled(process.env.BRAWL_CRAWLER_ENABLED)) {
+      return { discovered: 0, added: 0, failures: 0 };
+    }
+    const clubLimit = integerEnv("BRAWL_CLUB_SEED", 10, 50);
+    const budgetLimit = boundedInteger(process.env.BRAWL_CRAWL_MAX_CALLS_PER_HOUR, 500, 0, 10_000);
+    const budget = await ctx.runMutation(internal.brawl.pipeline.reserveBudget, {
+      scope: "crawl",
+      requested: 2 + clubLimit,
+      limit: budgetLimit,
+    });
+    if (budget.granted < 1) return { discovered: 0, added: 0, failures: 0 };
+
     const runId = await ctx.runMutation(internal.brawl.pipeline.startRun, { job: "discover" });
+    const telemetry: FetchTelemetry[] = [];
     let discovered = 0;
     let added = 0;
     let failures = 0;
 
     try {
       const rankingLimit = integerEnv("BRAWL_DISCOVER_LIMIT", 200, 200);
-      const clubLimit = integerEnv("BRAWL_CLUB_SEED", 10, 50);
-      const [playerRankingsResult, clubRankingsResult] = await Promise.allSettled([
-        fetchJson(ctx, `/rankings/global/players?limit=${rankingLimit}`, "rankings/players"),
-        fetchJson(ctx, `/rankings/global/clubs?limit=${clubLimit}`, "rankings/clubs"),
-      ]);
-      if (playerRankingsResult.status === "rejected") throw playerRankingsResult.reason;
-      const playerRankings = playerRankingsResult.value;
-      const clubRankings = clubRankingsResult.status === "fulfilled" ? clubRankingsResult.value : { items: [] };
-      if (clubRankingsResult.status === "rejected") {
-        failures += 1;
-        console.error("Failed to discover club rankings", clubRankingsResult.reason);
+      let callsRemaining = budget.granted;
+      const playerRankings = await fetchJson(
+        ctx,
+        `/rankings/global/players?limit=${rankingLimit}`,
+        "rankings/players",
+        telemetry,
+      );
+      callsRemaining -= 1;
+      let clubRankings: unknown = { items: [] };
+      if (callsRemaining > 0) {
+        try {
+          clubRankings = await fetchJson(
+            ctx,
+            `/rankings/global/clubs?limit=${clubLimit}`,
+            "rankings/clubs",
+            telemetry,
+          );
+          callsRemaining -= 1;
+        } catch (error) {
+          failures += 1;
+          callsRemaining -= 1;
+          console.error("Failed to discover club rankings", error);
+        }
       }
 
       const targets: CrawlTargetInput[] = tagsFromItems(playerRankings).map((tag, index) => ({
@@ -288,12 +330,15 @@ export const discover = internalAction({
         .filter((item): item is PlayerSighting => item !== null);
 
       for (const clubTag of tagsFromItems(clubRankings)) {
+        if (callsRemaining <= 0) break;
         try {
           const clubPayload = await fetchJson(
             ctx,
             `/clubs/${encodeURIComponent(`#${clubTag}`)}`,
             "clubs/detail",
+            telemetry,
           );
+          callsRemaining -= 1;
           const club = asRecord(clubPayload);
           const trackedClub = clubSnapshot(clubPayload);
           if (trackedClub) {
@@ -308,6 +353,7 @@ export const discover = internalAction({
             if (sighting) sightings.push(sighting);
           }
         } catch (error) {
+          callsRemaining -= 1;
           failures += 1;
           console.error("Failed to discover club members", clubTag, error);
         }
@@ -337,6 +383,7 @@ export const discover = internalAction({
           { name: "api_failures", amount: failures },
         ],
       });
+      await recordTelemetry(ctx, telemetry);
       await ctx.runMutation(internal.brawl.pipeline.finishRun, {
         id: runId,
         ok: true,
@@ -346,6 +393,7 @@ export const discover = internalAction({
       return { discovered, added, failures };
     } catch (error) {
       const note = error instanceof Error ? error.message : "Discovery failed";
+      await recordTelemetry(ctx, telemetry);
       await ctx.runMutation(internal.brawl.pipeline.finishRun, {
         id: runId,
         ok: false,
@@ -362,34 +410,62 @@ export const crawl = internalAction({
   args: {},
   returns: v.object({ fetched: v.number(), battles: v.number(), failures: v.number() }),
   handler: async (ctx) => {
-    const runId = await ctx.runMutation(internal.brawl.pipeline.startRun, { job: "crawl" });
+    if (!envEnabled(process.env.BRAWL_CRAWLER_ENABLED)) {
+      return { fetched: 0, battles: 0, failures: 0 };
+    }
     const batchSize = integerEnv("BRAWL_CRAWL_BATCH", 8, 25);
     const revisitMinutes = integerEnv("BRAWL_CRAWL_REVISIT_MINUTES", 30, 24 * 60);
     const revisitMs = revisitMinutes * 60 * 1_000;
+    const profileRevisitHours = integerEnv("BRAWL_PROFILE_REVISIT_HOURS", 12, 7 * 24);
+    const budgetLimit = boundedInteger(process.env.BRAWL_CRAWL_MAX_CALLS_PER_HOUR, 500, 0, 10_000);
+    const claim = await ctx.runMutation(internal.brawl.pipeline.claimTargets, {
+      limit: batchSize,
+      leaseMs: 5 * 60 * 1_000,
+      profileRevisitMs: profileRevisitHours * 60 * 60 * 1_000,
+      budgetLimit,
+    });
+    if (!claim.targets.length) return { fetched: 0, battles: 0, failures: 0 };
+
+    const runId = await ctx.runMutation(internal.brawl.pipeline.startRun, { job: "crawl" });
+    const telemetry: FetchTelemetry[] = [];
     let fetched = 0;
     let battles = 0;
     let failures = 0;
 
     try {
-      const targets = await ctx.runMutation(internal.brawl.pipeline.claimTargets, {
-        limit: batchSize,
-        leaseMs: 5 * 60 * 1_000,
-      });
-
-      for (const target of targets) {
+      for (const target of claim.targets) {
+        let profileAttempted = false;
+        let profileOk = false;
         try {
           const encodedTag = encodeURIComponent(`#${target.tag}`);
-          const [profilePayload, payload] = await Promise.all([
-            fetchJson(ctx, `/players/${encodedTag}`, "players/detail"),
-            fetchJson(ctx, `/players/${encodedTag}/battlelog`, "players/battlelog"),
-          ]);
-          const profile = profileSnapshot(profilePayload);
-          if (profile) {
-            const snapshot = await ctx.runMutation(internal.brawl.players.recordProfile, profile);
-            if (snapshot.createdSnapshot) {
-              await ctx.runMutation(internal.brawl.pipeline.bumpCounters, {
-                counters: [{ name: "profile_snapshots", amount: 1 }],
-              });
+          const payload = await fetchJson(
+            ctx,
+            `/players/${encodedTag}/battlelog`,
+            "players/battlelog",
+            telemetry,
+          );
+          if (target.fetchProfile) {
+            profileAttempted = true;
+            try {
+              const profilePayload = await fetchJson(
+                ctx,
+                `/players/${encodedTag}`,
+                "players/detail",
+                telemetry,
+              );
+              const profile = profileSnapshot(profilePayload);
+              if (profile) {
+                profileOk = true;
+                const snapshot = await ctx.runMutation(internal.brawl.players.recordProfile, profile);
+                if (snapshot.createdSnapshot) {
+                  await ctx.runMutation(internal.brawl.pipeline.bumpCounters, {
+                    counters: [{ name: "profile_snapshots", amount: 1 }],
+                  });
+                }
+              }
+            } catch (error) {
+              failures += 1;
+              console.error("Failed to refresh player profile", target.tag, error);
             }
           }
           const allItems = itemsFrom(payload);
@@ -410,14 +486,20 @@ export const crawl = internalAction({
             id: target.id,
             ok: true,
             lastBattleTime: latestBattleTime(allItems),
-            revisitMs,
+            baseRevisitMs: revisitMs,
+            battlesInserted: result.inserted,
+            profileAttempted,
+            profileOk,
           });
         } catch (error) {
           failures += 1;
           await ctx.runMutation(internal.brawl.pipeline.completeTarget, {
             id: target.id,
             ok: false,
-            revisitMs,
+            baseRevisitMs: revisitMs,
+            battlesInserted: 0,
+            profileAttempted,
+            profileOk,
           });
           console.error("Failed to crawl player", target.tag, error);
         }
@@ -430,6 +512,7 @@ export const crawl = internalAction({
           { name: "api_failures", amount: failures },
         ],
       });
+      await recordTelemetry(ctx, telemetry);
       await ctx.runMutation(internal.brawl.pipeline.finishRun, {
         id: runId,
         ok: true,
@@ -440,6 +523,7 @@ export const crawl = internalAction({
       return { fetched, battles, failures };
     } catch (error) {
       const note = error instanceof Error ? error.message : "Crawl failed";
+      await recordTelemetry(ctx, telemetry);
       await ctx.runMutation(internal.brawl.pipeline.finishRun, {
         id: runId,
         ok: false,

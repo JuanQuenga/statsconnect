@@ -102,19 +102,6 @@ export const ingestBattleLogItems = internalMutation({
     const sightings: PlayerSighting[] = [];
 
     for (const raw of args.items as BattleLogItem[]) {
-      for (const person of participants(raw.battle)) {
-        const tag = normalizedTag(person.tag || null);
-        const name = person.name?.trim();
-        if (tag && name) sightings.push({ tag, name });
-      }
-    }
-    await recordPlayerSightings(ctx, sightings);
-
-    if (focus) {
-      await ensureLookupTarget(ctx, focus.slice(1));
-    }
-
-    for (const raw of args.items as BattleLogItem[]) {
       if (focus) {
         const focusPlayer = participants(raw.battle).find((person) => normalizedTag(person.tag || null) === focus);
         const timestamp = battleTimestamp(raw.battleTime);
@@ -175,6 +162,12 @@ export const ingestBattleLogItems = internalMutation({
         .withIndex("by_dedupe", (q) => q.eq("dedupeKey", dedupeKey))
         .unique();
       if (existing) continue;
+
+      for (const person of people) {
+        const tag = normalizedTag(person.tag || null);
+        const name = person.name?.trim();
+        if (tag && name) sightings.push({ tag, name });
+      }
 
       const brawlerIds = people
         .map((p) => Number(p.brawler?.id))
@@ -304,6 +297,8 @@ export const ingestBattleLogItems = internalMutation({
         }
       }
     }
+
+    await recordPlayerSightings(ctx, sightings);
 
     return { inserted };
   },
@@ -505,23 +500,6 @@ async function bumpDailyMatchupStat(
     brawlerId: args.brawlerId,
     opponentBrawlerId: args.opponentBrawlerId,
     ...values,
-  });
-}
-
-async function ensureLookupTarget(ctx: MutationCtx, tag: string): Promise<void> {
-  const existing = await ctx.db
-    .query("brawlCrawlTargets")
-    .withIndex("by_tag", (q) => q.eq("tag", tag))
-    .unique();
-  if (existing) return;
-
-  await ctx.db.insert("brawlCrawlTargets", {
-    tag,
-    source: "lookup",
-    priority: 500,
-    nextDueAt: Date.now() + 30 * 60 * 1_000,
-    consecutiveFailures: 0,
-    disabled: false,
   });
 }
 

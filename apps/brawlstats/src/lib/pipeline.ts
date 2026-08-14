@@ -4,9 +4,24 @@ import { makeFunctionReference } from "convex/server";
 export type PipelineStatus = {
   now: number;
   counters: Array<{ name: string; value: number; updatedAt: number }>;
-  targets: { total: number; due: number; capped: boolean };
+  targets: { total: number; due: number; expiring: number; capped: boolean };
   battlesLast24Hours: { count: number; capped: boolean };
-  apiCallsLastHour: { total: number; failures: number; capped: boolean };
+  apiCallsLastHour: {
+    total: number;
+    failures: number;
+    rateLimited: number;
+    serverErrors: number;
+    capped: boolean;
+    windowStartedAt: number;
+  };
+  controls: {
+    crawlerEnabled: boolean;
+    publicUpstreamEnabled: boolean;
+    crawlHourlyLimit: number;
+    publicHourlyLimit: number;
+    crawlReserved: number;
+    publicReserved: number;
+  };
   recentRuns: Array<{
     id: string;
     job: string;
