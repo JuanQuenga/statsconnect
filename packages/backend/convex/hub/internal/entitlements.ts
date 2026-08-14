@@ -71,7 +71,7 @@ export const applyBillingUpdate = internalMutation({
           index.eq("subject", args.subject).eq("status", "active"),
         )
         .take(MAX_ACCOUNT_WATCHES);
-      if (stillPremium && args.expiresAt !== undefined) {
+      if (stillPremium) {
         for (const demand of activeDemands) {
           await ctx.db.patch(demand._id, {
             expiresAt: args.expiresAt,

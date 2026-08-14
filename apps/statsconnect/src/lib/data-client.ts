@@ -20,7 +20,7 @@ const convexUrl = import.meta.env.VITE_CONVEX_URL?.trim();
 const convex = convexUrl ? new ConvexHttpClient(convexUrl, { logger: false }) : null;
 
 const refs = {
-  getAccess: makeFunctionReference<"query", Record<string, never>, AccessSnapshot>("hub/access:getAccess"),
+  getAccess: makeFunctionReference<"query", { now: number }, AccessSnapshot>("hub/access:getAccess"),
   getHubState: makeFunctionReference<"query", { viewerId: string }, HubState>("hub/profiles:getHubState"),
   preview: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, AdapterResult<ProfileSummary>>("hub/profiles:preview"),
   connect: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, { profile: ConnectedProfile; activeProfileId: ProfileId; summary: AdapterResult<ProfileSummary> }>("hub/profiles:connect"),
@@ -97,7 +97,7 @@ export const dataClient = {
   mode: convex ? "convex" as const : "unconfigured" as const,
 
   getAccess(): Promise<AccessSnapshot> {
-    return request((client) => client.query(refs.getAccess, {}));
+    return request((client) => client.query(refs.getAccess, { now: Date.now() }));
   },
 
   getHubState(): Promise<HubState> {
