@@ -12,6 +12,32 @@ export type ClashResponse<T> =
 
 type ApiErrorBody = { message?: string; reason?: string };
 
+export type ClashFetchObservation = {
+  endpoint: string;
+  status: number;
+  ok: boolean;
+  fetchedAt: number;
+};
+
+/** Keeps aggregate telemetry cardinality independent of player/clan tags. */
+export function telemetryEndpoint(endpoint: string): string {
+  const path = endpoint.split("?")[0];
+  return path
+    .replace(/\/players\/%23[^/]+/g, "/players/{tag}")
+    .replace(/\/clans\/%23[^/]+/g, "/clans/{tag}")
+    .replace(/\/leaderboard\/\d+/g, "/leaderboard/{id}")
+    .replace(/\/locations\/\d+/g, "/locations/{id}");
+}
+
+function observe(
+  observations: ClashFetchObservation[] | undefined,
+  endpoint: string,
+  status: number,
+  ok: boolean
+) {
+  observations?.push({ endpoint: telemetryEndpoint(endpoint), status, ok, fetchedAt: Date.now() });
+}
+
 export function apiErrorMessage(status: number, body: ApiErrorBody = {}) {
   if (status === 400) return "That tag is not valid.";
   if (status === 403) return "The Clash Royale API rejected this server. Check the API token and its allowed IP address.";
@@ -21,9 +47,13 @@ export function apiErrorMessage(status: number, body: ApiErrorBody = {}) {
   return body.message ?? body.reason ?? "The Clash Royale API request failed.";
 }
 
-export async function clashRequest<T>(endpoint: string): Promise<ClashResponse<T>> {
+export async function clashRequest<T>(
+  endpoint: string,
+  observations?: ClashFetchObservation[]
+): Promise<ClashResponse<T>> {
   const token = process.env.CLASH_ROYALE_API_TOKEN;
   if (!token) {
+    observe(observations, endpoint, 0, false);
     return {
       ok: false,
       status: 0,
@@ -40,6 +70,7 @@ export async function clashRequest<T>(endpoint: string): Promise<ClashResponse<T
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
     });
   } catch {
+    observe(observations, endpoint, 0, false);
     return {
       ok: false,
       status: 0,
@@ -49,6 +80,7 @@ export async function clashRequest<T>(endpoint: string): Promise<ClashResponse<T
   }
 
   if (!response.ok) {
+    observe(observations, endpoint, response.status, false);
     let body: ApiErrorBody = {};
     try {
       body = (await response.json()) as ApiErrorBody;
@@ -63,5 +95,6 @@ export async function clashRequest<T>(endpoint: string): Promise<ClashResponse<T
     };
   }
 
+  observe(observations, endpoint, response.status, true);
   return { ok: true, status: response.status, data: (await response.json()) as T };
 }

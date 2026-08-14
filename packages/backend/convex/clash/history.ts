@@ -1,8 +1,8 @@
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { internalMutation, query } from "../_generated/server";
+import { internalMutation, query, type MutationCtx } from "../_generated/server";
 
 const THREE_YEARS_MS = 3 * 365 * 24 * 60 * 60 * 1000;
 const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
@@ -82,6 +82,43 @@ function withoutUndefined<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
 }
 
+type PlayerSnapshotInput = Infer<typeof playerSnapshotInput>;
+
+async function recordPlayerSnapshotValue(
+  ctx: MutationCtx,
+  args: {
+    player: PlayerSnapshotInput;
+    source: "api_profile" | "battle_log";
+    observedAt: number;
+  }
+) {
+  const player = args.player;
+  const fingerprint = stableFingerprint(player);
+  const latest = await ctx.db
+    .query("clashPlayerSnapshots")
+    .withIndex("by_tag_and_source_and_observed_at", (q) => q.eq("tag", player.tag).eq("source", args.source))
+    .order("desc")
+    .first();
+
+  if (latest?.fingerprint === fingerprint) {
+    await ctx.db.patch(latest._id, {
+      lastObservedAt: args.observedAt,
+      retentionAt: args.observedAt + THREE_YEARS_MS
+    });
+    return false;
+  }
+
+  await ctx.db.insert("clashPlayerSnapshots", {
+    ...player,
+    source: args.source,
+    fingerprint,
+    observedAt: args.observedAt,
+    lastObservedAt: args.observedAt,
+    retentionAt: args.observedAt + THREE_YEARS_MS
+  });
+  return true;
+}
+
 /** Records a profile only when a meaningful field changed since the last API refresh. */
 export const recordPlayerSnapshot = internalMutation({
   args: {
@@ -91,31 +128,27 @@ export const recordPlayerSnapshot = internalMutation({
   },
   returns: v.object({ inserted: v.boolean() }),
   handler: async (ctx, args) => {
-    const player = args.player;
-    const fingerprint = stableFingerprint(player);
-    const latest = await ctx.db
-      .query("clashPlayerSnapshots")
-      .withIndex("by_tag_and_source_and_observed_at", (q) => q.eq("tag", player.tag).eq("source", args.source))
-      .order("desc")
-      .first();
+    return { inserted: await recordPlayerSnapshotValue(ctx, args) };
+  }
+});
 
-    if (latest?.fingerprint === fingerprint) {
-      await ctx.db.patch(latest._id, {
-        lastObservedAt: args.observedAt,
-        retentionAt: args.observedAt + THREE_YEARS_MS
-      });
-      return { inserted: false };
+/** One transaction per crawl batch instead of one child mutation per tag. */
+export const recordPlayerSnapshots = internalMutation({
+  args: {
+    snapshots: v.array(v.object({
+      player: playerSnapshotInput,
+      source: v.union(v.literal("api_profile"), v.literal("battle_log")),
+      observedAt: v.number()
+    }))
+  },
+  returns: v.object({ inserted: v.number(), seen: v.number() }),
+  handler: async (ctx, args) => {
+    const snapshots = args.snapshots.slice(0, 50);
+    let inserted = 0;
+    for (const snapshot of snapshots) {
+      inserted += Number(await recordPlayerSnapshotValue(ctx, snapshot));
     }
-
-    await ctx.db.insert("clashPlayerSnapshots", {
-      ...player,
-      source: args.source,
-      fingerprint,
-      observedAt: args.observedAt,
-      lastObservedAt: args.observedAt,
-      retentionAt: args.observedAt + THREE_YEARS_MS
-    });
-    return { inserted: true };
+    return { inserted, seen: snapshots.length };
   }
 });
 

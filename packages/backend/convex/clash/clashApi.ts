@@ -4,6 +4,7 @@ import { actionGeneric, anyApi } from "convex/server";
 import type { GenericActionCtx, GenericDataModel } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { normalizeTag, tagPath } from "./lib/tag";
+import { telemetryEndpoint, type ClashFetchObservation } from "./clashFetch";
 import type {
   ApiBattle,
   ApiCardList,
@@ -66,6 +67,19 @@ const cacheApi = anyApi.clash.cache;
 const playersApi = anyApi.clash.players;
 const historyApi = anyApi.clash.history;
 type ActionCtx = GenericActionCtx<GenericDataModel>;
+const cachedPayloadValidator = v.object({ data: v.any(), fetchedAt: v.number(), stale: v.boolean() });
+
+async function withFetchTelemetry<T>(
+  ctx: ActionCtx,
+  body: (fetches: ClashFetchObservation[]) => Promise<T>
+): Promise<T> {
+  const fetches: ClashFetchObservation[] = [];
+  try {
+    return await body(fetches);
+  } finally {
+    if (fetches.length) await ctx.runMutation(cacheApi.recordFetches, { fetches });
+  }
+}
 
 function defined<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
@@ -208,9 +222,10 @@ function apiErrorMessage(status: number, body: ApiErrorBody) {
   return body.message ?? body.reason ?? "The Clash Royale API request failed.";
 }
 
-async function fetchClash<T>(ctx: ActionCtx, endpoint: string) {
+async function fetchClash<T>(endpoint: string, fetches: ClashFetchObservation[]) {
   const token = process.env.CLASH_ROYALE_API_TOKEN;
   if (!token) {
+    fetches.push({ endpoint: telemetryEndpoint(endpoint), status: 0, ok: false, fetchedAt: Date.now() });
     throw new ConvexError({
       code: "MISSING_API_TOKEN",
       message: "Add CLASH_ROYALE_API_TOKEN to the Convex deployment environment."
@@ -224,14 +239,15 @@ async function fetchClash<T>(ctx: ActionCtx, endpoint: string) {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
     });
   } catch {
+    fetches.push({ endpoint: telemetryEndpoint(endpoint), status: 0, ok: false, fetchedAt: Date.now() });
     throw new ConvexError({
       code: "CLASH_API_NETWORK",
       message: "The Clash Royale API could not be reached from the backend."
     });
   }
 
-  await ctx.runMutation(cacheApi.logFetch, {
-    endpoint,
+  fetches.push({
+    endpoint: telemetryEndpoint(endpoint),
     status: response.status,
     ok: response.ok,
     fetchedAt: Date.now()
@@ -275,7 +291,12 @@ async function saveCache(
 
 export const getPlayerBundle = actionGeneric({
   args: { tag: v.string(), force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<PlayerBundlePayload> => {
+  returns: v.object({
+    player: cachedPayloadValidator,
+    battles: cachedPayloadValidator,
+    chests: cachedPayloadValidator
+  }),
+  handler: async (ctx, args): Promise<PlayerBundlePayload> => withFetchTelemetry(ctx, async (fetches) => {
     const tag = normalizeActionTag(args.tag);
     const keys = {
       player: `player:${tag}`,
@@ -302,9 +323,9 @@ export const getPlayerBundle = actionGeneric({
     try {
       const encodedTag = tagPath(tag);
       const [player, battles, chests] = await Promise.all([
-        fetchClash<ApiPlayer>(ctx, `/players/${encodedTag}`),
-        fetchClash<ApiBattle[]>(ctx, `/players/${encodedTag}/battlelog`),
-        fetchClash<ApiChestList>(ctx, `/players/${encodedTag}/upcomingchests`)
+        fetchClash<ApiPlayer>(`/players/${encodedTag}`, fetches),
+        fetchClash<ApiBattle[]>(`/players/${encodedTag}/battlelog`, fetches),
+        fetchClash<ApiChestList>(`/players/${encodedTag}/upcomingchests`, fetches)
       ]);
       const [playerFetchedAt, battlesFetchedAt, chestsFetchedAt] = await Promise.all([
         saveCache(ctx, keys.player, "player", player, {
@@ -353,12 +374,13 @@ export const getPlayerBundle = actionGeneric({
       }
       throw error;
     }
-  }
+  })
 });
 
 export const getClanBundle = actionGeneric({
   args: { tag: v.string(), force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<ClanBundlePayload> => {
+  returns: v.object({ clan: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<ClanBundlePayload> => withFetchTelemetry(ctx, async (fetches) => {
     const tag = normalizeActionTag(args.tag);
     const key = `clan:${tag}`;
     const cached = (await ctx.runQuery(cacheApi.get, { key })) as CacheDocument | null;
@@ -368,7 +390,7 @@ export const getClanBundle = actionGeneric({
     }
 
     try {
-      const clan = await fetchClash<ApiClan>(ctx, `/clans/${tagPath(tag)}`);
+      const clan = await fetchClash<ApiClan>(`/clans/${tagPath(tag)}`, fetches);
       const fetchedAt = await saveCache(ctx, key, "clan", clan, {
         kind: "clan",
         tag,
@@ -391,12 +413,13 @@ export const getClanBundle = actionGeneric({
       if (cached) return { clan: cachedPayload<ApiClan>(cached, true) };
       throw error;
     }
-  }
+  })
 });
 
 export const getCards = actionGeneric({
   args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<CardsPayload> => {
+  returns: v.object({ cards: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<CardsPayload> => withFetchTelemetry(ctx, async (fetches) => {
     const key = "cards:global";
     const cached = (await ctx.runQuery(cacheApi.get, { key })) as CacheDocument | null;
 
@@ -405,14 +428,14 @@ export const getCards = actionGeneric({
     }
 
     try {
-      const cards = await fetchClash<ApiCardList>(ctx, "/cards");
+      const cards = await fetchClash<ApiCardList>("/cards", fetches);
       const fetchedAt = await saveCache(ctx, key, "cards", cards);
       return { cards: { data: cards, fetchedAt, stale: false } };
     } catch (error) {
       if (cached) return { cards: cachedPayload<ApiCardList>(cached, true) };
       throw error;
     }
-  }
+  })
 });
 
 /**
@@ -428,6 +451,7 @@ async function cachedFetch<T>(
     endpoint: string;
     force?: boolean;
     ttlMs?: number;
+    fetches: ClashFetchObservation[];
     onFetched?: (data: T, observedAt: number) => Promise<void>;
   }
 ): Promise<CachedPayload<T>> {
@@ -438,7 +462,7 @@ async function cachedFetch<T>(
   }
 
   try {
-    const data = await fetchClash<T>(ctx, options.endpoint);
+    const data = await fetchClash<T>(options.endpoint, options.fetches);
     const fetchedAt = Date.now();
     await ctx.runMutation(cacheApi.put, {
       key: options.key,
@@ -458,7 +482,8 @@ async function cachedFetch<T>(
 /** Clan Wars 2. Both endpoints 404 for clans that have never entered a river race. */
 export const getClanWar = actionGeneric({
   args: { tag: v.string(), force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<ClanWarPayload> => {
+  returns: v.object({ currentRace: cachedPayloadValidator, raceLog: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<ClanWarPayload> => withFetchTelemetry(ctx, async (fetches) => {
     const tag = normalizeActionTag(args.tag);
     const encoded = tagPath(tag);
 
@@ -469,12 +494,14 @@ export const getClanWar = actionGeneric({
         key: `war:current:${tag}`,
         kind: "war",
         endpoint: `/clans/${encoded}/currentriverrace`,
+        fetches,
         force: args.force
       }).catch(() => null),
       cachedFetch<ApiRiverRaceLog>(ctx, {
         key: `war:log:${tag}`,
         kind: "war",
         endpoint: `/clans/${encoded}/riverracelog`,
+        fetches,
         force: args.force
       }).catch(() => null)
     ]);
@@ -485,21 +512,23 @@ export const getClanWar = actionGeneric({
       currentRace: currentRace ?? empty<ApiCurrentRiverRace>(),
       raceLog: raceLog ?? empty<ApiRiverRaceLog>()
     };
-  }
+  })
 });
 
 /** Countries and regions used to scope every ranking. Changes rarely, so cache for a day. */
 export const getLocations = actionGeneric({
   args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<LocationsPayload> => ({
+  returns: v.object({ locations: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<LocationsPayload> => withFetchTelemetry(ctx, async (fetches) => ({
     locations: await cachedFetch<ApiPaged<ApiLocation>>(ctx, {
       key: "locations:all",
       kind: "locations",
       endpoint: "/locations?limit=300",
+      fetches,
       force: args.force,
       ttlMs: 24 * 60 * 60 * 1000
     })
-  })
+  }))
 });
 
 const rankingKind = v.union(v.literal("players"), v.literal("clans"), v.literal("clanwars"));
@@ -512,7 +541,8 @@ export const getRankings = actionGeneric({
     limit: v.optional(v.number()),
     force: v.optional(v.boolean())
   },
-  handler: async (ctx, args): Promise<RankingsPayload> => {
+  returns: v.object({ kind: rankingKind, locationId: v.number(), rankings: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<RankingsPayload> => withFetchTelemetry(ctx, async (fetches) => {
     const locationId = args.locationId ?? GLOBAL_LOCATION_ID;
     const limit = Math.min(Math.max(args.limit ?? 100, 1), 1000);
     const kind = args.kind as RankingKind;
@@ -527,6 +557,7 @@ export const getRankings = actionGeneric({
         key: `rankings:${kind}:${locationId}:${limit}`,
         kind: "rankings",
         endpoint: `/locations/${locationId}/rankings/${kind}?limit=${limit}`,
+        fetches,
         force: args.force,
         onFetched: async (data, observedAt) => {
           await ctx.runMutation(historyApi.recordLeaderboardSnapshot, {
@@ -537,26 +568,29 @@ export const getRankings = actionGeneric({
         }
       })
     };
-  }
+  })
 });
 
 /** Path of Legends seasons. Each entry's id feeds getLeaderboard below. */
 export const getLeaderboards = actionGeneric({
   args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<LeaderboardListPayload> => ({
+  returns: v.object({ leaderboards: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<LeaderboardListPayload> => withFetchTelemetry(ctx, async (fetches) => ({
     leaderboards: await cachedFetch<ApiPaged<ApiLeaderboard>>(ctx, {
       key: "leaderboards:all",
       kind: "leaderboards",
       endpoint: "/leaderboards",
+      fetches,
       force: args.force,
       ttlMs: 6 * 60 * 60 * 1000
     })
-  })
+  }))
 });
 
 export const getLeaderboard = actionGeneric({
   args: { leaderboardId: v.number(), limit: v.optional(v.number()), force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<LeaderboardPayload> => {
+  returns: v.object({ leaderboard: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<LeaderboardPayload> => withFetchTelemetry(ctx, async (fetches) => {
     const limit = Math.min(Math.max(args.limit ?? 100, 1), 1000);
     const boardsCache = (await ctx.runQuery(cacheApi.get, { key: "leaderboards:all" })) as CacheDocument | null;
     const boards = boardsCache ? (JSON.parse(boardsCache.payload) as ApiPaged<ApiLeaderboard>).items ?? [] : [];
@@ -566,6 +600,7 @@ export const getLeaderboard = actionGeneric({
         key: `leaderboard:${args.leaderboardId}:${limit}`,
         kind: "leaderboard",
         endpoint: `/leaderboard/${args.leaderboardId}?limit=${limit}`,
+        fetches,
         force: args.force,
         onFetched: async (data, observedAt) => {
           await ctx.runMutation(historyApi.recordLeaderboardSnapshot, {
@@ -581,7 +616,7 @@ export const getLeaderboard = actionGeneric({
         }
       })
     };
-  }
+  })
 });
 
 /**
@@ -598,7 +633,8 @@ export const searchClans = actionGeneric({
     limit: v.optional(v.number()),
     force: v.optional(v.boolean())
   },
-  handler: async (ctx, args): Promise<ClanSearchPayload> => {
+  returns: v.object({ results: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<ClanSearchPayload> => withFetchTelemetry(ctx, async (fetches) => {
     const name = args.name?.trim() ?? "";
     if (name.length > 0 && name.length < 3) {
       throw new ConvexError({ code: "SEARCH_TOO_SHORT", message: "Enter at least three characters to search clans." });
@@ -624,31 +660,35 @@ export const searchClans = actionGeneric({
         key: `clanSearch:${params.toString()}`,
         kind: "clanSearch",
         endpoint: `/clans?${params.toString()}`,
+        fetches,
         force: args.force,
         ttlMs: 5 * 60 * 1000
       })
     };
-  }
+  })
 });
 
 /** Supercell-run Global Tournaments (roughly two per month). */
 export const getGlobalTournaments = actionGeneric({
   args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<TournamentsPayload> => ({
+  returns: v.object({ tournaments: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<TournamentsPayload> => withFetchTelemetry(ctx, async (fetches) => ({
     tournaments: await cachedFetch<ApiPaged<ApiTournament>>(ctx, {
       key: "tournaments:global",
       kind: "tournaments",
       endpoint: "/globaltournaments",
+      fetches,
       force: args.force,
       ttlMs: 30 * 60 * 1000
     })
-  })
+  }))
 });
 
 /** Open community tournaments, searched by name. */
 export const searchTournaments = actionGeneric({
   args: { name: v.string(), limit: v.optional(v.number()), force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<TournamentsPayload> => {
+  returns: v.object({ tournaments: cachedPayloadValidator }),
+  handler: async (ctx, args): Promise<TournamentsPayload> => withFetchTelemetry(ctx, async (fetches) => {
     const name = args.name.trim();
     if (name.length < 3) {
       throw new ConvexError({
@@ -662,9 +702,10 @@ export const searchTournaments = actionGeneric({
         key: `tournaments:search:${name.toLowerCase()}:${limit}`,
         kind: "tournaments",
         endpoint: `/tournaments?name=${encodeURIComponent(name)}&limit=${limit}`,
+        fetches,
         force: args.force,
         ttlMs: 5 * 60 * 1000
       })
     };
-  }
+  })
 });

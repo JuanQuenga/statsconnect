@@ -48,6 +48,7 @@ export type ClanManagementDashboard = {
     observationCount: number;
     consecutiveFailures: number;
     lastError: string | null;
+    watchExpiresAt: number | null;
   };
   observationWindow: {
     firstObservedAt: number | null;
@@ -72,6 +73,12 @@ export const observeClanManagementAction = makeFunctionReference<
   { tag: string },
   { observed: boolean; observedAt: number | null }
 >("clash/clanManagementActions:observe");
+
+export const watchClanManagementAction = makeFunctionReference<
+  "action",
+  { tag: string },
+  { observed: boolean; observedAt: number | null; watchExpiresAt: number }
+>("clash/clanManagementActions:watch");
 
 export const clanManagementDashboardQuery = makeFunctionReference<
   "query",

@@ -2,6 +2,9 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, query } from "../_generated/server";
 
 const SIX_HOURS = 6 * 60 * 60 * 1_000;
+const OBSERVATION_LEASE_MS = 15 * 60 * 1_000;
+const WATCH_LEASE_MS = 7 * 24 * 60 * 60 * 1_000;
+const ON_DEMAND_RETENTION_MS = 90 * 24 * 60 * 60 * 1_000;
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1_000;
 const RETENTION_MS = 12 * 7 * 24 * 60 * 60 * 1_000;
 const MAX_MEMBERS = 50;
@@ -99,7 +102,8 @@ const dashboardResult = v.union(
       nextObservationAt: v.number(),
       observationCount: v.number(),
       consecutiveFailures: v.number(),
-      lastError: v.union(v.string(), v.null())
+      lastError: v.union(v.string(), v.null()),
+      watchExpiresAt: v.union(v.number(), v.null())
     }),
     observationWindow: v.object({
       firstObservedAt: v.union(v.number(), v.null()),
@@ -148,7 +152,11 @@ function roleLabel(role: string): string {
 }
 
 export const prepareObservation = internalMutation({
-  args: { tag: v.string(), requestedAt: v.number() },
+  args: {
+    tag: v.string(),
+    requestedAt: v.number(),
+    demand: v.union(v.literal("oneOff"), v.literal("watch"), v.literal("scheduled"))
+  },
   returns: v.object({ shouldObserve: v.boolean(), lastObservedAt: v.union(v.number(), v.null()) }),
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -156,13 +164,32 @@ export const prepareObservation = internalMutation({
       .withIndex("by_tag", (q) => q.eq("tag", args.tag))
       .unique();
 
+    if (args.demand === "scheduled" && (!existing?.watchExpiresAt || existing.watchExpiresAt <= args.requestedAt)) {
+      return { shouldObserve: false, lastObservedAt: existing?.lastObservedAt ?? null };
+    }
+
+    const watchPatch = args.demand === "watch"
+      ? { watchExpiresAt: args.requestedAt + WATCH_LEASE_MS, watchTier: 0 }
+      : {};
     if (existing && existing.nextObservationAt > args.requestedAt) {
+      if (args.demand === "watch") {
+        await ctx.db.patch(existing._id, {
+          ...watchPatch,
+          retainUntil: args.requestedAt + ON_DEMAND_RETENTION_MS
+        });
+      }
       return { shouldObserve: false, lastObservedAt: existing.lastObservedAt ?? null };
     }
 
-    const leaseUntil = args.requestedAt + 15 * 60 * 1_000;
+    const leaseUntil = args.requestedAt + OBSERVATION_LEASE_MS;
     if (existing) {
-      await ctx.db.patch("clashTrackedClans", existing._id, { nextObservationAt: leaseUntil, lastError: undefined });
+      await ctx.db.patch("clashTrackedClans", existing._id, {
+        ...watchPatch,
+        nextObservationAt: leaseUntil,
+        leaseUntil,
+        retainUntil: args.requestedAt + ON_DEMAND_RETENTION_MS,
+        lastError: undefined
+      });
       return { shouldObserve: true, lastObservedAt: existing.lastObservedAt ?? null };
     }
 
@@ -170,6 +197,9 @@ export const prepareObservation = internalMutation({
       tag: args.tag,
       trackingStartedAt: args.requestedAt,
       nextObservationAt: leaseUntil,
+      leaseUntil,
+      retainUntil: args.requestedAt + ON_DEMAND_RETENTION_MS,
+      ...watchPatch,
       observationCount: 0,
       consecutiveFailures: 0
     });
@@ -181,12 +211,17 @@ export const dueTrackedClans = internalQuery({
   args: { now: v.number(), limit: v.number() },
   returns: v.array(v.object({ tag: v.string() })),
   handler: async (ctx, args) => {
-    const limit = Math.max(1, Math.min(3, Math.floor(args.limit)));
+    const limit = Math.max(1, Math.min(10, Math.floor(args.limit)));
     const rows = await ctx.db
       .query("clashTrackedClans")
-      .withIndex("by_next_observation_at", (q) => q.lte("nextObservationAt", args.now))
-      .take(limit);
-    return rows.map((row) => ({ tag: row.tag }));
+      .withIndex("by_watch_tier_and_next_observation_at", (q) =>
+        q.eq("watchTier", 0).lte("nextObservationAt", args.now)
+      )
+      .take(Math.min(50, limit * 5));
+    return rows
+      .filter((row) => (row.watchExpiresAt ?? 0) > args.now && (row.leaseUntil ?? 0) <= args.now)
+      .slice(0, limit)
+      .map((row) => ({ tag: row.tag }));
   }
 });
 
@@ -392,6 +427,8 @@ export const recordObservation = internalMutation({
         name: args.clan.name,
         lastObservedAt: args.observedAt,
         nextObservationAt: args.observedAt + SIX_HOURS,
+        leaseUntil: undefined,
+        retainUntil: args.observedAt + ON_DEMAND_RETENTION_MS,
         observationCount: tracked.observationCount + 1,
         consecutiveFailures: 0,
         lastError: undefined
@@ -531,7 +568,8 @@ export const dashboard = query({
         nextObservationAt: tracked.nextObservationAt,
         observationCount: tracked.observationCount,
         consecutiveFailures: tracked.consecutiveFailures,
-        lastError: tracked.lastError ?? null
+        lastError: tracked.lastError ?? null,
+        watchExpiresAt: tracked.watchExpiresAt ?? null
       },
       observationWindow: {
         firstObservedAt: oldestSnapshot?.observedAt ?? null,
@@ -573,13 +611,37 @@ export const pruneSnapshots = internalMutation({
       ctx.db.query("clashClanRosterSnapshots").withIndex("by_observed_at", (q) => q.lt("observedAt", cutoff)).take(100),
       ctx.db.query("clashClanMemberSnapshots").withIndex("by_observed_at", (q) => q.lt("observedAt", cutoff)).take(300),
       ctx.db.query("clashClanManagementEvents").withIndex("by_observed_at", (q) => q.lt("observedAt", cutoff)).take(100),
-      ctx.db.query("clashClanWarMemberWeeks").withIndex("by_last_observed_at", (q) => q.lt("lastObservedAt", cutoff)).take(300)
+      ctx.db.query("clashClanWarMemberWeeks").withIndex("by_last_observed_at", (q) => q.lt("lastObservedAt", cutoff)).take(300),
+      ctx.db.query("clashTrackedClans").withIndex("by_retain_until", (q) => q.lt("retainUntil", args.now)).take(20)
     ]);
+    const staleActiveMembers = (
+      await Promise.all(
+        batches[4].map((tracked) =>
+          ctx.db
+            .query("clashClanActiveMembers")
+            .withIndex("by_clan_tag_and_member_tag", (q) => q.eq("clanTag", tracked.tag))
+            .take(MAX_MEMBERS + 1)
+        )
+      )
+    ).flat();
+    const legacyTracking = await ctx.db
+      .query("clashTrackedClans")
+      .withIndex("by_retain_until", (q) => q.eq("retainUntil", undefined))
+      .take(20);
+    for (const tracked of legacyTracking) {
+      await ctx.db.patch(tracked._id, { retainUntil: args.now + ON_DEMAND_RETENTION_MS });
+    }
     const rows = batches.flat();
-    for (const row of rows) await ctx.db.delete(row._id);
+    for (const row of [...rows, ...staleActiveMembers]) await ctx.db.delete(row._id);
     return {
-      deleted: rows.length,
-      hasMore: batches[0].length === 100 || batches[1].length === 300 || batches[2].length === 100 || batches[3].length === 300
+      deleted: rows.length + staleActiveMembers.length,
+      hasMore:
+        batches[0].length === 100 ||
+        batches[1].length === 300 ||
+        batches[2].length === 100 ||
+        batches[3].length === 300 ||
+        batches[4].length === 20 ||
+        legacyTracking.length === 20
     };
   }
 });

@@ -363,7 +363,12 @@ export type PipelineStatusPayload = {
   due: CountProbe;
   decksToday: CountProbe;
   battlesToday: number;
-  apiCalls: { lastHour: number; failures: number; capped: boolean };
+  apiCalls: { lastHour: number; failures: number; capped: boolean; buckets: number };
+  crawler: {
+    enabled: boolean;
+    clanWatchEnabled: boolean;
+    budgets: Record<"discover" | "crawl" | "clanWatch", { used: number; limit: number }>;
+  };
   lastRuns: PipelineRun[];
   rankingsComputedAt: number | null;
 };

@@ -4,6 +4,7 @@ import { anyApi } from "convex/server";
 import { v } from "convex/values";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
 import { normalizeTag, tagPath } from "./lib/tag";
+import { telemetryEndpoint, type ClashFetchObservation } from "./clashFetch";
 import type {
   ApiClan,
   ApiClanMember,
@@ -17,6 +18,7 @@ declare const process: { env: Record<string, string | undefined> };
 
 const managementApi = anyApi.clash.clanManagement;
 const MAX_HISTORY_WEEKS = 7;
+const WATCH_LEASE_MS = 7 * 24 * 60 * 60 * 1_000;
 
 type PrepareResult = { shouldObserve: boolean; lastObservedAt: number | null };
 type ObserveResult = { observed: boolean; observedAt: number | null };
@@ -51,11 +53,39 @@ function apiBaseUrl(): string {
   return (process.env.CLASH_ROYALE_API_BASE_URL ?? "https://api.clashroyale.com/v1").replace(/\/$/, "");
 }
 
-async function fetchClash<T>(endpoint: string, optional = false): Promise<T | null> {
+function enabled(name: string) {
+  return !["0", "false", "off"].includes((process.env[name] ?? "true").toLowerCase());
+}
+
+function envNumber(name: string, fallback: number) {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+async function fetchClash<T>(
+  endpoint: string,
+  observations: ClashFetchObservation[],
+  optional = false
+): Promise<T | null> {
   const token = process.env.CLASH_ROYALE_API_TOKEN;
-  if (!token) throw new Error("CLASH_ROYALE_API_TOKEN is not configured for roster observations.");
-  const response = await fetch(`${apiBaseUrl()}${endpoint}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
+  if (!token) {
+    observations.push({ endpoint: telemetryEndpoint(endpoint), status: 0, ok: false, fetchedAt: Date.now() });
+    throw new Error("CLASH_ROYALE_API_TOKEN is not configured for roster observations.");
+  }
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl()}${endpoint}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
+    });
+  } catch (error) {
+    observations.push({ endpoint: telemetryEndpoint(endpoint), status: 0, ok: false, fetchedAt: Date.now() });
+    throw error;
+  }
+  observations.push({
+    endpoint: telemetryEndpoint(endpoint),
+    status: response.status,
+    ok: response.ok || (optional && response.status === 404),
+    fetchedAt: Date.now()
   });
   if (optional && response.status === 404) return null;
   if (!response.ok) throw new Error(`Clash Royale API returned ${response.status} while observing the clan.`);
@@ -152,18 +182,23 @@ function mapWarWeeks(
   return weeks;
 }
 
-async function observeOne(ctx: ActionCtx, inputTag: string): Promise<ObserveResult> {
+async function observeOne(
+  ctx: ActionCtx,
+  inputTag: string,
+  demand: "oneOff" | "watch" | "scheduled"
+): Promise<ObserveResult> {
   const tag = normalizeTag(inputTag);
   const requestedAt = Date.now();
-  const prepared = await ctx.runMutation(managementApi.prepareObservation, { tag, requestedAt }) as PrepareResult;
+  const prepared = await ctx.runMutation(managementApi.prepareObservation, { tag, requestedAt, demand }) as PrepareResult;
   if (!prepared.shouldObserve) return { observed: false, observedAt: prepared.lastObservedAt };
 
+  const fetches: ClashFetchObservation[] = [];
   try {
     const encoded = tagPath(tag);
     const [clan, current, log] = await Promise.all([
-      fetchClash<ApiClan>(`/clans/${encoded}`),
-      fetchClash<ApiCurrentRiverRace>(`/clans/${encoded}/currentriverrace`, true),
-      fetchClash<ApiRiverRaceLog>(`/clans/${encoded}/riverracelog`, true)
+      fetchClash<ApiClan>(`/clans/${encoded}`, fetches),
+      fetchClash<ApiCurrentRiverRace>(`/clans/${encoded}/currentriverrace`, fetches, true),
+      fetchClash<ApiRiverRaceLog>(`/clans/${encoded}/riverracelog`, fetches, true)
     ]);
     if (!clan) throw new Error("The clan profile was not returned by the Clash Royale API.");
     const observedAt = Date.now();
@@ -188,23 +223,64 @@ async function observeOne(ctx: ActionCtx, inputTag: string): Promise<ObserveResu
     const message = error instanceof Error ? error.message : "Clan observation failed.";
     await ctx.runMutation(managementApi.recordObservationFailure, { tag, failedAt: Date.now(), message });
     throw error;
+  } finally {
+    if (fetches.length) await ctx.runMutation(anyApi.clash.cache.recordFetches, { fetches });
   }
 }
 
 export const observe = action({
   args: { tag: v.string() },
   returns: v.object({ observed: v.boolean(), observedAt: v.union(v.number(), v.null()) }),
-  handler: async (ctx, args): Promise<ObserveResult> => observeOne(ctx, args.tag)
+  handler: async (ctx, args): Promise<ObserveResult> => observeOne(ctx, args.tag, "oneOff")
+});
+
+/** Explicit renewable demand; unlike a page visit, this opts into background polling. */
+export const watch = action({
+  args: { tag: v.string() },
+  returns: v.object({
+    observed: v.boolean(),
+    observedAt: v.union(v.number(), v.null()),
+    watchExpiresAt: v.number()
+  }),
+  handler: async (ctx, args) => {
+    const requestedAt = Date.now();
+    const result = await observeOne(ctx, args.tag, "watch");
+    return { ...result, watchExpiresAt: requestedAt + WATCH_LEASE_MS };
+  }
 });
 
 export const pollTrackedClans = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const due = await ctx.runQuery(managementApi.dueTrackedClans, { now: Date.now(), limit: 3 }) as Array<{ tag: string }>;
+    if (!enabled("CLASH_CRAWLER_ENABLED") || !enabled("CLASH_CLAN_WATCH_ENABLED")) return null;
+    const perRunRequests = Math.min(envNumber("CLASH_CLAN_WATCH_REQUEST_BUDGET_PER_RUN", 9), 30);
+    const budget = await ctx.runMutation(anyApi.clash.meta.reserveRequestBudget, {
+      job: "clanWatch",
+      requested: perRunRequests,
+      dailyLimit: envNumber("CLASH_CLAN_WATCH_DAILY_REQUEST_BUDGET", 36)
+    }) as { granted: number };
+    const clanLimit = Math.floor(budget.granted / 3);
+    if (!clanLimit) {
+      if (budget.granted) {
+        await ctx.runMutation(anyApi.clash.meta.releaseRequestBudget, {
+          job: "clanWatch",
+          unused: budget.granted
+        });
+      }
+      return null;
+    }
+    const due = await ctx.runQuery(managementApi.dueTrackedClans, {
+      now: Date.now(),
+      limit: clanLimit
+    }) as Array<{ tag: string }>;
+    const unused = Math.max(0, budget.granted - due.length * 3);
+    if (unused) {
+      await ctx.runMutation(anyApi.clash.meta.releaseRequestBudget, { job: "clanWatch", unused });
+    }
     for (const clan of due) {
       try {
-        await observeOne(ctx, clan.tag);
+        await observeOne(ctx, clan.tag, "scheduled");
       } catch {
         // Failure state and a one-hour retry were recorded by observeOne.
       }

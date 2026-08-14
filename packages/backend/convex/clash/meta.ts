@@ -1,8 +1,8 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
-import { crawlSource, metaMode } from "./schema";
+import { crawlSource, crawlTier, metaMode } from "./schema";
 import { dayKey, dayKeysBack, type DeckObservation, type MetaMode } from "./lib/battles";
 
 declare const process: { env: Record<string, string | undefined> };
@@ -20,6 +20,8 @@ const RANKING_WINDOWS = [1, 7] as const;
 const MIN_TOWER_USES = 5;
 const MIN_MATCHUP_USES = 5;
 const PROFILE_HISTORY_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
+const TARGET_FIXED_REVISIT_SECONDS = 45 * 60;
+const RANKING_REFRESH_LIMIT = 250;
 
 const observation = v.object({
   fingerprint: v.string(),
@@ -50,6 +52,42 @@ function isKnownDeck(cardIds: number[]) {
   return cardIds.length === 8 && cardIds.every((cardId) => Number.isInteger(cardId) && cardId > 0);
 }
 
+type RankingBucket = {
+  day: number;
+  uses: number;
+  wins: number;
+  trophySum: number;
+  trophySamples: number;
+  arenaIds: number[];
+  arenaNames: string[];
+};
+
+function currentRankingBuckets(buckets: RankingBucket[], timestamp: number): RankingBucket[] {
+  const days = new Set(dayKeysBack(7, timestamp));
+  return buckets.filter((bucket) => days.has(bucket.day)).sort((left, right) => left.day - right.day);
+}
+
+function rankingUses(buckets: RankingBucket[], today: number) {
+  return {
+    uses1: buckets.find((bucket) => bucket.day === today)?.uses ?? 0,
+    uses7: buckets.reduce((total, bucket) => total + bucket.uses, 0)
+  };
+}
+
+function dayStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function envNumber(name: string, fallback: number) {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function envEnabled(name: string) {
+  return !["0", "false", "off"].includes((process.env[name] ?? "true").toLowerCase());
+}
+
 export async function bump(ctx: MutationCtx, name: string, delta: number) {
   if (!delta) return;
   const existing = await ctx.db
@@ -64,11 +102,21 @@ export async function bump(ctx: MutationCtx, name: string, delta: number) {
 
 export const upsertTargets = internalMutation({
   args: {
-    targets: v.array(v.object({ tag: v.string(), source: crawlSource, priority: v.number() }))
+    targets: v.array(v.object({
+      tag: v.string(),
+      source: crawlSource,
+      tier: crawlTier,
+      priority: v.number(),
+      revisitSeconds: v.number(),
+      expiresAt: v.number()
+    }))
   },
+  returns: v.object({ added: v.number(), seen: v.number() }),
   handler: async (ctx, args) => {
     let added = 0;
+    const now = Date.now();
     for (const target of args.targets) {
+      const priority = Math.max(0, Math.floor(target.priority));
       const existing = await ctx.db
         .query("clashCrawlTargets")
         .withIndex("by_tag", (q) => q.eq("tag", target.tag))
@@ -79,7 +127,11 @@ export const upsertTargets = internalMutation({
         // been disabled for repeated failures.
         await ctx.db.patch(existing._id, {
           source: target.source,
-          priority: Math.min(existing.priority, target.priority),
+          tier: target.tier,
+          priority,
+          revisitSeconds: target.revisitSeconds,
+          lastDiscoveredAt: now,
+          expiresAt: target.expiresAt,
           disabled: false,
           consecutiveFailures: 0
         });
@@ -89,15 +141,65 @@ export const upsertTargets = internalMutation({
       await ctx.db.insert("clashCrawlTargets", {
         tag: target.tag,
         source: target.source,
-        priority: target.priority,
-        nextDueAt: Date.now(),
+        tier: target.tier,
+        priority,
+        revisitSeconds: target.revisitSeconds,
+        lastDiscoveredAt: now,
+        expiresAt: target.expiresAt,
+        nextDueAt: now,
         consecutiveFailures: 0,
         disabled: false
       });
       added += 1;
     }
-    await bump(ctx, "clashCrawlTargets", added);
+    await bump(ctx, "crawlTargets", added);
     return { added, seen: args.targets.length };
+  }
+});
+
+export const reserveRequestBudget = internalMutation({
+  args: {
+    job: v.union(v.literal("discover"), v.literal("crawl"), v.literal("clanWatch")),
+    requested: v.number(),
+    dailyLimit: v.number()
+  },
+  returns: v.object({ granted: v.number(), used: v.number(), limit: v.number() }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const day = dayKey(now);
+    const requested = Math.max(0, Math.floor(args.requested));
+    const limit = Math.max(0, Math.floor(args.dailyLimit));
+    const row = await ctx.db
+      .query("clashCrawlerBudgets")
+      .withIndex("by_day_and_job", (q) => q.eq("day", day).eq("job", args.job))
+      .unique();
+    const used = row?.reserved ?? 0;
+    const granted = Math.min(requested, Math.max(0, limit - used));
+    if (row) {
+      if (granted) await ctx.db.patch(row._id, { reserved: used + granted, updatedAt: now });
+    } else if (granted) {
+      await ctx.db.insert("clashCrawlerBudgets", { day, job: args.job, reserved: granted, updatedAt: now });
+    }
+    return { granted, used: used + granted, limit };
+  }
+});
+
+export const releaseRequestBudget = internalMutation({
+  args: {
+    job: v.union(v.literal("discover"), v.literal("crawl"), v.literal("clanWatch")),
+    unused: v.number()
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const unused = Math.max(0, Math.floor(args.unused));
+    if (!unused) return null;
+    const day = dayKey(Date.now());
+    const row = await ctx.db
+      .query("clashCrawlerBudgets")
+      .withIndex("by_day_and_job", (q) => q.eq("day", day).eq("job", args.job))
+      .unique();
+    if (row) await ctx.db.patch(row._id, { reserved: Math.max(0, row.reserved - unused), updatedAt: Date.now() });
+    return null;
   }
 });
 
@@ -107,18 +209,49 @@ export const upsertTargets = internalMutation({
  */
 export const claimTargets = internalMutation({
   args: { limit: v.number(), leaseMs: v.number() },
+  returns: v.array(v.object({
+    id: v.id("clashCrawlTargets"),
+    tag: v.string(),
+    lastBattleTime: v.optional(v.number()),
+    revisitSeconds: v.number(),
+    tier: crawlTier,
+    priority: v.number()
+  })),
   handler: async (ctx, args) => {
     const now = Date.now();
-    const due = await ctx.db
-      .query("clashCrawlTargets")
-      .withIndex("by_due", (q) => q.eq("disabled", false).lte("nextDueAt", now))
-      .take(Math.min(args.limit, 50));
+    const limit = Math.min(Math.max(Math.floor(args.limit), 0), 50);
+    const due: Array<Doc<"clashCrawlTargets">> = [];
 
-    for (const target of due) {
-      await ctx.db.patch(target._id, { nextDueAt: now + args.leaseMs });
+    // Tier is the coarse service level; numeric priority decides which due
+    // targets inside the bounded tier pool are claimed first.
+    for (const tier of ["fixed", "featured", "community"] as const) {
+      const candidates = await ctx.db
+        .query("clashCrawlTargets")
+        .withIndex("by_disabled_and_tier_and_next_due_at", (q) =>
+          q.eq("disabled", false).eq("tier", tier).lte("nextDueAt", now)
+        )
+        .take(Math.min(500, Math.max(limit - due.length, 1) * 20));
+      due.push(
+        ...candidates
+          .filter((target) => (target.expiresAt ?? 0) > now)
+          .sort((left, right) => left.priority - right.priority || left.nextDueAt - right.nextDueAt)
+          .slice(0, limit - due.length)
+      );
+      if (due.length >= limit) break;
     }
 
-    return due.map((target) => ({ id: target._id, tag: target.tag, lastBattleTime: target.lastBattleTime }));
+    for (const target of due) {
+      await ctx.db.patch(target._id, { nextDueAt: now + args.leaseMs, leaseUntil: now + args.leaseMs });
+    }
+
+    return due.map((target) => ({
+      id: target._id,
+      tag: target.tag,
+      lastBattleTime: target.lastBattleTime,
+      revisitSeconds: target.revisitSeconds ?? 3 * 60 * 60,
+      tier: target.tier ?? "community",
+      priority: target.priority
+    }));
   }
 });
 
@@ -145,7 +278,8 @@ export const ingestBattles = internalMutation({
           consecutiveFailures: failures,
           // Three strikes usually means the tag was deleted or renamed.
           disabled: failures >= 3,
-          nextDueAt: now + args.revisitSeconds * 1000,
+          nextDueAt: now + (target.revisitSeconds ?? args.revisitSeconds) * 1000,
+          leaseUntil: undefined,
           lastBattleTime: args.observations.reduce(
             (newest, item) => Math.max(newest, item.battleTime),
             target.lastBattleTime ?? 0
@@ -325,6 +459,87 @@ export const ingestBattles = internalMutation({
           arenaNames: [...delta.arenaNames]
         });
       }
+
+      const candidate = await ctx.db
+        .query("clashDeckRankingCandidates")
+        .withIndex("by_mode_and_deck_hash", (q) => q.eq("mode", delta.mode).eq("deckHash", delta.deckHash))
+        .unique();
+      const buckets = currentRankingBuckets(candidate?.buckets ?? [], now);
+      const bucket = buckets.find((item) => item.day === delta.day);
+      if (bucket) {
+        bucket.uses += delta.uses;
+        bucket.wins += delta.wins;
+        bucket.trophySum += delta.trophySum;
+        bucket.trophySamples += delta.trophySamples;
+        bucket.arenaIds = [...new Set([...bucket.arenaIds, ...delta.arenaIds])];
+        bucket.arenaNames = [...new Set([...bucket.arenaNames, ...delta.arenaNames])];
+      } else {
+        buckets.push({
+          day: delta.day,
+          uses: delta.uses,
+          wins: delta.wins,
+          trophySum: delta.trophySum,
+          trophySamples: delta.trophySamples,
+          arenaIds: [...delta.arenaIds],
+          arenaNames: [...delta.arenaNames]
+        });
+      }
+      const materializedBuckets = currentRankingBuckets(buckets, now);
+      const uses = rankingUses(materializedBuckets, dayKey(now));
+      const values = {
+        cardIds: delta.cardIds,
+        evolutionIds: delta.evolutionIds,
+        buckets: materializedBuckets,
+        ...uses,
+        materializedDay: dayKey(now),
+        updatedAt: now
+      };
+      if (candidate) await ctx.db.patch(candidate._id, values);
+      else {
+        await ctx.db.insert("clashDeckRankingCandidates", {
+          mode: delta.mode,
+          deckHash: delta.deckHash,
+          ...values
+        });
+      }
+    }
+
+    const totalsByMode = new Map<MetaMode, Map<number, number>>();
+    for (const delta of deckDeltas.values()) {
+      const days = totalsByMode.get(delta.mode) ?? new Map<number, number>();
+      days.set(delta.day, (days.get(delta.day) ?? 0) + delta.uses);
+      totalsByMode.set(delta.mode, days);
+    }
+    for (const [mode, dayTotals] of totalsByMode) {
+      const total = await ctx.db
+        .query("clashDeckRankingTotals")
+        .withIndex("by_mode", (q) => q.eq("mode", mode))
+        .unique();
+      const buckets = currentRankingBuckets(
+        (total?.buckets ?? []).map((bucket) => ({
+          ...bucket,
+          wins: 0,
+          trophySum: 0,
+          trophySamples: 0,
+          arenaIds: [],
+          arenaNames: []
+        })),
+        now
+      );
+      for (const [day, uses] of dayTotals) {
+        const bucket = buckets.find((item) => item.day === day);
+        if (bucket) bucket.uses += uses;
+        else buckets.push({ day, uses, wins: 0, trophySum: 0, trophySamples: 0, arenaIds: [], arenaNames: [] });
+      }
+      const current = currentRankingBuckets(buckets, now);
+      const values = {
+        buckets: current.map(({ day, uses }) => ({ day, uses })),
+        ...rankingUses(current, dayKey(now)),
+        materializedDay: dayKey(now),
+        updatedAt: now
+      };
+      if (total) await ctx.db.patch(total._id, values);
+      else await ctx.db.insert("clashDeckRankingTotals", { mode, startedAt: now, ...values });
     }
 
     for (const delta of cardDeltas.values()) {
@@ -380,57 +595,146 @@ export const ingestBattles = internalMutation({
   }
 });
 
-// --- Rollup ---------------------------------------------------------------
-
-export const deckStatsForDay = internalQuery({
-  args: { day: v.number(), cursor: v.union(v.string(), v.null()), numItems: v.number() },
+/**
+ * Refreshes only the indexed upper-bound candidates that can still enter a
+ * top-N board. Day rollover can only reduce a stale candidate's usage, so once
+ * the indexed prefix is current, every row below it is provably unable to
+ * outrank the published sample. Existing rankings remain in place while a
+ * prefix is warming or being normalised; partial boards are never published.
+ */
+export const refreshRankings = internalMutation({
+  args: { topN: v.number(), minUses: v.number() },
+  returns: v.object({
+    publishedBoards: v.number(),
+    written: v.number(),
+    normalized: v.number(),
+    pendingBoards: v.number(),
+    warmingBoards: v.number()
+  }),
   handler: async (ctx, args) => {
-    return ctx.db
-      .query("deckStats")
-      .withIndex("by_day", (q) => q.eq("day", args.day))
-      .paginate({ cursor: args.cursor, numItems: args.numItems });
-  }
-});
+    const now = Date.now();
+    const today = dayKey(now);
+    const topN = Math.min(Math.max(Math.floor(args.topN), 1), 200);
+    const refreshLimit = Math.max(topN + 1, RANKING_REFRESH_LIMIT);
+    let publishedBoards = 0;
+    let written = 0;
+    let normalized = 0;
+    let pendingBoards = 0;
+    let warmingBoards = 0;
 
-export const writeDeckRankings = internalMutation({
-  args: {
-    windowDays: v.number(),
-    mode: metaMode,
-    rows: v.array(
-      v.object({
-        deckHash: v.string(),
-        cardIds: v.array(v.number()),
-        evolutionIds: v.array(v.number()),
-        uses: v.number(),
-        wins: v.number(),
-        winRate: v.number(),
-        usageRate: v.number(),
-        averageTrophies: v.optional(v.number()),
-        trophySamples: v.optional(v.number()),
-        arenaIds: v.optional(v.array(v.number())),
-        arenaNames: v.optional(v.array(v.string()))
-      })
-    )
-  },
-  returns: v.object({ written: v.number() }),
-  handler: async (ctx, args) => {
-    const stale = await ctx.db
-      .query("deckRankings")
-      .withIndex("by_window_and_mode", (q) => q.eq("windowDays", args.windowDays).eq("mode", args.mode))
-      .take(500);
-    for (const row of stale) await ctx.db.delete(row._id);
+    for (const mode of ["ladder", "pathOfLegends", "challenge", "tournament", "clanWar"] as const) {
+      const total = await ctx.db
+        .query("clashDeckRankingTotals")
+        .withIndex("by_mode", (q) => q.eq("mode", mode))
+        .unique();
+      if (!total) {
+        warmingBoards += RANKING_WINDOWS.length;
+        continue;
+      }
 
-    const computedAt = Date.now();
-    for (const [index, row] of args.rows.entries()) {
-      await ctx.db.insert("deckRankings", {
-        ...row,
-        windowDays: args.windowDays,
-        mode: args.mode,
-        rank: index + 1,
-        computedAt
-      });
+      const totalBuckets = currentRankingBuckets(
+        total.buckets.map((bucket) => ({
+          ...bucket,
+          wins: 0,
+          trophySum: 0,
+          trophySamples: 0,
+          arenaIds: [],
+          arenaNames: []
+        })),
+        now
+      );
+      const totalUses = rankingUses(totalBuckets, today);
+      if (total.materializedDay !== today) {
+        await ctx.db.patch(total._id, {
+          buckets: totalBuckets.map(({ day, uses }) => ({ day, uses })),
+          ...totalUses,
+          materializedDay: today,
+          updatedAt: now
+        });
+      }
+
+      for (const windowDays of RANKING_WINDOWS) {
+        const windowStart = dayStart(now) - (windowDays - 1) * 86_400_000;
+        if (total.startedAt > windowStart) {
+          warmingBoards += 1;
+          continue;
+        }
+
+        const candidates = windowDays === 1
+          ? await ctx.db
+              .query("clashDeckRankingCandidates")
+              .withIndex("by_mode_and_uses_1", (q) => q.eq("mode", mode))
+              .order("desc")
+              .take(refreshLimit)
+          : await ctx.db
+              .query("clashDeckRankingCandidates")
+              .withIndex("by_mode_and_uses_7", (q) => q.eq("mode", mode))
+              .order("desc")
+              .take(refreshLimit);
+        const stale = candidates.filter((candidate) => candidate.materializedDay !== today);
+        if (stale.length) {
+          for (const candidate of stale) {
+            const buckets = currentRankingBuckets(candidate.buckets, now);
+            await ctx.db.patch(candidate._id, {
+              buckets,
+              ...rankingUses(buckets, today),
+              materializedDay: today
+            });
+          }
+          normalized += stale.length;
+          pendingBoards += 1;
+          continue;
+        }
+
+        const totalUsesForWindow = windowDays === 1 ? totalUses.uses1 : totalUses.uses7;
+        const ranked = candidates
+          .map((candidate) => {
+            const buckets = windowDays === 1
+              ? candidate.buckets.filter((bucket) => bucket.day === today)
+              : candidate.buckets;
+            const uses = buckets.reduce((sum, bucket) => sum + bucket.uses, 0);
+            const wins = buckets.reduce((sum, bucket) => sum + bucket.wins, 0);
+            const trophySum = buckets.reduce((sum, bucket) => sum + bucket.trophySum, 0);
+            const trophySamples = buckets.reduce((sum, bucket) => sum + bucket.trophySamples, 0);
+            return {
+              deckHash: candidate.deckHash,
+              cardIds: candidate.cardIds,
+              evolutionIds: candidate.evolutionIds,
+              uses,
+              wins,
+              winRate: uses ? wins / uses : 0,
+              usageRate: totalUsesForWindow ? uses / totalUsesForWindow : 0,
+              ...(trophySamples ? { averageTrophies: trophySum / trophySamples, trophySamples } : {}),
+              arenaIds: [...new Set(buckets.flatMap((bucket) => bucket.arenaIds))],
+              arenaNames: [...new Set(buckets.flatMap((bucket) => bucket.arenaNames))]
+            };
+          })
+          .filter((candidate) => candidate.uses >= Math.max(1, args.minUses))
+          // Stable sort preserves the index's creation-time tiebreak for equal usage.
+          .sort((left, right) => right.uses - left.uses)
+          .slice(0, topN);
+
+        const previous = await ctx.db
+          .query("deckRankings")
+          .withIndex("by_window_and_mode", (q) => q.eq("windowDays", windowDays).eq("mode", mode))
+          .take(500);
+        for (const row of previous) await ctx.db.delete(row._id);
+        for (const [index, row] of ranked.entries()) {
+          await ctx.db.insert("deckRankings", {
+            ...row,
+            windowDays,
+            mode,
+            rank: index + 1,
+            computedAt: now,
+            complete: true
+          });
+        }
+        publishedBoards += 1;
+        written += ranked.length;
+      }
     }
-    return { written: args.rows.length };
+
+    return { publishedBoards, written, normalized, pendingBoards, warmingBoards };
   }
 });
 
@@ -482,6 +786,26 @@ export const pruneBatch = internalMutation({
       .take(256);
     for (const row of staleCache) await ctx.db.delete(row._id);
 
+    const now = Date.now();
+    const legacyTargets = await ctx.db
+      .query("clashCrawlTargets")
+      .withIndex("by_expires_at", (q) => q.eq("expiresAt", undefined))
+      .take(256);
+    for (const row of legacyTargets) {
+      await ctx.db.patch(row._id, { disabled: true, expiresAt: now });
+    }
+    const expiredTargets = await ctx.db
+      .query("clashCrawlTargets")
+      .withIndex("by_expires_at", (q) => q.lt("expiresAt", now))
+      .take(256);
+    for (const row of expiredTargets) await ctx.db.delete(row._id);
+
+    const staleCandidates = await ctx.db
+      .query("clashDeckRankingCandidates")
+      .withIndex("by_updated_at", (q) => q.lt("updatedAt", now - RETENTION_DAYS * 86_400_000))
+      .take(256);
+    for (const row of staleCandidates) await ctx.db.delete(row._id);
+
     let staleRankings = 0;
     for (const windowDays of RANKING_WINDOWS) {
       for (const mode of ["ladder", "pathOfLegends", "challenge", "tournament", "clanWar"] as const) {
@@ -514,7 +838,12 @@ export const pruneBatch = internalMutation({
     for (const row of staleHistoryRows) await ctx.db.delete(row._id);
     const staleHistory = staleHistoryRows.length;
 
-    const logCutoff = Date.now() - 7 * 86_400_000;
+    const logCutoff = now - 7 * 86_400_000;
+    const staleTelemetry = await ctx.db
+      .query("clashApiFetchTelemetry")
+      .withIndex("by_bucket_start", (q) => q.lt("bucketStart", logCutoff))
+      .take(256);
+    for (const row of staleTelemetry) await ctx.db.delete(row._id);
     const staleLogs = await ctx.db
       .query("clashApiFetchLogs")
       .withIndex("by_fetched_at", (q) => q.lt("fetchedAt", logCutoff))
@@ -527,6 +856,13 @@ export const pruneBatch = internalMutation({
       .take(256);
     for (const row of staleRuns) await ctx.db.delete(row._id);
 
+    const budgetCutoff = dayKey(now - 2 * 86_400_000);
+    const staleBudgets = await ctx.db
+      .query("clashCrawlerBudgets")
+      .withIndex("by_day", (q) => q.lt("day", budgetCutoff))
+      .take(32);
+    for (const row of staleBudgets) await ctx.db.delete(row._id);
+
     const deleted =
       staleSeen.length +
       staleDecks.length +
@@ -534,11 +870,15 @@ export const pruneBatch = internalMutation({
       staleCards.length +
       staleTowers.length +
       staleCache.length +
+      expiredTargets.length +
+      staleCandidates.length +
       staleRankings +
       staleHistory +
+      staleTelemetry.length +
       staleLogs.length +
-      staleRuns.length;
-    return { deleted, more: deleted > 0 };
+      staleRuns.length +
+      staleBudgets.length;
+    return { deleted, more: deleted > 0 || legacyTargets.length > 0 };
   }
 });
 
@@ -546,6 +886,7 @@ export const pruneBatch = internalMutation({
 
 export const startRun = internalMutation({
   args: { job: v.string() },
+  returns: v.id("clashPipelineRuns"),
   handler: async (ctx, args) =>
     ctx.db.insert("clashPipelineRuns", { job: args.job, startedAt: Date.now(), ok: false })
 });
@@ -557,6 +898,7 @@ export const finishRun = internalMutation({
     note: v.optional(v.string()),
     counters: v.optional(v.record(v.string(), v.number()))
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, {
       ok: args.ok,
@@ -564,6 +906,7 @@ export const finishRun = internalMutation({
       counters: args.counters,
       finishedAt: Date.now()
     });
+    return null;
   }
 });
 
@@ -579,6 +922,34 @@ function probe(rows: unknown[], cap: number) {
 
 export const pipelineStatus = query({
   args: {},
+  returns: v.object({
+    now: v.number(),
+    counters: v.record(v.string(), v.number()),
+    due: v.object({ count: v.number(), capped: v.boolean() }),
+    decksToday: v.object({ count: v.number(), capped: v.boolean() }),
+    battlesToday: v.number(),
+    apiCalls: v.object({ lastHour: v.number(), failures: v.number(), capped: v.boolean(), buckets: v.number() }),
+    crawler: v.object({
+      enabled: v.boolean(),
+      clanWatchEnabled: v.boolean(),
+      budgets: v.object({
+        discover: v.object({ used: v.number(), limit: v.number() }),
+        crawl: v.object({ used: v.number(), limit: v.number() }),
+        clanWatch: v.object({ used: v.number(), limit: v.number() })
+      })
+    }),
+    lastRuns: v.array(v.object({
+      _id: v.id("clashPipelineRuns"),
+      _creationTime: v.number(),
+      job: v.string(),
+      startedAt: v.number(),
+      finishedAt: v.optional(v.number()),
+      ok: v.boolean(),
+      note: v.optional(v.string()),
+      counters: v.optional(v.record(v.string(), v.number()))
+    })),
+    rankingsComputedAt: v.union(v.number(), v.null())
+  }),
   handler: async (ctx) => {
     const counters = await ctx.db.query("clashPipelineCounters").take(20);
     const now = Date.now();
@@ -588,10 +959,16 @@ export const pipelineStatus = query({
       .withIndex("by_due", (q) => q.eq("disabled", false).lte("nextDueAt", now))
       .take(200);
 
-    const recentLogs = await ctx.db
-      .query("clashApiFetchLogs")
-      .withIndex("by_fetched_at", (q) => q.gte("fetchedAt", now - 60 * 60 * 1000))
+    const recentTelemetry = await ctx.db
+      .query("clashApiFetchTelemetry")
+      .withIndex("by_bucket_start", (q) => q.gte("bucketStart", now - 60 * 60 * 1000))
       .take(500);
+    const budgets = await ctx.db
+      .query("clashCrawlerBudgets")
+      .withIndex("by_day", (q) => q.eq("day", dayKey(now)))
+      .take(3);
+    const budgetUsed = (job: "discover" | "crawl" | "clanWatch") =>
+      budgets.find((budget) => budget.job === job)?.reserved ?? 0;
 
     const today = dayKey(now);
     const decksToday = await ctx.db
@@ -603,7 +980,7 @@ export const pipelineStatus = query({
     const rankings = await ctx.db
       .query("deckRankings")
       .withIndex("by_window_and_mode_and_rank", (q) => q.eq("windowDays", 7))
-      .first();
+      .take(100);
 
     return {
       now,
@@ -612,25 +989,67 @@ export const pipelineStatus = query({
       decksToday: probe(decksToday, 500),
       battlesToday: decksToday.reduce((total, row) => total + row.uses, 0),
       apiCalls: {
-        lastHour: recentLogs.length,
-        failures: recentLogs.filter((row) => !row.ok).length,
-        capped: recentLogs.length >= 500
+        lastHour: recentTelemetry.reduce((total, row) => total + row.requests, 0),
+        failures: recentTelemetry.reduce((total, row) => total + row.failures, 0),
+        capped: recentTelemetry.length >= 500,
+        buckets: recentTelemetry.length
+      },
+      crawler: {
+        enabled: envEnabled("CLASH_CRAWLER_ENABLED"),
+        clanWatchEnabled: envEnabled("CLASH_CRAWLER_ENABLED") && envEnabled("CLASH_CLAN_WATCH_ENABLED"),
+        budgets: {
+          discover: {
+            used: budgetUsed("discover"),
+            limit: envNumber("CLASH_DISCOVER_DAILY_REQUEST_BUDGET", 60)
+          },
+          crawl: {
+            used: budgetUsed("crawl"),
+            limit: envNumber("CLASH_CRAWL_DAILY_REQUEST_BUDGET", 4_000)
+          },
+          clanWatch: {
+            used: budgetUsed("clanWatch"),
+            limit: envNumber("CLASH_CLAN_WATCH_DAILY_REQUEST_BUDGET", 36)
+          }
+        }
       },
       lastRuns,
-      rankingsComputedAt: rankings?.computedAt ?? null
+      rankingsComputedAt: rankings.find((ranking) => ranking.complete)?.computedAt ?? null
     };
   }
 });
 
 export const topDecks = query({
   args: { mode: metaMode, windowDays: v.optional(v.number()), limit: v.optional(v.number()) },
+  returns: v.object({
+    windowDays: v.number(),
+    decks: v.array(v.object({
+      _id: v.id("deckRankings"),
+      _creationTime: v.number(),
+      windowDays: v.number(),
+      mode: metaMode,
+      rank: v.number(),
+      deckHash: v.string(),
+      cardIds: v.array(v.number()),
+      evolutionIds: v.array(v.number()),
+      uses: v.number(),
+      wins: v.number(),
+      winRate: v.number(),
+      usageRate: v.number(),
+      averageTrophies: v.optional(v.number()),
+      trophySamples: v.optional(v.number()),
+      arenaIds: v.optional(v.array(v.number())),
+      arenaNames: v.optional(v.array(v.string())),
+      computedAt: v.number(),
+      complete: v.optional(v.boolean())
+    }))
+  }),
   handler: async (ctx, args) => {
     const windowDays = RANKING_WINDOWS.includes(args.windowDays as 1 | 7) ? args.windowDays! : 7;
     const rows = await ctx.db
       .query("deckRankings")
       .withIndex("by_window_and_mode_and_rank", (q) => q.eq("windowDays", windowDays).eq("mode", args.mode))
-      .take(Math.min(args.limit ?? 20, 100));
-    return { windowDays, decks: rows };
+      .take(100);
+    return { windowDays, decks: rows.filter((row) => row.complete).slice(0, Math.min(args.limit ?? 20, 100)) };
   }
 });
 
@@ -697,12 +1116,13 @@ export const discoverDecks = query({
       .query("deckRankings")
       .withIndex("by_window_and_mode_and_rank", (q) => q.eq("windowDays", windowDays).eq("mode", args.mode))
       .take(100);
-    const maxUsageRate = Math.max(0, ...rows.map((row) => row.usageRate));
+    const completeRows = rows.filter((row) => row.complete);
+    const maxUsageRate = Math.max(0, ...completeRows.map((row) => row.usageRate));
     const trophyCoverage = {
-      decks: rows.filter((row) => (row.trophySamples ?? 0) > 0).length,
-      samples: rows.reduce((total, row) => total + (row.trophySamples ?? 0), 0)
+      decks: completeRows.filter((row) => (row.trophySamples ?? 0) > 0).length,
+      samples: completeRows.reduce((total, row) => total + (row.trophySamples ?? 0), 0)
     };
-    const arenaCoverage = rows.filter((row) => (row.arenaNames?.length ?? 0) > 0).length;
+    const arenaCoverage = completeRows.filter((row) => (row.arenaNames?.length ?? 0) > 0).length;
     const wantsTrophies = args.minTrophies !== undefined || args.maxTrophies !== undefined;
     const normalizedArena = args.arenaName?.trim().toLowerCase() ?? "";
     const trophyFilterApplied = wantsTrophies && trophyCoverage.decks > 0;
@@ -710,7 +1130,7 @@ export const discoverDecks = query({
     const include = new Set(args.includeCardIds ?? []);
     const exclude = new Set(args.excludeCardIds ?? []);
 
-    const decks = rows
+    const decks = completeRows
       .map((row) => ({
         deckHash: row.deckHash,
         rank: row.rank,
@@ -747,7 +1167,7 @@ export const discoverDecks = query({
 
     return {
       windowDays,
-      totalRanked: rows.length,
+      totalRanked: completeRows.length,
       matched: decks.length,
       computedAt: rows[0]?.computedAt ?? null,
       trophyCoverage,
@@ -939,6 +1359,7 @@ export const deckMeta = query({
 /** Lets the beta page queue a specific player without redeploying. */
 export const seedTag = mutation({
   args: { tag: v.string(), key: v.string() },
+  returns: v.object({ ok: v.boolean(), message: v.string() }),
   handler: async (ctx, args) => {
     const expected = process.env.BETA_ADMIN_KEY;
     if (!expected || args.key !== expected) return { ok: false as const, message: "Invalid admin key." };
@@ -952,19 +1373,34 @@ export const seedTag = mutation({
       .unique();
 
     if (existing) {
-      await ctx.db.patch(existing._id, { nextDueAt: Date.now(), disabled: false, consecutiveFailures: 0 });
+      const now = Date.now();
+      await ctx.db.patch(existing._id, {
+        tier: "fixed",
+        priority: 0,
+        revisitSeconds: TARGET_FIXED_REVISIT_SECONDS,
+        lastDiscoveredAt: now,
+        expiresAt: now + 90 * 86_400_000,
+        nextDueAt: now,
+        disabled: false,
+        consecutiveFailures: 0
+      });
       return { ok: true as const, message: `#${tag} moved to the front of the queue.` };
     }
 
+    const now = Date.now();
     await ctx.db.insert("clashCrawlTargets", {
       tag,
       source: "manual",
+      tier: "fixed",
       priority: 0,
-      nextDueAt: Date.now(),
+      revisitSeconds: TARGET_FIXED_REVISIT_SECONDS,
+      lastDiscoveredAt: now,
+      expiresAt: now + 90 * 86_400_000,
+      nextDueAt: now,
       consecutiveFailures: 0,
       disabled: false
     });
-    await bump(ctx, "clashCrawlTargets", 1);
+    await bump(ctx, "crawlTargets", 1);
     return { ok: true as const, message: `#${tag} queued.` };
   }
 });
