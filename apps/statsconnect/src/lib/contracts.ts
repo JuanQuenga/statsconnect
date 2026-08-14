@@ -68,6 +68,32 @@ export type CacheMetadata = {
 export type AdapterResult<T> = { data: T; cache: CacheMetadata };
 export type HubState = { activeProfileId: ProfileId | null; profiles: ConnectedProfile[] };
 
+export type AccessTier = "free" | "premium";
+export type PlanLimits = {
+  connectedPlayersPerGame: number;
+  watchedPlayersPerGame: number;
+  watchedClubsPerGame: number;
+};
+export type StatsConnectPlusOffer = {
+  name: string;
+  scope: string;
+  availability: "foundation";
+  checkoutAvailable: boolean;
+  features: string[];
+  notice: string;
+};
+export type AccessSnapshot = {
+  authenticated: boolean;
+  tier: AccessTier;
+  limits: PlanLimits;
+  entitlement: {
+    status: "active" | "grace_period" | "past_due" | "canceled" | "expired";
+    expiresAt: number | null;
+    cancelAtPeriodEnd: boolean;
+  } | null;
+  offer: StatsConnectPlusOffer;
+};
+
 export type ProfileErrorCode =
   | "INVALID_VIEWER"
   | "PROFILE_NOT_CONNECTED"

@@ -4,9 +4,19 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 crons.interval(
-  "hub: refresh stale connected profile caches",
+  "hub: refresh due connected and watched targets",
   { minutes: 10 },
   internal.hub.cacheAccess.refreshExpiredConnected,
+);
+crons.interval(
+  "hub: register legacy connected refresh targets",
+  { hours: 1 },
+  internal.hub.internal.watchTargets.backfillConnectedProfiles,
+);
+crons.interval(
+  "hub: expire premium watch demand",
+  { hours: 1 },
+  internal.hub.internal.watchTargets.expireWatchDemands,
 );
 crons.interval(
   "hub: prune expired background data",

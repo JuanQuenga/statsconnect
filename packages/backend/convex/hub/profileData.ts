@@ -29,11 +29,13 @@ export const getSummary = action({
         ownerKey: profile.ownerKey,
         display: result.data.display,
         syncedAt: result.cache.fetchedAt,
+        refreshAfter: result.cache.expiresAt,
       });
     } else {
       await ctx.runMutation(internal.hub.internal.profileWrites.touch, {
         profileId: profile.id,
         ownerKey: profile.ownerKey,
+        refreshAfter: result.cache.expiresAt,
       });
     }
     return result;
@@ -62,11 +64,13 @@ export const getStats = action({
         ownerKey: profile.ownerKey,
         display: result.data.summary.display,
         syncedAt: result.cache.fetchedAt,
+        refreshAfter: result.cache.expiresAt,
       });
     } else {
       await ctx.runMutation(internal.hub.internal.profileWrites.touch, {
         profileId: profile.id,
         ownerKey: profile.ownerKey,
+        refreshAfter: result.cache.expiresAt,
       });
     }
     return result;

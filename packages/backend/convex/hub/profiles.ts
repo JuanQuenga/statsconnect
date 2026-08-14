@@ -8,6 +8,11 @@ import { AdapterError, type AdapterResult, type ProfileSummary } from "./adapter
 import { readThrough } from "./cacheAccess";
 import { ownerKey, toPublicDisplay } from "./model";
 import {
+  registerConnectedProfile,
+  touchTarget,
+  unregisterConnectedProfile,
+} from "./watchTargetModel";
+import {
   connectedProfileValidator,
   gameIdValidator,
   profileIdValidator,
@@ -107,6 +112,7 @@ export const connect = action({
       playerTag: tag,
       display: summary.data.display,
       syncedAt: summary.cache.fetchedAt,
+      refreshAfter: summary.cache.expiresAt,
     });
     return { ...saved, summary };
   },
@@ -123,6 +129,9 @@ export const disconnect = mutation({
       return { removed: false, activeProfileId: settings?.activeProfileId ?? null };
     }
     await ctx.db.delete(profile._id);
+    if (profile.refreshTargetKey) {
+      await unregisterConnectedProfile(ctx, profile.refreshTargetKey, Date.now());
+    }
     let activeProfileId = settings?.activeProfileId ?? null;
     if (activeProfileId === profile._id) {
       const newest = await ctx.db
@@ -150,7 +159,19 @@ export const setActive = mutation({
     const settings = await ctx.db.query("viewerSettings").withIndex("by_owner_key", (index) => index.eq("ownerKey", key)).unique();
     if (settings) await ctx.db.patch(settings._id, { activeProfileId: profile._id, updatedAt: now });
     else await ctx.db.insert("viewerSettings", { ownerKey: key, activeProfileId: profile._id, createdAt: now, updatedAt: now });
-    await ctx.db.patch(profile._id, { updatedAt: now });
+    const refreshTargetKey = profile.refreshTargetKey ?? await registerConnectedProfile(
+      ctx,
+      { game: profile.game, entity: "player", tag: profile.playerTag },
+      { now, nextDueAt: now },
+    );
+    await ctx.db.patch(profile._id, { refreshTargetKey, updatedAt: now });
+    if (profile.refreshTargetKey) {
+      await touchTarget(ctx, profile.refreshTargetKey, {
+        now,
+        notBefore: now,
+        preserveEarlier: true,
+      });
+    }
     return { activeProfileId: profile._id };
   },
 });

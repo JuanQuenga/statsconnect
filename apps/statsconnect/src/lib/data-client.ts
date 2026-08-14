@@ -4,6 +4,7 @@ import { makeFunctionReference } from "convex/server";
 import { ConvexError } from "convex/values";
 import type {
   AdapterResult,
+  AccessSnapshot,
   ConnectedProfile,
   GameId,
   HubState,
@@ -19,6 +20,7 @@ const convexUrl = import.meta.env.VITE_CONVEX_URL?.trim();
 const convex = convexUrl ? new ConvexHttpClient(convexUrl, { logger: false }) : null;
 
 const refs = {
+  getAccess: makeFunctionReference<"query", Record<string, never>, AccessSnapshot>("hub/access:getAccess"),
   getHubState: makeFunctionReference<"query", { viewerId: string }, HubState>("hub/profiles:getHubState"),
   preview: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, AdapterResult<ProfileSummary>>("hub/profiles:preview"),
   connect: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, { profile: ConnectedProfile; activeProfileId: ProfileId; summary: AdapterResult<ProfileSummary> }>("hub/profiles:connect"),
@@ -94,6 +96,10 @@ async function request<T>(operation: (client: ConvexHttpClient) => Promise<T>): 
 export const dataClient = {
   mode: convex ? "convex" as const : "unconfigured" as const,
 
+  getAccess(): Promise<AccessSnapshot> {
+    return request((client) => client.query(refs.getAccess, {}));
+  },
+
   getHubState(): Promise<HubState> {
     return request((client) => client.query(refs.getHubState, { viewerId: getViewerId() }));
   },
@@ -126,6 +132,13 @@ export const dataClient = {
     return request((client) => client.action(refs.getStats, { viewerId: getViewerId(), profileId }));
   },
 };
+
+export function accessQueryOptions() {
+  return queryOptions({
+    queryKey: ["access"],
+    queryFn: () => dataClient.getAccess(),
+  });
+}
 
 export function hubQueryOptions() {
   return queryOptions({

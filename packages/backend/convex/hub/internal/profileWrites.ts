@@ -3,6 +3,12 @@ import type { Id } from "../../_generated/dataModel";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { ownerKey, toStoredDisplay } from "../model";
 import { connectedProfileValidator, gameIdValidator, profileIdValidator, publicProfileDisplayValidator } from "../validators";
+import {
+  registerConnectedProfile,
+  touchTarget,
+  unregisterConnectedProfile,
+  watchTargetKey,
+} from "../watchTargetModel";
 
 export const getOwned = internalQuery({
   args: { viewerId: v.string(), profileId: v.id("connectedProfiles") },
@@ -29,6 +35,7 @@ export const upsert = internalMutation({
     playerTag: v.string(),
     display: publicProfileDisplayValidator,
     syncedAt: v.number(),
+    refreshAfter: v.number(),
   },
   returns: v.object({ profile: connectedProfileValidator, activeProfileId: profileIdValidator }),
   handler: async (ctx, args) => {
@@ -39,12 +46,29 @@ export const upsert = internalMutation({
       .withIndex("by_owner_key_and_game", (query) => query.eq("ownerKey", key).eq("game", args.game))
       .unique();
     const display = toStoredDisplay(args.display);
+    const nextTargetKey = watchTargetKey(args.game, "player", args.playerTag);
     let id: Id<"connectedProfiles">;
     let connectedAt = now;
     if (existing) {
+      if (existing.refreshTargetKey !== nextTargetKey) {
+        if (existing.refreshTargetKey) {
+          await unregisterConnectedProfile(ctx, existing.refreshTargetKey, now);
+        }
+        await registerConnectedProfile(
+          ctx,
+          { game: args.game, entity: "player", tag: args.playerTag },
+          { now, nextDueAt: args.refreshAfter },
+        );
+      } else {
+        await touchTarget(ctx, nextTargetKey, {
+          now,
+          notBefore: args.refreshAfter,
+        });
+      }
       connectedAt = existing.playerTag === args.playerTag ? existing.connectedAt : now;
       await ctx.db.patch(existing._id, {
         playerTag: args.playerTag,
+        refreshTargetKey: nextTargetKey,
         display,
         connectedAt,
         updatedAt: now,
@@ -52,10 +76,16 @@ export const upsert = internalMutation({
       });
       id = existing._id;
     } else {
+      await registerConnectedProfile(
+        ctx,
+        { game: args.game, entity: "player", tag: args.playerTag },
+        { now, nextDueAt: args.refreshAfter },
+      );
       id = await ctx.db.insert("connectedProfiles", {
         ownerKey: key,
         game: args.game,
         playerTag: args.playerTag,
+        refreshTargetKey: nextTargetKey,
         display,
         connectedAt,
         updatedAt: now,
@@ -86,28 +116,58 @@ export const refreshSnapshot = internalMutation({
     ownerKey: v.string(),
     display: publicProfileDisplayValidator,
     syncedAt: v.number(),
+    refreshAfter: v.number(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
     if (profile && profile.ownerKey === args.ownerKey) {
+      const now = Date.now();
+      const refreshTargetKey = profile.refreshTargetKey ?? await registerConnectedProfile(
+        ctx,
+        { game: profile.game, entity: "player", tag: profile.playerTag },
+        { now, nextDueAt: args.refreshAfter },
+      );
       await ctx.db.patch(profile._id, {
+        refreshTargetKey,
         display: toStoredDisplay(args.display),
-        updatedAt: Date.now(),
+        updatedAt: now,
         lastSyncedAt: args.syncedAt,
       });
+      if (profile.refreshTargetKey) {
+        await touchTarget(ctx, profile.refreshTargetKey, {
+          now,
+          notBefore: args.refreshAfter,
+        });
+      }
     }
     return null;
   },
 });
 
 export const touch = internalMutation({
-  args: { profileId: v.id("connectedProfiles"), ownerKey: v.string() },
+  args: {
+    profileId: v.id("connectedProfiles"),
+    ownerKey: v.string(),
+    refreshAfter: v.number(),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
     if (profile && profile.ownerKey === args.ownerKey) {
-      await ctx.db.patch(profile._id, { updatedAt: Date.now() });
+      const now = Date.now();
+      const refreshTargetKey = profile.refreshTargetKey ?? await registerConnectedProfile(
+        ctx,
+        { game: profile.game, entity: "player", tag: profile.playerTag },
+        { now, nextDueAt: args.refreshAfter },
+      );
+      await ctx.db.patch(profile._id, { refreshTargetKey, updatedAt: now });
+      if (profile.refreshTargetKey) {
+        await touchTarget(ctx, profile.refreshTargetKey, {
+          now,
+          notBefore: args.refreshAfter,
+        });
+      }
     }
     return null;
   },

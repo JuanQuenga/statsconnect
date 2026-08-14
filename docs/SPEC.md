@@ -1,247 +1,274 @@
-# StatsConnect — v2 Build Spec (authoritative)
+# StatsConnect — current product and platform specification
 
-**Overwolf-style hub.** StatsConnect is a lobby/launcher only. Each game keeps its own site, design, and layout. Shared account via **[Lakebed Auth](https://docs.lakebed.dev/auth/)**.
+This document describes the implementation in this monorepo. It supersedes the
+unimplemented Lakebed-capsule proposal that previously occupied this file.
 
-| Product | Domain (prod) | Role |
+StatsConnect is a shared Hub plus two game-specific sites backed by one Convex
+deployment. The Hub can save browser-local player connections and launch or
+render game views. BrawlStats and Royale Stats keep their own game-specific UI.
+
+| Surface | Unified path | Responsibility |
 |---|---|---|
-| **StatsConnect** | `statsconnect.com` (TBD) / `*.lakebed.app` until custom domain | Hub: login, connect tags, launch |
-| **ClashCrown** | `clashcrown.vercel.app` until custom domain | Clash Royale app (own UI) |
-| **brawlstats.io** | `brawlstats.io` | Brawl Stars app (own UI) |
+| StatsConnect Hub | `/` | Connect profiles, switch games, shared access catalog |
+| BrawlStats | `/brawlstars/*` | Brawl Stars tools and presentation |
+| Royale Stats | `/clashroyale/*` | Clash Royale tools and presentation |
+| Canonical backend | `packages/backend/convex` | Shared schema, functions, HTTP routes, and crons |
 
-Supersedes v1 embedded-dashboard SPEC and the WorkOS draft. In-hub game dashboards are **out of scope**. Game sites own their data UIs.
-
----
-
-## 0. Resolved decisions
-
-| Question | Decision | Rationale |
-|---|---|---|
-| Product shape | **Hub + launch-out** | Each game keeps unique design/layout |
-| Auth | **Lakebed Auth** (guest + Google) | First-party; no OAuth dashboards, keys, or redirect URI registration; [`docs.lakebed.dev/auth`](https://docs.lakebed.dev/auth/) |
-| Runtime for shared identity | **Lakebed capsules** for any surface that must share `userId` | Lakebed Auth is the capsule identity layer — not a drop-in for Convex |
-| Identity key | `ctx.auth.userId` (`google:usr_…`) → `ownerKey = userId` | Opaque, immutable; stable across a capsule’s deploy URL and custom domain; never key on email or `identityAliases` |
-| Cross-site same account | Same Google account → same `userId` on each Lakebed capsule | Stable `google:usr_…` subjects; old pairwise `google:ps_…` aliases are migration-only |
-| Per-origin tokens | **Each site signs in separately** | Tokens are origin-bound and cannot be replayed on another hostname; UX = `<SignInWithGoogle />` once per site, same account |
-| Silent cross-domain SSO cookie | **Not available** with Lakebed Auth on separate apex domains | Accept one Google consent / sign-in per origin; IdP may make repeat visits fast |
-| Anonymous / guest | Guests can browse hub catalog; **connect/save requires Google** (`!auth.isGuest`) | Matches “shared account” product; guest ids are not durable cross-device |
-| Connections storage | StatsConnect capsule DB only | Hub is source of truth for `user ↔ game ↔ tag` |
-| Game-site linked tag | Each game capsule stores `linkedTag` keyed by same `userId`; upserted on launch handshake | Sites usable without calling hub every page load |
-| Hub brand in chrome | StatsConnect only | Destination names ok on launch CTAs |
-| Cross-game navigation | **Shared Site Navigation Module on all three sites** | Structure, responsive behavior, and the Games switcher stay consistent while each site supplies its brand, local links, search, and routing adapters |
-| Tag form | Normalized **without `#`** (uppercase) | Same as prior convention |
-| Profiles per game | **One linked tag per game per user** | Multi-profile deferred |
-| WorkOS / Clerk / Convex Auth | **Rejected for v2** | Replaced by Lakebed Auth |
-
-### Stack implication (explicit)
-
-Lakebed Auth does **not** plug into the current Vite + React 19 + Convex apps. Shared-account v2 means:
-
-1. **StatsConnect hub** is rebuilt (or greenfielded) as a **Lakebed capsule** (`server/index.ts` + `client/index.tsx`, Preact, `lakebed/client` auth UI).
-2. **ClashCrown** and **brawlstats.io** must also be Lakebed capsules (or migrate their auth surfaces to Lakebed) before `userId` is truly shared. Until then, use **handshake-only** linking (hub signs a short-lived link payload; game site stores tag under whatever local auth it has) — weaker, temporary.
-
-Existing Convex dashboard code in this repo is reference / scrap for lobby UI ideas, not the v2 runtime.
-
-### Current migration bridge
-
-StatsConnect, ClashCrown, and brawlstats.io live in one pnpm monorepo. A shared Site Navigation Module owns the sticky shell, responsive menu, Games switcher, dimensions, accessibility, and interaction states. Each app supplies brand, local links, search, and routing adapters. The switcher routes through the hub's `/launch/:game` surface. This completes launch navigation, but it does not replace the Lakebed identity and handshake work required for shared authenticated `userId` and automatic linked-tag hydration.
+The deploy topology and data-migration procedure are in
+[`docs/UNIFIED_DEPLOYMENT.md`](./UNIFIED_DEPLOYMENT.md).
 
 ---
 
-## 1. Auth architecture (Lakebed)
+## 1. Identity and authorization
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  StatsConnect   │     │   ClashCrown     │     │  brawlstats.io  │
-│  Lakebed capsule│     │  Lakebed capsule │     │ Lakebed capsule │
-│  SignInWithGoogle│    │ SignInWithGoogle │     │ SignInWithGoogle│
-└────────┬────────┘     └────────┬─────────┘     └────────┬────────┘
-         │                       │                        │
-         │   same Google account → same ctx.auth.userId   │
-         │   (tokens still origin-bound per hostname)     │
-         └───────────────────────┴────────────────────────┘
-                         Lakebed Auth
-```
+### Shipped browser identity
 
-### Contract (from Lakebed docs)
+The Hub currently creates a random UUID with `crypto.randomUUID()` and stores it
+under `statsconnect:viewer-id` in browser local storage. Backend Hub functions
+validate it and store the derived `session:<uuid>` owner key.
 
-```ts
-type Auth = {
-  userId: string;          // === subject for authenticated; google:usr_...
-  subject?: string;
-  identityAliases?: string[]; // migration only — never key new data on these
-  displayName: string;
-  provider: "guest" | "google";
-  isGuest: boolean;
-  isAuthenticated: boolean;
-  isLoading?: boolean;     // client-only
-  email?: string;          // profile only — never an authz key
-  emailVerified?: boolean;
-  picture?: string;
-};
-```
+This identifier is useful for low-risk personalization, but it is **not
+authentication**:
 
-### Rules
-1. Key all user-owned rows on `ctx.auth.userId` only.
-2. Never authorize by email; never infer account links from email.
-3. Require `!ctx.auth.isGuest` (Google) for connect / disconnect / handshake.
-4. Client: `useAuth()`, `<SignInWithGoogle />`, `signInWithGoogle()`, `signOut()` from `lakebed/client`.
-5. Dev: `npx lakebed auth as alice` or `?lakebed_guest=alice` for guest testing; real Google works on localhost via `npx lakebed dev`.
-6. Sign-out is per origin (clears that hostname’s session / private query caches).
+- it is controlled by the browser;
+- it does not prove a person or account;
+- it is not shared automatically across devices or origins;
+- anyone who obtains the value can replay it.
 
-### Hub auth UX
-- Show signed-out / guest lobby with **Sign in with Google**.
-- Gate **Connect** and **Save** behind Google.
-- Account chip: picture + displayName + Sign out.
+Consequently, the viewer UUID may connect, select, and remove public game
+profiles for that browser. It must never authorize purchases, premium access,
+billing changes, or account-level watch mutations.
 
-No `/callback` WorkOS routes. No `WORKOS_*` env. No `auth.config.ts`.
+### Verified account boundary
+
+Premium ownership is keyed only by the `tokenIdentifier` returned from
+`ctx.auth.getUserIdentity()` after Convex verifies an auth provider token. The
+repository does not currently configure an auth provider, so no browser can
+obtain premium access or create/cancel premium watches in production today.
+
+The premium mutations are intentionally present but fail closed with
+`AUTH_REQUIRED` until verified auth is configured. They never accept `viewerId`
+or `ownerKey` as an authorization input.
+
+Provider selection and sign-in UI remain integration work. When they are added:
+
+1. configure a supported Convex auth provider and its issuer/audience;
+2. send its token through the Convex client on every StatsConnect surface;
+3. use `identity.tokenIdentifier` as the single cross-site entitlement subject;
+4. define an explicit account-link migration if an identity provider changes;
+5. do not migrate browser UUIDs directly into authenticated account ownership
+   without a signed-in, user-confirmed claim flow.
+
+The previous Lakebed Auth design was never implemented and is not an authority
+for the current application.
 
 ---
 
-## 2. Hub route map (Lakebed client router)
+## 2. Shared access model
 
-App-relative routes via `lakebed/client` (`Router` / `Routes` / `Route` / `Link`):
+Access is one StatsConnect-wide tier, not a separate purchase per game.
+`hub/accessModel.ts` is the central plan definition.
+
+| Limit | Free | StatsConnect+ |
+|---|---:|---:|
+| Connected players per game in the Hub | 1 | 1 |
+| Watched players per game | 0 | 3 |
+| Watched clubs per game | 0 | 1 |
+
+Free access is derived when no active entitlement exists. A premium entitlement
+grants access only while its status is `active` or `grace_period` and it has not
+expired. `past_due`, `canceled`, and `expired` entitlements resolve to free.
+
+### StatsConnect+ offer contract
+
+The shared offer is intended to cover all supported StatsConnect game sites:
+
+- ad-free StatsConnect experiences;
+- background profile snapshots;
+- priority refresh scheduling;
+- longer retained history;
+- up to 3 watched players and 1 watched club per game.
+
+The access query reports `availability: "foundation"` and
+`checkoutAvailable: false`. The Hub must not show a purchase action while those
+values remain in effect. Each benefit is a product contract for later game-site
+integration, not a claim that every site already enforces it.
+
+Refresh is best-effort. Product copy must not imply guaranteed battle capture.
+Upstream APIs can be delayed, unavailable, rate-limited, or expose only a
+bounded recent history.
+
+---
+
+## 3. Entitlements and billing boundary
+
+`accountEntitlements` stores the normalized access state for one verified auth
+subject. It can retain provider customer/subscription references, expiry,
+cancel-at-period-end state, and cancellation time, but never secrets.
+
+`billingEventReceipts` is an idempotency ledger keyed by provider and event ID.
+The internal `applyBillingUpdate` mutation ignores duplicate webhook events and
+prevents an older event from overwriting newer entitlement state.
+
+Payment-provider code is isolated behind the narrow
+`PaymentProviderWebhookAdapter` contract. No provider SDK, checkout session,
+price ID, webhook route, or secret is included in this foundation. Checkout is
+not live.
+
+### Real payment integration requirements
+
+A future provider integration must:
+
+1. receive the raw webhook body in an HTTP action;
+2. verify the provider signature before parsing or writing anything;
+3. map provider customer/subscription metadata to a verified StatsConnect auth
+   subject established during authenticated checkout;
+4. normalize the event through `BillingEntitlementUpdate`;
+5. call the internal idempotent entitlement mutation;
+6. handle activation, renewal, grace, past-due, cancellation, and expiry events;
+7. keep provider secrets in deployment environment variables;
+8. test duplicate and out-of-order webhook delivery;
+9. expose checkout only after verified identity, prices, portal behavior,
+   refunds, and webhook replay handling are complete.
+
+An email address, browser UUID, player tag, or provider customer ID alone is not
+an authorization key.
+
+---
+
+## 4. Watch demand and upstream targets
+
+### Subscriber demand
+
+`watchDemands` records one verified subject's request for a normalized
+`(game, entity, tag)` target. It includes:
+
+- premium tier;
+- `active`, `canceled`, or `expired` status;
+- optional entitlement-aligned expiry;
+- explicit cancellation time;
+- created and updated timestamps.
+
+Creating and canceling watches requires verified auth. Creation also checks the
+current premium entitlement and the per-game player/club quotas in the central
+plan model. Canceling, expiring, or losing premium access decrements target
+demand.
+
+### Deduplicated target
+
+`watchTargets` has one row per canonical key:
+
+```text
+<game>:<player|club>:<normalized-tag>
+```
+
+The row contains `connectedProfileCount`, `watcherCount`, effective free or
+premium tier, status, cadence, next due time, activity/poll timestamps, and
+failure count. Many browsers and premium subscribers therefore share one
+upstream poll.
+
+Browser-local Hub connections contribute only `connectedProfileCount`; they do
+not create premium demand. Premium demand raises the effective target tier and
+selects active scheduling. A target becomes idle only when both counts reach
+zero.
+
+Player targets are integrated with the Hub profile adapter. Club targets and
+game crawler ingestion are schema-ready but remain game-team integration work;
+this foundation does not change Brawl or Clash crawler internals.
+
+---
+
+## 5. Adaptive scheduling and caching
+
+Scheduling uses deterministic jitter so targets do not become due at the same
+instant:
+
+| Class | Window | Intended use |
+|---|---:|---|
+| Active | about 30 minutes (25–35m) | Premium watches and recently opened profiles |
+| Warm | about 2 hours (105–135m) | Connected profiles inactive for 12h–7d |
+| Cold | 6–12 hours | Connected profiles inactive for more than 7d |
+| Lookup expiry | 24–72 hours | Stale fallback lifetime for cached lookups |
+
+Premium watchers always select active cadence. Otherwise cadence adapts from the
+last recorded profile activity.
+
+The Hub refresh cron no longer scans hundreds of expired cache rows and probes
+for connections. It atomically claims a bounded batch from the
+`watchTargets.by_status_and_entity_and_next_due_at` index. Claiming moves each
+due time forward as a short lease, which limits duplicate work from overlapping
+cron runs.
+
+For player refreshes, the cron loads the stats resource once. Each adapter primes
+the summary cache from the same response. In particular, the Clash adapter's
+player response is reused for both stats and summary instead of issuing a second
+profile request. Cache writes for both resources remain one transaction.
+
+Game-specific caches and crawlers may later consume `watchTargets`, but they
+must preserve the one-target/one-upstream-poll invariant.
+
+---
+
+## 6. Current Hub routes
 
 | Path | Behavior |
 |---|---|
-| `/` | Lobby: connected launch tiles or zero-state |
-| `/connect` | Pick a game |
-| `/connect/:game` | Tag entry → preview → **Save & launch** |
-| `/launch/:game` | Resolve the saved tag; launch the game site or send an unconnected user to `/connect/:game` |
-| `/settings/connections` | Launch / reconnect / disconnect |
-| `*` | 404 |
+| `/` | Landing page or connected-profile lobby |
+| `/connect` | Choose a game |
+| `/connect/:game` | Preview and save one browser-local player tag |
+| `/launch/:game` | Resolve a saved tag and open the game surface |
+| `/games/:game` | Hub game entry route |
+| `/games/:game/:tag` | Hub profile dashboard route |
+| `/settings/connections` | Open, replace, select, or remove browser connections |
+| `*` | Not found |
 
-**No** in-hub `/games/:game/:tag` dashboards.
-
-### Launch URLs
-`shared/destinations.ts` (pure; env via server if needed):
-
-| Game | Open URL template |
-|---|---|
-| `clash-royale` | `{CLASHCROWN_ORIGIN}/players/{tag}` |
-| `brawl-stars` | `{BRAWLSTATS_ORIGIN}/players?tag={tag}` |
-
-Post-connect: navigate to destination (top-level `location.assign`). Optional `from=statsconnect`.
-
-### Cross-site game switcher
-
-StatsConnect, ClashCrown, and brawlstats.io render the shared **Site Navigation** Module, including its compact **Games** control. The game sites link through the hub's canonical `/launch/:game` routes rather than needing access to another game's saved tag:
-
-1. User selects a game from any site.
-2. Browser opens `{STATSCONNECT_ORIGIN}/launch/:game`.
-3. Hub resolves the connection for its authenticated user.
-4. Connected users are redirected to the destination profile; unconnected users are redirected to `/connect/:game`.
-
-The Site Navigation structure, spacing, responsive behavior, and interaction states are shared. Each app supplies its own brand, local links, search, active-route adapter, and theme tokens. A persistent iframe or runtime-loaded remote shell is not used.
+The shared site navigation routes between the Hub, BrawlStats, and Royale Stats.
+Browser connections are convenience state only and should be described as
+connected “to this browser.”
 
 ---
 
-## 3. Connection + handshake
+## 7. Schema rollout and migration
 
-### Hub schema (concept)
-```
-connectedProfiles: ownerId (userId) + game + playerTag + display snapshot + timestamps
-viewerSettings: ownerId + activeProfileId
-previewCache (optional): short TTL for tag existence checks
-```
+The new entitlement, billing receipt, watch demand, and watch target tables are
+additive. `connectedProfiles.refreshTargetKey` is optional so an existing
+deployment can accept the schema before old rows are migrated.
 
-Index: `by_owner_game`, `by_owner_connected_at`.
+After deployment:
 
-### Connect flow
-1. Server mutation rejects guests.
-2. Validate tag format (shared pure helper).
-3. Preview existence (hub `endpoints` or mutation that `fetch`es upstream — **claimed deploy** required for outbound fetch).
-4. Upsert `connectedProfiles` for `(ownerId, game)`.
-5. Handshake endpoint on game capsule: `POST /api/hub/link` with hub-signed payload `{ userId, game, playerTag, exp }` using shared secret in `.env.lakebed.server`.
-6. Launch browser to destination URL.
+1. let the hourly `backfillConnectedProfiles` cron register legacy connections
+   in bounded batches, or invoke the internal mutation until it reports
+   `remaining: false`;
+2. compare connected-profile counts grouped by game/tag with each target's
+   `connectedProfileCount`;
+3. confirm the due-target cron reads `watchTargets` directly and no longer uses
+   expired-cache candidate scanning;
+4. monitor target failures and upstream request volume before increasing the
+   refresh budget;
+5. keep `refreshTargetKey` optional until production data has been verified and
+   a later migration intentionally tightens it.
 
-### Game capsule
-```
-userLinks: ownerId (same userId) + playerTag + updatedAt
-```
-Authenticated load → default to linked tag when present.
-
----
-
-## 4. Hub UI inventory (slim)
-
-- Lobby shell / nav / footer (StatsConnect brand)
-- Launch tiles / connected board / game picker
-- Games switcher: hub, Brawl Stars, and Clash Royale
-- Connect tag form
-- Sign-in / account controls (`SignInWithGoogle`, `useAuth`)
-- **Not in hub:** full CR/BS dashboards, Convex adapters, WorkOS callbacks
-
-Lobby visual language (bevel tiles, stage light) can be reimplemented in the capsule client as desired.
+Deploy schema/functions before a frontend that depends on `hub/access:getAccess`.
+Regenerate committed Convex API types from a configured deployment as part of
+the normal deploy workflow.
 
 ---
 
-## 5. Preview without owning dashboards
+## 8. Acceptance checks
 
-| Game | Preview source |
-|---|---|
-| Brawl Stars | `GET {BRAWLSTATS_SERVICE_URL}/api/player?tag=%23TAG` (name + headlines only) |
-| Clash Royale | Official API token in hub `.env.lakebed.server` **or** ClashCrown preview endpoint |
-
-Outbound `fetch` requires a **claimed** Lakebed deploy.
-
----
-
-## 6. Capsule server surface (hub)
-
-| Kind | Name | Auth | Purpose |
-|---|---|---|---|
-| query | `hubState` | Google | Connections for `ctx.auth.userId` |
-| mutation | `connect` | Google | Upsert + optional handshake |
-| mutation | `disconnect` | Google | Remove; best-effort unlink |
-| mutation | `setActive` | Google | Last launched |
-| mutation / endpoint | `preview` | Google | Tag existence + snapshot |
-| endpoint | (game sites) `/api/hub/link` | Hub HMAC / secret | Upsert `userLinks` |
-
-Rate-limit connect/preview per `userId` in capsule logic.
-
----
-
-## 7. Brand & copy
-
-- Hub chrome: StatsConnect only.
-- Launch CTAs may name destinations.
-- Supercell fan-content disclaimer on hub footer.
-
----
-
-## 8. Build order
-
-1. **Greenfield hub capsule** — `npx lakebed new statsconnect`; Google sign-in; lobby shell.
-2. **Connections schema + mutations** — keyed on `ctx.auth.userId`; guest-gated.
-3. **Connect + launch** — preview → save → `location.assign` destination.
-4. **Cross-site switcher** — add the Games control to StatsConnect, ClashCrown, and brawlstats.io; route game-site selections through `/launch/:game`.
-5. **Migrate / rebuild game sites as Lakebed capsules** (or auth islands) — same Google → same `userId`.
-6. **Handshake** — hub → game `/api/hub/link`; store `linkedTag`.
-7. **Lobby polish** — tiles, settings, empty states.
-8. **Retire Convex hub** in this repo once capsule is canonical (or replace tree).
-
----
-
-## 9. Deferred
-
-- Multi-profile per game
-- True silent SSO across apex domains (not offered by Lakebed Auth)
-- Central cross-origin logout
-- In-hub full dashboards (rejected)
-- Keeping long-term Convex + Lakebed Auth hybrid (unsupported)
-
----
-
-## 10. Acceptance checks
-
-- [ ] Google sign-in works on hub via Lakebed (`SignInWithGoogle`) with zero OAuth dashboard setup
-- [ ] `ctx.auth.userId` is stable for the same Google user across hub deploy URL and custom domain
-- [ ] Same Google account on a game Lakebed capsule yields the **same** `userId` as the hub
-- [ ] Connecting a tag persists for that `userId` after reload
-- [ ] Launch opens the correct game site URL for the saved tag
-- [ ] The Games switcher is available on all three sites and routes through the hub launcher
-- [ ] Selecting an unconnected game from the switcher opens that game's connection flow
-- [ ] Handshake sets `linkedTag` on the game capsule
-- [ ] Guests cannot save connections
-- [ ] Hub has no in-app CR/BS dashboard routes
-- [ ] No WorkOS / Convex Auth wiring remains in the hub capsule
+- [ ] A new browser receives a UUID in local storage and can connect one player
+      per game.
+- [ ] Copy describes those connections as browser-local, not authenticated.
+- [ ] Unauthenticated access resolves to free and premium mutations return
+      `AUTH_REQUIRED`.
+- [ ] Only verified `tokenIdentifier` subjects can own entitlements or watches.
+- [ ] Active premium access applies across all supported games.
+- [ ] Watch quotas enforce 3 players and 1 club per game.
+- [ ] Multiple subscribers to the same game/entity/tag increment one target's
+      watcher count rather than create duplicate targets.
+- [ ] Cancellation, expiry, and inactive entitlements remove active demand.
+- [ ] Due player refresh selects directly from the watch target due-time index.
+- [ ] A stats refresh primes summary and performs one Clash player fetch.
+- [ ] Checkout remains unavailable until a verified provider adapter and webhook
+      integration are deployed.
+- [ ] Product copy promises best-effort refresh, never guaranteed battle capture.

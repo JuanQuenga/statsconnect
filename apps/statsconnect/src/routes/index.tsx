@@ -8,13 +8,14 @@ import {
   Layers3,
   Link2,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { ConnectedGameBoard } from "@/components/connected-game-board";
 import { GameChannelTile } from "@/components/lobby/GameChannelTile";
 import { TileNav } from "@/components/lobby/TileNav";
 import { buttonVariants } from "@/components/ui/button";
-import { games } from "@/lib/contracts";
-import { hubQueryOptions } from "@/lib/data-client";
+import { games, type StatsConnectPlusOffer } from "@/lib/contracts";
+import { accessQueryOptions, hubQueryOptions } from "@/lib/data-client";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -31,15 +32,27 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const hubQuery = useQuery(hubQueryOptions());
+  const accessQuery = useQuery(accessQueryOptions());
 
   if (hubQuery.data?.profiles.length) {
     return <ConnectedGameBoard hub={hubQuery.data} />;
   }
 
-  return <LandingPage backendUnavailable={hubQuery.isError} />;
+  return (
+    <LandingPage
+      backendUnavailable={hubQuery.isError}
+      plusOffer={accessQuery.data?.offer ?? null}
+    />
+  );
 }
 
-function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
+function LandingPage({
+  backendUnavailable,
+  plusOffer,
+}: {
+  backendUnavailable: boolean;
+  plusOffer: StatsConnectPlusOffer | null;
+}) {
   return (
     <div className="hub-landing">
       <section className="hub-hero">
@@ -110,6 +123,8 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
         </TileNav>
       </section>
 
+      {plusOffer ? <PlusOffer offer={plusOffer} /> : null}
+
       <section className="hub-section hub-section--platform">
         <div className="hub-section__heading">
           <div>
@@ -141,6 +156,31 @@ function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {
         </div>
       </section>
     </div>
+  );
+}
+
+function PlusOffer({ offer }: { offer: StatsConnectPlusOffer }) {
+  return (
+    <section className="hub-section" aria-labelledby="statsconnect-plus-title">
+      <div className="hub-section__heading">
+        <div>
+          <p className="eyebrow">{offer.name} · foundation preview</p>
+          <h2 id="statsconnect-plus-title">One upgrade for every game site.</h2>
+        </div>
+        <p>{offer.scope}. No checkout is presented while verified account and billing integrations are unfinished.</p>
+      </div>
+      <div className="hub-feature-grid">
+        {offer.features.map((feature) => (
+          <Feature
+            key={feature}
+            icon={<Sparkles />}
+            title={feature}
+            copy="Included in the shared premium entitlement when this capability is integrated on a game site."
+          />
+        ))}
+      </div>
+      <p className="hub-config-note mt-6">{offer.notice}</p>
+    </section>
   );
 }
 

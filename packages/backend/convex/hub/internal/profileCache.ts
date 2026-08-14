@@ -4,13 +4,6 @@ import { gameIdValidator } from "../schema";
 
 const resourceValidator = v.union(v.literal("summary"), v.literal("stats"));
 const sourceValidator = v.union(v.literal("direct"), v.literal("service"), v.literal("stub"));
-const refreshCandidateValidator = v.object({
-  game: gameIdValidator,
-  playerTag: v.string(),
-});
-
-const MAX_CANDIDATE_SCAN = 500;
-const MAX_REFRESH_CANDIDATES = 10;
 const MAX_PRUNE_ROWS = 200;
 const MAX_PRUNE_SCAN = 1_000;
 
@@ -51,41 +44,6 @@ export const get = internalQuery({
       expiresAt: row.expiresAt,
       staleUntil: row.staleUntil,
     };
-  },
-});
-
-export const listExpiredConnected = internalQuery({
-  args: { now: v.number(), limit: v.number() },
-  returns: v.array(refreshCandidateValidator),
-  handler: async (ctx, args) => {
-    const limit = Math.max(0, Math.min(Math.floor(args.limit), MAX_REFRESH_CANDIDATES));
-    if (limit === 0) return [];
-
-    const expired = await ctx.db
-      .query("profileCache")
-      .withIndex("by_expires_at", (query) => query.lte("expiresAt", args.now))
-      .order("asc")
-      .take(MAX_CANDIDATE_SCAN);
-    const candidates: Array<{ game: typeof expired[number]["game"]; playerTag: string }> = [];
-    const seen = new Set<string>();
-
-    for (const row of expired) {
-      const key = `${row.game}:${row.playerTag}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const connected = await ctx.db
-        .query("connectedProfiles")
-        .withIndex("by_game_and_player_tag", (query) =>
-          query.eq("game", row.game).eq("playerTag", row.playerTag))
-        .take(1);
-      if (connected.length === 0) continue;
-
-      candidates.push({ game: row.game, playerTag: row.playerTag });
-      if (candidates.length === limit) break;
-    }
-
-    return candidates;
   },
 });
 

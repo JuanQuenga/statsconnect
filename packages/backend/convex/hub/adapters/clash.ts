@@ -238,7 +238,7 @@ async function getStats(tagInput: string): Promise<AdapterLoadResult<ProfileStat
   const upcoming = chestRequest.status === "fulfilled" ? parseUpcoming(chestRequest.value) : null;
   if (upcoming === null) warnings.push("The upcoming chest cycle could not be refreshed.");
   const profileSummary = summary(player, tag);
-  return result({
+  const output = result<ProfileStats>({
     game: "clash-royale",
     playerTag: displayTag(tag),
     summary: profileSummary,
@@ -258,6 +258,10 @@ async function getStats(tagInput: string): Promise<AdapterLoadResult<ProfileStat
     upcoming: upcoming ?? [],
     warnings,
   });
+  return {
+    ...output,
+    primed: [{ resource: "summary", data: profileSummary }],
+  };
 }
 
 export const clashAdapter: GameAdapter = {
