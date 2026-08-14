@@ -85,7 +85,7 @@ export const searchTournamentsAction = makeFunctionReference<
 
 // --- Battle-log pipeline --------------------------------------------------
 
-export const pipelineStatusQuery = makeFunctionReference<"query", Record<string, never>, PipelineStatusPayload>(
+export const pipelineStatusQuery = makeFunctionReference<"query", { now: number }, PipelineStatusPayload>(
   "clash/meta:pipelineStatus"
 );
 

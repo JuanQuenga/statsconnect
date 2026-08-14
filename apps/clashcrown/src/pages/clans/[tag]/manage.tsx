@@ -1,5 +1,6 @@
 import { useQuery as useAsyncQuery } from "@tanstack/react-query";
 import { useAction, useQuery } from "convex/react";
+import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import Head from "@/components/Head";
 import { ClanManagementDashboard } from "@/components/clans/ClanManagementDashboard";
@@ -22,6 +23,7 @@ export default function ClanManagePage() {
 }
 
 function LiveClanManagement({ tag }: { tag: string }) {
+  const [now] = useState(() => Date.now());
   const observe = useAction(observeClanManagementAction);
   const observation = useAsyncQuery({
     queryKey: ["clan-management-observation", tag],
@@ -29,7 +31,7 @@ function LiveClanManagement({ tag }: { tag: string }) {
     retry: false,
     staleTime: 5 * 60 * 1_000
   });
-  const dashboard = useQuery(clanManagementDashboardQuery, { tag });
+  const dashboard = useQuery(clanManagementDashboardQuery, { tag, now });
 
   if (dashboard === undefined && observation.isPending) {
     return <Layout><LoadingState label="clan management baseline" /></Layout>;
