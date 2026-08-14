@@ -207,7 +207,7 @@ function RunLog({ runs }: { runs?: PipelineRun[] }) {
       title="Recent cron runs"
       head={["Job", "Started", "Took", "Result", "Detail"]}
       empty={runs?.length === 0}
-      note="Discovery every 6h, crawl every 2m, rollup every 30m, prune every 6h."
+      note="Discovery every 12h, crawl every 5m, rollup every 30m, prune every 6h."
     >
       {(runs ?? []).map((run) => (
         <tr key={run._id}>

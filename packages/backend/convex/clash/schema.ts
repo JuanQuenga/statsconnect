@@ -35,6 +35,15 @@ export const crawlSource = v.union(
   v.literal("manual")
 );
 
+export const crawlTier = v.union(
+  /** Small, durable sample used to keep the public meta pages useful. */
+  v.literal("fixed"),
+  /** Recently ranked players, refreshed more often than broad discovery. */
+  v.literal("featured"),
+  /** Short-lived players discovered through clan rosters. */
+  v.literal("community")
+);
+
 export const clanEventKind = v.union(
   v.literal("joined"),
   v.literal("left"),
@@ -170,6 +179,28 @@ export const clashTables = {
     fetchedAt: v.number()
   }).index("by_fetched_at", ["fetchedAt"]),
 
+  /** Five-minute fetch aggregates replace the legacy row-per-request log above. */
+  clashApiFetchTelemetry: defineTable({
+    bucketStart: v.number(),
+    endpoint: v.string(),
+    statusClass: v.string(),
+    requests: v.number(),
+    failures: v.number(),
+    lastFetchedAt: v.number()
+  })
+    .index("by_bucket_start", ["bucketStart"])
+    .index("by_bucket_and_endpoint_and_status", ["bucketStart", "endpoint", "statusClass"]),
+
+  /** Atomic daily reservations make crawler request budgets hard, not advisory. */
+  clashCrawlerBudgets: defineTable({
+    day: v.number(),
+    job: v.union(v.literal("discover"), v.literal("crawl"), v.literal("clanWatch")),
+    reserved: v.number(),
+    updatedAt: v.number()
+  })
+    .index("by_day_and_job", ["day", "job"])
+    .index("by_day", ["day"]),
+
   // --- Battle-log collection pipeline -------------------------------------
   // The official API only exposes battles per player, so deck statistics have
   // to be built by polling many players' battle logs over time.
@@ -185,10 +216,18 @@ export const clashTables = {
     /** Newest battle already ingested for this tag, used to skip unchanged logs. */
     lastBattleTime: v.optional(v.number()),
     consecutiveFailures: v.number(),
-    disabled: v.boolean()
+    disabled: v.boolean(),
+    /** Optional while populated rows are migrated by the next discovery pass. */
+    tier: v.optional(crawlTier),
+    revisitSeconds: v.optional(v.number()),
+    lastDiscoveredAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    leaseUntil: v.optional(v.number())
   })
     .index("by_tag", ["tag"])
-    .index("by_due", ["disabled", "nextDueAt"]),
+    .index("by_due", ["disabled", "nextDueAt"])
+    .index("by_disabled_and_tier_and_next_due_at", ["disabled", "tier", "nextDueAt"])
+    .index("by_expires_at", ["expiresAt"]),
 
   /**
    * Dedup ledger. A battle appears in both participants' logs, so we key on the
@@ -282,11 +321,53 @@ export const clashTables = {
     trophySamples: v.optional(v.number()),
     arenaIds: v.optional(v.array(v.number())),
     arenaNames: v.optional(v.array(v.string())),
-    computedAt: v.number()
+    computedAt: v.number(),
+    /** Optional for schema-safe rollout; only true rows are publicly served. */
+    complete: v.optional(v.boolean())
   })
     .index("by_window_and_mode_and_rank", ["windowDays", "mode", "rank"])
     .index("by_window_and_mode", ["windowDays", "mode"])
     .index("by_window_and_mode_and_computed_at", ["windowDays", "mode", "computedAt"]),
+
+  /**
+   * Incremental seven-day source for exact top-deck materialisation. Stored
+   * usage is an upper bound after UTC day rollover until the bounded refresh
+   * normalises the row, so rankings are only published after convergence.
+   */
+  clashDeckRankingCandidates: defineTable({
+    mode: metaMode,
+    deckHash: v.string(),
+    cardIds: v.array(v.number()),
+    evolutionIds: v.array(v.number()),
+    buckets: v.array(v.object({
+      day: v.number(),
+      uses: v.number(),
+      wins: v.number(),
+      trophySum: v.number(),
+      trophySamples: v.number(),
+      arenaIds: v.array(v.number()),
+      arenaNames: v.array(v.string())
+    })),
+    uses1: v.number(),
+    uses7: v.number(),
+    materializedDay: v.number(),
+    updatedAt: v.number()
+  })
+    .index("by_mode_and_deck_hash", ["mode", "deckHash"])
+    .index("by_mode_and_uses_1", ["mode", "uses1"])
+    .index("by_mode_and_uses_7", ["mode", "uses7"])
+    .index("by_updated_at", ["updatedAt"]),
+
+  /** One low-contention denominator row per mode for 1/7-day usage rates. */
+  clashDeckRankingTotals: defineTable({
+    mode: metaMode,
+    buckets: v.array(v.object({ day: v.number(), uses: v.number() })),
+    uses1: v.number(),
+    uses7: v.number(),
+    materializedDay: v.number(),
+    startedAt: v.number(),
+    updatedAt: v.number()
+  }).index("by_mode", ["mode"]),
 
   /** One row per cron execution, so the beta page can show what the pipeline is doing. */
   clashPipelineRuns: defineTable({
@@ -410,10 +491,17 @@ export const clashTables = {
     nextObservationAt: v.number(),
     observationCount: v.number(),
     consecutiveFailures: v.number(),
-    lastError: v.optional(v.string())
+    lastError: v.optional(v.string()),
+    /** Background work exists only while an explicit, renewable watch is live. */
+    watchExpiresAt: v.optional(v.number()),
+    watchTier: v.optional(v.number()),
+    leaseUntil: v.optional(v.number()),
+    retainUntil: v.optional(v.number())
   })
     .index("by_tag", ["tag"])
-    .index("by_next_observation_at", ["nextObservationAt"]),
+    .index("by_next_observation_at", ["nextObservationAt"])
+    .index("by_watch_tier_and_next_observation_at", ["watchTier", "nextObservationAt"])
+    .index("by_retain_until", ["retainUntil"]),
 
   /** One bounded-retention clan-level observation. Member rows live separately. */
   clashClanRosterSnapshots: defineTable({

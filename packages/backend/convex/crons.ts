@@ -32,13 +32,13 @@ crons.interval(
 
 crons.interval(
   "clash: refill the crawl queue",
-  { hours: 6 },
+  { hours: 12 },
   internal.clash.crawler.discover,
   {},
 );
 crons.interval(
   "clash: crawl battle logs",
-  { minutes: 2 },
+  { minutes: 5 },
   internal.clash.crawler.crawl,
   {},
 );
@@ -56,7 +56,7 @@ crons.interval(
 );
 crons.interval(
   "clash: observe tracked clans",
-  { minutes: 30 },
+  { hours: 1 },
   internal.clash.clanManagementActions.pollTrackedClans,
   {},
 );

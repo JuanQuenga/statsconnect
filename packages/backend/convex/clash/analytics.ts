@@ -504,6 +504,7 @@ export const cardDetail = query({
       truncated,
       trend,
       topDecks: rankings
+        .filter((row) => row.complete)
         .filter((row) => row.cardIds.includes(args.cardId))
         .slice(0, 6)
         .map((row) => ({
