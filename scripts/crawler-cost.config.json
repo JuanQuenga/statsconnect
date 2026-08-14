@@ -1,0 +1,102 @@
+{
+  "daysPerMonth": 30,
+  "assumptions": [
+    "Every cron fires on schedule for the full configured month; missed, overlapping, and retried runs are not modeled.",
+    "Each crawl tick claims its full configured batch. Empty queues therefore make the estimate conservative for function calls.",
+    "Brawl fetches a player profile and battle log per target (2 upstream requests); Clash fetches one battle log per target (1 upstream request).",
+    "Child calls are approximate Convex ctx.runQuery/ctx.runMutation calls per run and per work item; database work inside those calls is not counted as another child call.",
+    "Rough database reads and writes are proxy row-operation units, not Convex invoice units or live dashboard readings.",
+    "The estimate excludes frontend traffic, manual lookups, retries, storage, bandwidth, and data-dependent prune work."
+  ],
+  "jobs": [
+    {
+      "id": "brawl.crawl",
+      "game": "Brawl",
+      "name": "crawl due player logs",
+      "intervalMinutes": 2,
+      "batchSize": 8,
+      "fixedUpstreamRequestsPerRun": 0,
+      "upstreamRequestsPerItem": 2,
+      "fixedChildCallsPerRun": 4,
+      "childCallsPerItem": 5,
+      "roughDbReadsPerRun": 1,
+      "roughDbReadsPerItem": 4,
+      "roughDbWritesPerRun": 2,
+      "roughDbWritesPerItem": 5,
+      "notes": "Profile fetch, battle-log fetch, fetch telemetry, profile/ingest/target mutations."
+    },
+    {
+      "id": "brawl.discover",
+      "game": "Brawl",
+      "name": "discover ranked players and clubs",
+      "intervalMinutes": 360,
+      "batchSize": 10,
+      "fixedUpstreamRequestsPerRun": 2,
+      "upstreamRequestsPerItem": 1,
+      "fixedChildCallsPerRun": 6,
+      "childCallsPerItem": 1,
+      "roughDbWritesPerRun": 3,
+      "roughDbWritesPerItem": 1,
+      "notes": "Batch is BRAWL_CLUB_SEED; fixed requests are player and club rankings."
+    },
+    {
+      "id": "clash.crawl",
+      "game": "Clash",
+      "name": "crawl battle logs",
+      "intervalMinutes": 2,
+      "batchSize": 8,
+      "fixedUpstreamRequestsPerRun": 0,
+      "upstreamRequestsPerItem": 1,
+      "fixedChildCallsPerRun": 3,
+      "childCallsPerItem": 3,
+      "roughDbReadsPerRun": 1,
+      "roughDbReadsPerItem": 4,
+      "roughDbWritesPerRun": 2,
+      "roughDbWritesPerItem": 5,
+      "notes": "One battle-log fetch and telemetry/ingest calls; optional sighting writes are not itemized."
+    },
+    {
+      "id": "clash.discover",
+      "game": "Clash",
+      "name": "discover leaderboard and clan targets",
+      "intervalMinutes": 360,
+      "batchSize": 20,
+      "fixedUpstreamRequestsPerRun": 2,
+      "upstreamRequestsPerItem": 1,
+      "fixedChildCallsPerRun": 5,
+      "childCallsPerItem": 0,
+      "roughDbWritesPerRun": 4,
+      "notes": "Batch is CLASH_CLAN_SEED; fixed requests are board discovery and the active player board."
+    },
+    {
+      "id": "clash.rollup",
+      "game": "Clash",
+      "name": "roll up deck rankings",
+      "intervalMinutes": 30,
+      "batchSize": 1,
+      "fixedUpstreamRequestsPerRun": 0,
+      "upstreamRequestsPerItem": 0,
+      "fixedChildCallsPerRun": 11,
+      "childCallsPerItem": 0,
+      "roughDbReadsPerRun": 60307,
+      "roughDbWritesPerRun": 1200,
+      "notes": "Read proxy uses the dated partial-rollup observation; write proxy assumes two windows × five modes × 100 rows."
+    },
+    {
+      "id": "clash.tracked-clan-poll",
+      "game": "Clash",
+      "name": "observe tracked clans",
+      "intervalMinutes": 30,
+      "batchSize": 3,
+      "fixedUpstreamRequestsPerRun": 0,
+      "upstreamRequestsPerItem": 3,
+      "fixedChildCallsPerRun": 1,
+      "childCallsPerItem": 2,
+      "roughDbReadsPerRun": 1,
+      "roughDbReadsPerItem": 2,
+      "roughDbWritesPerRun": 1,
+      "roughDbWritesPerItem": 3,
+      "notes": "Poll limit is three tracked clans; each observation requests clan, current river race, and race log."
+    }
+  ]
+}
