@@ -1,5 +1,6 @@
 import { displayTag, normalizeTag } from "./tags";
 import type {
+  AdapterLoadResult,
   AdapterResult,
   GameAdapter,
   GameId,
@@ -155,6 +156,12 @@ export function createStubAdapter(game: GameId): GameAdapter {
     normalizeTag,
     connectProfile: async (input) => cache(summaryFor(game, normalizeTag(input))),
     getProfileSummary: async (input) => cache(summaryFor(game, normalizeTag(input))),
-    getStats: async (input) => cache(statsFor(game, normalizeTag(input))),
+    getStats: async (input): Promise<AdapterLoadResult<ProfileStats>> => {
+      const stats = statsFor(game, normalizeTag(input));
+      return {
+        ...cache(stats),
+        primed: [{ resource: "summary", data: stats.summary }],
+      };
+    },
   };
 }

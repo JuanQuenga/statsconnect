@@ -11,6 +11,7 @@ import {
   type ProfileStats,
   type ProfileSummary,
 } from "./adapters/types";
+import { lookupExpiresAt } from "./scheduling";
 
 type Resource = "summary" | "stats";
 type Source = "direct" | "service" | "stub";
@@ -36,9 +37,13 @@ function sourceFor(game: GameId, resultState: AdapterResult<unknown>["cache"]["s
 /**
  * `synced` is true only when this call actually reached the adapter and stored
  * fresh data. Cache hits and stale fallbacks report false, so callers can avoid
- * rewriting the connected-profile snapshot on a plain read (spec §6).
+ * rewriting the connected-profile snapshot on a plain read (spec §5).
  */
-export type ReadThroughResult<T> = { result: AdapterResult<T>; synced: boolean };
+export type ReadThroughResult<T> = {
+  result: AdapterResult<T>;
+  synced: boolean;
+  writtenResources: number;
+};
 
 export async function readThrough<T>(
   ctx: ActionCtx,
@@ -72,6 +77,7 @@ export async function readThrough<T>(
         cache: { state: cached.source === "stub" ? "stub" : "hit", fetchedAt: cached.fetchedAt, expiresAt: cached.expiresAt },
       },
       synced: false,
+      writtenResources: 0,
     };
   }
 
@@ -99,9 +105,16 @@ export async function readThrough<T>(
       source: sourceFor(options.game, fresh.cache.state),
       fetchedAt: fresh.cache.fetchedAt,
       expiresAt: fresh.cache.expiresAt,
-      staleUntil: fresh.cache.expiresAt + 86_400_000,
+      staleUntil: lookupExpiresAt(
+        `${options.game}:${options.playerTag}:${options.resource}`,
+        fresh.cache.expiresAt,
+      ),
     });
-    return { result: { data: fresh.data, cache: fresh.cache }, synced: true };
+    return {
+      result: { data: fresh.data, cache: fresh.cache },
+      synced: true,
+      writtenResources: rows.length,
+    };
   } catch (error) {
     if (cached && parsed && cached.staleUntil > now) {
       return {
@@ -112,29 +125,21 @@ export async function readThrough<T>(
           cache: { state: cached.source === "stub" ? "stub" : "stale", fetchedAt: cached.fetchedAt, expiresAt: cached.expiresAt },
         },
         synced: false,
+        writtenResources: 0,
       };
     }
     return publicError(error);
   }
 }
 
-async function refreshResource(
+async function refreshStats(
   ctx: ActionCtx,
   candidate: { game: GameId; playerTag: string },
-  resource: Resource,
-): Promise<ReadThroughResult<ProfileSummary | ProfileStats>> {
+): Promise<ReadThroughResult<ProfileStats>> {
   const adapter = getAdapter(candidate.game);
-  if (resource === "summary") {
-    return readThrough(ctx, {
-      ...candidate,
-      resource,
-      guard: isProfileSummary,
-      load: () => adapter.getProfileSummary(candidate.playerTag),
-    });
-  }
   return readThrough(ctx, {
     ...candidate,
-    resource,
+    resource: "stats",
     guard: isProfileStats,
     load: () => adapter.getStats(candidate.playerTag),
   });
@@ -152,7 +157,7 @@ export const refreshExpiredConnected = internalAction({
     refreshedResources: number;
     failedResources: number;
   }> => {
-    const candidates = await ctx.runQuery(internal.hub.internal.profileCache.listExpiredConnected, {
+    const candidates = await ctx.runMutation(internal.hub.internal.watchTargets.claimDuePlayerTargets, {
       now: Date.now(),
       limit: REFRESH_BUDGET,
     });
@@ -160,20 +165,29 @@ export const refreshExpiredConnected = internalAction({
     let failedResources = 0;
 
     for (const candidate of candidates) {
-      for (const resource of ["summary", "stats"] as const) {
-        try {
-          const refreshed = await refreshResource(ctx, candidate, resource);
-          if (refreshed.synced) refreshedResources += 1;
-          else if (refreshed.result.cache.state === "stale") failedResources += 1;
-        } catch (error) {
-          failedResources += 1;
-          console.warn("Background profile cache refresh failed", {
-            game: candidate.game,
-            playerTag: candidate.playerTag,
-            resource,
-            error,
-          });
-        }
+      const attemptedAt = Date.now();
+      let succeeded = false;
+      try {
+        // Every adapter primes summary from the same stats load. In particular,
+        // Clash fetches its player document once instead of once per resource.
+        const refreshed = await refreshStats(ctx, candidate);
+        refreshedResources += refreshed.writtenResources;
+        succeeded = refreshed.result.cache.state !== "stale";
+        if (!succeeded) failedResources += 1;
+      } catch (error) {
+        failedResources += 1;
+        console.warn("Background profile cache refresh failed", {
+          game: candidate.game,
+          playerTag: candidate.playerTag,
+          resource: "stats+summary",
+          error,
+        });
+      } finally {
+        await ctx.runMutation(internal.hub.internal.watchTargets.recordPoll, {
+          targetKey: candidate.targetKey,
+          attemptedAt,
+          succeeded,
+        });
       }
     }
 
