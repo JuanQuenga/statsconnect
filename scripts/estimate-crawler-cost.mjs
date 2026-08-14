@@ -15,6 +15,13 @@ export function estimateJob(job, daysPerMonth) {
   const upstreamRequestsPerRun =
     nonNegativeNumber(job.fixedUpstreamRequestsPerRun ?? 0, `${job.id}.fixedUpstreamRequestsPerRun`) +
     batchSize * nonNegativeNumber(job.upstreamRequestsPerItem ?? 0, `${job.id}.upstreamRequestsPerItem`);
+  const uncappedUpstreamRequests = runs * upstreamRequestsPerRun;
+  const dailyUpstreamRequestCap = job.dailyUpstreamRequestCap === undefined
+    ? undefined
+    : nonNegativeNumber(job.dailyUpstreamRequestCap, `${job.id}.dailyUpstreamRequestCap`);
+  const upstreamRequests = dailyUpstreamRequestCap === undefined
+    ? uncappedUpstreamRequests
+    : Math.min(uncappedUpstreamRequests, daysPerMonth * dailyUpstreamRequestCap);
   const childCallsPerRun =
     nonNegativeNumber(job.fixedChildCallsPerRun ?? 0, `${job.id}.fixedChildCallsPerRun`) +
     batchSize * nonNegativeNumber(job.childCallsPerItem ?? 0, `${job.id}.childCallsPerItem`);
@@ -32,7 +39,9 @@ export function estimateJob(job, daysPerMonth) {
     batchSize,
     runs,
     upstreamRequestsPerRun,
-    upstreamRequests: runs * upstreamRequestsPerRun,
+    uncappedUpstreamRequests,
+    upstreamRequests,
+    upstreamRequestCapApplied: upstreamRequests < uncappedUpstreamRequests,
     childCallsPerRun,
     childCalls: runs * childCallsPerRun,
     actionCalls: runs * actionCallsPerRun,

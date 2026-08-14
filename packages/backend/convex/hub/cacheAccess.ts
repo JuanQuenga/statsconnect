@@ -13,11 +13,29 @@ import {
 } from "./adapters/types";
 import { lookupExpiresAt } from "./scheduling";
 
+declare const process: { env: Record<string, string | undefined> };
+
 type Resource = "summary" | "stats";
 type Source = "direct" | "service" | "stub";
 
 const REFRESH_BUDGET = 10;
 const PRUNE_BUDGET = 200;
+
+function envEnabled(value: string | undefined, fallback = true): boolean {
+  if (value === undefined) return fallback;
+  return !["0", "false", "off", "no"].includes(value.trim().toLowerCase());
+}
+
+function boundedInteger(
+  value: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(Math.floor(parsed), minimum), maximum);
+}
 
 function publicError(error: unknown): never {
   if (error instanceof AdapterError) {
@@ -157,9 +175,27 @@ export const refreshExpiredConnected = internalAction({
     refreshedResources: number;
     failedResources: number;
   }> => {
+    if (!envEnabled(process.env.HUB_PROFILE_REFRESH_ENABLED)) {
+      return {
+        attemptedProfiles: 0,
+        refreshedResources: 0,
+        failedResources: 0,
+      };
+    }
     const candidates = await ctx.runMutation(internal.hub.internal.watchTargets.claimDuePlayerTargets, {
       now: Date.now(),
-      limit: REFRESH_BUDGET,
+      limit: boundedInteger(
+        process.env.HUB_PROFILE_REFRESH_BATCH,
+        REFRESH_BUDGET,
+        0,
+        20,
+      ),
+      dailyLimit: boundedInteger(
+        process.env.HUB_PROFILE_REFRESH_MAX_TARGETS_PER_DAY,
+        480,
+        0,
+        20_000,
+      ),
     });
     let refreshedResources = 0;
     let failedResources = 0;
@@ -204,16 +240,19 @@ export const pruneExpired = internalAction({
   returns: v.object({
     profileCacheRows: v.number(),
     connectThrottleRows: v.number(),
+    refreshBudgetRows: v.number(),
     failedBranches: v.number(),
   }),
   handler: async (ctx): Promise<{
     profileCacheRows: number;
     connectThrottleRows: number;
+    refreshBudgetRows: number;
     failedBranches: number;
   }> => {
     const now = Date.now();
     let profileCacheRows = 0;
     let connectThrottleRows = 0;
+    let refreshBudgetRows = 0;
     let failedBranches = 0;
 
     try {
@@ -236,6 +275,21 @@ export const pruneExpired = internalAction({
       console.warn("Background connect throttle pruning failed", { error });
     }
 
-    return { profileCacheRows, connectThrottleRows, failedBranches };
+    try {
+      refreshBudgetRows = await ctx.runMutation(
+        internal.hub.internal.watchTargets.pruneRefreshBudgets,
+        { now, limit: 32 },
+      );
+    } catch (error) {
+      failedBranches += 1;
+      console.warn("Hub refresh budget pruning failed", { error });
+    }
+
+    return {
+      profileCacheRows,
+      connectThrottleRows,
+      refreshBudgetRows,
+      failedBranches,
+    };
   },
 });

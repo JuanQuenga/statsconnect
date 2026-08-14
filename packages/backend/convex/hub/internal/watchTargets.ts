@@ -11,9 +11,10 @@ const MAX_DUE_TARGETS = 20;
 const BACKFILL_BATCH = 100;
 const EXPIRY_BATCH = 100;
 const LEASE_MS = 10 * 60_000;
+const DAY_MS = 24 * 60 * 60_000;
 
 export const claimDuePlayerTargets = internalMutation({
-  args: { now: v.number(), limit: v.number() },
+  args: { now: v.number(), limit: v.number(), dailyLimit: v.number() },
   returns: v.array(
     v.object({
       targetKey: v.string(),
@@ -23,7 +24,17 @@ export const claimDuePlayerTargets = internalMutation({
     }),
   ),
   handler: async (ctx, args) => {
-    const limit = Math.max(0, Math.min(Math.floor(args.limit), MAX_DUE_TARGETS));
+    const requestedLimit = Math.max(0, Math.min(Math.floor(args.limit), MAX_DUE_TARGETS));
+    const dailyLimit = Math.max(0, Math.floor(args.dailyLimit));
+    const dayStartedAt = Math.floor(args.now / DAY_MS) * DAY_MS;
+    const budget = await ctx.db
+      .query("hubRefreshBudgets")
+      .withIndex("by_day_started_at", (query) =>
+        query.eq("dayStartedAt", dayStartedAt),
+      )
+      .unique();
+    const remaining = Math.max(0, dailyLimit - (budget?.reservedTargets ?? 0));
+    const limit = Math.min(requestedLimit, remaining);
     if (limit === 0) return [];
     const rows = await ctx.db
       .query("watchTargets")
@@ -41,6 +52,20 @@ export const claimDuePlayerTargets = internalMutation({
         nextDueAt: args.now + LEASE_MS,
         updatedAt: args.now,
       });
+    }
+    if (rows.length > 0) {
+      if (budget) {
+        await ctx.db.patch(budget._id, {
+          reservedTargets: budget.reservedTargets + rows.length,
+          updatedAt: args.now,
+        });
+      } else {
+        await ctx.db.insert("hubRefreshBudgets", {
+          dayStartedAt,
+          reservedTargets: rows.length,
+          updatedAt: args.now,
+        });
+      }
     }
 
     return rows.map((row) => ({
@@ -125,5 +150,23 @@ export const expireWatchDemands = internalMutation({
       await unregisterWatcher(ctx, demand.targetKey, now);
     }
     return demands.length;
+  },
+});
+
+export const pruneRefreshBudgets = internalMutation({
+  args: { now: v.number(), limit: v.number() },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const currentDay = Math.floor(args.now / DAY_MS) * DAY_MS;
+    const limit = Math.max(0, Math.min(Math.floor(args.limit), 32));
+    if (limit === 0) return 0;
+    const rows = await ctx.db
+      .query("hubRefreshBudgets")
+      .withIndex("by_day_started_at", (query) =>
+        query.lt("dayStartedAt", currentDay - DAY_MS),
+      )
+      .take(limit);
+    for (const row of rows) await ctx.db.delete(row._id);
+    return rows.length;
   },
 });

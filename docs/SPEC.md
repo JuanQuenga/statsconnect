@@ -199,6 +199,11 @@ for connections. It atomically claims a bounded batch from the
 due time forward as a short lease, which limits duplicate work from overlapping
 cron runs.
 
+The claim transaction also reserves against `hubRefreshBudgets`, so overlapping
+workers cannot exceed the configured UTC-day target-attempt cap. Operators can
+set `HUB_PROFILE_REFRESH_ENABLED=false`, lower `HUB_PROFILE_REFRESH_BATCH`, or
+lower `HUB_PROFILE_REFRESH_MAX_TARGETS_PER_DAY` without changing target demand.
+
 For player refreshes, the cron loads the stats resource once. Each adapter primes
 the summary cache from the same response. In particular, the Clash adapter's
 player response is reused for both stats and summary instead of issuing a second
@@ -230,9 +235,9 @@ connected “to this browser.”
 
 ## 7. Schema rollout and migration
 
-The new entitlement, billing receipt, watch demand, and watch target tables are
-additive. `connectedProfiles.refreshTargetKey` is optional so an existing
-deployment can accept the schema before old rows are migrated.
+The new entitlement, billing receipt, watch demand, watch target, and Hub refresh
+budget tables are additive. `connectedProfiles.refreshTargetKey` is optional so
+an existing deployment can accept the schema before old rows are migrated.
 
 After deployment:
 

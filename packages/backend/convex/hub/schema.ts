@@ -206,4 +206,11 @@ export const hubTables = {
       "entity",
       "nextDueAt",
     ]),
+
+  /** Atomic daily target-attempt reservations for the shared Hub refresher. */
+  hubRefreshBudgets: defineTable({
+    dayStartedAt: v.number(),
+    reservedTargets: v.number(),
+    updatedAt: v.number(),
+  }).index("by_day_started_at", ["dayStartedAt"]),
 };

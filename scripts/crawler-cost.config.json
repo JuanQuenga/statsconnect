@@ -2,11 +2,12 @@
   "daysPerMonth": 30,
   "assumptions": [
     "Every cron fires on schedule for the full configured month; missed, overlapping, and retried runs are not modeled.",
-    "Each crawl tick claims its full configured batch. Empty queues therefore make the estimate conservative for function calls.",
-    "Brawl fetches a player profile and battle log per target (2 upstream requests); Clash fetches one battle log per target (1 upstream request).",
+    "Each crawl tick claims its full configured batch. Empty queues therefore make the estimate conservative for function calls and database proxy units.",
+    "Brawl crawl uses one battle-log request per target and at most one profile request when its separate 12-hour profile cadence is due; the model uses the two-request upper bound.",
+    "Jobs with dailyUpstreamRequestCap apply the repository's hard reservation limit to upstream totals even though function/database proxy units remain conservative full-batch estimates.",
     "Child calls are approximate Convex ctx.runQuery/ctx.runMutation calls per run and per work item; database work inside those calls is not counted as another child call.",
     "Rough database reads and writes are proxy row-operation units, not Convex invoice units or live dashboard readings.",
-    "The estimate excludes frontend traffic, manual lookups, retries, storage, bandwidth, and data-dependent prune work."
+    "The estimate excludes frontend traffic, manual lookups, retries, storage, bandwidth, and data-dependent prune work. Hub profile refresh is included as a worst-case mixed-adapter lane."
   ],
   "jobs": [
     {
@@ -17,13 +18,13 @@
       "batchSize": 8,
       "fixedUpstreamRequestsPerRun": 0,
       "upstreamRequestsPerItem": 2,
-      "fixedChildCallsPerRun": 4,
-      "childCallsPerItem": 5,
+      "fixedChildCallsPerRun": 5,
+      "childCallsPerItem": 4,
       "roughDbReadsPerRun": 1,
       "roughDbReadsPerItem": 4,
       "roughDbWritesPerRun": 2,
       "roughDbWritesPerItem": 5,
-      "notes": "Profile fetch, battle-log fetch, fetch telemetry, profile/ingest/target mutations."
+      "notes": "Two calls per item is an upper bound: every target fetches a battle log, while profiles refresh separately about every 12 hours. The shared 500/hour crawl budget is enforced in code."
     },
     {
       "id": "brawl.discover",
@@ -43,30 +44,32 @@
       "id": "clash.crawl",
       "game": "Clash",
       "name": "crawl battle logs",
-      "intervalMinutes": 2,
+      "intervalMinutes": 5,
       "batchSize": 8,
       "fixedUpstreamRequestsPerRun": 0,
       "upstreamRequestsPerItem": 1,
-      "fixedChildCallsPerRun": 3,
-      "childCallsPerItem": 3,
+      "dailyUpstreamRequestCap": 4000,
+      "fixedChildCallsPerRun": 7,
+      "childCallsPerItem": 1,
       "roughDbReadsPerRun": 1,
       "roughDbReadsPerItem": 4,
       "roughDbWritesPerRun": 2,
       "roughDbWritesPerItem": 5,
-      "notes": "One battle-log fetch and telemetry/ingest calls; optional sighting writes are not itemized."
+      "notes": "One battle-log fetch per target, capped at 8 per run and 4,000 per UTC day; optional sighting writes are not itemized."
     },
     {
       "id": "clash.discover",
       "game": "Clash",
       "name": "discover leaderboard and clan targets",
-      "intervalMinutes": 360,
-      "batchSize": 20,
-      "fixedUpstreamRequestsPerRun": 2,
+      "intervalMinutes": 720,
+      "batchSize": 9,
+      "fixedUpstreamRequestsPerRun": 3,
       "upstreamRequestsPerItem": 1,
-      "fixedChildCallsPerRun": 5,
+      "dailyUpstreamRequestCap": 60,
+      "fixedChildCallsPerRun": 8,
       "childCallsPerItem": 0,
       "roughDbWritesPerRun": 4,
-      "notes": "Batch is CLASH_CLAN_SEED; fixed requests are board discovery and the active player board."
+      "notes": "The 12-request per-run cap covers leaderboards, the active board, clan rankings, and at most nine clan rosters."
     },
     {
       "id": "clash.rollup",
@@ -76,27 +79,45 @@
       "batchSize": 1,
       "fixedUpstreamRequestsPerRun": 0,
       "upstreamRequestsPerItem": 0,
-      "fixedChildCallsPerRun": 11,
+      "fixedChildCallsPerRun": 3,
       "childCallsPerItem": 0,
-      "roughDbReadsPerRun": 60307,
-      "roughDbWritesPerRun": 1200,
-      "notes": "Read proxy uses the dated partial-rollup observation; write proxy assumes two windows × five modes × 100 rows."
+      "roughDbReadsPerRun": 4510,
+      "roughDbWritesPerRun": 4000,
+      "notes": "Worst-case bounded proxy for ten exact boards: 250 indexed candidates plus up to 200 prior rows per board; normalization and publication occur on separate runs."
     },
     {
       "id": "clash.tracked-clan-poll",
       "game": "Clash",
       "name": "observe tracked clans",
-      "intervalMinutes": 30,
+      "intervalMinutes": 60,
       "batchSize": 3,
       "fixedUpstreamRequestsPerRun": 0,
       "upstreamRequestsPerItem": 3,
-      "fixedChildCallsPerRun": 1,
-      "childCallsPerItem": 2,
+      "dailyUpstreamRequestCap": 36,
+      "fixedChildCallsPerRun": 3,
+      "childCallsPerItem": 3,
       "roughDbReadsPerRun": 1,
       "roughDbReadsPerItem": 2,
       "roughDbWritesPerRun": 1,
       "roughDbWritesPerItem": 3,
-      "notes": "Poll limit is three tracked clans; each observation requests clan, current river race, and race log."
+      "notes": "At most three renewable seven-day watches are polled per run; the 36-request daily cap permits at most 12 full clan observations per UTC day."
+    },
+    {
+      "id": "hub.profile-refresh",
+      "game": "Hub",
+      "name": "refresh due connected and watched players",
+      "intervalMinutes": 10,
+      "batchSize": 10,
+      "fixedUpstreamRequestsPerRun": 0,
+      "upstreamRequestsPerItem": 3,
+      "dailyUpstreamRequestCap": 1440,
+      "fixedChildCallsPerRun": 1,
+      "childCallsPerItem": 3,
+      "roughDbReadsPerRun": 10,
+      "roughDbReadsPerItem": 2,
+      "roughDbWritesPerRun": 10,
+      "roughDbWritesPerItem": 3,
+      "notes": "Worst case assumes every due target uses the three-request Clash adapter. The default 480-target daily reservation cap limits this lane to 1,440 upstream calls; Brawl uses one cached service request that can fan into at most two budgeted upstream calls."
     }
   ]
 }

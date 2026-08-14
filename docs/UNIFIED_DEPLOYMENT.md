@@ -22,16 +22,37 @@ The unified deployment needs these environment variable names copied from the ex
 - `BRAWL_PUBLIC_API_ENABLED`
 - `BRAWL_CRAWL_MAX_CALLS_PER_HOUR`
 - `BRAWL_PUBLIC_MAX_CALLS_PER_HOUR`
+- `BRAWL_DISCOVER_LIMIT`
+- `BRAWL_CLUB_SEED`
+- `BRAWL_CRAWL_BATCH`
+- `BRAWL_CRAWL_REVISIT_MINUTES`
 - `BRAWL_PROFILE_REVISIT_HOURS`
 - `BRAWL_PLAYER_PROFILE_CACHE_SECONDS`
 - `BRAWL_PLAYER_BATTLE_CACHE_SECONDS`
 - `CLASH_ROYALE_API_BASE_URL`
 - `CLASH_ROYALE_API_TOKEN`
 - `CLASH_ROYALE_CACHE_TTL_SECONDS`
+- `CLASH_CRAWLER_ENABLED`
+- `CLASH_CLAN_WATCH_ENABLED`
+- `CLASH_CRAWL_BATCH`
+- `CLASH_CRAWL_REQUEST_BUDGET_PER_RUN`
+- `CLASH_CRAWL_DAILY_REQUEST_BUDGET`
+- `CLASH_DISCOVER_LIMIT`
+- `CLASH_CLAN_SEED`
+- `CLASH_FIXED_SAMPLE_SIZE`
+- `CLASH_DISCOVER_REQUEST_BUDGET_PER_RUN`
+- `CLASH_DISCOVER_DAILY_REQUEST_BUDGET`
+- `CLASH_CLAN_WATCH_REQUEST_BUDGET_PER_RUN`
+- `CLASH_CLAN_WATCH_DAILY_REQUEST_BUDGET`
+- `CLASH_RANKING_SIZE`
+- `CLASH_MIN_DECK_USES`
 - `BETA_ADMIN_KEY`
 - `BRAWLSTATS_CACHE_TTL_SECONDS`
 - `BRAWLSTATS_SERVICE_URL`
 - `STATSCONNECT_ADAPTER_MODE`
+- `HUB_PROFILE_REFRESH_ENABLED`
+- `HUB_PROFILE_REFRESH_BATCH`
+- `HUB_PROFILE_REFRESH_MAX_TARGETS_PER_DAY`
 
 Backups do not contain deployment code, environment variables, or scheduled functions. Copy these separately and verify them before traffic is switched.
 
@@ -51,7 +72,11 @@ Do not import into an existing production deployment. Create a fresh target depl
 
 5. Compare every generated `manifest.json` count with its source deployment.
 6. Import each generated JSONL file into the table matching its filename with `pnpm --dir packages/backend exec convex import --table <table> <file>`.
-7. Verify Hub connections, both player searches, pipeline status, API calls, and all nine cron registrations.
+7. Verify Hub connections, both player searches, pipeline status, API calls, and all 13 cron registrations.
 8. Pause the old crawlers, take final exports, apply the final delta, and only then change the frontend Convex URL and public DNS.
+
+After the first backend deployment, run `hub/internal/watchTargets:backfillConnectedProfiles` in bounded passes until `remaining` is false. Clash pruning migrates legacy crawler/clan rows gradually; do not expect exact deck rankings until one complete UTC day has warmed the 1-day board and seven complete days have warmed the 7-day board.
+
+Verified authentication, payment provider secrets, a signature-verifying webhook/checkout adapter, and production entitlement events are separate required setup. Until they are configured, the Hub reports checkout as unavailable and premium mutations fail closed.
 
 The game datasets currently contain no schema-declared cross-table document IDs. Their IDs are intentionally regenerated when moved into renamed tables. Hub data is imported as an unchanged snapshot because `viewerSettings.activeProfileId` references `connectedProfiles`.
