@@ -16,7 +16,7 @@ const planLimitsValidator = v.object({
 });
 
 export const getAccess = query({
-  args: {},
+  args: { now: v.number() },
   returns: v.object({
     authenticated: v.boolean(),
     tier: v.union(v.literal("free"), v.literal("premium")),
@@ -38,7 +38,7 @@ export const getAccess = query({
       notice: v.string(),
     }),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const subject = await verifiedSubjectOrNull(ctx);
     const entitlement = subject
       ? await ctx.db
@@ -46,7 +46,7 @@ export const getAccess = query({
           .withIndex("by_subject", (index) => index.eq("subject", subject))
           .unique()
       : null;
-    const tier: AccessTier = entitlementGrantsPremium(entitlement, Date.now())
+    const tier: AccessTier = entitlementGrantsPremium(entitlement, args.now)
       ? "premium"
       : "free";
     return {

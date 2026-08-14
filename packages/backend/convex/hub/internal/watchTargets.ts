@@ -109,7 +109,10 @@ export const expireWatchDemands = internalMutation({
     const demands = await ctx.db
       .query("watchDemands")
       .withIndex("by_status_and_expires_at", (query) =>
-        query.eq("status", "active").lte("expiresAt", now),
+        query
+          .eq("status", "active")
+          .gt("expiresAt", 0)
+          .lte("expiresAt", now),
       )
       .order("asc")
       .take(EXPIRY_BATCH);
