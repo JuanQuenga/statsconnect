@@ -25,6 +25,7 @@ import {
   type ReactNode,
 } from "react";
 import { mergeSavedProfiles, type SavedProfile } from "./sync-profiles";
+import { createSharedAuthStorage } from "./shared-auth-storage";
 
 export type StatsConnectAccount = {
   id: string;
@@ -75,6 +76,19 @@ function siteUrlFromCloudUrl(convexUrl: string): string {
   return convexUrl.replace(/\.convex\.cloud\/?$/, ".convex.site");
 }
 
+function browserAuthStorage() {
+  if (typeof window === "undefined") return undefined;
+  return createSharedAuthStorage({
+    hostname: window.location.hostname,
+    protocol: window.location.protocol,
+    readCookie: () => document.cookie,
+    writeCookie: (value) => {
+      document.cookie = value;
+    },
+    legacyStorage: window.localStorage,
+  });
+}
+
 export function StatsConnectAuthProvider({
   children,
   convexSiteUrl,
@@ -88,11 +102,12 @@ export function StatsConnectAuthProvider({
   const configuredSiteUrl = convexSiteUrl?.trim() || (configuredUrl ? siteUrlFromCloudUrl(configuredUrl) : "");
   const clients = useMemo(() => {
     if (!configuredUrl || !configuredSiteUrl) return null;
+    const authStorage = browserAuthStorage();
     return {
       convex: new ConvexReactClient(configuredUrl),
       auth: createAuthClient({
         baseURL: configuredSiteUrl,
-        plugins: [convexClient(), crossDomainClient()],
+        plugins: [convexClient(), crossDomainClient(authStorage ? { storage: authStorage } : {})],
       }),
     };
   }, [configuredSiteUrl, configuredUrl]);
