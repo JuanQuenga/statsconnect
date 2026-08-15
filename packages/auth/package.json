@@ -1,17 +1,17 @@
 {
-  "name": "@statsconnect/site-nav",
+  "name": "@statsconnect/auth",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./shared-profiles": "./src/shared-profiles.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "test": "node --test src/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "convex": "^1.42.2",
     "react": "^19.2.0"
   },
   "devDependencies": {
@@ -19,5 +19,10 @@
     "@types/react": "^19.2.18",
     "react": "^19.2.8",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@convex-dev/better-auth": "^0.12.5",
+    "@statsconnect/site-nav": "workspace:*",
+    "better-auth": "~1.6.29"
   }
 }

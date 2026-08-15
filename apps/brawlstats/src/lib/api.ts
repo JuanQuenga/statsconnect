@@ -71,6 +71,14 @@ export function brawlerModelUrl(id: number) {
   return cdnImage(`brawlers/model/${id}.png`);
 }
 
+const BRAWLER_FEATURE_ART: Record<number, string> = {
+  16000107: "https://brawlstars.inbox.supercell.com/xdjcscmv3zo3/4CF9yj49X04L66kRTG2ZyI/5410496b3d48d6c65fec7072099e4f2e/800x433.png",
+};
+
+export function brawlerFeatureArtUrl(id: number) {
+  return BRAWLER_FEATURE_ART[id];
+}
+
 export function mapImageUrl(id: number) {
   return cdnImage(`maps/regular/${id}.png`);
 }

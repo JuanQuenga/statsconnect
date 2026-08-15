@@ -24,6 +24,17 @@ export const profileDisplayValidator = v.object({
 });
 
 export const hubTables = {
+  savedProfiles: defineTable({
+    ownerId: v.string(),
+    game: gameIdValidator,
+    playerTag: v.string(),
+    name: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_owner_and_updated_at", ["ownerId", "updatedAt"])
+    .index("by_owner_game_and_tag", ["ownerId", "game", "playerTag"]),
+
   connectedProfiles: defineTable({
     ownerKey: v.string(),
     game: gameIdValidator,

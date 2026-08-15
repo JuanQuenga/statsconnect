@@ -5,14 +5,13 @@ import {
   installGlobalErrorHandlers,
   reportClientError,
 } from "@statsconnect/site-errors";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { StatsConnectAuthProvider } from "@statsconnect/auth";
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ClashCrownFatalError,
   ClashCrownRouteError,
 } from "@/components/AppErrorPage";
-import { convexUrl, isConvexConfigured } from "@/lib/convex";
 import { PersonalizationProvider } from "@/components/personalization/PersonalizationProvider";
 import { routeTree } from "./routeTree.gen";
 import "./styles/globals.css";
@@ -44,7 +43,6 @@ const router = createRouter({
     });
   },
 });
-const convexClient = isConvexConfigured ? new ConvexReactClient(convexUrl) : null;
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -53,12 +51,16 @@ declare module "@tanstack/react-router" {
 }
 
 function Providers({ children }: { children: ReactNode }) {
-  const app = (
-    <QueryClientProvider client={queryClient}>
-      <PersonalizationProvider>{children}</PersonalizationProvider>
-    </QueryClientProvider>
+  return (
+    <StatsConnectAuthProvider
+      convexUrl={import.meta.env.VITE_CONVEX_URL ?? import.meta.env.NEXT_PUBLIC_CONVEX_URL}
+      convexSiteUrl={import.meta.env.VITE_CONVEX_SITE_URL}
+    >
+      <QueryClientProvider client={queryClient}>
+        <PersonalizationProvider>{children}</PersonalizationProvider>
+      </QueryClientProvider>
+    </StatsConnectAuthProvider>
   );
-  return convexClient ? <ConvexProvider client={convexClient}>{app}</ConvexProvider> : app;
 }
 
 const rootElement = document.getElementById("root");

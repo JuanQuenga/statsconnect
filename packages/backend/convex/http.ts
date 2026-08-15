@@ -2,10 +2,13 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { MIN_META_PICKS } from "./brawl/stats";
+import { authComponent, createAuth } from "./auth";
 
 declare const process: { env: Record<string, string | undefined> };
 
 const http = httpRouter();
+
+authComponent.registerRoutes(http, createAuth, { cors: true });
 
 const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type",

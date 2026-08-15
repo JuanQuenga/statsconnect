@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { removeSharedProfile, saveSharedProfile } from "@statsconnect/site-nav";
 import {
   clearPersonalAccountMutation,
   clearPersonalRecentsMutation,
@@ -145,19 +146,25 @@ function LocalProvider({ children }: { children: ReactNode }) {
     devices: [],
     error: "",
     notificationPermission: permission,
-    track: async (profile) => saveState(setState, (current) => {
-      const now = Date.now();
-      const normalized = { ...profile, tag: normalizeTag(profile.tag) };
-      const existing = current.profiles.find((candidate) => keyOf(candidate) === keyOf(normalized));
-      const profiles = existing
-        ? current.profiles.map((candidate) => candidate === existing ? { ...candidate, ...normalized, updatedAt: now } : candidate)
-        : [{ ...normalized, isDefault: false, createdAt: now, updatedAt: now }, ...current.profiles];
-      return { ...current, profiles };
-    }),
-    untrack: async (kind, tag) => saveState(setState, (current) => ({
-      ...current,
-      profiles: current.profiles.filter((profile) => keyOf(profile) !== keyOf({ kind, tag })),
-    })),
+    track: async (profile) => {
+      if (profile.kind === "players") saveSharedProfile({ game: "clash-royale", tag: profile.tag, name: profile.name });
+      saveState(setState, (current) => {
+        const now = Date.now();
+        const normalized = { ...profile, tag: normalizeTag(profile.tag) };
+        const existing = current.profiles.find((candidate) => keyOf(candidate) === keyOf(normalized));
+        const profiles = existing
+          ? current.profiles.map((candidate) => candidate === existing ? { ...candidate, ...normalized, updatedAt: now } : candidate)
+          : [{ ...normalized, isDefault: false, createdAt: now, updatedAt: now }, ...current.profiles];
+        return { ...current, profiles };
+      });
+    },
+    untrack: async (kind, tag) => {
+      if (kind === "players") removeSharedProfile("clash-royale", tag);
+      saveState(setState, (current) => ({
+        ...current,
+        profiles: current.profiles.filter((profile) => keyOf(profile) !== keyOf({ kind, tag })),
+      }));
+    },
     setDefault: async (tag) => saveState(setState, (current) => ({
       ...current,
       profiles: current.profiles.map((profile) => ({ ...profile, isDefault: profile.kind === "players" && tag !== null && profile.tag === normalizeTag(tag) })),
@@ -255,6 +262,7 @@ function SyncedProvider({ children }: { children: ReactNode }) {
     notificationPermission: permission,
     track: async (profile) => {
       const normalized = { ...profile, tag: normalizeTag(profile.tag) };
+      if (normalized.kind === "players") saveSharedProfile({ game: "clash-royale", tag: normalized.tag, name: normalized.name });
       saveState(setState, (current) => {
         const now = Date.now();
         const existing = current.profiles.find((candidate) => keyOf(candidate) === keyOf(normalized));
@@ -266,6 +274,7 @@ function SyncedProvider({ children }: { children: ReactNode }) {
       await runRemote(() => saveProfile({ deviceSecret: state.deviceSecret, profile: normalized }));
     },
     untrack: async (kind, tag) => {
+      if (kind === "players") removeSharedProfile("clash-royale", tag);
       saveState(setState, (current) => ({ ...current, profiles: current.profiles.filter((profile) => keyOf(profile) !== keyOf({ kind, tag })) }));
       await runRemote(() => removeProfile({ deviceSecret: state.deviceSecret, kind, tag: normalizeTag(tag) }));
     },

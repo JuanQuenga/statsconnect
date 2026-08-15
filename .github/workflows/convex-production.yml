@@ -1,13 +1,7 @@
-name: Deploy Convex backend
+name: Emergency Convex backend deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "packages/backend/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/convex-production.yml"
 
 concurrency:
   group: convex-production

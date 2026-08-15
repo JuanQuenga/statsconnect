@@ -3,6 +3,7 @@ import {
   SiteNavigation,
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
+import { useStatsConnectAuth } from "@statsconnect/auth";
 import { useEffect, useState } from "react";
 import { Mark, Wordmark } from "@/components/brand/Mark";
 
@@ -11,6 +12,11 @@ const links = [
   { href: "/connect", label: "Connect" },
   { href: "/settings/connections", label: "Settings" },
 ] as const;
+
+const networkOrigins = {
+  "brawl-stars": import.meta.env.VITE_BRAWLSTATS_ORIGIN?.trim() || "https://brawlstats.juanquenga.com",
+  "clash-royale": import.meta.env.VITE_CLASHCROWN_ORIGIN?.trim() || "https://clashcrown.juanquenga.com",
+} as const;
 
 function StatsConnectLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -29,10 +35,22 @@ function StatsConnectLink({ children, className, href, onNavigate }: SiteNavigat
 }
 
 export function SiteNav() {
+  const auth = useStatsConnectAuth();
   return (
     <SiteNavigation
       accentColor="var(--ambient)"
       currentSite="statsconnect"
+      account={auth.account ? {
+        avatarUrl: auth.account.image ?? undefined,
+        displayName: auth.account.name,
+        email: auth.account.email,
+        onSignOut: () => void auth.signOut(),
+      } : undefined}
+      authAction={!auth.account && !auth.isLoading ? {
+        label: "Sign in with Google",
+        onClick: () => void auth.signInWithGoogle(),
+      } : undefined}
+      networkOrigins={networkOrigins}
       linkAdapter={StatsConnectLink}
       links={links}
       brand={

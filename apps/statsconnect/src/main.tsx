@@ -5,6 +5,7 @@ import {
   installGlobalErrorHandlers,
   reportClientError,
 } from "@statsconnect/site-errors";
+import { StatsConnectAuthProvider } from "@statsconnect/auth";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -75,9 +76,14 @@ createRoot(rootElement, {
 }).render(
   <StrictMode>
     <AppErrorBoundary app={APP_NAME} fallback={StatsConnectFatalError}>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
+      <StatsConnectAuthProvider
+        convexUrl={import.meta.env.VITE_CONVEX_URL}
+        convexSiteUrl={import.meta.env.VITE_CONVEX_SITE_URL}
+      >
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </StatsConnectAuthProvider>
     </AppErrorBoundary>
   </StrictMode>,
 );

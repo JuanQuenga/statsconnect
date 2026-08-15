@@ -12,9 +12,10 @@ type ProfileActionsProps = {
     iconId?: number;
     trophies?: number;
   };
+  size?: "sm" | "lg";
 };
 
-export function ProfileActions({ profile }: ProfileActionsProps) {
+export function ProfileActions({ profile, size = "sm" }: ProfileActionsProps) {
   const preferences = usePreferences();
   const { t, number } = useI18n();
   const [shareLabel, setShareLabel] = useState<string | null>(null);
@@ -41,14 +42,14 @@ export function ProfileActions({ profile }: ProfileActionsProps) {
     <div className="flex flex-wrap gap-2">
       <Button
         type="button"
-        size="sm"
+        size={size}
         variant={saved ? "secondary" : "outline"}
         onClick={() => saved ? removeSavedProfile(cleanTag) : saveProfile({ ...profile, tag: cleanTag })}
       >
         {saved ? <BookmarkCheck /> : <Bookmark />}
         {saved ? t("common.saved") : t("profile.save")}
       </Button>
-      <Button type="button" size="sm" variant="outline" onClick={share}>
+      <Button type="button" size={size} variant="outline" onClick={share}>
         <Share2 />
         {shareLabel || t("common.share")}
       </Button>

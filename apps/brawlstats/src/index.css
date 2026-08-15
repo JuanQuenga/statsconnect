@@ -197,6 +197,72 @@
   .data-surface {
     @apply rounded-xl border border-border bg-card;
   }
+
+  .player-profile-shell {
+    --player-accent: var(--primary);
+    position: relative;
+    isolation: isolate;
+    min-height: 100%;
+    background:
+      radial-gradient(circle at 12% 22%, color-mix(in srgb, var(--player-accent) 8%, transparent), transparent 28rem),
+      linear-gradient(180deg, transparent, rgba(10, 16, 26, 0.82) 36rem, var(--background) 62rem);
+  }
+
+  .player-identity {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-bottom: 1px solid color-mix(in srgb, var(--player-accent) 24%, var(--border));
+    background:
+      linear-gradient(90deg, rgba(7, 12, 21, 0.96) 0%, rgba(8, 14, 24, 0.86) 52%, rgba(8, 14, 24, 0.58) 100%),
+      var(--brawl-arena-image) center 38% / cover no-repeat;
+  }
+
+  .player-identity::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    background:
+      radial-gradient(circle at 82% 62%, color-mix(in srgb, var(--player-accent) 24%, transparent), transparent 25rem),
+      linear-gradient(115deg, transparent 56%, color-mix(in srgb, var(--player-accent) 8%, transparent));
+  }
+
+  .player-identity::after {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    opacity: 0.14;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(90deg, transparent, black 68%);
+  }
+
+  .activity-calendar {
+    --activity-cell: clamp(1.5rem, 2.2vw, 2.25rem);
+  }
+
+  .activity-calendar-months {
+    padding-inline-start: 2.75rem;
+  }
+
+  .activity-calendar-month,
+  .activity-calendar-cell {
+    width: var(--activity-cell);
+  }
+
+  .activity-calendar-cell {
+    height: var(--activity-cell);
+  }
+
+  .activity-calendar-days {
+    grid-template-rows: repeat(7, var(--activity-cell));
+  }
+
+  .activity-calendar-grid {
+    grid-auto-columns: var(--activity-cell);
+  }
 }
 
 @media (max-width: 63.999rem) {

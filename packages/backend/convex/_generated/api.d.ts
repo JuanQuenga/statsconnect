@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as brawl_clubs from "../brawl/clubs.js";
 import type * as brawl_crawler from "../brawl/crawler.js";
 import type * as brawl_ingest from "../brawl/ingest.js";
@@ -47,6 +48,7 @@ import type * as hub_internal_profileWrites from "../hub/internal/profileWrites.
 import type * as hub_model from "../hub/model.js";
 import type * as hub_profileData from "../hub/profileData.js";
 import type * as hub_profiles from "../hub/profiles.js";
+import type * as hub_savedProfiles from "../hub/savedProfiles.js";
 import type * as hub_validators from "../hub/validators.js";
 
 import type {
@@ -56,6 +58,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   "brawl/clubs": typeof brawl_clubs;
   "brawl/crawler": typeof brawl_crawler;
   "brawl/ingest": typeof brawl_ingest;
@@ -95,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   "hub/model": typeof hub_model;
   "hub/profileData": typeof hub_profileData;
   "hub/profiles": typeof hub_profiles;
+  "hub/savedProfiles": typeof hub_savedProfiles;
   "hub/validators": typeof hub_validators;
 }>;
 
@@ -124,4 +128,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+};

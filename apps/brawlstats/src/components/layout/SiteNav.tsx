@@ -1,14 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  saveSharedProfile,
   SiteNavigation,
   siteNavigationLanguages,
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
+import { useStatsConnectAuth } from "@statsconnect/auth";
+import { useEffect } from "react";
 import { PlayerSearch } from "@/components/PlayerSearch";
 import { useI18n } from "@/lib/i18n";
-import { setLocale, supportedLocales, type Locale } from "@/lib/preferences";
+import { setLocale, supportedLocales, usePreferences, type Locale } from "@/lib/preferences";
 
 const statsConnectOrigin = import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim();
+const networkOrigins = {
+  "brawl-stars": import.meta.env.VITE_BRAWLSTATS_ORIGIN?.trim() || "https://brawlstats.juanquenga.com",
+  "clash-royale": import.meta.env.VITE_CLASHCROWN_ORIGIN?.trim() || "https://clashcrown.juanquenga.com",
+} as const;
 
 function BrawlStatsLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -27,7 +34,14 @@ function BrawlStatsLink({ children, className, href, onNavigate }: SiteNavigatio
 }
 
 export function SiteNav() {
+  const auth = useStatsConnectAuth();
   const { locale, t } = useI18n();
+  const { savedProfiles } = usePreferences();
+  useEffect(() => {
+    for (const profile of savedProfiles) {
+      if (profile.name?.trim()) saveSharedProfile({ game: "brawl-stars", tag: profile.tag, name: profile.name });
+    }
+  }, [savedProfiles]);
   const links = [
     { href: "/", label: t("nav.home") },
     { href: "/players", label: t("nav.players") },
@@ -42,7 +56,18 @@ export function SiteNav() {
     <SiteNavigation
       accentColor="#f5c85b"
       currentSite="brawl-stars"
+      account={auth.account ? {
+        avatarUrl: auth.account.image ?? undefined,
+        displayName: auth.account.name,
+        email: auth.account.email,
+        onSignOut: () => void auth.signOut(),
+      } : undefined}
+      authAction={!auth.account && !auth.isLoading ? {
+        label: "Sign in with Google",
+        onClick: () => void auth.signInWithGoogle(),
+      } : undefined}
       statsConnectOrigin={statsConnectOrigin}
+      networkOrigins={networkOrigins}
       linkAdapter={BrawlStatsLink}
       links={links}
       language={{

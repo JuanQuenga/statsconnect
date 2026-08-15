@@ -62,22 +62,45 @@
 }
 
 .sc-nav__network-sites {
+  min-width: 0;
+  flex: 1;
   display: flex;
   align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sc-nav__network-sites::-webkit-scrollbar { display: none; }
+
+.sc-nav__network-group {
+  display: flex;
+  align-items: stretch;
+  flex: none;
+  border-right: 1px solid rgba(230, 226, 244, .1);
 }
 
 .sc-nav__network-sites a {
   position: relative;
-  min-width: 132px;
-  padding: 0 17px;
   display: flex;
   align-items: center;
-  gap: 8px;
   color: var(--sc-nav-muted);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   transition: color .18s ease, background .18s ease;
+}
+
+.sc-nav__network-game {
+  min-width: 132px;
+  padding: 0 17px;
+  gap: 8px;
+}
+
+.sc-nav__network-profile {
+  max-width: 126px;
+  padding: 0 12px;
+  overflow: hidden;
+  border-left: 1px solid rgba(230, 226, 244, .08);
+  text-overflow: ellipsis;
 }
 
 .sc-nav__network-sites a:hover,
@@ -86,7 +109,7 @@
   background: rgba(255, 255, 255, .045);
 }
 
-.sc-nav__network-sites a[aria-current="page"]::after {
+.sc-nav__network-game[aria-current="page"]::after {
   position: absolute;
   right: 15px;
   bottom: -1px;
@@ -110,7 +133,7 @@
 .sc-nav__network-menu { display: none; }
 
 .sc-nav__network-actions {
-  margin-left: auto;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -272,11 +295,103 @@
   border-radius: 7px;
   transition: background .18s ease;
 }
+.sc-nav__game-menu-group + .sc-nav__game-menu-group { margin-top: 2px; }
 .sc-nav__game-menu a:hover,
 .sc-nav__game-menu a[aria-current="page"] { background: color-mix(in srgb, var(--sc-nav-accent) 12%, transparent); }
+.sc-nav__game-menu-profile {
+  margin-left: 36px;
+  padding-block: 8px !important;
+  color: var(--sc-nav-muted) !important;
+}
+.sc-nav__game-menu-profile > span:first-child {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  color: var(--sc-nav-accent);
+  background: color-mix(in srgb, var(--sc-nav-accent) 12%, transparent);
+  font-size: 10px;
+  font-weight: 800;
+}
+.sc-nav__game-menu-profile strong {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .sc-nav__game-icon { width: 26px; height: 26px; display: grid; place-items: center; flex: none; border-radius: 7px; color: var(--sc-nav-accent); background: color-mix(in srgb, var(--sc-nav-accent) 12%, transparent); font-size: 15px; }
 .sc-nav__game-menu strong { display: block; color: var(--sc-nav-text); font-size: 13px; line-height: 1.2; }
 .sc-nav__game-menu small { display: block; margin-top: 3px; color: var(--sc-nav-muted); font-size: 11px; line-height: 1.2; }
+
+.sc-nav__account {
+  height: 30px;
+  max-width: 190px;
+  padding: 3px 8px 3px 3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(230, 226, 244, .13);
+  border-radius: 999px;
+  color: var(--sc-nav-text);
+  background: rgba(255, 255, 255, .035);
+}
+.sc-nav__account-menu { position: relative; }
+.sc-nav__account-menu > summary { list-style: none; cursor: pointer; }
+.sc-nav__account-menu > summary::-webkit-details-marker { display: none; }
+.sc-nav__account-popover {
+  width: 220px;
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 8px);
+  right: 0;
+  padding: 12px;
+  border: 1px solid rgba(230, 226, 244, .15);
+  border-radius: 10px;
+  color: var(--sc-nav-text);
+  background: #12101a;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, .35);
+}
+.sc-nav__account-popover strong,
+.sc-nav__account-popover small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-nav__account-popover small { margin-top: 4px; color: var(--sc-nav-muted); font-size: 11px; }
+.sc-nav__account-popover button,
+.sc-nav__sign-in {
+  border: 1px solid color-mix(in srgb, var(--sc-nav-accent) 38%, transparent);
+  border-radius: 8px;
+  color: var(--sc-nav-text);
+  background: color-mix(in srgb, var(--sc-nav-accent) 12%, transparent);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.sc-nav__account-popover button { width: 100%; margin-top: 12px; padding: 8px 10px; }
+.sc-nav__sign-in { height: 30px; padding: 0 10px; white-space: nowrap; }
+.sc-nav__account-popover button:hover,
+.sc-nav__sign-in:hover { background: color-mix(in srgb, var(--sc-nav-accent) 22%, transparent); }
+.sc-nav__account:hover { border-color: color-mix(in srgb, var(--sc-nav-accent) 48%, transparent); background: rgba(255, 255, 255, .06); }
+.sc-nav__account > img,
+.sc-nav__account > span:first-child {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  color: #08070b;
+  background: var(--sc-nav-accent);
+  font-size: 10px;
+  font-weight: 850;
+}
+.sc-nav__account-copy { min-width: 0; }
+.sc-nav__account-copy strong,
+.sc-nav__account-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-nav__account-copy strong { font-size: 11px; line-height: 1.1; }
+.sc-nav__account-copy small { margin-top: 2px; color: var(--sc-nav-muted); font-size: 9px; line-height: 1.1; }
 
 .sc-nav__search { min-width: 220px; max-width: 360px; margin-left: auto; flex: 1 1 320px; }
 .sc-nav__end { margin-left: auto; flex: none; }
@@ -299,6 +414,8 @@
 
 @media (max-width: 1100px) {
   .sc-nav__search { display: none; }
+  .sc-nav__account { width: 30px; padding: 3px; }
+  .sc-nav__account-copy { display: none; }
 }
 
 @media (max-width: 860px) {
@@ -328,6 +445,11 @@
   .sc-nav__network-sites { display: none; }
   .sc-nav__network-menu { display: flex; align-items: center; }
   .sc-nav__language { height: 44px; }
+  .sc-nav__account { width: 38px; height: 38px; padding: 3px; }
+  .sc-nav__account > img,
+  .sc-nav__account > span:first-child { width: 30px; height: 30px; }
+  .sc-nav__sign-in { width: 38px; height: 38px; padding: 0; overflow: hidden; font-size: 0; }
+  .sc-nav__sign-in::before { content: "G"; font-size: 14px; font-weight: 850; }
   .sc-nav__network-menu .sc-nav__games summary { min-width: 44px; height: 44px; border: 0; background: transparent; }
   .sc-nav__network-menu .sc-nav__game-menu { right: 0; left: auto; }
   .sc-nav__brand { max-width: 152px; }
