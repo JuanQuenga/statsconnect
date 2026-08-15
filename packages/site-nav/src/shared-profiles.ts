@@ -10,6 +10,10 @@ export type SharedProfileOrigins = Record<SharedProfileGame, string>;
 
 const MAX_PROFILES_PER_GAME = 8;
 
+export function stripSupercellColorTags(value: string): string {
+  return value.replace(/<\/?c(?:[0-9a-f]{1,8})?>/gi, "");
+}
+
 function isSharedProfileGame(value: unknown): value is SharedProfileGame {
   return value === "brawl-stars" || value === "clash-royale";
 }
@@ -38,7 +42,7 @@ function normalizeProfile(value: unknown): SharedProfile | null {
   if (!isSharedProfileGame(record.game)) return null;
   if (typeof record.tag !== "string" || typeof record.name !== "string") return null;
   const tag = normalizeTag(record.tag).slice(0, 24);
-  const name = record.name.trim().slice(0, 48);
+  const name = stripSupercellColorTags(record.name).trim().slice(0, 48);
   return tag && name ? { game: record.game, tag, name } : null;
 }
 
@@ -194,7 +198,7 @@ export function updateSharedProfiles(
   const profile = {
     ...update.profile,
     tag: normalizeTag(update.profile.tag),
-    name: update.profile.name.trim(),
+    name: stripSupercellColorTags(update.profile.name).trim(),
   };
   return [
     profile,

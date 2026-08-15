@@ -7,6 +7,7 @@ export {
   saveSharedProfile,
   serializeSharedProfiles,
   sharedProfileHref,
+  stripSupercellColorTags,
   subscribeSharedProfiles,
   subscribeSharedProfileUpdates,
   updateSharedProfiles,

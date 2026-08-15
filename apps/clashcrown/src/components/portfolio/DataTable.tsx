@@ -3,6 +3,7 @@ import Link from "@/components/Link";
 import { CardArt } from "@/components/portfolio/CardArt";
 import type { ReactNode } from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { stripSupercellColorTags } from "@statsconnect/site-nav";
 
 /** Renders a rank with its movement since the previous ranking snapshot. */
 export function RankCell({ rank, previousRank }: { rank?: number; previousRank?: number }) {
@@ -41,6 +42,7 @@ export function EntityCell({
   badgeFallback?: string;
   sub?: ReactNode;
 }) {
+  const displayName = stripSupercellColorTags(name);
   const art = badge ? (
     badgeFallback ? (
       <CardArt src={badge} alt="" width={30} height={36} fallback={badgeFallback} />
@@ -53,7 +55,7 @@ export function EntityCell({
     <span className="entity-cell">
       {art}
       <span>
-        <strong>{name}</strong>
+        <strong>{displayName}</strong>
         {sub ? <small>{sub}</small> : null}
       </span>
     </span>

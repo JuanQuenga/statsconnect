@@ -5,8 +5,15 @@ import {
   parseSharedProfiles,
   serializeSharedProfiles,
   sharedProfileHref,
+  stripSupercellColorTags,
   updateSharedProfiles,
 } from "./shared-profiles.ts";
+
+test("Supercell color markup is removed without changing ordinary text", () => {
+  assert.equal(stripSupercellColorTags("Only<c3>Pro</c>"), "OnlyPro");
+  assert.equal(stripSupercellColorTags("<cff00aa>Player</c>"), "Player");
+  assert.equal(stripSupercellColorTags("1 < 2"), "1 < 2");
+});
 
 test("saving a player adds their in-game username under the correct game", () => {
   const profiles = updateSharedProfiles([], {
@@ -25,6 +32,19 @@ test("saving a player adds their in-game username under the correct game", () =>
       name: "Harmiox",
     },
   ]);
+});
+
+test("saved tabs never expose Supercell color markup", () => {
+  const profiles = updateSharedProfiles([], {
+    type: "save",
+    profile: {
+      game: "clash-royale",
+      tag: "#2YGY",
+      name: "<c9>Harmiox</c>",
+    },
+  });
+
+  assert.equal(profiles[0]?.name, "Harmiox");
 });
 
 test("saving an existing game tag refreshes its username without duplicating the tab", () => {

@@ -1,3 +1,5 @@
+import { stripSupercellColorTags } from "@statsconnect/site-nav";
+
 const CDN = "https://cdn.brawlify.com";
 
 const configured =
@@ -15,6 +17,17 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
   }
+}
+
+function cleanApiPayload(value: unknown): unknown {
+  if (typeof value === "string") return stripSupercellColorTags(value);
+  if (Array.isArray(value)) return value.map(cleanApiPayload);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, cleanApiPayload(entry)]),
+    );
+  }
+  return value;
 }
 
 export async function apiFetch<T>(path: string): Promise<T> {
@@ -38,7 +51,7 @@ export async function apiFetch<T>(path: string): Promise<T> {
     throw new ApiError(body.message || "The Brawl Stars API request failed.", response.status, body.error);
   }
 
-  return payload as T;
+  return cleanApiPayload(payload) as T;
 }
 
 export function collection<T = unknown>(payload: unknown): T[] {

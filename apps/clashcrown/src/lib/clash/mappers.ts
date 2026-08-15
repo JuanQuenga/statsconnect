@@ -22,6 +22,7 @@ import {
 } from "./assets";
 import { formatApiDate } from "./format";
 import { optionalNumber } from "@/lib/numbers";
+import { stripSupercellColorTags } from "@statsconnect/site-nav";
 import type {
   ApiBattle,
   ApiCard,
@@ -99,9 +100,9 @@ function mapBattle(battle: ApiBattle): Battle {
     time: formatBattleTime(battle.battleTime),
     result: ourCrowns > theirCrowns ? "Win" : ourCrowns < theirCrowns ? "Loss" : "Draw",
     crowns: [ourCrowns, theirCrowns],
-    opponent: opponent?.name ?? "Unknown player",
+    opponent: opponent?.name ? stripSupercellColorTags(opponent.name) : "Unknown player",
     opponentTag: opponent?.tag?.replace(/^#/, ""),
-    opponentClan: opponent?.clan?.name,
+    opponentClan: opponent?.clan?.name ? stripSupercellColorTags(opponent.clan.name) : undefined,
     opponentDeck: opponent?.cards?.map(mapCard),
     opponentSupportCards: opponent?.supportCards?.map(mapCard),
     trophyChange: optionalNumber(team?.trophyChange),
@@ -206,13 +207,13 @@ export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
 
   return {
     tag: source.tag.replace(/^#/, ""),
-    name: source.name,
+    name: stripSupercellColorTags(source.name),
     level: optionalNumber(source.expLevel),
     trophies: optionalNumber(source.trophies),
     bestTrophies: optionalNumber(source.bestTrophies),
     arena: source.arena?.name ?? "Unknown Arena",
     arenaImage: arenaImage(source.arena),
-    clan: source.clan?.name ?? "No clan",
+    clan: source.clan?.name ? stripSupercellColorTags(source.clan.name) : "No clan",
     clanTag: source.clan?.tag?.replace(/^#/, ""),
     clanBadge: source.clan ? badgeImage(source.clan.badgeId, source.clan.badgeUrls) : undefined,
     pathOfLegends,
@@ -247,7 +248,7 @@ function roleLabel(role?: string) {
 function mapClanMember(member: NonNullable<ApiClan["memberList"]>[number]): ClanMember {
   return {
     tag: member.tag?.replace(/^#/, ""),
-    name: member.name ?? "Unknown member",
+    name: member.name ? stripSupercellColorTags(member.name) : "Unknown member",
     role: roleLabel(member.role),
     level: member.expLevel,
     rank: member.clanRank,
@@ -267,11 +268,11 @@ export function mapClanBundle(payload: ClanBundlePayload): Clan {
 
   return {
     tag: source.tag.replace(/^#/, ""),
-    name: source.name,
+    name: stripSupercellColorTags(source.name),
     badge: badgeImage(source.badgeId, source.badgeUrls),
     warBadge: league.image,
     warLeague: league.label,
-    description: source.description ?? "No clan description provided.",
+    description: source.description ? stripSupercellColorTags(source.description) : "No clan description provided.",
     score: source.clanScore ?? 0,
     warTrophies,
     requiredTrophies: source.requiredTrophies ?? 0,
