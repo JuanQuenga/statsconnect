@@ -2017,7 +2017,7 @@ button:disabled { cursor: wait; opacity: .62; }
   display: grid;
   place-items: center;
   color: white;
-  background: url("/images/icons/elixir.png") center / contain no-repeat;
+  background: url("/images/ui-icons/elixir.png") center / contain no-repeat;
   filter: drop-shadow(0 2px 1px rgba(45, 0, 58, .75));
   font: 900 var(--game-card-cost-font)/1 var(--font-ui);
   letter-spacing: -.06em;

@@ -93,7 +93,7 @@ function CardDetail({ slug }: { slug: string }) {
                 {card.rarity}
               </span>
               <span className="elixir-chip">
-                <Image src="/images/icons/elixir.png" alt="" width={20} height={20} />
+                <Image src="/images/ui-icons/elixir.png" alt="" width={20} height={20} />
                 {card.elixir || "?"} elixir
               </span>
               {card.evolutionImage ? <span className="evo-chip">Evolution available</span> : null}
