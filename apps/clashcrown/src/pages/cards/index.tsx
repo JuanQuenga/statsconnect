@@ -1,5 +1,5 @@
 import Head from "@/components/Head";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
@@ -155,11 +155,10 @@ function CardLibrary() {
 function CardTile({ card, meta }: { card: Card; meta?: CardMeta }) {
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="card-tile">
-      {card.canEvolve ? <span className="evo-flag">EVO</span> : null}
-      <CardArt src={card.image} alt={card.name} width={76} height={94} />
+      <GameCardArt card={card} size="library" showLevel={false} />
       <strong>{card.name}</strong>
-      <span>
-        {card.rarity} · {card.elixir || "?"}
+      <span className="card-tile-detail">
+        {card.rarity}{card.canEvolve ? " · Evolution available" : ""}
       </span>
       {meta ? (
         <small className="card-tile-meta">

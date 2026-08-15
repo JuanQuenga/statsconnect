@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const ASSET_SHA = "b4530a1043b213ee2baf9c50a3d0d7fae22c2313";
@@ -11,6 +11,7 @@ const TREE_URL = `https://api.github.com/repos/${ASSET_REPOSITORY}/git/trees/${A
 const IMAGE_ROOT = path.resolve(process.cwd(), "public/images");
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const CONCURRENCY = 12;
+const RETAINED_GENERATED_ASSETS = new Set(["cards/unknown.png"]);
 
 async function fetchBytes(url, description) {
   const response = await fetch(url);
@@ -110,6 +111,27 @@ async function syncEntry(entry, counts) {
   counts[entry.category][result] += 1;
 }
 
+async function pruneRemovedCardAssets(manifest) {
+  const expected = new Set([
+    ...manifest.map((entry) => entry.destinationPath),
+    ...RETAINED_GENERATED_ASSETS
+  ]);
+  let removed = 0;
+
+  for (const directory of ["cards", "cards-gold"]) {
+    const directoryPath = path.join(IMAGE_ROOT, directory);
+    const files = await readdir(directoryPath);
+    for (const file of files) {
+      const destinationPath = `${directory}/${file}`;
+      if (!file.endsWith(".png") || expected.has(destinationPath)) continue;
+      await unlink(path.join(directoryPath, file));
+      removed += 1;
+    }
+  }
+
+  return removed;
+}
+
 async function main() {
   const treePayload = await fetchJson(TREE_URL, "RoyaleAPI asset tree");
   if (treePayload.truncated) throw new Error("RoyaleAPI asset tree response was truncated");
@@ -127,8 +149,9 @@ async function main() {
   for (let index = 0; index < manifest.length; index += CONCURRENCY) {
     await Promise.all(manifest.slice(index, index + CONCURRENCY).map((entry) => syncEntry(entry, counts)));
   }
+  const removed = await pruneRemovedCardAssets(manifest);
 
-  console.log(`Synced ${manifest.length} PNGs from ${ASSET_REPOSITORY}@${ASSET_SHA}`);
+  console.log(`Synced ${manifest.length} PNGs from ${ASSET_REPOSITORY}@${ASSET_SHA}; removed=${removed}`);
   for (const category of categories) {
     const result = counts[category];
     console.log(

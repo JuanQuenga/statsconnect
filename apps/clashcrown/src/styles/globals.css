@@ -1960,37 +1960,85 @@ button:disabled { cursor: wait; opacity: .62; }
 
 .collection-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
 }
 .deck-collection { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .collection-card {
   min-width: 0;
   position: relative;
-  padding: 14px 8px;
+  padding: 12px 8px 14px;
   color: white;
   transition: transform .15s ease, border-color .15s ease, background .15s ease;
   display: grid;
   justify-items: center;
-  gap: 7px;
+  align-content: start;
+  gap: 6px;
   text-align: center;
-  border-radius: 7px;
-  background: rgba(8, 24, 44, .72);
+  border-radius: 15px;
+  background: linear-gradient(180deg, rgba(19, 47, 79, .72), rgba(8, 24, 44, .36));
   border: 1px solid rgba(62, 88, 128, .18);
 }
-.collection-card img { width: 78px; height: 96px; object-fit: contain; }
-.collection-card strong { font-size: 11px; line-height: 1.25; }
-.collection-card span { color: #8ea2c4; font: 9px var(--font-ui); }
+.collection-card strong { max-width: 100%; overflow: hidden; font-size: 12px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.collection-card-meta { color: #9eb3d3; font: 9px var(--font-ui); }
 .collection-card:hover { border-color: rgba(238, 102, 239, .55); background: rgba(87, 35, 105, .34); transform: translateY(-2px); }
-.card-level {
+.game-card-art {
+  --game-card-accent: #74b9ff;
+  --game-card-cost-size: 28px;
+  --game-card-cost-font: 17px;
+  --game-card-level-font: 14px;
+  width: 132px;
+  aspect-ratio: 5 / 6;
+  position: relative;
+  display: block;
+  isolation: isolate;
+}
+.game-card-art-library { width: 112px; --game-card-cost-size: 24px; --game-card-cost-font: 15px; }
+.game-card-art-deck { width: min(100%, 168px); --game-card-cost-size: 34px; --game-card-cost-font: 21px; --game-card-level-font: 18px; }
+.game-card-art[data-rarity="rare"] { --game-card-accent: #ff9f43; }
+.game-card-art[data-rarity="epic"] { --game-card-accent: #db6cff; }
+.game-card-art[data-rarity="legendary"] { --game-card-accent: #63e6be; }
+.game-card-art[data-rarity="champion"] { --game-card-accent: #ffd166; }
+.game-card-art > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 11px 12px rgba(0, 0, 0, .38));
+}
+.game-card-art[data-variant="evolution"] > img { filter: drop-shadow(0 0 9px rgba(242, 70, 255, .55)) drop-shadow(0 12px 13px rgba(0, 0, 0, .4)); }
+.game-card-art[data-variant="hero"] > img { filter: drop-shadow(0 0 9px rgba(255, 195, 54, .5)) drop-shadow(0 12px 13px rgba(0, 0, 0, .4)); }
+.game-card-elixir {
+  width: var(--game-card-cost-size);
+  height: var(--game-card-cost-size);
   position: absolute;
-  top: 6px;
-  right: 6px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(28, 79, 139, .95);
-  font: 700 8px var(--font-ui);
-  font-style: normal;
+  top: 11%;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ff7cf5;
+  border-radius: 50%;
+  color: white;
+  background: radial-gradient(circle at 35% 25%, #ff4be8, #b400b8 62%, #5e076d);
+  box-shadow: 0 2px 0 #4d0756, 0 0 9px rgba(255, 63, 235, .72);
+  font: 900 var(--game-card-cost-font)/1 var(--font-ui);
+  letter-spacing: -.06em;
+  text-shadow: 0 2px 1px rgba(0, 0, 0, .75);
+}
+.game-card-level {
+  max-width: 92%;
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  z-index: 2;
+  overflow: hidden;
+  color: white;
+  font: 900 var(--game-card-level-font)/1 var(--font-ui);
+  letter-spacing: -.055em;
+  text-overflow: ellipsis;
+  text-shadow: -2px -2px 0 #111827, 2px -2px 0 #111827, -2px 2px 0 #111827, 2px 2px 0 #111827, 0 3px 4px rgba(0, 0, 0, .8), 0 0 8px var(--game-card-accent);
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 .hero-chips { justify-content: center; margin-top: 14px; }
 a.status-chip:hover { background: rgba(238, 102, 239, .3); }
@@ -2352,9 +2400,9 @@ a.status-chip:hover { background: rgba(238, 102, 239, .3); }
 }
 .card-library button:hover,
 .card-library button.selected { border-color: rgba(238, 102, 239, .55); background: rgba(87, 35, 105, .34); transform: translateY(-2px); }
-.card-library img { width: 72px; height: 88px; object-fit: contain; }
+.card-library button > img { width: 72px; height: 88px; object-fit: contain; }
 .card-library strong { font-size: 10px; line-height: 1.25; }
-.card-library span { color: #8ea2c4; font: 9px var(--font-ui); }
+.card-library button > span { color: #8ea2c4; font: 9px var(--font-ui); }
 .selected-check { position: absolute; top: 8px; right: 8px; color: #fff; background: var(--pink); border-radius: 50%; padding: 2px; }
 /* Keep empty-state copy quieter than the section title. */
 .empty-results {
@@ -2371,7 +2419,7 @@ a.status-chip:hover { background: rgba(238, 102, 239, .3); }
 /* Card tiles link to a detail page, so they are anchors rather than the builder's buttons. */
 .card-tile {
   min-width: 0;
-  min-height: 158px;
+  min-height: 208px;
   position: relative;
   padding: 12px 8px;
   display: grid;
@@ -2379,16 +2427,15 @@ a.status-chip:hover { background: rgba(238, 102, 239, .3); }
   align-content: center;
   gap: 6px;
   border: 1px solid rgba(62, 88, 128, .18);
-  border-radius: 7px;
+  border-radius: 14px;
   color: white;
   background: rgba(8, 24, 44, .72);
   text-align: center;
   transition: transform .15s ease, border-color .15s ease, background .15s ease;
 }
 .card-tile:hover { border-color: rgba(238, 102, 239, .55); background: rgba(87, 35, 105, .34); transform: translateY(-2px); }
-.card-tile img { width: 72px; height: 88px; object-fit: contain; }
-.card-tile strong { font-size: 10px; line-height: 1.25; }
-.card-tile span { color: #8ea2c4; font: 9px var(--font-ui); }
+.card-tile strong { max-width: 100%; overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.card-tile-detail { color: #9eb3d3; font: 9px var(--font-ui); }
 /* "This card has an Evolution available." Nearly half the catalog evolves, so a
    solid badge turned the grid into a field of cyan blobs louder than the card
    art itself. An outline reads as a tag at a glance and only at a glance. */

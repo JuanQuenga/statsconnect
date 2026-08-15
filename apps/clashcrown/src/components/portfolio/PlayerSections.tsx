@@ -8,6 +8,7 @@ import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { DeckActions } from "@/components/portfolio/DeckActions";
 import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollection";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
@@ -320,27 +321,26 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
 
 function DeckCardLink({ card }: { card: Card }) {
   const label = card.variant ? `${card.name} (${card.variant})` : card.name;
-  return <Link href={`/cards/${cardSlug(card.name)}`} className="current-deck-card" title={label}><CardArt src={card.image} alt={label} width={104} height={130} /></Link>;
+  return <Link href={`/cards/${cardSlug(card.name)}`} className="current-deck-card" title={label}><GameCardArt card={card} size="deck" /></Link>;
 }
 
 function CurrentDeckStyles() {
   return <style>{`
     .current-deck-heading > div:first-child { display: grid; gap: 5px; }
     .current-deck-heading > [aria-label] { flex: none; }
-    .current-deck-cluster { width: min(100%, 472px); display: grid; grid-template-columns: repeat(4, minmax(0, 112px)); justify-content: center; gap: 8px; margin: 8px auto 0; padding: 22px; border: 1px solid var(--border); border-radius: 18px; background: radial-gradient(circle at 50% 25%, rgba(59, 111, 180, .18), transparent 68%), color-mix(in srgb, var(--secondary) 36%, transparent); }
+    .current-deck-cluster { width: min(100%, 760px); display: grid; grid-template-columns: repeat(4, minmax(0, 168px)); justify-content: center; gap: 14px; margin: 8px auto 0; padding: 24px; border: 1px solid var(--border); border-radius: 18px; background: radial-gradient(circle at 50% 25%, rgba(59, 111, 180, .2), transparent 68%), color-mix(in srgb, var(--secondary) 36%, transparent); }
     .current-deck-card { min-width: 0; display: grid; place-items: center; border-radius: 13px; transition: background .18s ease, transform .18s ease; }
     .current-deck-card:hover { background: rgba(217, 107, 243, .08); transform: translateY(-3px); }
-    .current-deck-card img { width: 100%; height: 132px; object-fit: contain; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .34)); }
     .current-deck-support { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
     .current-deck-support h3 { margin: 4px 0 0; font-size: 16px; }
     .current-deck-support-cards { display: flex; gap: 8px; }
-    .current-deck-support-cards .current-deck-card { width: 86px; }
-    .current-deck-support-cards .current-deck-card img { height: 104px; }
+    .current-deck-support-cards .current-deck-card { width: 112px; }
+    .current-deck-support-cards .game-card-art { width: 112px; --game-card-cost-size: 26px; --game-card-cost-font: 16px; --game-card-level-font: 13px; }
     @media (max-width: 680px) {
       .current-deck-heading { align-items: flex-start; }
       .current-deck-heading > [aria-label] { width: 100%; }
       .current-deck-cluster { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 12px 8px; }
-      .current-deck-card img { height: 94px; }
+      .current-deck-card .game-card-art { width: 100%; }
       .current-deck-support { align-items: flex-start; }
     }
   `}</style>;

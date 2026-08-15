@@ -30,10 +30,11 @@ export function slugify(value: string) {
 
 /**
  * Evolution and Hero art. Both are wholly separate assets rather than the base
- * card with a badge on it — their own frame, gem and pose — and a card has at
- * most one of the two. `evolutionMedium` / `heroMedium` are the only trustworthy
- * "this card has a variant" signals: `maxEvolutionLevel` is also set on the
- * eleven Hero cards that have no Evolution at all, so reading it as "can evolve"
+ * card with a badge on it — their own frame, gem and pose. Some cards now have
+ * both forms, so availability alone cannot choose the active one.
+ * `evolutionMedium` / `heroMedium` are the trustworthy "this card has a
+ * variant" signals: `maxEvolutionLevel` is also set on Hero cards that have no
+ * Evolution at all, so reading it as "can evolve"
  * is what put an EVO badge on Balloon, Bowler and Tombstone.
  */
 /** Cards with vendored -hero art under public/images/cards, per scripts/sync-assets.mjs. */
@@ -80,6 +81,22 @@ export function variantArt(card?: { evolutionImage?: string; heroImage?: string 
   if (card?.evolutionImage) return { src: card.evolutionImage, label: "Evolution" };
   if (card?.heroImage) return { src: card.heroImage, label: "Hero" };
   return undefined;
+}
+
+/** Artwork for a player-owned card, based on the variant that is actually active. */
+export function selectCardArt(card: {
+  image: string;
+  variant?: "Evolution" | "Hero";
+  evolutionImage?: string;
+  heroImage?: string;
+}): { src: string; variant: "Evolution" | "Hero" | undefined } {
+  if (card.variant === "Hero" && card.heroImage) {
+    return { src: card.heroImage, variant: "Hero" };
+  }
+  if (card.variant === "Evolution" && card.evolutionImage) {
+    return { src: card.evolutionImage, variant: "Evolution" };
+  }
+  return { src: card.image, variant: card.variant };
 }
 
 /**

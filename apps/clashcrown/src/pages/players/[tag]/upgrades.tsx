@@ -71,13 +71,13 @@ function UpgradePlanner({ player }: { player: Player }) {
     () => plans.reduce(
       (total, plan) => ({
         cards: total.cards + plan.cardsStillNeeded,
-        gold: total.gold + plan.goldStillNeeded,
-        eliteWildCards: total.eliteWildCards + plan.eliteWildCardsNeeded
+        gold: total.gold + plan.goldStillNeeded
       }),
-      { cards: 0, gold: 0, eliteWildCards: 0 }
+      { cards: 0, gold: 0 }
     ),
     [plans]
   );
+  const maxedCount = validPlans.filter((plan) => plan.level === MAX_CARD_LEVEL).length;
   const grouped = useMemo(() => RARITIES.map((item) => ({ rarity: item, plans: filteredPlans.filter((plan) => plan.rarity === item) })).filter((group) => group.plans.length), [filteredPlans]);
 
   return (
@@ -90,13 +90,13 @@ function UpgradePlanner({ player }: { player: Player }) {
         <section className="decks-hero upgrade-hero">
           <span className="eyebrow">Collection progression · #{player.tag}</span>
           <h1>{player.name}&rsquo;s Upgrade Planner</h1>
-          <p>See what can be upgraded today and how many cards, gold, and Elite Wild Cards remain before the collection is maxed.</p>
+          <p>See what can be upgraded today and how many card copies and gold remain before the collection reaches level {MAX_CARD_LEVEL}.</p>
         </section>
 
         {!plans.length ? <EmptyUpgradeState /> : null}
         {plans.length ? (
           <>
-            <SummaryCards totals={totals} readyCount={readyPlans.length} cardCount={plans.length} />
+            <SummaryCards totals={totals} readyCount={readyPlans.length} cardCount={plans.length} maxedCount={maxedCount} />
             <OverallProgress value={overallProgress} knownCards={validPlans.length} totalCards={plans.length} />
             {readyPlans.length ? <ReadyUpgrades plans={readyPlans} /> : <EmptySection title="Ready to upgrade now" copy="No card has enough copies for its next upgrade yet." />}
             <section className="profile-section upgrade-collection-section">
@@ -131,11 +131,11 @@ function UpgradePlanner({ player }: { player: Player }) {
   );
 }
 
-function SummaryCards({ totals, readyCount, cardCount }: { totals: { cards: number; gold: number; eliteWildCards: number }; readyCount: number; cardCount: number }) {
+function SummaryCards({ totals, readyCount, cardCount, maxedCount }: { totals: { cards: number; gold: number }; readyCount: number; cardCount: number; maxedCount: number }) {
   const items = [
-    { label: "Gold still needed", value: totals.gold, note: "to reach level 14" },
-    { label: "Cards still needed", value: totals.cards, note: "normal copies" },
-    { label: "Elite Wild Cards", value: totals.eliteWildCards, note: "for level 14 → 15" },
+    { label: "Gold still needed", value: totals.gold, note: `to reach level ${MAX_CARD_LEVEL}` },
+    { label: "Cards still needed", value: totals.cards, note: "copies or Wild Cards" },
+    { label: "Max-level cards", value: maxedCount, note: `at level ${MAX_CARD_LEVEL}` },
     { label: "Ready now", value: readyCount, note: `of ${cardCount} cards` }
   ];
   return <section className="upgrade-summary-grid" aria-label="Upgrade totals">{items.map((item) => <div className="upgrade-summary-card" key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong><small>{item.note}</small></div>)}</section>;
@@ -146,7 +146,7 @@ function OverallProgress({ value, knownCards, totalCards }: { value: number; kno
     <section className="overall-progress">
       <div className="overall-progress-heading"><div><span className="eyebrow">Account completion</span><h2>Overall collection progress</h2></div><strong>{Math.round(value * 100)}%</strong></div>
       <ProgressBar value={value} label="Overall collection progress" />
-      <p>{knownCards} of {totalCards} cards have level data. Progress averages each card&rsquo;s path from its starting rarity level to Elite level 15.</p>
+      <p>{knownCards} of {totalCards} cards have level data. Progress averages each card&rsquo;s path from its starting rarity level to max level {MAX_CARD_LEVEL}.</p>
     </section>
   );
 }
@@ -189,18 +189,16 @@ function UpgradeCard({ plan }: { plan: CardUpgradePlan }) {
   const { card, next } = plan;
   const progressLabel = plan.level === undefined
     ? "Level data unavailable"
-    : plan.level >= 15
-      ? "Maxed at level 15"
-      : next?.eliteWildCards
-        ? `0 / ${next.eliteWildCards.toLocaleString()} Elite Wild Cards`
-        : `${plan.count.toLocaleString()} / ${(next?.cards ?? 0).toLocaleString()} cards`;
+    : plan.level >= MAX_CARD_LEVEL
+      ? `Maxed at level ${MAX_CARD_LEVEL}`
+      : `${plan.count.toLocaleString()} / ${(next?.cards ?? 0).toLocaleString()} cards`;
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="upgrade-card-row">
       <CardArt src={card.image} alt={card.name} width={52} height={64} />
       <span className="upgrade-card-name"><strong>{card.name}</strong><small>{card.rarity}{card.starLevel ? ` · ${card.starLevel}★` : ""}</small></span>
       <span className="upgrade-level">{plan.level === undefined ? "—" : `Lv ${plan.level}/${MAX_CARD_LEVEL}`}</span>
       <span className="upgrade-progress"><span className="upgrade-progress-label"><small>{progressLabel}</small><small>{Math.round(plan.progress * 100)}%</small></span><ProgressBar value={plan.progress} label={`${card.name} progress`} /></span>
-      <span className={plan.ready ? "upgrade-status upgrade-status-ready" : "upgrade-status"}>{plan.ready ? "Ready" : plan.level === undefined ? "Missing" : plan.level >= 15 ? "Maxed" : `→ ${next?.toLevel ?? "—"}`}</span>
+      <span className={plan.ready ? "upgrade-status upgrade-status-ready" : "upgrade-status"}>{plan.ready ? "Ready" : plan.level === undefined ? "Missing" : plan.level >= MAX_CARD_LEVEL ? "Maxed" : `→ ${next?.toLevel ?? "—"}`}</span>
     </Link>
   );
 }

@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import Link from "@/components/Link";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
-import { variantArt } from "@/lib/clash/assets";
 import { cardSlug } from "@/lib/clash/cards";
 import { buildCardUpgradePlan, MAX_CARD_LEVEL } from "@/lib/clash/upgradeCosts";
 import type { Card, Player } from "@/lib/mock-data";
@@ -185,17 +184,14 @@ function SelectControl({
 }
 
 function CollectionTile({ card }: { card: CollectionCard }) {
-  const variant = variantArt(card);
   const progress = card.owned ? buildCardUpgradePlan(card) : undefined;
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className={card.owned ? "collection-card" : "collection-card collection-card-missing"} aria-label={`${card.name}, ${card.owned ? "owned" : "missing"}`}>
-      {card.canEvolve ? <span className="evo-flag">EVO</span> : null}
-      {card.level !== undefined ? <i className="card-level">{card.level}{card.maxLevel ? `/${card.maxLevel}` : ""}</i> : null}
-      <CardArt src={variant?.src ?? card.image} alt={card.name} width={82} height={100} />
+      <GameCardArt card={card} size="collection" />
       <strong>{card.name}</strong>
-      <span>{card.rarity} · {card.elixir || "?"} elixir</span>
+      <span className="collection-card-meta">{card.rarity}{card.variant ? ` · ${card.variant}` : card.canEvolve ? " · Evolution available" : ""}</span>
       <small className={card.upgradeReady ? "collection-status collection-status-ready" : "collection-status"}>
-        {!card.owned ? "Not owned" : card.upgradeReady ? "Ready to upgrade" : progress?.level === MAX_CARD_LEVEL ? "Max level" : card.isEvolution ? "Evolution unlocked" : "Owned"}
+        {!card.owned ? "Not owned" : card.upgradeReady ? "Ready to upgrade" : progress?.level === MAX_CARD_LEVEL ? "Max level" : card.variant ? `${card.variant} unlocked` : "Owned"}
       </small>
     </Link>
   );
@@ -214,8 +210,8 @@ function CollectionStyles() {
     .collection-toolbar .toolbar-toggle { flex: 0 1 auto; }
     .collection-catalog-note { margin: -8px 0 20px; color: #8ea2c4; font: 11px/1.5 var(--font-ui); text-align: center; }
     .collection-catalog-error { color: #ffb5c5; }
-    .collection-card-missing img { filter: grayscale(1); opacity: .38; }
-    .collection-card-missing:hover img { opacity: .58; }
+    .collection-card-missing .game-card-art { filter: grayscale(1); opacity: .38; }
+    .collection-card-missing:hover .game-card-art { opacity: .58; }
     .collection-card-missing { border-style: dashed; background: rgba(8, 24, 44, .42); }
     .collection-status { min-height: 14px; color: #6f86aa !important; font-weight: 700 !important; letter-spacing: .03em; text-transform: uppercase; }
     .collection-status-ready { color: #55d895 !important; }
