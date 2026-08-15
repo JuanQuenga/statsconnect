@@ -82,7 +82,6 @@ export function ClanManagementDashboard({
     <>
       <section className="management-overview" aria-labelledby="management-title">
         <div className="management-overview-copy">
-          <span className="management-kicker">Clan leader workspace · #{data.clan.tag}</span>
           <h1 id="management-title">{clanName} management</h1>
           <p>
             Decisions stay with your clan. Signals below only explain changes observed by Royale Stats; they are not official
@@ -125,7 +124,6 @@ export function ClanManagementDashboard({
       <section className="profile-section management-roster" aria-labelledby="roster-title">
         <div className="management-section-heading">
           <div>
-            <span className="management-kicker">Explainable signals</span>
             <h2 id="roster-title">Roster attention</h2>
             <p>Donation and trophy changes cover the interval between the two latest successful observations, not a guaranteed full week.</p>
           </div>
@@ -205,7 +203,6 @@ export function ClanManagementDashboard({
       <section className="profile-section management-activity" aria-labelledby="activity-title">
         <div className="management-section-heading">
           <div>
-            <span className="management-kicker">Consecutive observations</span>
             <h2 id="activity-title">Roster activity</h2>
           </div>
           <span className="management-result-count">Latest 100 retained events</span>

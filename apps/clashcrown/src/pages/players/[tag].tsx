@@ -115,7 +115,6 @@ function PlayerDashboard({
             <PathOfLegendsSeasons player={player} />
             <section className="history-callout">
               <div>
-                <span className="eyebrow">Royale Stats observed</span>
                 <h2>Profile history</h2>
                 <p>Review timestamped trophy, Path, collection, deck, clan, and profile-total changes without treating gaps as continuous tracking.</p>
               </div>

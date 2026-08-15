@@ -95,11 +95,8 @@ export function DeckBuilder({
     <div className="deck-builder-stack">
       <section className="builder-workspace profile-section" aria-labelledby="builder-heading">
         <div className="section-heading discovery-heading">
-          <div>
-            <span className="eyebrow">{source}</span>
-            <h2 id="builder-heading">Manual builder</h2>
-          </div>
-          <p>Choose any eight cards or load an observed deck from Discovery.</p>
+          <h2 id="builder-heading">Manual builder</h2>
+          <p>{source}. Choose any eight cards or load an observed deck from Discovery.</p>
         </div>
         <div className="builder-summary">
           <div><span>Cards</span><strong>{selected.length}/8</strong></div>
@@ -125,7 +122,7 @@ export function DeckBuilder({
 
       <section className="card-browser profile-section" aria-labelledby="catalog-heading">
         <div className="section-heading discovery-heading">
-          <div><span className="eyebrow">Card library</span><h2 id="catalog-heading">Pick cards</h2></div>
+          <h2 id="catalog-heading">Pick cards</h2>
         </div>
         <div className="browser-toolbar">
           <label className="card-search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search cards" aria-label="Search cards" /></label>
@@ -159,7 +156,7 @@ function DeckPerformance({ cards }: { cards: Card[] }) {
 
   return (
     <section className="profile-section">
-      <div className="section-heading discovery-heading"><div><span className="eyebrow">Observed results</span><h2>Exact-deck performance</h2></div></div>
+      <div className="section-heading discovery-heading"><h2>Exact-deck performance</h2></div>
       <div className="beta-tabs" role="group" aria-label="Battle mode">
         {META_MODES.map((item) => <button key={item} type="button" className={item === mode ? "beta-tab beta-tab-on" : "beta-tab"} onClick={() => setMode(item)}>{modeLabel(item)}</button>)}
       </div>

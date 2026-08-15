@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Check, Clipboard, ExternalLink, Link2, Search, Sparkles, Tag } from "lucide-react";
+import { Check, Clipboard, ExternalLink, Link2, Search, Tag } from "lucide-react";
 import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { Layout } from "@/components/portfolio/Layout";
@@ -39,7 +39,6 @@ export default function ToolsPage() {
       </Head>
       <div className="editorial-page tools-page">
         <section className="editorial-hero">
-          <span className="eyebrow"><Sparkles size={14} /> {locale === "es" ? "Utilidades prácticas" : "Practical utilities"}</span>
           <h1>{t("tools.title")}</h1>
           <p>{t("tools.description")}</p>
         </section>

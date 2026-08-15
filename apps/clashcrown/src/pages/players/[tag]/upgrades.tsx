@@ -88,7 +88,6 @@ function UpgradePlanner({ player }: { player: Player }) {
       </Head>
       <div className="profile-page upgrade-page">
         <section className="decks-hero upgrade-hero">
-          <span className="eyebrow">Collection progression · #{player.tag}</span>
           <h1>{player.name}&rsquo;s Upgrade Planner</h1>
           <p>See what can be upgraded today and how many card copies and gold remain before the collection reaches level {MAX_CARD_LEVEL}.</p>
         </section>
@@ -144,7 +143,7 @@ function SummaryCards({ totals, readyCount, cardCount, maxedCount }: { totals: {
 function OverallProgress({ value, knownCards, totalCards }: { value: number; knownCards: number; totalCards: number }) {
   return (
     <section className="overall-progress">
-      <div className="overall-progress-heading"><div><span className="eyebrow">Account completion</span><h2>Overall collection progress</h2></div><strong>{Math.round(value * 100)}%</strong></div>
+      <div className="overall-progress-heading"><h2>Overall collection progress</h2><strong>{Math.round(value * 100)}%</strong></div>
       <ProgressBar value={value} label="Overall collection progress" />
       <p>{knownCards} of {totalCards} cards have level data. Progress averages each card&rsquo;s path from its starting rarity level to max level {MAX_CARD_LEVEL}.</p>
     </section>
@@ -226,7 +225,6 @@ function UpgradeStyles() {
     .upgrade-summary-card strong { font-size: 26px; color: white; }
     .overall-progress { margin: -16px 0 42px; padding: 18px 20px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 8px; background: rgba(8, 24, 44, .55); }
     .overall-progress-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 10px; }
-    .overall-progress-heading .eyebrow { display: block; margin-bottom: 5px; }
     .overall-progress-heading h2 { margin: 0; font-size: 18px; }
     .overall-progress-heading > strong { color: #d8e4fa; font-size: 20px; }
     .overall-progress p { margin: 10px 0 0; color: #8ea2c4; font: 11px/1.5 var(--font-ui); }

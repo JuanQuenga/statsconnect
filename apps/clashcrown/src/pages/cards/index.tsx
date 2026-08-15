@@ -81,7 +81,6 @@ function CardLibrary() {
       </Head>
       <div className="decks-page">
         <section className="decks-hero">
-          <span className="eyebrow">Card catalog</span>
           <h1>Cards</h1>
           <p>
             {library.cards.length} cards · {evolutions} with Evolutions · {library.towerTroops.length} Tower

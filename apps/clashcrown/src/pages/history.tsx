@@ -77,7 +77,6 @@ function LeaderboardHistory() {
       </Head>
       <div className="profile-page history-page">
         <section className="decks-hero history-hero">
-          <span className="eyebrow">Royale Stats observed archive</span>
           <h1>Leaderboard History</h1>
           <p>Browse API boards Royale Stats has actually captured and compare two observations. No ranks are reconstructed between timestamps.</p>
           <Link className="history-back-link" href="/leaderboards">View live leaderboards</Link>

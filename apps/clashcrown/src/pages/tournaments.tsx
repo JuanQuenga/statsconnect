@@ -53,7 +53,6 @@ function Tournaments() {
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">Live from the Clash Royale API</span>
           <h1>Tournaments</h1>
           <p>Supercell&rsquo;s Global Tournaments, plus open community tournaments you can search by name.</p>
         </section>

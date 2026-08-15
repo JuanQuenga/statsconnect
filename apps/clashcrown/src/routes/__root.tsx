@@ -17,7 +17,6 @@ function NotFoundPage() {
       </Head>
       <section className="data-state not-found-state" aria-labelledby="not-found-title">
         <p className="not-found-code" aria-hidden>404</p>
-        <p className="app-error-eyebrow">Arena not found</p>
         <h1 id="not-found-title">This page does not exist</h1>
         <p>The link may be outdated, or the page may have moved.</p>
         <div className="app-error-actions">

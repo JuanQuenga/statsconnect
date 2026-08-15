@@ -43,7 +43,6 @@ function PlayerHistory({ tag }: { tag: string }) {
       </Head>
       <div className="profile-page history-page">
         <section className="decks-hero history-hero">
-          <span className="eyebrow">Observed profile record</span>
           <h1>{latest?.name ?? `#${tag}`}</h1>
           <p>
             A change log built only from profile payloads Royale Stats actually received. Gaps mean the profile was not

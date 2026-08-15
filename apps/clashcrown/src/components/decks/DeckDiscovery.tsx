@@ -216,7 +216,7 @@ export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDi
           {discovery === undefined ? <DiscoveryLoading /> : (
             <section className="profile-section discovery-results" aria-live="polite">
               <div className="section-heading discovery-heading">
-                <div><span className="eyebrow">Observed decks</span><h2>{player ? `Recommended for ${player.name}` : `${modeLabel(mode)} results`}</h2></div>
+                <h2>{player ? `Recommended for ${player.name}` : `${modeLabel(mode)} results`}</h2>
                 <p>{displayedDecks.length} shown from {discovery.totalRanked} ranked decks · {discovery.windowDays}-day sample</p>
               </div>
               <CoverageNotes discovery={discovery} trophyBand={trophyBand} arenaName={arenaName} player={player} />
@@ -270,7 +270,6 @@ function PlayerSeed({
   return (
     <section className="player-seed profile-section" aria-labelledby="player-seed-heading">
       <div>
-        <span className="eyebrow">Optional personalization</span>
         <h2 id="player-seed-heading">Match decks to your collection</h2>
         <p>Use a player tag to account for owned cards and their reported levels. The tag fetch is read-only.</p>
       </div>
@@ -318,7 +317,7 @@ type FilterProps = {
 function DiscoveryFilters(props: FilterProps) {
   return (
     <section className="discovery-filter-panel" aria-labelledby="filters-heading">
-      <div className="section-heading discovery-heading"><div><span className="eyebrow">Search the sample</span><h2 id="filters-heading">Deck filters</h2></div></div>
+      <div className="section-heading discovery-heading"><h2 id="filters-heading">Deck filters</h2></div>
       <div className="discovery-filter-grid">
         <label><span>Mode</span><select value={props.mode} onChange={(event) => props.setMode(event.target.value as MetaMode)}>{META_MODES.map((item) => <option key={item} value={item}>{modeLabel(item)}</option>)}</select></label>
         <label><span>Time window</span><select value={props.windowDays} onChange={(event) => props.setWindowDays(Number(event.target.value) as 1 | 7)}><option value={1}>Last day</option><option value={7}>Last 7 days</option></select></label>
@@ -407,7 +406,7 @@ function PersonalFit({ deck, catalog, replacements }: { deck: PersonalizedDeck; 
 }
 
 function WarDiscovery({ player, loading, dataAvailable, warSet, observed, catalog, onCopy, onUse }: { player?: Player; loading: boolean; dataAvailable: boolean; warSet: ReturnType<typeof selectWarDecks>; observed: PersonalizedDeck[]; catalog: Map<number, Card>; onCopy: (deck: DiscoveryDeck) => void; onUse: (deck: DiscoveryDeck) => void }) {
-  return <section className="profile-section discovery-results"><div className="section-heading discovery-heading"><div><span className="eyebrow">Clan War collection</span><h2>Four-deck war set</h2></div><p>7-day Clan War observations · no card overlaps</p></div>{!player ? <div className="discovery-empty"><ShieldCheck size={34} /><h3>Connect a player tag first</h3><p>War sets must be built from cards the player actually owns, so there is no generic or pretend result.</p></div> : loading ? <DiscoveryLoading /> : !dataAvailable ? <div className="discovery-empty"><AlertCircle size={34} /><h3>No ranked Clan War decks yet</h3><p>The battle crawler has not produced enough five-game deck samples for this window. Try Discovery in another mode while the war sample grows.</p></div> : !warSet.complete ? <div className="discovery-empty"><AlertCircle size={34} /><h3>Only {warSet.decks.length} non-overlapping deck{warSet.decks.length === 1 ? "" : "s"} found</h3><p>{warSet.eligibleDecks} observed Clan War decks use only owned cards, but the current sample cannot form four disjoint eight-card decks. Showing a partial set would not be a valid war recommendation.</p></div> : <><div className="coverage-notes"><p><Info size={15} />Selected by exact search over the strongest {Math.min(warSet.eligibleDecks, 40)} fully-owned observed decks. Scores use observed results, ownership, and reported card levels.</p></div><div className="discovery-deck-list">{warSet.decks.map((deck, index) => <ObservedDeckCard key={deck.deckHash} deck={deck} displayRank={index + 1} catalog={catalog} player={player} observed={observed} onCopy={onCopy} onUse={onUse} />)}</div></>}</section>;
+  return <section className="profile-section discovery-results"><div className="section-heading discovery-heading"><h2>Four-deck war set</h2><p>7-day Clan War observations · no card overlaps</p></div>{!player ? <div className="discovery-empty"><ShieldCheck size={34} /><h3>Connect a player tag first</h3><p>War sets must be built from cards the player actually owns, so there is no generic or pretend result.</p></div> : loading ? <DiscoveryLoading /> : !dataAvailable ? <div className="discovery-empty"><AlertCircle size={34} /><h3>No ranked Clan War decks yet</h3><p>The battle crawler has not produced enough five-game deck samples for this window. Try Discovery in another mode while the war sample grows.</p></div> : !warSet.complete ? <div className="discovery-empty"><AlertCircle size={34} /><h3>Only {warSet.decks.length} non-overlapping deck{warSet.decks.length === 1 ? "" : "s"} found</h3><p>{warSet.eligibleDecks} observed Clan War decks use only owned cards, but the current sample cannot form four disjoint eight-card decks. Showing a partial set would not be a valid war recommendation.</p></div> : <><div className="coverage-notes"><p><Info size={15} />Selected by exact search over the strongest {Math.min(warSet.eligibleDecks, 40)} fully-owned observed decks. Scores use observed results, ownership, and reported card levels.</p></div><div className="discovery-deck-list">{warSet.decks.map((deck, index) => <ObservedDeckCard key={deck.deckHash} deck={deck} displayRank={index + 1} catalog={catalog} player={player} observed={observed} onCopy={onCopy} onUse={onUse} />)}</div></>}</section>;
 }
 
 function DiscoveryLoading() {

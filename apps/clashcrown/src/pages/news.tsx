@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
-import { ExternalLink, Newspaper, RefreshCcw, ShieldCheck } from "lucide-react";
+import { ExternalLink, Newspaper, RefreshCcw } from "lucide-react";
 import Head from "@/components/Head";
 import Image from "@/components/Image";
 import { Layout } from "@/components/portfolio/Layout";
@@ -86,7 +86,6 @@ function NewsLayout({
       </Head>
       <div className="editorial-page news-page">
         <section className="editorial-hero">
-          <span className="eyebrow"><ShieldCheck size={14} /> {t("news.official")}</span>
           <h1>{t("news.title")}</h1>
           <p>{t("news.description")} Royale Stats stores only headline metadata and always sends you to the original article.</p>
           <div className="editorial-actions">

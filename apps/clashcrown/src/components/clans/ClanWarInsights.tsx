@@ -12,7 +12,6 @@ export function ClanWarInsights({ tag }: { tag: string }) {
     return (
       <section className="profile-section management-war-callout">
         <div>
-          <span className="management-kicker">Observed history</span>
           <h2>No weekly contribution baseline yet</h2>
           <p>Open the leader workspace to begin bounded roster and River Race observations for this clan.</p>
         </div>
@@ -30,7 +29,6 @@ export function ClanWarInsights({ tag }: { tag: string }) {
     <section className="profile-section management-war-insights" aria-labelledby="observed-war-title">
       <div className="management-section-heading">
         <div>
-          <span className="management-kicker">Across observed weeks</span>
           <h2 id="observed-war-title">Participation consistency</h2>
           <p>Completed weeks only. A member counts as participating when at least one deck was used.</p>
         </div>

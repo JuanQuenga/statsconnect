@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, BookOpen } from "lucide-react";
+import { ArrowRight, BarChart3 } from "lucide-react";
 import Head from "@/components/Head";
 import Image from "@/components/Image";
 import Link from "@/components/Link";
@@ -19,7 +19,6 @@ export default function GuidesPage() {
       </Head>
       <div className="editorial-page">
         <section className="editorial-hero">
-          <span className="eyebrow"><BookOpen size={14} /> {t("guides.editorial")}</span>
           <h1>{t("guides.title")}</h1>
           <p>{t("guides.description")}</p>
           <Link href="/meta" className="pink-button"><BarChart3 size={15} /> {t("guides.liveMeta")}</Link>
@@ -29,9 +28,8 @@ export default function GuidesPage() {
             <article className="guide-card" key={guide.slug}>
               <Image src={guide.heroCard.image} alt={guide.heroCard.name} width={120} height={148} />
               <div>
-                <span>{guideText(guide.archetype, locale)}</span>
                 <h2>{guideText(guide.title, locale)}</h2>
-                <p>{guideText(guide.summary, locale)}</p>
+                <p><strong>{guideText(guide.archetype, locale)}</strong> · {guideText(guide.summary, locale)}</p>
                 <Link href={`/guides/${guide.slug}`}>{t("guides.open")} <ArrowRight size={15} /></Link>
               </div>
             </article>

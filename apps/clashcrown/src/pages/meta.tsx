@@ -66,7 +66,6 @@ function MetaReport() {
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">{locale === "es" ? "Agregado desde registros de batalla reales" : "Aggregated from real battle logs"}</span>
           <h1>{t("meta.title")}</h1>
           <p>
             {locale === "es" ? "La API de Clash Royale publica batallas jugador por jugador, pero no estadísticas agregadas. Royale Stats cuenta lo que se jugó y muestra siempre la muestra: " : "The Clash Royale API publishes battles one player at a time, but no aggregate statistics. Royale Stats counts what was actually played and always shows the sample: "}

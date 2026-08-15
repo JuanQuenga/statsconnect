@@ -71,7 +71,6 @@ function ClanSearch() {
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">{t("clan.liveDirectory")}</span>
           <h1>{locale === "es" ? "Buscar un clan" : "Find a Clan"}</h1>
           <p>{locale === "es" ? "Busca el directorio en vivo por nombre y filtra por tamaño y puntuación." : "Search the live clan directory by name, then filter by size and score."}</p>
         </section>

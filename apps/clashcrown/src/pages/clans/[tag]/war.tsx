@@ -71,9 +71,7 @@ function ClanWar({ tag }: { tag: string }) {
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">
-            <Link href={`/clans/${tag}`}>← Back to clan</Link>
-          </span>
+          <Link href={`/clans/${tag}`} className="breadcrumb">← Back to clan</Link>
           <h1>River Race</h1>
           <p>{current?.clan?.name ?? `#${tag}`}</p>
         </section>

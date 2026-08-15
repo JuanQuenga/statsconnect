@@ -83,9 +83,7 @@ function CardDetail({ slug }: { slug: string }) {
         <section className="card-detail-hero">
           <CardArt src={highestAvailableCardArt(card)} alt={card.name} width={180} height={220} priority />
           <div>
-            <span className="eyebrow">
-              <Link href="/cards">← All cards</Link>
-            </span>
+            <Link href="/cards" className="breadcrumb">← All cards</Link>
             <h1>{card.name}</h1>
             <div className="card-detail-meta">
               <span className={`rarity-chip rarity-${card.rarity.toLowerCase()}`}>

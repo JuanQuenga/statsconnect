@@ -137,7 +137,7 @@ function Archetypes({ report, byId, selected }: { report: DeckReport; byId: Map<
     const title = active.coreCardIds.map((id) => nameFor(id, byId)).join(" + ");
     return (
       <section className="profile-section archetype-detail" id="archetypes">
-        <Link href="/meta#archetypes" className="eyebrow">← All archetypes</Link>
+        <Link href="/meta#archetypes" className="breadcrumb">← All archetypes</Link>
         <div className="section-heading"><h2>{title}</h2><span>{pct(active.usageDelta, true)} vs prior window</span></div>
         <p className="table-note">This data-derived family groups decks whose two most distinctive cards are {title}. It contains {active.uses.toLocaleString()} observed games across the current window.</p>
         <div className="archetype-detail-chart"><TrendChart points={active.points} metric="usageRate" label={title} /><div><strong>{pct(active.usageRate)}</strong><span>usage</span><strong>{pct(active.winRate)}</strong><span>win rate</span></div></div>

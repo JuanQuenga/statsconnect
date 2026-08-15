@@ -78,7 +78,6 @@ export default function HomePage() {
       <section className="royale-hero">
         <div className="royale-hero-inner">
           <div className="royale-hero-copy">
-            <p className="eyebrow">Players, decks, and live meta</p>
             <h1>
               <span className="hero-title-line">Search any tag.</span>
               <span className="hero-title-line hero-title-accent">See every battle.</span>

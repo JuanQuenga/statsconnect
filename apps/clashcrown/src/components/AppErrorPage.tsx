@@ -12,7 +12,6 @@ import { useI18n } from "@/lib/i18n";
 type ErrorCopy = {
   description: string;
   details: string;
-  eyebrow: string;
   home: string;
   reference: string;
   retry: string;
@@ -29,7 +28,6 @@ type ErrorPanelProps = {
 const fallbackCopy: ErrorCopy = {
   description: "This page could not be displayed. Your saved profiles and settings are safe.",
   details: "Technical details",
-  eyebrow: "Royale Stats recovery",
   home: "Return to Royale Stats",
   reference: "Error reference: {reference}",
   retry: "Try again",
@@ -48,7 +46,6 @@ function ErrorPanel({ copy, error, reference, retry }: ErrorPanelProps) {
       <span className="app-error-icon" aria-hidden>
         <AlertTriangle />
       </span>
-      <p className="app-error-eyebrow">{copy.eyebrow}</p>
       <h1 ref={headingRef} id="app-error-title" tabIndex={-1}>
         {copy.title}
       </h1>
@@ -80,7 +77,6 @@ export function ClashCrownRouteError({ error }: ErrorComponentProps) {
   const copy: ErrorCopy = {
     description: t("error.description"),
     details: t("error.details"),
-    eyebrow: t("error.eyebrow"),
     home: t("error.home"),
     reference: t("error.reference"),
     retry: t("error.retry"),

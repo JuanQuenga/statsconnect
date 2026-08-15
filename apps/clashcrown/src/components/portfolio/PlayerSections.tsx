@@ -43,7 +43,6 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
         ) : null}
       </div>
       <div className="profile-identity-copy">
-        <span className="eyebrow">Clash Royale player profile</span>
         <h1>{player.name}</h1>
         <div className="profile-identity-meta">
           <strong>#{player.tag}</strong>
@@ -121,7 +120,7 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
   return (
     <section className="profile-section">
       <div className="profile-section-heading">
-        <div><span className="eyebrow">Overview</span><h2>Career snapshot</h2></div>
+        <h2>Career snapshot</h2>
         <div className="update-tools"><span>{updatedLabel(player.fetchedAt, locale)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? t("common.refreshing") : t("common.refresh")}</button></div>
       </div>
       {rows.length ? (
@@ -298,8 +297,8 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
     <section className="profile-section deck-overview">
       <div className="profile-section-heading current-deck-heading">
         <div>
-          <span className="eyebrow">{average.toFixed(1)} elixir · {cycle} {locale === "es" ? "de ciclo" : "cycle"}</span>
           <h2>{locale === "es" ? "Mazo actual" : "Current deck"}</h2>
+          <p className="deck-cost-summary">{average.toFixed(1)} elixir · {cycle} {locale === "es" ? "de ciclo" : "cycle"}</p>
         </div>
         <DeckActions cards={cards} label="current deck" compact />
       </div>
@@ -308,7 +307,7 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
       </div>
       {supportCards.length ? (
         <div className="current-deck-support">
-          <div><span className="eyebrow">Support</span><h3>Tower Troop</h3></div>
+          <h3>Tower Troop</h3>
           <div className="current-deck-support-cards">
             {supportCards.map((card, index) => <DeckCardLink key={`${card.name}-${index}`} card={card} />)}
           </div>
@@ -327,6 +326,7 @@ function DeckCardLink({ card }: { card: Card }) {
 function CurrentDeckStyles() {
   return <style>{`
     .current-deck-heading > div:first-child { display: grid; gap: 5px; }
+    .deck-cost-summary { margin: 0; color: var(--muted-foreground); font: 11px var(--font-ui); }
     .current-deck-heading > [aria-label] { flex: none; }
     .current-deck-cluster { width: min(100%, 760px); display: grid; grid-template-columns: repeat(4, minmax(0, 168px)); justify-content: center; gap: 14px; margin: 8px auto 0; padding: 24px; border: 1px solid var(--border); border-radius: 18px; background: radial-gradient(circle at 50% 25%, rgba(59, 111, 180, .2), transparent 68%), color-mix(in srgb, var(--secondary) 36%, transparent); }
     .current-deck-card { min-width: 0; display: grid; place-items: center; border-radius: 13px; transition: background .18s ease, transform .18s ease; }
@@ -354,9 +354,8 @@ export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
     <section className="profile-section deck-analytics-section">
       <div className="profile-section-heading deck-analytics-heading">
         <div>
-          <span className="eyebrow">Battle log insights · {decks.length} lineups</span>
           <h2>Recent deck rotation</h2>
-          <p>Each lineup groups battles played with the same eight-card deck.</p>
+          <p>Each lineup groups battles played with the same eight-card deck. {decks.length} lineups found.</p>
         </div>
       </div>
       <div className="personal-deck-grid">
@@ -696,7 +695,7 @@ export function ChestList({ chests }: { chests: Chest[] }) {
   return (
     <section className="profile-section chest-footer">
       {/* "My Chests" on someone else's profile read as the viewer's own. */}
-      <div className="profile-section-heading"><div><span className="eyebrow">Chest cycle</span><h2>{t("player.upcomingChests")}</h2></div></div>
+      <div className="profile-section-heading"><h2>{t("player.upcomingChests")}</h2></div>
       <div className="chest-row">
         {chests.map((chest, index) => (
           <div key={`${chest.name}-${index}`} className="chest-item" title={chest.name}>

@@ -67,7 +67,6 @@ export default function PlayerComparePage() {
       <div className={`profile-page ${styles.workspace}`}>
         <section className="profile-section">
           <div className={styles.intro}>
-            <span className="eyebrow">Duo workspace</span>
             <h1>Compare players</h1>
             <p>Put two profiles side by side and see where each player leads.</p>
           </div>

@@ -54,7 +54,6 @@ export default function PlayerSearchPage() {
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">Player lookup</span>
           <h1>Find a player</h1>
           <p>Search by name, or paste a player tag. Both land on the same profile.</p>
           <ProfileSearch />

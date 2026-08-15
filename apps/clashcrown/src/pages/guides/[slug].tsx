@@ -37,7 +37,6 @@ export default function GuidePage({ slug }: { slug: string }) {
         <header className="guide-detail-hero">
           <div>
             <Link href="/guides" className="breadcrumb"><ArrowLeft size={14} /> {t("guides.title")}</Link>
-            <span className="eyebrow">{guideText(guide.archetype, locale)} · {t("guides.editorial")}</span>
             <h1>{title}</h1>
             <p>{summary}</p>
             <div className="editorial-actions">
@@ -71,7 +70,6 @@ export default function GuidePage({ slug }: { slug: string }) {
 
         <section className="guide-live-links">
           <div>
-            <span>{t("common.liveData")}</span>
             <h2>{locale === "es" ? "Contrasta la guía con lo que se juega ahora" : "Compare the guide with what is played now"}</h2>
             <p>{locale === "es" ? "Las guías explican decisiones duraderas. El informe del meta muestra la muestra actual y siempre indica cuántas batallas observó." : "Guides explain durable decisions. The meta report shows the current sample and always discloses how many battles it observed."}</p>
           </div>

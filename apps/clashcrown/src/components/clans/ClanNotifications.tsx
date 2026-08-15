@@ -83,7 +83,6 @@ export function ClanNotifications({ tag, name, events }: { tag: string; name: st
   return (
     <section className="clan-alerts" aria-labelledby="clan-alerts-title">
       <div>
-        <span className="management-kicker">Optional browser alerts</span>
         <h2 id="clan-alerts-title">Actionable roster updates</h2>
         <p>{status} Alerts are local to this browser and only work while the site is open; there is no background push service.</p>
         {feedback ? <p className="management-feedback" role="status">{feedback}</p> : null}

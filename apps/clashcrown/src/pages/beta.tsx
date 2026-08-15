@@ -61,7 +61,6 @@ function Beta() {
       </Head>
       <div className="profile-page">
         <section className="decks-hero">
-          <span className="eyebrow">Internal</span>
           <h1>Pipeline beta</h1>
           <p>
             The official API only exposes battles one player at a time, so deck statistics are built by crawling

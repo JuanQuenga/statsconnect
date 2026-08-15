@@ -35,7 +35,7 @@ export function PlayerProfileDetails({ player }: { player: Player }) {
 
   return (
     <section className="profile-section profile-details-section">
-      <div className="profile-section-heading"><div><span className="eyebrow">Profile</span><h2>Account details</h2></div></div>
+      <div className="profile-section-heading"><h2>Account details</h2></div>
       <div className={player.favoriteCard ? "profile-detail-layout" : "profile-detail-layout profile-detail-layout-wide"}>
         {player.favoriteCard ? <FavoriteCard card={player.favoriteCard} /> : null}
         {details.length ? (
@@ -59,7 +59,7 @@ export function PlayerProfileDetails({ player }: { player: Player }) {
 function FavoriteCard({ card }: { card: Card }) {
   return (
     <Link className="favorite-card-panel" href={`/cards/${cardSlug(card.name)}`}>
-      <span className="eyebrow"><Star size={13} /> Favorite card</span>
+      <strong className="favorite-card-label"><Star size={13} /> Favorite card</strong>
       <CardArt src={card.image} alt={card.name} width={104} height={128} />
       <span className="favorite-card-copy">
         <strong>{card.name}</strong>
@@ -73,7 +73,6 @@ function SupportCardCollection({ cards }: { cards: Card[] }) {
   return (
     <div className="support-collection">
       <div>
-        <span className="eyebrow">Tower Troops</span>
         <h3>Support-card collection</h3>
         <p>The API returned these separately from the player&rsquo;s standard card collection.</p>
       </div>
@@ -94,7 +93,7 @@ export function PlayerBadgeSection({ badges = [] }: { badges?: PlayerBadge[] }) 
   if (!badges.length) return null;
   return (
     <section className="profile-section">
-      <div className="profile-section-heading"><div><span className="eyebrow">Collection · {badges.length}</span><h2>Badges</h2></div></div>
+      <div className="profile-section-heading"><h2>Badges ({badges.length})</h2></div>
       <div className="profile-badge-grid">
         {badges.map((badge, index) => <BadgeCard badge={badge} key={`${badge.name}-${index}`} />)}
       </div>
@@ -135,7 +134,7 @@ export function PlayerAchievementsSection({ achievements = [] }: { achievements?
   if (!achievements.length) return null;
   return (
     <section className="profile-section achievements-section">
-      <div className="profile-section-heading"><div><span className="eyebrow">Progress · {achievements.length} milestones</span><h2>Achievements</h2></div></div>
+      <div className="profile-section-heading"><h2>Achievements ({achievements.length})</h2></div>
       <div className="achievement-list">
         {achievements.map((achievement, index) => (
           <AchievementRow achievement={achievement} key={`${achievement.name}-${index}`} />
@@ -185,7 +184,7 @@ function ProfileFeatureStyles() {
     .profile-detail-layout-wide { grid-template-columns: 1fr; }
     .favorite-card-panel { display: grid; grid-template-columns: 96px 1fr; grid-template-rows: auto 1fr; gap: 8px 16px; align-items: center; padding: 18px; border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border)); border-radius: 16px; color: var(--foreground); background: linear-gradient(145deg, rgba(95, 52, 119, .42), rgba(13, 29, 49, .9)); }
     .favorite-card-panel:hover { border-color: color-mix(in srgb, var(--accent) 70%, white); transform: translateY(-2px); }
-    .favorite-card-panel > .eyebrow { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; }
+    .favorite-card-label { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font: 700 11px var(--font-ui); }
     .favorite-card-panel > img { width: 92px; height: 112px; object-fit: contain; }
     .favorite-card-copy { display: grid; gap: 6px; }
     .favorite-card-copy strong { font-size: 17px; }

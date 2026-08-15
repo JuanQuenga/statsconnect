@@ -1138,7 +1138,6 @@ button { cursor: pointer; }
 }
 
 .profile-identity-copy { min-width: 0; }
-.profile-identity-copy > .eyebrow { color: var(--primary); }
 .profile-identity-copy h1 {
   margin: 9px 0 10px;
   overflow-wrap: anywhere;
@@ -1283,7 +1282,6 @@ button { cursor: pointer; }
   margin-bottom: 24px;
 }
 .profile-section-heading > div:first-child { display: grid; gap: 5px; }
-.profile-section-heading .eyebrow { color: var(--primary); font-size: 9px; }
 .profile-section-heading h2 { margin: 0; font-size: clamp(22px, 2.3vw, 30px); text-align: left; }
 
 .section-tools,
@@ -1880,13 +1878,6 @@ button { cursor: pointer; }
   background: rgba(238, 102, 239, .12);
 }
 .app-error-icon svg { width: 25px; height: 25px; }
-.app-error-eyebrow {
-  margin: 0 !important;
-  color: #ee8aef !important;
-  font: 800 10px var(--font-ui) !important;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
 .app-error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .app-error-actions .pink-button { margin: 0; display: inline-flex; align-items: center; gap: 7px; border: 0; }
 .app-error-home {
@@ -2282,7 +2273,6 @@ a.status-chip:hover { background: rgba(238, 102, 239, .3); }
   letter-spacing: .08em;
 }
 
-.eyebrow { color: var(--pink-bright); font-size: 10px; text-transform: uppercase; }
 .builder-workspace { padding: 22px; border-radius: 9px; background: rgba(8, 24, 44, .72); }
 .builder-summary {
   display: grid;
@@ -2704,14 +2694,6 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 .management-overview-copy > p { max-width: 760px; margin: 0; color: #c1d0e7; font-size: 14px; line-height: 1.6; }
 .management-overview-copy .management-actions { justify-content: flex-start; margin-top: 24px; }
 
-.management-kicker {
-  color: #f4a3f2;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
 .management-button {
   min-height: 40px;
   display: inline-flex;
@@ -3064,16 +3046,6 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   text-wrap: pretty;
 }
 
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--pink-bright);
-  font: 700 10px/1 var(--font-ui);
-  letter-spacing: .11em;
-  text-transform: uppercase;
-}
-
 .editorial-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3196,9 +3168,9 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   background: linear-gradient(135deg, rgba(16, 48, 86, .88), rgba(34, 18, 59, .75));
 }
 .guide-card > img { width: 120px; height: 148px; object-fit: contain; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .4)); }
-.guide-card span { color: var(--pink-bright); font: 700 10px var(--font-ui); letter-spacing: .08em; text-transform: uppercase; }
 .guide-card h2 { margin: 7px 0 10px; font-size: 23px; line-height: 1.12; }
 .guide-card p { margin: 0 0 17px; color: #9fb1ce; font: 13px/1.55 var(--font-ui); }
+.guide-card p strong { color: #e4c2ed; }
 .guide-card a { justify-content: flex-start; color: #ff9cff; font-size: 12px; font-weight: 700; }
 
 .guide-detail { padding-top: 34px; }
@@ -3232,7 +3204,6 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 .guide-mistakes h2 svg { color: var(--gold); }
 .guide-mistakes ul { display: grid; gap: 9px; padding-left: 20px; }
 .guide-live-links { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px; align-items: center; padding: 40px; margin-top: 40px; border-radius: 12px; background: linear-gradient(100deg, rgba(116, 31, 137, .52), rgba(16, 53, 94, .75)); }
-.guide-live-links > div > span { color: #ffb6ff; font: 700 10px var(--font-ui); text-transform: uppercase; letter-spacing: .1em; }
 .guide-live-links h2 { margin: 8px 0 10px; font-size: 24px; }
 .guide-card-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .guide-card-links a { padding: 9px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; color: #f5f8ff; background: rgba(4, 18, 34, .35); font-size: 11px; }
@@ -3850,19 +3821,6 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   padding: 72px 0 112px;
   max-width: 680px;
   text-shadow: 0 2px 22px rgba(2, 7, 16, .62);
-}
-
-.eyebrow {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  border-left: 3px solid var(--primary);
-  padding-left: 11px;
-  color: #c8d3e4;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .royale-hero-copy h1 {
