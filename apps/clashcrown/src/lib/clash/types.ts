@@ -27,6 +27,8 @@ export type ApiCard = {
 export type ApiArena = {
   id?: number;
   name?: string;
+  /** Stable internal name returned by newer Clash Royale API payloads. */
+  rawName?: string;
 };
 
 export type ApiClanReference = {

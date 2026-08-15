@@ -12,6 +12,7 @@ import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { DeckActions } from "@/components/portfolio/DeckActions";
 import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollection";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
+import { TrophyActivityChart } from "@/components/portfolio/TrophyActivityChart";
 import { Badge } from "@/components/ui/badge";
 import { Card as UiCard, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
@@ -555,22 +556,13 @@ function formatObservationWindow(spanMs: number, locale: Locale) {
  */
 function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] }) {
   const { formatNumber, locale } = useI18n();
-  const values = history.map((point) => point.value);
-  const times = history.map((point) => point.recordedAt);
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
-  const range = Math.max(1, maximum - minimum);
-  const earliest = Math.min(...times);
-  const mostRecent = Math.max(...times);
-  const timeRange = Math.max(1, mostRecent - earliest);
-
-  const coordinates = history.map((point) => ({
-    x: history.length === 1 ? 470 : 22 + ((point.recordedAt - earliest) / timeRange) * 898,
-    y: 210 - ((point.value - minimum) / range) * 170,
-    value: point.value
+  const snapshots = [...history].sort((a, b) => a.recordedAt - b.recordedAt);
+  const earliest = snapshots[0]?.recordedAt ?? 0;
+  const mostRecent = snapshots.at(-1)?.recordedAt ?? earliest;
+  const data = snapshots.map((point) => ({
+    label: formatSnapshotDate(point.recordedAt, locale),
+    trophies: point.value,
   }));
-  const linePath = coordinates.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-  const latest = coordinates.at(-1) ?? { x: 470, y: 125, value: values.at(-1) ?? 0 };
 
   return (
     <section className="profile-section chart-section">
@@ -581,29 +573,7 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
           {history.length} {locale === "es" ? "instantáneas" : "snapshots"} · {formatObservationWindow(mostRecent - earliest, locale)}
         </span>
       </div>
-      <div className="line-chart">
-        <div className="y-axis">
-          <Image src="/images/icons/trophy.png" alt="" width={24} height={24} />
-          <span>{formatNumber(maximum)}</span><span>{formatNumber(Math.round((maximum + minimum) / 2))}</span><span>{formatNumber(minimum)}</span>
-        </div>
-        <svg viewBox="0 0 930 250" aria-label="Observed trophy snapshots trend">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <line key={index} x1={70 + index * 86} x2={70 + index * 86} y1="18" y2="205" className="grid-line" />
-          ))}
-          {linePath ? <path d={linePath} /> : null}
-          {coordinates.slice(0, -1).map((point, index) => (
-            <circle key={index} cx={point.x} cy={point.y} r="5" className="chart-dot" />
-          ))}
-          <circle cx={latest.x} cy={latest.y} r="8" />
-          <foreignObject x={Math.max(0, Math.min(820, latest.x - 50))} y={Math.max(0, latest.y - 58)} width="110" height="42">
-            <div className="chart-popover"><Image src="/images/icons/trophy.png" alt="" width={21} height={21} />{latest.value}</div>
-          </foreignObject>
-        </svg>
-        <div className="x-axis">
-          <span>{formatSnapshotDate(earliest, locale)}</span>
-          <span>{formatSnapshotDate(mostRecent, locale)}</span>
-        </div>
-      </div>
+      <TrophyActivityChart data={data} label="Observed trophy snapshots trend" formatNumber={formatNumber} />
       <p className="table-note">
         Each dot is a snapshot recorded when someone viewed this profile and the trophy count had changed since
         the last view — not continuous tracking, so the gaps between points don&apos;t show when a rise or fall
@@ -629,18 +599,14 @@ function InferredProgressionChart({ player }: { player: Player }) {
     points.push((points.at(-1) ?? startingTrophies) + (battle.trophyChange ?? 0));
     return points;
   }, [startingTrophies]);
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
-  const range = Math.max(1, maximum - minimum);
-  const coordinates = values.map((value, index) => ({
-    x: values.length === 1 ? 470 : 22 + (index / (values.length - 1)) * 898,
-    y: 210 - ((value - minimum) / range) * 170,
-    value
-  }));
-  const linePath = coordinates.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-  const areaPath = `${linePath} L${coordinates.at(-1)?.x ?? 920} 228 L${coordinates[0]?.x ?? 22} 228 Z`;
-  const latest = coordinates.at(-1) ?? { x: 470, y: 125, value: player.trophies };
   const labels = ["Start", ...recentBattles.map((battle) => battle.date)];
+  const data = values.map((trophies, index) => {
+    const label = labels[index] ?? "Battle";
+    return {
+      label: index === 0 ? label : label.replace(/, \d{4}$/, ""),
+      trophies,
+    };
+  });
 
   return (
     <section className="profile-section chart-section">
@@ -649,38 +615,7 @@ function InferredProgressionChart({ player }: { player: Player }) {
         <h2>Trophy Activity</h2>
         <span className="chart-range">Last {recentBattles.length} battles</span>
       </div>
-      <div className="line-chart">
-        <div className="y-axis">
-          <Image src="/images/icons/trophy.png" alt="" width={24} height={24} />
-          <span>{formatNumber(maximum)}</span><span>{formatNumber(Math.round((maximum + minimum) / 2))}</span><span>{formatNumber(minimum)}</span>
-        </div>
-        <svg viewBox="0 0 930 250" aria-label="Recent trophy activity line chart">
-          <defs>
-            <linearGradient id="chart-fill-trophies" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1b8cff" stopOpacity=".36" />
-              <stop offset="100%" stopColor="#1b8cff" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {Array.from({ length: 10 }).map((_, index) => (
-            <line key={index} x1={70 + index * 86} x2={70 + index * 86} y1="18" y2="205" className="grid-line" />
-          ))}
-          <path className="chart-fill" d={areaPath} fill="url(#chart-fill-trophies)" />
-          <path d={linePath} />
-          <circle cx={latest.x} cy={latest.y} r="8" />
-          <foreignObject x={Math.max(0, Math.min(820, latest.x - 50))} y={Math.max(0, latest.y - 58)} width="110" height="42">
-            <div className="chart-popover"><Image src="/images/icons/trophy.png" alt="" width={21} height={21} />{latest.value}</div>
-          </foreignObject>
-        </svg>
-        {/* Ten ladder battles are usually one sitting, so every tick carried the
-            same date. Print a date only when it changes; the rest stay blank. */}
-        <div className="x-axis">
-          {labels.map((date, index) => {
-            const short = index === 0 ? date : date.replace(/, \d{4}$/, "");
-            const repeat = index > 1 && short === labels[index - 1].replace(/, \d{4}$/, "");
-            return <span key={`${date}-${index}`}>{repeat ? "" : short}</span>;
-          })}
-        </div>
-      </div>
+      <TrophyActivityChart data={data} label="Recent trophy activity line chart" formatNumber={formatNumber} />
       <p className="table-note">
         Inferred from this player&apos;s last {recentBattles.length} battles&apos; trophy changes — not observed
         history.

@@ -1,6 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { highestAvailableCardArt, selectCardArt } from "./assets.ts";
+import { arenaImage, highestAvailableCardArt, selectCardArt } from "./assets.ts";
+
+test("current Trophy Road arenas do not fall back to Training Camp", () => {
+  assert.equal(
+    arenaImage({ id: 54000144, name: "Spirit Square", rawName: "Arena_L18" }),
+    "/images/arenas/arena24.png"
+  );
+  assert.equal(arenaImage({ name: "Spirit Square" }), "/images/arenas/arena24.png");
+});
+
+test("arena resolution supports API subtitles and internal names", () => {
+  assert.equal(arenaImage({ name: "Royal Crypt" }), "/images/arenas/arena17.png");
+  assert.equal(arenaImage({ rawName: "Arena_L3" }), "/images/arenas/arena17.png");
+  assert.equal(arenaImage({ name: "Arena 32" }), "/images/arenas/arena24.png");
+  assert.equal(arenaImage(), "/images/arenas/arena0.png");
+});
 
 test("catalog cards show the highest available portrait tier", () => {
   assert.equal(

@@ -166,28 +166,77 @@ const ARENA_ID_TO_KEY: Record<number, string> = {
   54000009: "arena8",
   54000010: "arena9",
   54000011: "arena12",
-  54000012: "league1",
-  54000013: "league2",
-  54000014: "league3",
-  54000015: "league4",
-  54000016: "league5",
-  54000017: "league6",
-  54000018: "league7",
-  54000019: "league8",
-  54000020: "league9",
+  54000012: "arena15",
+  54000013: "arena16",
+  54000014: "arena17",
+  54000015: "arena18",
+  54000016: "arena19",
+  54000017: "arena20",
+  54000018: "arena21",
+  54000019: "arena22",
+  54000020: "arena23",
   54000024: "arena11",
   54000027: "arena10",
   54000028: "arena10",
   54000029: "arena10",
   54000030: "arena10",
-  54000031: "league0",
+  54000031: "arena24",
   54000055: "arena13",
-  54000056: "arena14"
+  54000056: "arena14",
+  54000117: "arena24",
+  54000130: "arena24",
+  54000131: "arena24",
+  54000132: "arena24",
+  54000141: "arena24",
+  54000142: "arena24",
+  54000143: "arena24",
+  54000144: "arena24"
 };
 
 /** Highest arena/league image vendored under public/images/arenas. */
 const MAX_ARENA_INDEX = 24;
 const MAX_LEAGUE_INDEX = 10;
+
+/** API display names are subtitles rather than predictable `Arena N` labels. */
+const ARENA_NAME_TO_INDEX: Record<string, number> = {
+  "training camp": 0,
+  "goblin stadium": 1,
+  "bone pit": 2,
+  "barbarian bowl": 3,
+  "spell valley": 4,
+  "builder's workshop": 5,
+  "p.e.k.k.a's playhouse": 6,
+  "royal arena": 7,
+  "frozen peak": 8,
+  "jungle arena": 9,
+  "hog mountain": 10,
+  "electro valley": 11,
+  "spooky town": 12,
+  "rascal's hideout": 13,
+  "serenity peak": 14,
+  "miner's mine": 15,
+  "executioner's kitchen": 16,
+  "royal crypt": 17,
+  "silent sanctuary": 18,
+  "dragon spa": 19,
+  "boot camp": 20,
+  "clash fest": 21,
+  "pancakes!": 22,
+  valkalla: 23,
+  "legendary arena": 24,
+  "lumberlove cabin": 25,
+  "royal road": 26,
+  "musketeer street": 27,
+  "summit of heroes": 28,
+  "magic academy": 29,
+  "ultimate clash pit": 30,
+  "little prince's tavern": 31,
+  "spirit square": 32
+};
+
+function arenaKey(index: number): string {
+  return `arena${Math.min(Math.max(index, 0), MAX_ARENA_INDEX)}`;
+}
 
 /**
  * Arena art. The id table covers the authoritative ladder and clan-war keys;
@@ -198,8 +247,17 @@ export function arenaImage(arena?: ApiArena): string {
   const byId = typeof arena?.id === "number" ? ARENA_ID_TO_KEY[arena.id] : undefined;
   if (byId) return `/images/arenas/${byId}.png`;
 
-  const name = arena?.name?.toLowerCase() ?? "";
-  if (name.includes("legendary")) return "/images/arenas/legendary.png";
+  const rawName = arena?.rawName?.trim() ?? "";
+  const rawLeague = rawName.match(/^Arena_L(\d+)$/i);
+  if (rawLeague) return `/images/arenas/${arenaKey(14 + Number(rawLeague[1]))}.png`;
+
+  const rawArena = rawName.match(/^Arena(\d+)$/i);
+  if (rawArena) return `/images/arenas/${arenaKey(Number(rawArena[1]))}.png`;
+  if (/^TrainingCamp$/i.test(rawName)) return "/images/arenas/arena0.png";
+
+  const name = arena?.name?.trim().toLowerCase() ?? "";
+  const namedIndex = ARENA_NAME_TO_INDEX[name];
+  if (namedIndex !== undefined) return `/images/arenas/${arenaKey(namedIndex)}.png`;
 
   const league = name.match(/league\s*(\d+)/);
   if (league) {
@@ -209,11 +267,11 @@ export function arenaImage(arena?: ApiArena): string {
 
   const numbered = name.match(/arena\s*(\d+)/);
   if (numbered) {
-    const index = Math.min(Number(numbered[1]), MAX_ARENA_INDEX);
-    return `/images/arenas/arena${index}.png`;
+    return `/images/arenas/${arenaKey(Number(numbered[1]))}.png`;
   }
 
-  return "/images/arenas/arena0.png";
+  // A named but newly released arena should never masquerade as Training Camp.
+  return name ? "/images/arenas/arena24.png" : "/images/arenas/arena0.png";
 }
 
 /**
