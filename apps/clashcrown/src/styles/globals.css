@@ -2009,21 +2009,19 @@ button:disabled { cursor: wait; opacity: .62; }
 .game-card-art[data-variant="hero"] > img { filter: drop-shadow(0 0 9px rgba(255, 195, 54, .5)) drop-shadow(0 12px 13px rgba(0, 0, 0, .4)); }
 .game-card-elixir {
   width: var(--game-card-cost-size);
-  height: var(--game-card-cost-size);
+  height: calc(var(--game-card-cost-size) * 1.19);
   position: absolute;
-  top: 11%;
+  top: 9%;
   left: 0;
   z-index: 2;
   display: grid;
   place-items: center;
-  border: 2px solid #ff7cf5;
-  border-radius: 50%;
   color: white;
-  background: radial-gradient(circle at 35% 25%, #ff4be8, #b400b8 62%, #5e076d);
-  box-shadow: 0 2px 0 #4d0756, 0 0 9px rgba(255, 63, 235, .72);
+  background: url("/images/icons/elixir.png") center / contain no-repeat;
+  filter: drop-shadow(0 2px 1px rgba(45, 0, 58, .75));
   font: 900 var(--game-card-cost-font)/1 var(--font-ui);
   letter-spacing: -.06em;
-  text-shadow: 0 2px 1px rgba(0, 0, 0, .75);
+  text-shadow: 0 2px 1px rgba(0, 0, 0, .9);
 }
 .game-card-level {
   max-width: 92%;

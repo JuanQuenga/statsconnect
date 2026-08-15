@@ -1,6 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { selectCardArt } from "./assets.ts";
+import { highestAvailableCardArt, selectCardArt } from "./assets.ts";
+
+test("catalog cards show the highest available portrait tier", () => {
+  assert.equal(
+    highestAvailableCardArt({
+      image: "base.png",
+      evolutionImage: "evolution.png",
+      heroImage: "hero.png"
+    }),
+    "hero.png"
+  );
+  assert.equal(
+    highestAvailableCardArt({ image: "base.png", evolutionImage: "evolution.png" }),
+    "evolution.png"
+  );
+  assert.equal(highestAvailableCardArt({ image: "base.png" }), "base.png");
+});
 
 test("a base collection card keeps its base art when variants are merely available", () => {
   assert.deepEqual(

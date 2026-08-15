@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { Layout } from "@/components/portfolio/Layout";
 import { CardDeepAnalytics } from "@/components/CardDeepAnalytics";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
-import { rarityImage } from "@/lib/clash/assets";
+import { highestAvailableCardArt, rarityImage } from "@/lib/clash/assets";
 import { cardSlug, findCardBySlug, relatedCards } from "@/lib/clash/cards";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { useCardLibrary } from "@/lib/useCardCatalog";
@@ -81,7 +81,7 @@ function CardDetail({ slug }: { slug: string }) {
       </Head>
       <div className="profile-page">
         <section className="card-detail-hero">
-          <CardArt src={card.image} alt={card.name} width={180} height={220} priority />
+          <CardArt src={highestAvailableCardArt(card)} alt={card.name} width={180} height={220} priority />
           <div>
             <span className="eyebrow">
               <Link href="/cards">← All cards</Link>
@@ -124,16 +124,19 @@ function CardDetail({ slug }: { slug: string }) {
 }
 
 /**
- * The card's other artwork. Evolutions and Heroes are drawn from scratch rather
- * than reskinned, so the variants are worth showing rather than describing —
- * and a Hero can only be shown here, because the API reports which cards have
- * one but never which battle slot was played as one.
+ * Portraits below the featured highest-tier art make the base and lower-tier
+ * appearances available without duplicating the featured portrait.
  */
 function CardVariants({ card }: { card: Card }) {
+  const featured = highestAvailableCardArt(card);
   const variants = [
+    { label: "Base", src: card.image },
     card.evolutionImage ? { label: "Evolution", src: card.evolutionImage } : null,
     card.heroImage ? { label: "Hero", src: card.heroImage } : null
-  ].filter((variant) => variant !== null);
+  ].filter(
+    (variant): variant is { label: string; src: string } =>
+      variant !== null && variant.src !== featured
+  );
 
   if (!variants.length) return null;
 
@@ -225,7 +228,7 @@ function StatTile({ label, value, sub }: { label: string; value: string; sub: st
 function RelatedTile({ card }: { card: Card }) {
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="card-tile">
-      <CardArt src={card.image} alt={card.name} width={76} height={94} />
+      <CardArt src={highestAvailableCardArt(card)} alt={card.name} width={76} height={94} />
       <strong>{card.name}</strong>
       <span>
         {card.rarity} · {card.elixir || "?"}

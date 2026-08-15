@@ -99,6 +99,15 @@ export function selectCardArt(card: {
   return { src: card.image, variant: card.variant };
 }
 
+/** Best portrait advertised by the catalog, independent of a player's active deck variant. */
+export function highestAvailableCardArt(card: {
+  image: string;
+  evolutionImage?: string;
+  heroImage?: string;
+}): string {
+  return card.heroImage ?? card.evolutionImage ?? card.image;
+}
+
 /**
  * Card art. Prefers the API's own icon URLs so the catalog is self-healing;
  * falls back to the vendored copy for demo data and any response that predates

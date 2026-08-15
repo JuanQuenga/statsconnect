@@ -1,21 +1,30 @@
 import { CardArt } from "@/components/portfolio/CardArt";
-import { selectCardArt } from "@/lib/clash/assets";
+import { highestAvailableCardArt, selectCardArt } from "@/lib/clash/assets";
 import type { Card } from "@/lib/mock-data";
 
 type GameCardArtSize = "library" | "collection" | "deck";
+type GameCardArtPortrait = "active" | "highest";
 
 export function GameCardArt({
   card,
   size = "collection",
   priority = false,
-  showLevel = true
+  showLevel = true,
+  portrait = "active"
 }: {
   card: Pick<Card, "name" | "image" | "evolutionImage" | "heroImage" | "variant" | "rarity" | "elixir" | "level">;
   size?: GameCardArtSize;
   priority?: boolean;
   showLevel?: boolean;
+  portrait?: GameCardArtPortrait;
 }) {
-  const art = selectCardArt(card);
+  const activeArt = selectCardArt(card);
+  const art = portrait === "highest"
+    ? {
+        src: highestAvailableCardArt(card),
+        variant: card.heroImage ? "Hero" : card.evolutionImage ? "Evolution" : undefined
+      }
+    : activeArt;
   const rarity = card.rarity.toLowerCase();
 
   return (

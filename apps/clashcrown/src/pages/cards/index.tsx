@@ -155,10 +155,11 @@ function CardLibrary() {
 function CardTile({ card, meta }: { card: Card; meta?: CardMeta }) {
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="card-tile">
-      <GameCardArt card={card} size="library" showLevel={false} />
+      <GameCardArt card={card} size="library" showLevel={false} portrait="highest" />
       <strong>{card.name}</strong>
       <span className="card-tile-detail">
-        {card.rarity}{card.canEvolve ? " · Evolution available" : ""}
+        {card.rarity}
+        {card.heroImage ? " · Hero available" : card.canEvolve ? " · Evolution available" : ""}
       </span>
       {meta ? (
         <small className="card-tile-meta">
