@@ -24,9 +24,13 @@ export function CardArt({
   height: number;
   priority?: boolean;
   /** Clan badges and player icons have their own placeholder. */
-  fallback?: string;
+  fallback?: string | readonly string[];
 }) {
   const [source, setSource] = useState(src);
+  const fallbackSources = typeof fallback === "string" ? [fallback] : fallback;
+  const sources = [src, ...fallbackSources].filter(
+    (candidate, index, candidates) => candidates.indexOf(candidate) === index
+  );
 
   // The same tile is reused as the grid re-sorts, so a new src has to reset a
   // fallback left over from the previous card.
@@ -39,7 +43,10 @@ export function CardArt({
       width={width}
       height={height}
       priority={priority}
-      onError={() => setSource(fallback)}
+      onError={() => {
+        const next = sources[sources.indexOf(source) + 1];
+        if (next) setSource(next);
+      }}
     />
   );
 }

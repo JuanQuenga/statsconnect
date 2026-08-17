@@ -28,6 +28,21 @@ export function slugify(value: string) {
     .replace(/^-|-$/g, "");
 }
 
+/** Vendored portrait path used when an API-hosted card image fails to load. */
+export function vendoredCardImage(name: string, variant?: "Evolution" | "Hero"): string {
+  const suffix = variant === "Hero" ? "-hero" : variant === "Evolution" ? "-ev1" : "";
+  return `/images/cards/${slugify(name)}${suffix}.png`;
+}
+
+/** Ordered recovery chain for remote card art, preserving variant art when available. */
+export function cardArtFallbacks(card: { name: string; variant?: "Evolution" | "Hero" }): string[] {
+  const base = vendoredCardImage(card.name);
+  const candidates = card.variant
+    ? [vendoredCardImage(card.name, card.variant), base, UNKNOWN_CARD_IMAGE]
+    : [base, UNKNOWN_CARD_IMAGE];
+  return candidates.filter((candidate, index) => candidates.indexOf(candidate) === index);
+}
+
 /**
  * Evolution and Hero art. Both are wholly separate assets rather than the base
  * card with a badge on it — their own frame, gem and pose. Some cards now have
@@ -128,13 +143,12 @@ export function cardImage(card: {
       // Without API URLs the hero cards are only recognizable by name; the set
       // mirrors the -hero files vendored by scripts/sync-assets.mjs.
       const slug = slugify(card.name);
-      const suffix = HERO_CARD_SLUGS.has(slug) ? "-hero" : "-ev1";
-      return `/images/cards/${slug}${suffix}.png`;
+      return vendoredCardImage(card.name, HERO_CARD_SLUGS.has(slug) ? "Hero" : "Evolution");
     }
   }
   if (card.iconUrls?.medium) return card.iconUrls.medium;
   if (!card.name) return UNKNOWN_CARD_IMAGE;
-  return `/images/cards/${slugify(card.name)}.png`;
+  return vendoredCardImage(card.name);
 }
 
 /** Clan badge. `badgeUrls` is present on full clan responses; rankings give only `badgeId`. */

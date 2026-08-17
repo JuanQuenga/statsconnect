@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { arenaImage, highestAvailableCardArt, selectCardArt } from "./assets.ts";
+import { arenaImage, cardArtFallbacks, highestAvailableCardArt, selectCardArt } from "./assets.ts";
 
 test("current Trophy Road arenas do not fall back to Training Camp", () => {
   assert.equal(
@@ -72,4 +72,16 @@ test("an active variant keeps its variant treatment when only the API-selected i
     selectCardArt({ image: "api-selected-hero.png", variant: "Hero" }),
     { src: "api-selected-hero.png", variant: "Hero" }
   );
+});
+
+test("card art falls back to matching vendored portraits before the unknown placeholder", () => {
+  assert.deepEqual(cardArtFallbacks({ name: "Elite Barbarians" }), [
+    "/images/cards/elite-barbarians.png",
+    "/images/cards/unknown.png"
+  ]);
+  assert.deepEqual(cardArtFallbacks({ name: "Battle Ram", variant: "Evolution" }), [
+    "/images/cards/battle-ram-ev1.png",
+    "/images/cards/battle-ram.png",
+    "/images/cards/unknown.png"
+  ]);
 });
