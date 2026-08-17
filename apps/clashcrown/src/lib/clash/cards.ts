@@ -1,5 +1,5 @@
 import { slugify } from "./assets";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 
 /** URL slug for a card detail page. Stable across renames of the asset files. */
 export function cardSlug(name: string) {

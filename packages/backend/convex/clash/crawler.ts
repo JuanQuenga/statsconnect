@@ -4,16 +4,8 @@ import { internalAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import { clashRequest } from "./clashFetch";
+import { clashUpstream, GLOBAL_LOCATION_ID } from "./clashFetch";
 import { battleObservations, META_MODES, type DeckObservation, type MetaMode } from "./lib/battles";
-import type {
-  ApiBattle,
-  ApiClan,
-  ApiClanRanking,
-  ApiLeaderboard,
-  ApiPaged,
-  ApiPlayerRanking
-} from "./lib/types";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -26,8 +18,6 @@ declare const process: { env: Record<string, string | undefined> };
  * this needs Node built-ins.
  */
 
-/** "International" in /locations. 57000000 is Europe, despite reading like a global id. */
-const GLOBAL_LOCATION_ID = 57000006;
 /** How long a claimed target stays off the queue while its fetch is in flight. */
 const LEASE_MS = 5 * 60 * 1000;
 /** Battle logs hold 25 battles, so polling faster than this mostly re-reads old rows. */
@@ -37,10 +27,6 @@ const MAX_ROLLUP_ROWS = 60_000;
 function envNumber(name: string, fallback: number) {
   const parsed = Number(process.env[name]);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-async function logFetch(ctx: ActionCtx, endpoint: string, status: number, ok: boolean) {
-  await ctx.runMutation(internal.clash.cache.logFetch, { endpoint, status, ok, fetchedAt: Date.now() });
 }
 
 type RunResult = { note?: string; counters?: Record<string, number> };
@@ -110,6 +96,7 @@ async function run(ctx: ActionCtx, job: string, body: () => Promise<RunResult>):
 export const discover = internalAction({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const upstream = clashUpstream(ctx);
     const limit = Math.min(args.limit ?? envNumber("CLASH_DISCOVER_LIMIT", 200), 1000);
     const clanCount = Math.min(envNumber("CLASH_CLAN_SEED", 20), 100);
 
@@ -117,8 +104,7 @@ export const discover = internalAction({
       const targets: Array<{ tag: string; source: "leaderboard" | "clan"; priority: number }> = [];
       const sightings: Sighting[] = [];
 
-      const boards = await clashRequest<ApiPaged<ApiLeaderboard>>("/leaderboards");
-      await logFetch(ctx, "/leaderboards", boards.status, boards.ok);
+      const boards = await upstream.leaderboards();
       // Many boards come back with a null name, and ids climb with each new
       // instance of an event, so the highest named id is the live one.
       const activeBoard = boards.ok
@@ -126,8 +112,7 @@ export const discover = internalAction({
         : undefined;
 
       if (activeBoard) {
-        const top = await clashRequest<ApiPaged<ApiPlayerRanking>>(`/leaderboard/${activeBoard.id}?limit=${limit}`);
-        await logFetch(ctx, "/leaderboard/{id}", top.status, top.ok);
+        const top = await upstream.leaderboard(activeBoard.id, limit);
         if (top.ok) {
           const observedAt = Date.now();
           await ctx.runMutation(internal.clash.history.recordLeaderboardSnapshot, {
@@ -168,17 +153,13 @@ export const discover = internalAction({
 
       // Clan rosters start after the Path of Legends board in priority order,
       // so the leaderboard players keep the front of the queue.
-      const clans = await clashRequest<ApiPaged<ApiClanRanking>>(
-        `/locations/${GLOBAL_LOCATION_ID}/rankings/clans?limit=${clanCount}`
-      );
-      await logFetch(ctx, "/locations/international/rankings/clans", clans.status, clans.ok);
+      const clans = await upstream.rankings("clans", GLOBAL_LOCATION_ID, clanCount);
 
       if (clans.ok) {
         let priority = limit;
         for (const clan of clans.data.items ?? []) {
           if (!clan.tag) continue;
-          const roster = await clashRequest<ApiClan>(`/clans/%23${clan.tag.replace(/^#/, "")}`);
-          await logFetch(ctx, "/clans/{tag}", roster.status, roster.ok);
+          const roster = await upstream.clan(clan.tag);
           if (!roster.ok) continue;
           for (const member of roster.data.memberList ?? []) {
             if (!member.tag) continue;
@@ -217,6 +198,7 @@ export const discover = internalAction({
 export const crawl = internalAction({
   args: { batch: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const upstream = clashUpstream(ctx);
     const batch = Math.min(args.batch ?? envNumber("CLASH_CRAWL_BATCH", 8), 50);
 
     return run(ctx, "crawl", async (): Promise<RunResult> => {
@@ -233,8 +215,7 @@ export const crawl = internalAction({
       // Sequential on purpose: the shared API token has one rate limit and a
       // burst of parallel requests is the fastest way to get 429ed.
       for (const target of claimed) {
-        const response = await clashRequest<ApiBattle[]>(`/players/%23${target.tag}/battlelog`);
-        await logFetch(ctx, "/players/{tag}/battlelog", response.status, response.ok);
+        const response = await upstream.battleLog(target.tag);
 
         if (!response.ok) {
           failures += 1;

@@ -1,5 +1,5 @@
 import { buildCardUpgradePlan } from "@/lib/clash/upgradeCosts";
-import type { Card, Player } from "@/lib/mock-data";
+import type { Card, Player } from "@/lib/clash/domain";
 
 const WIDTH = 1200;
 const HEIGHT = 630;

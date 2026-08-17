@@ -2,19 +2,16 @@ import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useAction } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { BattleHistory } from "@/components/portfolio/BattleLog";
 import { CardCollection, ChestList, DeckAnalyticsSection, DeckOverview, PathOfLegendsSeasons, PerformanceSection, PlayerHero, PlayerStats, PlayerTabs, ProgressionChart, type PlayerTab } from "@/components/portfolio/PlayerSections";
 import { PlayerAchievementsSection, PlayerBadgeSection, PlayerProfileDetails } from "@/components/portfolio/PlayerProfileSections";
-import { player as mockPlayer, type Player } from "@/lib/mock-data";
-import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
-import { mapPlayerBundle } from "@/lib/clash/mappers";
-import { rememberProfile } from "@/lib/recentProfiles";
+import type { Card, Player } from "@/lib/clash/domain";
+import { player as mockPlayer } from "@/lib/mock-data";
+import { isConvexConfigured } from "@/lib/convex";
+import { usePlayerAcquisition } from "@/lib/clash/profileAcquisition";
 import { useCardLibrary } from "@/lib/useCardCatalog";
-import type { Card } from "@/lib/mock-data";
 import { TrackingControls } from "@/components/personalization/PersonalDashboard";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { useI18n } from "@/lib/i18n";
@@ -31,25 +28,18 @@ export default function PlayerPage() {
 
 function LivePlayer({ tag }: { tag: string }) {
   const { locale } = useI18n();
-  const getPlayerBundle = useAction(playerBundleAction);
   const cardLibrary = useCardLibrary();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const query = useQuery({
-    queryKey: ["player", tag, refreshKey],
-    queryFn: async () => mapPlayerBundle(await getPlayerBundle({ tag, force: refreshKey > 0 })),
-    placeholderData: (previous) => previous,
-    retry: false
-  });
+  const player = usePlayerAcquisition(tag);
 
-  if (query.isLoading) return <Layout><LoadingState label="player" /></Layout>;
-  if (query.error) return <Layout><ErrorState message={errorMessage(query.error)} /></Layout>;
-  if (!query.data) return <Layout><ErrorState message={locale === "es" ? "No se recibieron datos del jugador." : "No player data was returned."} /></Layout>;
+  if (player.isLoading) return <Layout><LoadingState label="player" /></Layout>;
+  if (player.errorMessage) return <Layout><ErrorState message={player.errorMessage} /></Layout>;
+  if (!player.data) return <Layout><ErrorState message={locale === "es" ? "No se recibieron datos del jugador." : "No player data was returned."} /></Layout>;
 
   return (
     <PlayerDashboard
-      player={query.data}
-      isRefreshing={query.isFetching}
-      onRefresh={() => setRefreshKey((value) => value + 1)}
+      player={player.data}
+      isRefreshing={player.isRefreshing}
+      onRefresh={player.refresh}
       catalogCards={cardLibrary.cards}
       catalogLoading={cardLibrary.isLoading}
       catalogError={Boolean(cardLibrary.error)}

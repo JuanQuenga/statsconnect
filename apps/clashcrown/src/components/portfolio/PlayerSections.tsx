@@ -15,7 +15,7 @@ import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
 import { TrophyActivityChart } from "@/components/portfolio/TrophyActivityChart";
 import { Badge } from "@/components/ui/badge";
 import { Card as UiCard, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/mock-data";
+import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/clash/domain";
 import type { ProfileHistoryPoint } from "@/lib/clash/types";
 import { useI18n, type Locale, type MessageKey } from "@/lib/i18n";
 

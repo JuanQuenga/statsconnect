@@ -1,5 +1,5 @@
 import { parseApiDate } from "./format";
-import type { Battle, Card } from "./mockData";
+import type { Battle, Card } from "./domain";
 import type { ApiBattle, ApiBattleParticipant } from "./types";
 
 /**

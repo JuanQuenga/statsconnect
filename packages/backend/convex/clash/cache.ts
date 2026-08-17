@@ -68,12 +68,22 @@ export const put = internalMutation({
 export const logFetch = internalMutation({
   args: {
     endpoint: v.string(),
+    operation: v.string(),
     status: v.number(),
     ok: v.boolean(),
-    fetchedAt: v.number()
+    fetchedAt: v.number(),
+    durationMs: v.number(),
+    errorKind: v.optional(v.union(
+      v.literal("configuration"),
+      v.literal("network"),
+      v.literal("http"),
+      v.literal("invalid_response")
+    ))
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.insert("clashApiFetchLogs", args);
+    return null;
   }
 });
 

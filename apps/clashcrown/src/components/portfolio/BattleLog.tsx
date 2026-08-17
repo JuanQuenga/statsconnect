@@ -1,7 +1,7 @@
 import Link from "@/components/Link";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { DeckActions } from "@/components/portfolio/DeckActions";
-import type { Battle, Card } from "@/lib/mock-data";
+import type { Battle, Card } from "@/lib/clash/domain";
 import styles from "./BattleLog.module.css";
 
 type Side = {

@@ -6,7 +6,7 @@ import { cardDetailQuery, type DeckSummary, type RelatedCardStat } from "@/lib/a
 import { cardSlug } from "@/lib/clash/cards";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { UNKNOWN_CARD_IMAGE, variantArt } from "@/lib/clash/assets";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 
 function pct(value: number) {
   return `${(value * 100).toFixed(1)}%`;

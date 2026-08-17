@@ -16,7 +16,3 @@ export function normalizeTag(input: string) {
 
   return tag;
 }
-
-export function tagPath(input: string) {
-  return encodeURIComponent(`#${normalizeTag(input)}`);
-}

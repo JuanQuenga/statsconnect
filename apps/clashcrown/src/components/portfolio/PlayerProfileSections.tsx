@@ -2,7 +2,7 @@ import { Award, Sparkles, Star } from "lucide-react";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
 import { cardSlug } from "@/lib/clash/cards";
-import type { Card, Player, PlayerAchievement, PlayerBadge } from "@/lib/mock-data";
+import type { Card, Player, PlayerAchievement, PlayerBadge } from "@/lib/clash/domain";
 import { formatOptionalNumber, optionalNumber } from "@/lib/numbers";
 
 type Detail = {

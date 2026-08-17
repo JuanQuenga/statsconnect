@@ -3,7 +3,14 @@
 import { actionGeneric, anyApi } from "convex/server";
 import type { GenericActionCtx, GenericDataModel } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { normalizeTag, tagPath } from "./lib/tag";
+import {
+  clashCacheTtlMs,
+  clashUpstream,
+  GLOBAL_LOCATION_ID,
+  type ClashUpstream,
+  type ClashUpstreamResponse,
+} from "./clashFetch";
+import { normalizeTag } from "./lib/tag";
 import type {
   ApiBattle,
   ApiCardList,
@@ -32,8 +39,6 @@ import type {
   TournamentsPayload
 } from "./lib/types";
 
-declare const process: { env: Record<string, string | undefined> };
-
 type CacheKind =
   | "player"
   | "battles"
@@ -55,11 +60,6 @@ type CacheDocument = {
   fetchedAt: number;
   expiresAt: number;
   sourceVersion: string;
-};
-
-type ApiErrorBody = {
-  message?: string;
-  reason?: string;
 };
 
 const cacheApi = anyApi.clash.cache;
@@ -173,7 +173,7 @@ async function rememberPlayers(
  * rankings. Clients should prefer the id resolved from /locations and only fall
  * back to this constant. 57000000 is Europe, not global.
  */
-export const GLOBAL_LOCATION_ID = 57000006;
+export { GLOBAL_LOCATION_ID };
 
 function normalizeActionTag(input: string) {
   try {
@@ -186,11 +186,6 @@ function normalizeActionTag(input: string) {
   }
 }
 
-function cacheTtlMs() {
-  const seconds = Number(process.env.CLASH_ROYALE_CACHE_TTL_SECONDS ?? 900);
-  return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 900_000;
-}
-
 function cachedPayload<T>(document: CacheDocument, stale = false): CachedPayload<T> {
   return {
     data: JSON.parse(document.payload) as T,
@@ -199,59 +194,15 @@ function cachedPayload<T>(document: CacheDocument, stale = false): CachedPayload
   };
 }
 
-function apiErrorMessage(status: number, body: ApiErrorBody) {
-  if (status === 400) return "That tag is not valid.";
-  if (status === 403) return "The Clash Royale API rejected this server. Check the API token and its allowed IP address.";
-  if (status === 404) return "No Clash Royale profile was found for that tag.";
-  if (status === 429) return "The Clash Royale API rate limit was reached. Try again shortly.";
-  if (status >= 500) return "The Clash Royale API is temporarily unavailable.";
-  return body.message ?? body.reason ?? "The Clash Royale API request failed.";
-}
-
-async function fetchClash<T>(ctx: ActionCtx, endpoint: string) {
-  const token = process.env.CLASH_ROYALE_API_TOKEN;
-  if (!token) {
-    throw new ConvexError({
-      code: "MISSING_API_TOKEN",
-      message: "Add CLASH_ROYALE_API_TOKEN to the Convex deployment environment."
-    });
-  }
-
-  const baseUrl = (process.env.CLASH_ROYALE_API_BASE_URL ?? "https://api.clashroyale.com/v1").replace(/\/$/, "");
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}${endpoint}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
-    });
-  } catch {
-    throw new ConvexError({
-      code: "CLASH_API_NETWORK",
-      message: "The Clash Royale API could not be reached from the backend."
-    });
-  }
-
-  await ctx.runMutation(cacheApi.logFetch, {
-    endpoint,
+function interactiveData<T>(response: ClashUpstreamResponse<T>): T {
+  if (response.ok) return response.data;
+  throw new ConvexError({
+    code: response.code,
+    kind: response.kind,
     status: response.status,
-    ok: response.ok,
-    fetchedAt: Date.now()
+    retryable: response.retryable,
+    message: response.message,
   });
-
-  if (!response.ok) {
-    let body: ApiErrorBody = {};
-    try {
-      body = (await response.json()) as ApiErrorBody;
-    } catch {
-      body = {};
-    }
-    throw new ConvexError({
-      code: `CLASH_API_${response.status}`,
-      status: response.status,
-      message: apiErrorMessage(response.status, body)
-    });
-  }
-
-  return (await response.json()) as T;
 }
 
 async function saveCache(
@@ -267,7 +218,7 @@ async function saveCache(
     kind,
     payload: JSON.stringify(data),
     fetchedAt,
-    expiresAt: fetchedAt + cacheTtlMs(),
+    expiresAt: fetchedAt + clashCacheTtlMs(),
     profile
   });
   return fetchedAt;
@@ -276,6 +227,7 @@ async function saveCache(
 export const getPlayerBundle = actionGeneric({
   args: { tag: v.string(), force: v.optional(v.boolean()) },
   handler: async (ctx, args): Promise<PlayerBundlePayload> => {
+    const upstream = clashUpstream(ctx);
     const tag = normalizeActionTag(args.tag);
     const keys = {
       player: `player:${tag}`,
@@ -300,12 +252,14 @@ export const getPlayerBundle = actionGeneric({
     }
 
     try {
-      const encodedTag = tagPath(tag);
-      const [player, battles, chests] = await Promise.all([
-        fetchClash<ApiPlayer>(ctx, `/players/${encodedTag}`),
-        fetchClash<ApiBattle[]>(ctx, `/players/${encodedTag}/battlelog`),
-        fetchClash<ApiChestList>(ctx, `/players/${encodedTag}/upcomingchests`)
+      const responses = await Promise.all([
+        upstream.player(tag),
+        upstream.battleLog(tag),
+        upstream.upcomingChests(tag),
       ]);
+      const player = interactiveData(responses[0]);
+      const battles = interactiveData(responses[1]);
+      const chests = interactiveData(responses[2]);
       const [playerFetchedAt, battlesFetchedAt, chestsFetchedAt] = await Promise.all([
         saveCache(ctx, keys.player, "player", player, {
           kind: "player",
@@ -359,6 +313,7 @@ export const getPlayerBundle = actionGeneric({
 export const getClanBundle = actionGeneric({
   args: { tag: v.string(), force: v.optional(v.boolean()) },
   handler: async (ctx, args): Promise<ClanBundlePayload> => {
+    const upstream = clashUpstream(ctx);
     const tag = normalizeActionTag(args.tag);
     const key = `clan:${tag}`;
     const cached = (await ctx.runQuery(cacheApi.get, { key })) as CacheDocument | null;
@@ -368,7 +323,7 @@ export const getClanBundle = actionGeneric({
     }
 
     try {
-      const clan = await fetchClash<ApiClan>(ctx, `/clans/${tagPath(tag)}`);
+      const clan = interactiveData(await upstream.clan(tag));
       const fetchedAt = await saveCache(ctx, key, "clan", clan, {
         kind: "clan",
         tag,
@@ -397,6 +352,7 @@ export const getClanBundle = actionGeneric({
 export const getCards = actionGeneric({
   args: { force: v.optional(v.boolean()) },
   handler: async (ctx, args): Promise<CardsPayload> => {
+    const upstream = clashUpstream(ctx);
     const key = "cards:global";
     const cached = (await ctx.runQuery(cacheApi.get, { key })) as CacheDocument | null;
 
@@ -405,7 +361,7 @@ export const getCards = actionGeneric({
     }
 
     try {
-      const cards = await fetchClash<ApiCardList>(ctx, "/cards");
+      const cards = interactiveData(await upstream.cards());
       const fetchedAt = await saveCache(ctx, key, "cards", cards);
       return { cards: { data: cards, fetchedAt, stale: false } };
     } catch (error) {
@@ -425,7 +381,7 @@ async function cachedFetch<T>(
   options: {
     key: string;
     kind: CacheKind;
-    endpoint: string;
+    request: (upstream: ClashUpstream) => Promise<ClashUpstreamResponse<T>>;
     force?: boolean;
     ttlMs?: number;
     onFetched?: (data: T, observedAt: number) => Promise<void>;
@@ -438,14 +394,14 @@ async function cachedFetch<T>(
   }
 
   try {
-    const data = await fetchClash<T>(ctx, options.endpoint);
+    const data = interactiveData(await options.request(clashUpstream(ctx)));
     const fetchedAt = Date.now();
     await ctx.runMutation(cacheApi.put, {
       key: options.key,
       kind: options.kind,
       payload: JSON.stringify(data),
       fetchedAt,
-      expiresAt: fetchedAt + (options.ttlMs ?? cacheTtlMs())
+      expiresAt: fetchedAt + (options.ttlMs ?? clashCacheTtlMs())
     });
     await options.onFetched?.(data, fetchedAt);
     return { data, fetchedAt, stale: false };
@@ -460,21 +416,19 @@ export const getClanWar = actionGeneric({
   args: { tag: v.string(), force: v.optional(v.boolean()) },
   handler: async (ctx, args): Promise<ClanWarPayload> => {
     const tag = normalizeActionTag(args.tag);
-    const encoded = tagPath(tag);
-
     // A clan with no war history is a normal state, not an error, so each half
     // degrades to null independently rather than failing the whole page.
     const [currentRace, raceLog] = await Promise.all([
       cachedFetch<ApiCurrentRiverRace>(ctx, {
         key: `war:current:${tag}`,
         kind: "war",
-        endpoint: `/clans/${encoded}/currentriverrace`,
+        request: (upstream) => upstream.currentRiverRace(tag),
         force: args.force
       }).catch(() => null),
       cachedFetch<ApiRiverRaceLog>(ctx, {
         key: `war:log:${tag}`,
         kind: "war",
-        endpoint: `/clans/${encoded}/riverracelog`,
+        request: (upstream) => upstream.riverRaceLog(tag),
         force: args.force
       }).catch(() => null)
     ]);
@@ -495,7 +449,7 @@ export const getLocations = actionGeneric({
     locations: await cachedFetch<ApiPaged<ApiLocation>>(ctx, {
       key: "locations:all",
       kind: "locations",
-      endpoint: "/locations?limit=300",
+      request: (upstream) => upstream.locations(300),
       force: args.force,
       ttlMs: 24 * 60 * 60 * 1000
     })
@@ -526,7 +480,9 @@ export const getRankings = actionGeneric({
       rankings: await cachedFetch<ApiPaged<ApiPlayerRanking | ApiClanRanking>>(ctx, {
         key: `rankings:${kind}:${locationId}:${limit}`,
         kind: "rankings",
-        endpoint: `/locations/${locationId}/rankings/${kind}?limit=${limit}`,
+        request: (upstream) => kind === "players"
+          ? upstream.rankings("players", locationId, limit)
+          : upstream.rankings(kind, locationId, limit),
         force: args.force,
         onFetched: async (data, observedAt) => {
           await ctx.runMutation(historyApi.recordLeaderboardSnapshot, {
@@ -547,7 +503,7 @@ export const getLeaderboards = actionGeneric({
     leaderboards: await cachedFetch<ApiPaged<ApiLeaderboard>>(ctx, {
       key: "leaderboards:all",
       kind: "leaderboards",
-      endpoint: "/leaderboards",
+      request: (upstream) => upstream.leaderboards(),
       force: args.force,
       ttlMs: 6 * 60 * 60 * 1000
     })
@@ -565,7 +521,7 @@ export const getLeaderboard = actionGeneric({
       leaderboard: await cachedFetch<ApiPaged<ApiPlayerRanking>>(ctx, {
         key: `leaderboard:${args.leaderboardId}:${limit}`,
         kind: "leaderboard",
-        endpoint: `/leaderboard/${args.leaderboardId}?limit=${limit}`,
+        request: (upstream) => upstream.leaderboard(args.leaderboardId, limit),
         force: args.force,
         onFetched: async (data, observedAt) => {
           await ctx.runMutation(historyApi.recordLeaderboardSnapshot, {
@@ -604,13 +560,14 @@ export const searchClans = actionGeneric({
       throw new ConvexError({ code: "SEARCH_TOO_SHORT", message: "Enter at least three characters to search clans." });
     }
 
-    const params = new URLSearchParams();
-    if (name) params.set("name", name);
-    if (args.locationId) params.set("locationId", String(args.locationId));
-    if (args.minMembers) params.set("minMembers", String(args.minMembers));
-    if (args.maxMembers) params.set("maxMembers", String(args.maxMembers));
-    if (args.minScore) params.set("minScore", String(args.minScore));
-    params.set("limit", String(Math.min(Math.max(args.limit ?? 30, 1), 100)));
+    const search = {
+      ...(name ? { name } : {}),
+      ...(args.locationId ? { locationId: args.locationId } : {}),
+      ...(args.minMembers ? { minMembers: args.minMembers } : {}),
+      ...(args.maxMembers ? { maxMembers: args.maxMembers } : {}),
+      ...(args.minScore ? { minScore: args.minScore } : {}),
+      limit: Math.min(Math.max(args.limit ?? 30, 1), 100),
+    };
 
     if (!name && !args.locationId && !args.minMembers && !args.maxMembers && !args.minScore) {
       throw new ConvexError({
@@ -621,9 +578,9 @@ export const searchClans = actionGeneric({
 
     return {
       results: await cachedFetch<ApiPaged<ApiClan>>(ctx, {
-        key: `clanSearch:${params.toString()}`,
+        key: `clanSearch:${JSON.stringify(search)}`,
         kind: "clanSearch",
-        endpoint: `/clans?${params.toString()}`,
+        request: (upstream) => upstream.searchClans(search),
         force: args.force,
         ttlMs: 5 * 60 * 1000
       })
@@ -638,7 +595,7 @@ export const getGlobalTournaments = actionGeneric({
     tournaments: await cachedFetch<ApiPaged<ApiTournament>>(ctx, {
       key: "tournaments:global",
       kind: "tournaments",
-      endpoint: "/globaltournaments",
+      request: (upstream) => upstream.globalTournaments(),
       force: args.force,
       ttlMs: 30 * 60 * 1000
     })
@@ -661,7 +618,7 @@ export const searchTournaments = actionGeneric({
       tournaments: await cachedFetch<ApiPaged<ApiTournament>>(ctx, {
         key: `tournaments:search:${name.toLowerCase()}:${limit}`,
         kind: "tournaments",
-        endpoint: `/tournaments?name=${encodeURIComponent(name)}&limit=${limit}`,
+        request: (upstream) => upstream.searchTournaments(name, limit),
         force: args.force,
         ttlMs: 5 * 60 * 1000
       })

@@ -12,7 +12,7 @@ import { cardSlug, findCardBySlug, relatedCards } from "@/lib/clash/cards";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { useCardLibrary } from "@/lib/useCardCatalog";
 import { useCardMeta, DEFAULT_META_MODE } from "@/lib/useCardMeta";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 import { errorMessage, isConvexConfigured } from "@/lib/convex";
 
 export default function CardDetailPage() {

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { mapCardList, mapSupportCardList } from "@/lib/clash/mappers";
 import { cardsAction } from "@/lib/convex";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 
 /**
  * The card catalog, fetched once per session and shared by every surface.

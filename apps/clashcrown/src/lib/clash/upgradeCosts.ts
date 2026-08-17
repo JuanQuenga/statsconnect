@@ -1,4 +1,4 @@
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 
 export type UpgradeRarity = Card["rarity"];
 export type UpgradeTargetLevel = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Download, LoaderCircle, Share2 } from "lucide-react";
 import { createPlayerShareImage, playerShareFileName } from "@/lib/sharePlayerImage";
-import type { Player } from "@/lib/mock-data";
+import type { Player } from "@/lib/clash/domain";
 
 type ShareAction = "share" | "download";
 

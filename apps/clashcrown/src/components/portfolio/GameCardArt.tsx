@@ -1,6 +1,6 @@
 import { CardArt } from "@/components/portfolio/CardArt";
 import { highestAvailableCardArt, selectCardArt } from "@/lib/clash/assets";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 
 type GameCardArtSize = "library" | "collection" | "deck";
 type GameCardArtPortrait = "active" | "highest";

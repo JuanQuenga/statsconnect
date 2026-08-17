@@ -1,5 +1,5 @@
 import { parseApiDate } from "./format";
-import type { Battle, Card } from "@/lib/mock-data";
+import type { Battle, Card } from "@/lib/clash/domain";
 import type { ApiBattle, ApiBattleParticipant } from "./types";
 
 /**

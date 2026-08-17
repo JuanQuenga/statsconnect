@@ -1,9 +1,3 @@
-import { makeFunctionReference } from "convex/server";
-import type { Locale } from "@/lib/i18n";
-import type { OfficialNewsPayload } from "@/lib/clash/news";
+import { clashBackend } from "@/lib/platformBackend";
 
-export const officialNewsAction = makeFunctionReference<
-  "action",
-  { locale: Locale; force?: boolean },
-  OfficialNewsPayload
->("clash/news:getOfficialNews");
+export const officialNewsAction = clashBackend.catalog.officialNews;

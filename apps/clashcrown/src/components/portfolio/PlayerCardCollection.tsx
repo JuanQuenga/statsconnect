@@ -5,7 +5,7 @@ import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
 import { cardSlug } from "@/lib/clash/cards";
 import { buildCardUpgradePlan, MAX_CARD_LEVEL } from "@/lib/clash/upgradeCosts";
-import type { Card, Player } from "@/lib/mock-data";
+import type { Card, Player } from "@/lib/clash/domain";
 
 const RARITIES = ["All", "Common", "Rare", "Epic", "Legendary", "Champion"] as const;
 const OWNERSHIP = ["All", "Owned", "Missing"] as const;

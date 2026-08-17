@@ -1,55 +1,12 @@
-import { makeFunctionReference } from "convex/server";
-import type { Card, Player } from "@/lib/mock-data";
-import type { MetaMode } from "@/lib/clash/battles";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import type { Card, Player } from "@/lib/clash/domain";
+import { clashBackend } from "@/lib/platformBackend";
 
-export type DiscoverySort = "rating" | "popularity" | "winRate";
-
-export type DiscoveryDeck = {
-  deckHash: string;
-  rank: number;
-  cardIds: number[];
-  evolutionIds: number[];
-  uses: number;
-  wins: number;
-  winRate: number;
-  usageRate: number;
-  rating: number;
-  computedAt: number;
-  averageTrophies: number | null;
-  trophySamples: number;
-  arenaIds: number[];
-  arenaNames: string[];
-};
-
-export type DiscoveryPayload = {
-  windowDays: number;
-  totalRanked: number;
-  matched: number;
-  computedAt: number | null;
-  trophyCoverage: { decks: number; samples: number };
-  arenaCoverage: number;
-  trophyFilterApplied: boolean;
-  arenaFilterApplied: boolean;
-  decks: DiscoveryDeck[];
-};
-
-export type DiscoveryArgs = {
-  mode: MetaMode;
-  windowDays?: number;
-  includeCardIds?: number[];
-  excludeCardIds?: number[];
-  minEvolutions?: number;
-  maxEvolutions?: number;
-  minTrophies?: number;
-  maxTrophies?: number;
-  arenaName?: string;
-  sort?: DiscoverySort;
-  limit?: number;
-};
-
-export const discoverDecksQuery = makeFunctionReference<"query", DiscoveryArgs, DiscoveryPayload>(
-  "clash/meta:discoverDecks"
-);
+export const discoverDecksQuery = clashBackend.meta.discoverDecks;
+export type DiscoveryArgs = FunctionArgs<typeof discoverDecksQuery>;
+export type DiscoveryPayload = FunctionReturnType<typeof discoverDecksQuery>;
+export type DiscoveryDeck = DiscoveryPayload["decks"][number];
+export type DiscoverySort = NonNullable<DiscoveryArgs["sort"]>;
 
 export type DeckCost = { average: number; cycle: number };
 

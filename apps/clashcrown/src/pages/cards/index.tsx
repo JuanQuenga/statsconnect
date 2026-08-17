@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { cardSlug } from "@/lib/clash/cards";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 import { errorMessage, isConvexConfigured } from "@/lib/convex";
 import { modeLabel } from "@/lib/clash/battles";
 import { useCardLibrary } from "@/lib/useCardCatalog";
