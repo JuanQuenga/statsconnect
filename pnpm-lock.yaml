@@ -178,9 +178,6 @@ importers:
       '@statsconnect/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@statsconnect/backend':
-        specifier: workspace:*
-        version: link:../../packages/backend
       '@statsconnect/site-errors':
         specifier: workspace:*
         version: link:../../packages/site-errors

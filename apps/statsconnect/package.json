@@ -16,7 +16,6 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@statsconnect/auth": "workspace:*",
-    "@statsconnect/backend": "workspace:*",
     "@statsconnect/site-errors": "workspace:*",
     "@statsconnect/site-nav": "workspace:*",
     "@tanstack/react-query": "^5.101.4",

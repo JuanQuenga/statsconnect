@@ -90,6 +90,10 @@ test("packages/backend exports Convex configuration and data types", () => {
   assert.match(manifest.scripts?.deploy ?? "", /^convex deploy/);
   assert.match(manifest.scripts?.typecheck ?? "", /convex\/tsconfig\.json/);
   assert.equal(manifest.exports?.["./data-model"], "./data-model.ts");
+  assert.match(
+    readText("packages/backend/data-model.ts"),
+    /from "\.\/convex\/_generated\/dataModel"/,
+  );
   assert.equal(
     existsSync(
       path.join(
@@ -98,12 +102,5 @@ test("packages/backend exports Convex configuration and data types", () => {
       ),
     ),
     true,
-  );
-
-  const hubManifest = readJson<PackageManifest>("apps/statsconnect/package.json");
-  assert.equal(hubManifest.dependencies?.["@statsconnect/backend"], "workspace:*");
-  assert.match(
-    readText("apps/statsconnect/src/lib/contracts.ts"),
-    /from "@statsconnect\/backend\/data-model"/,
   );
 });
