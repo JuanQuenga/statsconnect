@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, brawlerBorderUrl, collection, gameModeImageUrl, eventModeId } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl, gameModeImageUrl, eventModeId } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { normalizeTag, readableMode, trophies } from "@/lib/format";
 import { shareContent } from "@/lib/share";
 import type { BrawlerCatalogItem, EventItem, MapDetailResponse, MapListItem, PlayerProfile } from "@/lib/types";
@@ -40,22 +40,17 @@ function AssistantPage() {
   const tag = normalizeTag(search.tag || "");
   const bucket = ["all", "0-499", "500-999", "1000+"].includes(search.bucket || "") ? search.bucket! : "all";
 
-  const catalogQuery = useQuery({ queryKey: ["brawlers"], queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog) });
-  const mapsQuery = useQuery({ queryKey: ["maps"], queryFn: () => apiFetch("/api/maps").then((payload) => collection<MapListItem>(payload)) });
-  const eventsQuery = useQuery({ queryKey: ["events"], queryFn: () => apiFetch("/api/events").then((payload) => collection<EventItem>(payload)) });
+  const catalogQuery = useQuery(brawlData.brawlers());
+  const mapsQuery = useQuery(brawlData.maps());
+  const eventsQuery = useQuery(brawlData.events());
   const playerQuery = useQuery({
-    queryKey: ["player", tag, "assistant"],
+    ...brawlData.player(tag),
     enabled: Boolean(tag),
-    queryFn: () => apiFetch<{ player: PlayerProfile }>(`/api/player?tag=${encodeURIComponent(tag!)}`).then((payload) => payload.player),
   });
 
   const liveEvents = (eventsQuery.data || []).filter((item) => item.event?.id).slice(0, 8);
   const liveDetailQueries = useQueries({
-    queries: liveEvents.map((event) => ({
-      queryKey: ["map", String(event.event?.id), bucket, "assistant"],
-      queryFn: () => apiFetch<DraftMapDetail>(`/api/maps/${event.event!.id}${bucket === "all" ? "" : `?trophyBucket=${encodeURIComponent(bucket)}`}`),
-      staleTime: 5 * 60_000,
-    })),
+    queries: liveEvents.map((event) => brawlData.map(event.event?.id || 0, bucket)),
   });
 
   function loadPlayer(event: FormEvent) {
@@ -106,9 +101,9 @@ function AssistantPage() {
           </label>
         </form>
         {playerQuery.isLoading ? <p className="mt-3 text-sm text-muted-foreground">{t("assistant.loadingAccount")}</p> : null}
-        {playerQuery.data ? (
+        {playerQuery.data?.player ? (
           <p className="mt-3 text-sm text-accent">
-            {t("assistant.personalizing", { name: playerQuery.data.name, count: playerQuery.data.brawlers?.length || 0 })}
+            {t("assistant.personalizing", { name: playerQuery.data.player.name, count: playerQuery.data.player.brawlers?.length || 0 })}
           </p>
         ) : null}
         {playerQuery.error ? <p className="mt-3 text-sm text-destructive">{playerQuery.error instanceof Error ? playerQuery.error.message : t("assistant.lookupFailed")}</p> : null}
@@ -124,7 +119,7 @@ function AssistantPage() {
             events={liveEvents}
             details={liveDetailQueries.map((query) => query.data)}
             catalog={catalogQuery.data || []}
-            player={playerQuery.data}
+            player={playerQuery.data?.player}
             loading={eventsQuery.isLoading || liveDetailQueries.some((query) => query.isLoading)}
           />
         </TabsContent>
@@ -134,7 +129,7 @@ function AssistantPage() {
             selectedMap={selectedMap}
             bucket={bucket}
             catalog={catalogQuery.data || []}
-            player={playerQuery.data}
+            player={playerQuery.data?.player}
             onMapChange={(map) => navigate({ search: (current) => ({ ...current, map }) })}
           />
         </TabsContent>
@@ -238,9 +233,8 @@ function DraftAssistant({
   const [filter, setFilter] = useState("");
   const [ownedOnly, setOwnedOnly] = useState(Boolean(player));
   const detailQuery = useQuery({
-    queryKey: ["map", selectedMap, bucket, "draft"],
+    ...brawlData.map(selectedMap, bucket),
     enabled: Boolean(selectedMap),
-    queryFn: () => apiFetch<DraftMapDetail>(`/api/maps/${selectedMap}${bucket === "all" ? "" : `?trophyBucket=${encodeURIComponent(bucket)}`}`),
   });
   const owned = useMemo(() => new Map((player?.brawlers || []).map((brawler) => [brawler.id, brawler])), [player]);
   const catalogMap = useMemo(() => new Map(catalog.map((brawler) => [brawler.id, brawler])), [catalog]);

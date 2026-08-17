@@ -6,10 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { appPath } from "@/lib/paths";
-import { apiFetch, brawlerBorderUrl, clubBadgeUrl, collection, profileIconUrl } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl, clubBadgeUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { trophies } from "@/lib/format";
-import type { RankingClub, RankingPlayer } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 
 const regions = [
@@ -32,30 +31,15 @@ function LeaderboardsPage() {
   const [region, setRegion] = useState("global");
   const [selectedBrawlerId, setSelectedBrawlerId] = useState<number | null>(null);
 
-  const catalogQuery = useQuery({
-    queryKey: ["brawlers"],
-    queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog),
-  });
+  const catalogQuery = useQuery(brawlData.brawlers());
 
   const brawlerId = selectedBrawlerId ?? catalogQuery.data?.[0]?.id ?? null;
 
-  const playersQuery = useQuery({
-    queryKey: ["rankings", "players", region],
-    queryFn: () =>
-      apiFetch(`/api/rankings?kind=players&country=${region}&limit=50`).then((p) => collection<RankingPlayer>(p)),
-  });
-  const clubsQuery = useQuery({
-    queryKey: ["rankings", "clubs", region],
-    queryFn: () =>
-      apiFetch(`/api/rankings?kind=clubs&country=${region}&limit=50`).then((p) => collection<RankingClub>(p)),
-  });
+  const playersQuery = useQuery(brawlData.rankingPlayers(region, 50));
+  const clubsQuery = useQuery(brawlData.rankingClubs(region, 50));
   const brawlerRankingsQuery = useQuery({
-    queryKey: ["rankings", "brawlers", region, brawlerId],
+    ...brawlData.rankingBrawlers(region, brawlerId, 50),
     enabled: Boolean(brawlerId),
-    queryFn: () =>
-      apiFetch(`/api/rankings?kind=brawlers&country=${region}&brawlerId=${brawlerId}&limit=50`).then((p) =>
-        collection<RankingPlayer>(p),
-      ),
   });
 
   const selectedBrawler = useMemo(

@@ -26,7 +26,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, clubBadgeUrl, profileIconUrl } from "@/lib/api";
+import { clubBadgeUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { normalizeTag, readableMode, trophies } from "@/lib/format";
 import { appPath } from "@/lib/paths";
 import type {
@@ -34,7 +35,6 @@ import type {
   ClubActivityType,
   ClubCommunityResponse,
   ClubHistoryResponse,
-  ClubProfile,
 } from "@/lib/types";
 import { useI18n, type Translator } from "@/lib/i18n";
 
@@ -191,19 +191,14 @@ function ClubsPage() {
   const tag = rawTag ? normalizeTag(rawTag) : null;
 
   const clubQuery = useQuery({
-    queryKey: ["club", tag],
+    ...brawlData.club(tag),
     enabled: Boolean(tag),
-    queryFn: () => apiFetch<ClubProfile>(`/api/club?tag=${encodeURIComponent(tag!)}`),
   });
   const historyQuery = useQuery({
-    queryKey: ["club-history", tag],
+    ...brawlData.clubHistory(tag),
     enabled: Boolean(tag && clubQuery.data),
-    queryFn: () => apiFetch<ClubHistoryResponse>(`/api/club-history?tag=${encodeURIComponent(tag!)}`),
   });
-  const communityQuery = useQuery({
-    queryKey: ["club-community"],
-    queryFn: () => apiFetch<ClubCommunityResponse>("/api/clubs/activity?limit=20"),
-  });
+  const communityQuery = useQuery(brawlData.clubCommunity(20));
 
   function onSearch(event: FormEvent) {
     event.preventDefault();

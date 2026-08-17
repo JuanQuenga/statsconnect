@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, collection, eventModeId, gameModeImageUrl, mapImageUrl } from "@/lib/api";
+import { eventModeId, gameModeImageUrl, mapImageUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { readableMode, relativeEnd } from "@/lib/format";
-import type { EventItem, MapListItem } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 
 type MapsSearch = { q?: string; mode?: string; archive?: string };
@@ -33,14 +33,8 @@ function MapsPage() {
   const [sort, setSort] = useState<"active" | "name">("active");
   const [visibleCount, setVisibleCount] = useState(mapPageSize);
 
-  const mapsQuery = useQuery({
-    queryKey: ["maps"],
-    queryFn: () => apiFetch("/api/maps").then((p) => collection<MapListItem>(p)),
-  });
-  const eventsQuery = useQuery({
-    queryKey: ["events"],
-    queryFn: () => apiFetch("/api/events").then((p) => collection<EventItem>(p)),
-  });
+  const mapsQuery = useQuery(brawlData.maps());
+  const eventsQuery = useQuery(brawlData.events());
 
   const modes = useMemo(() => {
     const map = new Map<number, string>();

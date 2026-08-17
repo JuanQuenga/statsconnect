@@ -7,13 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, brawlerBorderUrl, collection, profileIconUrl } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { formatPercent, normalizeTag, trophies } from "@/lib/format";
 import { useI18n, type Translator } from "@/lib/i18n";
 import { aggregateMeta, buildProgression } from "@/lib/meta";
 import { appPath } from "@/lib/paths";
-import type { EventItem, MapListItem, MetaResearchResponse, PlayerProfile } from "@/lib/types";
 
 type ProgressionSearch = { tag?: string };
 
@@ -29,14 +28,13 @@ function ProgressionPage() {
   const tag = search.tag ? normalizeTag(search.tag) : null;
   const [draft, setDraft] = useState(search.tag || "");
   const [showLocked, setShowLocked] = useState(false);
-  const catalogQuery = useQuery({ queryKey: ["brawlers"], queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog) });
-  const mapsQuery = useQuery({ queryKey: ["maps"], queryFn: () => apiFetch("/api/maps").then((payload) => collection<MapListItem>(payload)) });
-  const eventsQuery = useQuery({ queryKey: ["events"], queryFn: () => apiFetch("/api/events").then((payload) => collection<EventItem>(payload)) });
-  const metaQuery = useQuery({ queryKey: ["meta", "all"], queryFn: () => apiFetch<MetaResearchResponse>("/api/meta?trophyBucket=all") });
+  const catalogQuery = useQuery(brawlData.brawlers());
+  const mapsQuery = useQuery(brawlData.maps());
+  const eventsQuery = useQuery(brawlData.events());
+  const metaQuery = useQuery(brawlData.meta("all"));
   const playerQuery = useQuery({
-    queryKey: ["progression-player", tag],
+    ...brawlData.player(tag),
     enabled: Boolean(tag),
-    queryFn: () => apiFetch<{ player: PlayerProfile }>(`/api/player?tag=${encodeURIComponent(tag!)}`).then((payload) => payload.player),
   });
   const catalogMap = useMemo(() => new Map((catalogQuery.data || []).map((item) => [item.id, item])), [catalogQuery.data]);
   const mapMap = useMemo(() => new Map((mapsQuery.data || []).map((item) => [item.id, item])), [mapsQuery.data]);
@@ -46,13 +44,13 @@ function ProgressionPage() {
     const liveStats = activeMapIds.size ? allStats.filter((stat) => activeMapIds.has(stat.mapId)) : [];
     return aggregateMeta(liveStats.length ? liveStats : allStats, "brawler", catalogMap, mapMap);
   }, [activeMapIds, catalogMap, mapMap, metaQuery.data]);
-  const progression = useMemo(() => playerQuery.data ? buildProgression(playerQuery.data, catalogQuery.data || [], metaRows) : [], [catalogQuery.data, metaRows, playerQuery.data]);
+  const progression = useMemo(() => playerQuery.data ? buildProgression(playerQuery.data.player, catalogQuery.data || [], metaRows) : [], [catalogQuery.data, metaRows, playerQuery.data]);
   const owned = progression.filter((row) => row.unlocked);
   const totals = progression.reduce((result, row) => ({ points: result.points + row.pointsRemaining, powerCoins: result.powerCoins + row.powerCoinsRemaining, loadoutCoins: result.loadoutCoins + row.loadoutCoinsRemaining, completion: result.completion + row.coreCompletion }), { points: 0, powerCoins: 0, loadoutCoins: 0, completion: 0 });
   const readiness = accountReadiness(progression);
   const priorities = [...owned].filter((row) => row.pointsRemaining || row.loadoutCoinsRemaining).sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 12);
   const tableRows = [...progression].filter((row) => showLocked || row.unlocked).sort((a, b) => Number(b.unlocked) - Number(a.unlocked) || b.priorityScore - a.priorityScore);
-  const player = playerQuery.data;
+  const player = playerQuery.data?.player;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();

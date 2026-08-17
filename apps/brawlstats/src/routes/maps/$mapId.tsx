@@ -7,12 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, brawlerBorderUrl, collection, mapImageUrl } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl, mapImageUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { formatPercent, MIN_META_PICKS, trophies } from "@/lib/format";
-import type { MapDetailResponse, MapListItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
+import type { MapDetailResponse } from "@/lib/types";
 
 export const Route = createFileRoute("/maps/$mapId")({
   component: MapDetailPage,
@@ -26,20 +26,10 @@ function MapDetailPage() {
   const [trophyFilter, setTrophyFilter] = useState<TrophyFilter>("all");
 
   const detailQuery = useQuery({
-    queryKey: ["map", mapId, trophyFilter],
-    queryFn: () =>
-      apiFetch<MapDetailResponse>(
-        `/api/maps/${mapId}${trophyFilter === "all" ? "" : `?trophyBucket=${encodeURIComponent(trophyFilter)}`}`,
-      ),
+    ...brawlData.map(mapId, trophyFilter),
   });
-  const catalogQuery = useQuery({
-    queryKey: ["brawlers"],
-    queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog),
-  });
-  const mapsQuery = useQuery({
-    queryKey: ["maps"],
-    queryFn: () => apiFetch("/api/maps").then((p) => collection<MapListItem>(p)),
-  });
+  const catalogQuery = useQuery(brawlData.brawlers());
+  const mapsQuery = useQuery(brawlData.maps());
 
   const map = detailQuery.data?.map;
   const stats = detailQuery.data?.stats || [];

@@ -3,11 +3,12 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiFetch, profileIconUrl } from "@/lib/api";
+import { profileIconUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { normalizeTag, trophies } from "@/lib/format";
 import { appPath } from "@/lib/paths";
 import { rememberRecentProfile } from "@/lib/preferences";
-import type { PlayerDirectoryResult, PlayerSearchResponse } from "@/lib/types";
+import type { PlayerDirectoryResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
@@ -40,11 +41,8 @@ export function PlayerSearch({
   }, [value]);
 
   const searchQuery = useQuery({
-    queryKey: ["player-search", debounced],
+    ...brawlData.playerSearch(debounced, 8),
     enabled: debounced.length >= 2,
-    queryFn: () =>
-      apiFetch<PlayerSearchResponse>(`/api/player-search?q=${encodeURIComponent(debounced)}&limit=8`),
-    staleTime: 60_000,
   });
 
   const choices = useMemo(() => {

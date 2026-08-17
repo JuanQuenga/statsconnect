@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
-import { apiFetch, collection, mapImageUrl } from "@/lib/api";
-import type { MapListItem } from "@/lib/types";
+import { mapImageUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/gamemodes/$modeId")({
@@ -14,10 +14,7 @@ export const Route = createFileRoute("/gamemodes/$modeId")({
 function GameModePage() {
   const { t } = useI18n();
   const { modeId } = Route.useParams();
-  const mapsQuery = useQuery({
-    queryKey: ["maps"],
-    queryFn: () => apiFetch("/api/maps").then((p) => collection<MapListItem>(p)),
-  });
+  const mapsQuery = useQuery(brawlData.maps());
 
   const maps = useMemo(
     () => (mapsQuery.data || []).filter((item) => String(item.gameMode?.id) === modeId),

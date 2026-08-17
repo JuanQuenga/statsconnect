@@ -4,11 +4,15 @@
   "description": "Live Brawl Stars statistics powered by Convex.",
   "type": "module",
   "private": true,
+  "imports": {
+    "#game-data": "./src/lib/game-data.ts"
+  },
   "scripts": {
     "dev": "vite",
     "dev:backend": "convex dev",
     "build": "vite build",
     "deploy:backend": "convex deploy",
+    "test": "node --test src/**/*.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p convex/tsconfig.json"
   },
   "keywords": [],

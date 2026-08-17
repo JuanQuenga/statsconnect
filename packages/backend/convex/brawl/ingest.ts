@@ -4,8 +4,10 @@ import { action, internalAction, internalMutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import { recordPlayerSightings, type PlayerSighting } from "./players";
 import { trophyBucketFromTrophies } from "./stats";
-
-declare const process: { env: Record<string, string | undefined> };
+import {
+  createBrawlUpstreamIntake,
+  normalizeBrawlTag as normalizedTag,
+} from "./upstreamIntake";
 
 type BattlePlayer = {
   tag?: string;
@@ -28,31 +30,7 @@ type BattleLogItem = {
   };
 };
 
-function normalizedTag(value?: string | null) {
-  if (!value) return null;
-  const tag = value.trim().toUpperCase().replace(/^#/, "");
-  return /^[0289PYLQGRJCUV]{3,15}$/.test(tag) ? `#${tag}` : null;
-}
-
-function apiToken(): string | null {
-  return process.env.BRAWL_STARS_API_TOKEN?.trim() || null;
-}
-
-function apiBaseUrl(): string {
-  return (process.env.BRAWL_STARS_API_BASE_URL || "https://api.brawlstars.com/v1").replace(/\/$/, "");
-}
-
-async function fetchUpstream(path: string): Promise<unknown> {
-  const token = apiToken();
-  if (!token) throw new Error("API_NOT_CONFIGURED");
-  const response = await fetch(`${apiBaseUrl()}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) {
-    throw new Error(`Upstream ${response.status}`);
-  }
-  return await response.json();
-}
+const upstreamIntake = createBrawlUpstreamIntake();
 
 function participants(battle: BattleLogItem["battle"]): Array<BattlePlayer & { teamIndex: number }> {
   if (!battle) return [];
@@ -531,12 +509,10 @@ export const ingestFromPlayerTag = internalAction({
   handler: async (ctx, args): Promise<{ inserted: number }> => {
     const tag = normalizedTag(args.tag);
     if (!tag) return { inserted: 0 };
-    const payload = (await fetchUpstream(`/players/${encodeURIComponent(tag)}/battlelog`)) as {
-      items?: BattleLogItem[];
-    };
-    const items = Array.isArray(payload?.items) ? payload.items : [];
+    const result = await upstreamIntake.official.battleLog(tag);
+    if (!result.ok) throw new Error(result.error.message);
     return await ctx.runMutation(internal.brawl.ingest.ingestBattleLogItems, {
-      items,
+      items: result.value.items,
       focusTag: tag,
     });
   },
@@ -546,7 +522,7 @@ export const seedFromRankings = internalAction({
   args: {},
   returns: v.object({ processed: v.number() }),
   handler: async (ctx): Promise<{ processed: number }> => {
-    if (!apiToken()) {
+    if (!upstreamIntake.official.isConfigured()) {
       console.log("Skipping meta seed: BRAWL_STARS_API_TOKEN not set");
       return { processed: 0 };
     }
@@ -555,12 +531,13 @@ export const seedFromRankings = internalAction({
     const offset = cursor?.offset || 0;
     const batchSize = 5;
 
-    const rankings = (await fetchUpstream(`/rankings/global/players?limit=50`)) as {
-      items?: Array<{ tag?: string }>;
-    };
-    const tags = (rankings.items || [])
-      .map((item) => normalizedTag(item.tag || null))
-      .filter((tag): tag is string => Boolean(tag));
+    const rankings = await upstreamIntake.official.rankings({
+      country: "global",
+      kind: "players",
+      limit: 50,
+    });
+    if (!rankings.ok) throw new Error(rankings.error.message);
+    const tags = rankings.value.tags;
 
     if (!tags.length) return { processed: 0 };
 

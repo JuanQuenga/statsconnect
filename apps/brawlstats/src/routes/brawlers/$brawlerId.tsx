@@ -7,12 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, brawlerBorderUrl, collection, mapImageUrl, profileIconUrl } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl, mapImageUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n, type Translator } from "@/lib/i18n";
 import { appPath } from "@/lib/paths";
-import type { BrawlerMetaResponse, CatalogAbility, MapListItem, MetaDailyPoint, MetaTrendsResponse, MetaTrendWindow, RankingPlayer } from "@/lib/types";
+import type { BrawlerMetaResponse, CatalogAbility, MapListItem, MetaDailyPoint, MetaTrendWindow } from "@/lib/types";
 import type { TrophyBucket } from "@/lib/meta";
 
 export const Route = createFileRoute("/brawlers/$brawlerId")({ component: BrawlerDetailPage });
@@ -26,22 +26,19 @@ function BrawlerDetailPage() {
   const [bucket, setBucket] = useState<TrophyBucket>("all");
   const [trendWindow, setTrendWindow] = useState<MetaTrendWindow>("30");
   const [region, setRegion] = useState("global");
-  const catalogQuery = useQuery({ queryKey: ["brawlers"], queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog) });
-  const mapsQuery = useQuery({ queryKey: ["maps"], queryFn: () => apiFetch("/api/maps").then((payload) => collection<MapListItem>(payload)) });
+  const catalogQuery = useQuery(brawlData.brawlers());
+  const mapsQuery = useQuery(brawlData.maps());
   const metaQuery = useQuery({
-    queryKey: ["brawler-meta", brawlerId, bucket],
+    ...brawlData.brawlerMeta(brawlerId, bucket),
     enabled: Number.isInteger(brawlerId) && brawlerId > 0,
-    queryFn: () => apiFetch<BrawlerMetaResponse>(`/api/brawler-meta?id=${brawlerId}&trophyBucket=${encodeURIComponent(bucket)}`),
   });
   const trendQuery = useQuery({
-    queryKey: ["brawler-trends", brawlerId, bucket, trendWindow],
+    ...brawlData.metaTrends(bucket, trendWindow, brawlerId),
     enabled: Number.isInteger(brawlerId) && brawlerId > 0,
-    queryFn: () => apiFetch<MetaTrendsResponse>(`/api/meta-trends?brawlerId=${brawlerId}&trophyBucket=${encodeURIComponent(bucket)}&window=${trendWindow}`),
   });
   const rankingQuery = useQuery({
-    queryKey: ["rankings", "brawler", brawlerId, region],
+    ...brawlData.rankingBrawlers(region, brawlerId, 50),
     enabled: Number.isInteger(brawlerId) && brawlerId > 0,
-    queryFn: () => apiFetch(`/api/rankings?kind=brawlers&country=${region}&brawlerId=${brawlerId}&limit=50`).then((payload) => collection<RankingPlayer>(payload)),
   });
   const brawler = catalogQuery.data?.find((item) => item.id === brawlerId);
   const maps = useMemo(() => new Map((mapsQuery.data || []).map((map) => [map.id, map])), [mapsQuery.data]);
