@@ -41,7 +41,7 @@ Frontend code uses typed function references and types from the canonical genera
 
 `@statsconnect/auth`, Better Auth, and the Platform Backend provide shared Google sign-in. The Platform Backend stores authenticated saved profiles in the Hub namespace and syncs them with browser profile state.
 
-Some Hub connection and launch flows still identify records with a browser-local viewer UUID. That UUID is not authentication. Clearing site data loses it. Anyone who has it can access the associated records. Do not use those flows for sensitive data or call them authenticated until they use the shared account Interface.
+The Hub creates a browser-local viewer UUID only to throttle profile previews. The UUID does not own connected profiles or grant access to account data.
 
 ClashCrown still authorizes personalization with device capabilities in the `clash` namespace. Those functions run on the Platform Backend, not a separate deployment.
 
