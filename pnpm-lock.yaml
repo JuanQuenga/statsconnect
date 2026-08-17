@@ -6,7 +6,14 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.2.0
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
 
   apps/brawlstats:
     dependencies:
@@ -171,6 +178,9 @@ importers:
       '@statsconnect/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@statsconnect/backend':
+        specifier: workspace:*
+        version: link:../../packages/backend
       '@statsconnect/site-errors':
         specifier: workspace:*
         version: link:../../packages/site-errors

@@ -3,10 +3,17 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
+import {
+  deliveryApp,
+  viteBasePath,
+  viteOutputDirectory,
+} from "../../scripts/production-delivery";
 
 const unifiedBuild = process.env.STATSCONNECT_UNIFIED_BUILD === "1";
+const delivery = deliveryApp("statsconnect");
 
 export default defineConfig({
+  base: unifiedBuild ? viteBasePath(delivery.id) : "/",
   plugins: [
     TanStackRouterVite({
       target: "react",
@@ -25,8 +32,8 @@ export default defineConfig({
   publicDir: "public",
   build: unifiedBuild
     ? {
-        outDir: "../../dist",
-        emptyOutDir: true,
+        outDir: viteOutputDirectory(delivery.id),
+        emptyOutDir: delivery.clearsUnifiedOutput,
       }
     : undefined,
 });

@@ -1,29 +1,19 @@
-# Personalization identity boundary
+# Personalization identity
 
-ClashCrown personalization is owned entirely by `apps/clashcrown` and does not assume an authentication API that StatsConnect does not currently expose.
+The ClashCrown personalization Module has frontend code in the Game Site and backend code in `packages/backend/convex/clash/personalization.ts`. It runs on the Platform Backend and authorizes requests through a capability Interface.
 
 ## Current contract
 
-- The only stable StatsConnect integration available to ClashCrown is the site-navigation origin contract (`VITE_STATSCONNECT_ORIGIN` / `NEXT_PUBLIC_STATSCONNECT_ORIGIN`). It provides navigation, not an authenticated subject or access token.
-- Personal data therefore uses a capability-owned Convex account. Every browser creates a 256-bit device secret locally; only its SHA-256 digest is stored in Convex.
-- A paired browser receives its own device secret. Pairing uses a separate, high-entropy, one-time capability that expires after ten minutes. The raw device and pairing secrets are never included in exports.
+- `@statsconnect/auth` and the Platform Backend handle shared Google sign-in and saved player profiles. The personalization Module does not use that account as its authorization key.
+- Personalization data uses a capability-owned account in the Platform Backend's `clash` namespace. Every browser creates a 256-bit device secret locally. Convex stores only its SHA-256 digest.
+- A paired browser receives its own device secret. Pairing uses a separate, high-entropy, one-time capability that expires after ten minutes. Exports omit raw device and pairing secrets.
 - Local storage remains the offline fallback and cache. The v2 store imports the previous `clash-crown:favorite-profiles` and `clash-crown:recent-profiles` records on first use.
 
-## Future StatsConnect adapter
+## Relationship to shared authentication
 
-When StatsConnect publishes a stable authenticated identity contract, add a ClashCrown-only adapter with this shape:
+Shared authentication does not authorize capability-backed personalization. No Adapter converts a signed-in account into ownership of an existing capability account. The current personalization Module grants access through the pairing flow.
 
-```ts
-export type StatsConnectIdentityAdapter = {
-  status: "loading" | "anonymous" | "authenticated";
-  stableSubject: string | null;
-  fetchConvexToken: () => Promise<string | null>;
-};
-```
-
-The token must be issued for the ClashCrown Convex deployment and sent through `ConvexProviderWithAuth`. Backend ownership must be derived from `ctx.auth.getUserIdentity().tokenIdentifier`; a client-provided subject must never authorize access.
-
-Migration should be an explicit, authenticated mutation that claims the current capability account, merges its bounded profiles and recents into the authenticated account, and then revokes the capability devices. Until that full contract exists, the pairing flow remains the secure and usable identity mechanism—there is intentionally no guessed cookie, cross-origin local-storage read, or TODO authentication branch.
+Any merge needs a migration contract that claims capability data, resolves conflicts, and revokes old devices. This document does not choose that design.
 
 ## Alert delivery boundary
 
