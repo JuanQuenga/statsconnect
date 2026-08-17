@@ -8,17 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import {
-  apiFetch,
   brawlerBorderUrl,
   clubBadgeUrl,
-  collection,
   eventModeId,
   gameModeImageUrl,
   profileIconUrl,
-} from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+} from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { readableMode, relativeEnd, trophies } from "@/lib/format";
-import type { EventItem, RankingClub, RankingPlayer } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
@@ -31,24 +28,10 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { t } = useI18n();
-  const catalogQuery = useQuery({
-    queryKey: ["brawlers"],
-    queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog),
-  });
-  const eventsQuery = useQuery({
-    queryKey: ["events"],
-    queryFn: () => apiFetch("/api/events").then((p) => collection<EventItem>(p).slice(0, 6)),
-  });
-  const playersQuery = useQuery({
-    queryKey: ["rankings", "players", "global", 6],
-    queryFn: () =>
-      apiFetch("/api/rankings?kind=players&country=global&limit=6").then((p) => collection<RankingPlayer>(p)),
-  });
-  const clubsQuery = useQuery({
-    queryKey: ["rankings", "clubs", "global", 6],
-    queryFn: () =>
-      apiFetch("/api/rankings?kind=clubs&country=global&limit=6").then((p) => collection<RankingClub>(p)),
-  });
+  const catalogQuery = useQuery(brawlData.brawlers());
+  const eventsQuery = useQuery(brawlData.events());
+  const playersQuery = useQuery(brawlData.rankingPlayers("global", 6));
+  const clubsQuery = useQuery(brawlData.rankingClubs("global", 6));
 
   const newest = [...(catalogQuery.data || [])].sort((a, b) => b.id - a.id).slice(0, 12);
   const error =
@@ -139,7 +122,7 @@ function HomePage() {
             </div>
             <div className="space-y-2">
               {(eventsQuery.data || []).length ? (
-                eventsQuery.data!.map((item, index) => {
+                eventsQuery.data!.slice(0, 6).map((item, index) => {
                   const mode = item.event?.mode || "unknown";
                   const mapId = item.event?.id;
                   return (

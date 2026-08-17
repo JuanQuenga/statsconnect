@@ -7,13 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, brawlerBorderUrl } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { aggregateMeta, type TrophyBucket } from "@/lib/meta";
 import { appPath } from "@/lib/paths";
-import type { MapListItem, MetaResearchResponse } from "@/lib/types";
 
 type BrawlersSearch = {
   q?: string;
@@ -41,11 +40,8 @@ function BrawlersPage() {
   const navigate = Route.useNavigate();
   const trophyBucket = search.trophy || "all";
   const [visibleCount, setVisibleCount] = useState(brawlerPageSize);
-  const catalogQuery = useQuery({ queryKey: ["brawlers"], queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog) });
-  const metaQuery = useQuery({
-    queryKey: ["meta", trophyBucket],
-    queryFn: () => apiFetch<MetaResearchResponse>(`/api/meta?trophyBucket=${encodeURIComponent(trophyBucket)}`),
-  });
+  const catalogQuery = useQuery(brawlData.brawlers());
+  const metaQuery = useQuery(brawlData.meta(trophyBucket));
 
   const roles = useMemo(() => [...new Set((catalogQuery.data || []).map((item) => item.role))].sort(), [catalogQuery.data]);
   const rarities = useMemo(() => [...new Set((catalogQuery.data || []).map((item) => item.rarity))].sort(), [catalogQuery.data]);

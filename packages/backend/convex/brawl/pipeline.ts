@@ -1,6 +1,22 @@
 import { v } from "convex/values";
-import { internalMutation, query } from "../_generated/server";
-import { crawlSource } from "./schema";
+import { internalMutation, query, type MutationCtx } from "../_generated/server";
+import {
+  claimTarget,
+  isRunActive,
+  MAX_CRAWL_BATCH_SIZE,
+  MAX_RETENTION_BATCH_SIZE,
+  planRetentionBatch,
+  retentionCutoffs,
+  settleTarget,
+} from "./pipelinePolicy";
+import {
+  crawlSource,
+  pipelineRunState,
+  upstreamConsumer,
+  upstreamErrorCode,
+  upstreamOutcome,
+  upstreamSource,
+} from "./schema";
 
 const targetInput = v.object({
   tag: v.string(),
@@ -8,36 +24,151 @@ const targetInput = v.object({
   priority: v.number(),
 });
 
-const claimedTarget = v.object({
+const leasedTarget = v.object({
   id: v.id("brawlCrawlTargets"),
   tag: v.string(),
   lastBattleTime: v.optional(v.string()),
+  leaseToken: v.string(),
+  leaseExpiresAt: v.number(),
 });
 
-const counterInput = v.object({
-  name: v.string(),
-  amount: v.number(),
-});
+const crawlOutcome = v.union(
+  v.object({
+    type: v.literal("success"),
+    lastBattleTime: v.optional(v.string()),
+    battles: v.number(),
+    profileSnapshotCreated: v.boolean(),
+  }),
+  v.object({
+    type: v.literal("failure"),
+    note: v.optional(v.string()),
+  }),
+);
 
-const runSummary = {
-  discovered: v.optional(v.number()),
-  fetched: v.optional(v.number()),
-  battles: v.optional(v.number()),
-  failures: v.optional(v.number()),
-};
+const targetOutcomeResult = v.union(
+  v.object({
+    status: v.literal("accepted"),
+    nextDueAt: v.number(),
+    consecutiveFailures: v.number(),
+    backoffMs: v.optional(v.number()),
+  }),
+  v.object({ status: v.literal("stale_lease") }),
+  v.object({ status: v.literal("run_inactive") }),
+);
 
-export const upsertTargets = internalMutation({
-  args: { targets: v.array(targetInput) },
-  returns: v.object({ added: v.number(), seen: v.number() }),
+async function incrementCounter(
+  ctx: MutationCtx,
+  name: string,
+  amount: number,
+  now: number,
+): Promise<void> {
+  if (amount === 0) return;
+  const existing = await ctx.db
+    .query("brawlPipelineCounters")
+    .withIndex("by_name", (q) => q.eq("name", name))
+    .unique();
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      value: existing.value + amount,
+      updatedAt: now,
+    });
+    return;
+  }
+  await ctx.db.insert("brawlPipelineCounters", { name, value: amount, updatedAt: now });
+}
+
+export const recordUpstreamFetch = internalMutation({
+  args: {
+    operation: v.string(),
+    consumer: upstreamConsumer,
+    outcome: upstreamOutcome,
+    status: v.optional(v.number()),
+    runId: v.optional(v.id("brawlPipelineRuns")),
+    source: v.optional(upstreamSource),
+    durationMs: v.optional(v.number()),
+    errorCode: v.optional(upstreamErrorCode),
+  },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    let added = 0;
+    const now = Date.now();
+    const ok = args.outcome === "success";
+    await ctx.db.insert("brawlApiFetchLogs", {
+      endpoint: args.operation,
+      operation: args.operation,
+      consumer: args.consumer,
+      outcome: args.outcome,
+      status: args.status ?? 0,
+      ok,
+      fetchedAt: now,
+      runId: args.runId,
+      source: args.source,
+      durationMs: args.durationMs,
+      errorCode: args.errorCode,
+    });
+    await incrementCounter(ctx, ok ? "upstream_fetches_succeeded" : "upstream_fetches_failed", 1, now);
+    return null;
+  },
+});
 
-    for (const target of args.targets.slice(0, 500)) {
+export const beginPipelineRun = internalMutation({
+  args: { job: v.string() },
+  returns: v.id("brawlPipelineRuns"),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    return await ctx.db.insert("brawlPipelineRuns", {
+      job: args.job,
+      startedAt: now,
+      ok: false,
+      state: "running",
+      updatedAt: now,
+      claimed: 0,
+      staleCompletions: 0,
+      discovered: 0,
+      fetched: 0,
+      battles: 0,
+      failures: 0,
+    });
+  },
+});
+
+export const recordDiscoveryResult = internalMutation({
+  args: {
+    runId: v.id("brawlPipelineRuns"),
+    targets: v.array(targetInput),
+    directorySightings: v.number(),
+    failures: v.number(),
+  },
+  returns: v.union(
+    v.object({ status: v.literal("recorded"), discovered: v.number(), added: v.number() }),
+    v.object({ status: v.literal("already_recorded"), discovered: v.number(), added: v.number() }),
+    v.object({ status: v.literal("run_inactive"), discovered: v.number(), added: v.number() }),
+  ),
+  handler: async (ctx, args) => {
+    const run = await ctx.db.get(args.runId);
+    if (!isRunActive(run) || run?.job !== "discover") {
+      return { status: "run_inactive" as const, discovered: 0, added: 0 };
+    }
+    if (run.discoveryRecordedAt !== undefined) {
+      return {
+        status: "already_recorded" as const,
+        discovered: run.discovered ?? 0,
+        added: run.added ?? 0,
+      };
+    }
+
+    const now = Date.now();
+    const byTag = new Map<string, (typeof args.targets)[number]>();
+    for (const target of args.targets) {
+      const existing = byTag.get(target.tag);
+      if (!existing || target.priority < existing.priority) byTag.set(target.tag, target);
+    }
+    const targets = [...byTag.values()].slice(0, 500);
+    let added = 0;
+    for (const target of targets) {
       const existing = await ctx.db
         .query("brawlCrawlTargets")
         .withIndex("by_tag", (q) => q.eq("tag", target.tag))
         .unique();
-
       if (existing) {
         if (target.priority < existing.priority || existing.disabled) {
           await ctx.db.patch(existing._id, {
@@ -48,152 +179,278 @@ export const upsertTargets = internalMutation({
         }
         continue;
       }
-
       await ctx.db.insert("brawlCrawlTargets", {
         ...target,
-        nextDueAt: Date.now(),
+        nextDueAt: now,
         consecutiveFailures: 0,
         disabled: false,
       });
       added += 1;
     }
-
-    return { added, seen: args.targets.length };
+    const discovered = byTag.size;
+    const directorySightings = Math.max(Math.floor(args.directorySightings), 0);
+    const failures = Math.max(Math.floor(args.failures), 0);
+    await ctx.db.patch(args.runId, {
+      discovered,
+      added,
+      directorySightings,
+      failures,
+      discoveryRecordedAt: now,
+      updatedAt: now,
+    });
+    await incrementCounter(ctx, "targets_discovered", discovered, now);
+    await incrementCounter(ctx, "targets_added", added, now);
+    await incrementCounter(ctx, "directory_sightings", directorySightings, now);
+    await incrementCounter(ctx, "api_failures", failures, now);
+    return { status: "recorded" as const, discovered, added };
   },
 });
 
-export const claimTargets = internalMutation({
+export const claimCrawlBatch = internalMutation({
   args: {
+    runId: v.id("brawlPipelineRuns"),
     limit: v.number(),
     leaseMs: v.number(),
   },
-  returns: v.array(claimedTarget),
+  returns: v.union(
+    v.object({ status: v.literal("claimed"), targets: v.array(leasedTarget) }),
+    v.object({ status: v.literal("run_inactive"), targets: v.array(leasedTarget) }),
+  ),
   handler: async (ctx, args) => {
+    const run = await ctx.db.get(args.runId);
+    if (!isRunActive(run)) return { status: "run_inactive" as const, targets: [] };
+
     const now = Date.now();
+    const limit = Math.min(Math.max(Math.floor(args.limit), 1), MAX_CRAWL_BATCH_SIZE);
     const rows = await ctx.db
       .query("brawlCrawlTargets")
       .withIndex("by_due", (q) => q.eq("disabled", false).lte("nextDueAt", now))
-      .take(Math.min(Math.max(Math.floor(args.limit), 1), 25));
+      .take(limit);
+    const targets = [];
 
     for (const row of rows) {
-      await ctx.db.patch(row._id, { nextDueAt: now + args.leaseMs });
-    }
-
-    return rows.map((row) => ({
-      id: row._id,
-      tag: row.tag,
-      lastBattleTime: row.lastBattleTime,
-    }));
-  },
-});
-
-export const completeTarget = internalMutation({
-  args: {
-    id: v.id("brawlCrawlTargets"),
-    ok: v.boolean(),
-    lastBattleTime: v.optional(v.string()),
-    revisitMs: v.number(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const target = await ctx.db.get(args.id);
-    if (!target) return null;
-
-    const now = Date.now();
-    if (args.ok) {
-      await ctx.db.patch(args.id, {
-        lastFetchedAt: now,
-        lastBattleTime: args.lastBattleTime ?? target.lastBattleTime,
-        consecutiveFailures: 0,
-        nextDueAt: now + args.revisitMs,
+      const leaseToken = `${args.runId}:${row._id}:${now}`;
+      const claimed = claimTarget(
+        {
+          nextDueAt: row.nextDueAt,
+          lastFetchedAt: row.lastFetchedAt,
+          lastBattleTime: row.lastBattleTime,
+          consecutiveFailures: row.consecutiveFailures,
+          lease: {},
+        },
+        { runId: args.runId, token: leaseToken, now, leaseMs: args.leaseMs },
+      );
+      const leaseExpiresAt = claimed.lease.expiresAt;
+      if (leaseExpiresAt === undefined) throw new Error("Claim policy did not create a lease");
+      await ctx.db.patch(row._id, {
+        nextDueAt: claimed.nextDueAt,
+        leaseRunId: args.runId,
+        leaseToken,
+        leaseClaimedAt: now,
+        leaseExpiresAt,
       });
-      return null;
+      targets.push({
+        id: row._id,
+        tag: row.tag,
+        lastBattleTime: row.lastBattleTime,
+        leaseToken,
+        leaseExpiresAt,
+      });
     }
 
-    const failures = target.consecutiveFailures + 1;
-    const backoffMs = Math.min(args.revisitMs * 2 ** Math.min(failures, 6), 24 * 60 * 60 * 1_000);
-    await ctx.db.patch(args.id, {
-      consecutiveFailures: failures,
-      nextDueAt: now + backoffMs,
+    await ctx.db.patch(args.runId, {
+      claimed: (run?.claimed ?? 0) + targets.length,
+      updatedAt: now,
     });
-    return null;
+    await incrementCounter(ctx, "targets_claimed", targets.length, now);
+    return { status: "claimed" as const, targets };
   },
 });
 
-export const startRun = internalMutation({
-  args: { job: v.string() },
-  returns: v.id("brawlPipelineRuns"),
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("brawlPipelineRuns", {
-      job: args.job,
-      startedAt: Date.now(),
-      ok: false,
-    });
-  },
-});
-
-export const finishRun = internalMutation({
+export const recordCrawlOutcome = internalMutation({
   args: {
-    id: v.id("brawlPipelineRuns"),
-    ok: v.boolean(),
-    note: v.optional(v.string()),
-    ...runSummary,
+    runId: v.id("brawlPipelineRuns"),
+    targetId: v.id("brawlCrawlTargets"),
+    leaseToken: v.string(),
+    revisitMs: v.number(),
+    outcome: crawlOutcome,
   },
-  returns: v.null(),
+  returns: targetOutcomeResult,
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-      finishedAt: Date.now(),
-      ok: args.ok,
-      note: args.note,
-      discovered: args.discovered,
-      fetched: args.fetched,
-      battles: args.battles,
-      failures: args.failures,
-    });
-    return null;
-  },
-});
+    const [run, target] = await Promise.all([ctx.db.get(args.runId), ctx.db.get(args.targetId)]);
+    if (!isRunActive(run)) return { status: "run_inactive" as const };
+    if (!target) return { status: "stale_lease" as const };
 
-export const bumpCounters = internalMutation({
-  args: { counters: v.array(counterInput) },
-  returns: v.null(),
-  handler: async (ctx, args) => {
     const now = Date.now();
-    for (const counter of args.counters.slice(0, 20)) {
-      const existing = await ctx.db
-        .query("brawlPipelineCounters")
-        .withIndex("by_name", (q) => q.eq("name", counter.name))
-        .unique();
-      if (existing) {
-        await ctx.db.patch(existing._id, {
-          value: existing.value + counter.amount,
-          updatedAt: now,
-        });
-      } else {
-        await ctx.db.insert("brawlPipelineCounters", {
-          name: counter.name,
-          value: counter.amount,
-          updatedAt: now,
-        });
-      }
+    const settlement = settleTarget(
+      {
+        nextDueAt: target.nextDueAt,
+        lastFetchedAt: target.lastFetchedAt,
+        lastBattleTime: target.lastBattleTime,
+        consecutiveFailures: target.consecutiveFailures,
+        lease: {
+          runId: target.leaseRunId,
+          token: target.leaseToken,
+          claimedAt: target.leaseClaimedAt,
+          expiresAt: target.leaseExpiresAt,
+        },
+      },
+      {
+        runId: args.runId,
+        token: args.leaseToken,
+        now,
+        revisitMs: args.revisitMs,
+        outcome: args.outcome,
+      },
+    );
+
+    if (settlement.status === "stale_lease") {
+      await ctx.db.patch(args.runId, {
+        staleCompletions: (run?.staleCompletions ?? 0) + 1,
+        updatedAt: now,
+      });
+      await incrementCounter(ctx, "stale_lease_completions", 1, now);
+      return { status: "stale_lease" as const };
     }
-    return null;
+
+    await ctx.db.patch(args.targetId, {
+      nextDueAt: settlement.target.nextDueAt,
+      lastFetchedAt: settlement.target.lastFetchedAt,
+      lastBattleTime: settlement.target.lastBattleTime,
+      consecutiveFailures: settlement.target.consecutiveFailures,
+      leaseRunId: undefined,
+      leaseToken: undefined,
+      leaseClaimedAt: undefined,
+      leaseExpiresAt: undefined,
+    });
+
+    if (args.outcome.type === "success") {
+      await ctx.db.patch(args.runId, {
+        fetched: (run?.fetched ?? 0) + 1,
+        battles: (run?.battles ?? 0) + args.outcome.battles,
+        updatedAt: now,
+      });
+      await incrementCounter(ctx, "player_logs_fetched", 1, now);
+      await incrementCounter(ctx, "battles_ingested", args.outcome.battles, now);
+      await incrementCounter(
+        ctx,
+        "profile_snapshots",
+        args.outcome.profileSnapshotCreated ? 1 : 0,
+        now,
+      );
+    } else {
+      await ctx.db.patch(args.runId, {
+        failures: (run?.failures ?? 0) + 1,
+        note: args.outcome.note ?? run?.note,
+        updatedAt: now,
+      });
+      await incrementCounter(ctx, "api_failures", 1, now);
+    }
+
+    return {
+      status: "accepted" as const,
+      nextDueAt: settlement.target.nextDueAt,
+      consecutiveFailures: settlement.target.consecutiveFailures,
+      backoffMs: settlement.backoffMs,
+    };
   },
 });
 
-export const logFetch = internalMutation({
+export const completePipelineRun = internalMutation({
   args: {
-    endpoint: v.string(),
-    status: v.number(),
-    ok: v.boolean(),
+    runId: v.id("brawlPipelineRuns"),
+    outcome: v.union(v.literal("succeeded"), v.literal("failed")),
+    note: v.optional(v.string()),
   },
-  returns: v.null(),
+  returns: v.union(
+    v.object({ status: v.literal("completed"), state: pipelineRunState }),
+    v.object({ status: v.literal("already_completed"), state: pipelineRunState }),
+    v.object({ status: v.literal("missing") }),
+  ),
   handler: async (ctx, args) => {
-    await ctx.db.insert("brawlApiFetchLogs", {
-      ...args,
-      fetchedAt: Date.now(),
+    const run = await ctx.db.get(args.runId);
+    if (!run) return { status: "missing" as const };
+    if (!isRunActive(run)) {
+      return {
+        status: "already_completed" as const,
+        state: run.state ?? (run.ok ? "succeeded" : "failed"),
+      };
+    }
+
+    const now = Date.now();
+    const failed = args.outcome === "failed";
+    await ctx.db.patch(args.runId, {
+      state: args.outcome,
+      ok: !failed,
+      finishedAt: now,
+      updatedAt: now,
+      note: args.note ?? run.note,
+      failures: (run.failures ?? 0) + (failed ? 1 : 0),
     });
-    return null;
+    await incrementCounter(ctx, failed ? "pipeline_runs_failed" : "pipeline_runs_succeeded", 1, now);
+    return { status: "completed" as const, state: args.outcome };
+  },
+});
+
+export const retainPipelineData = internalMutation({
+  args: {
+    runId: v.id("brawlPipelineRuns"),
+    limit: v.optional(v.number()),
+  },
+  returns: v.union(
+    v.object({ status: v.literal("deleted"), deleted: v.number(), more: v.boolean() }),
+    v.object({ status: v.literal("run_inactive"), deleted: v.number(), more: v.boolean() }),
+  ),
+  handler: async (ctx, args) => {
+    const run = await ctx.db.get(args.runId);
+    if (!isRunActive(run)) {
+      return { status: "run_inactive" as const, deleted: 0, more: false };
+    }
+
+    const now = Date.now();
+    const limit = Math.min(
+      Math.max(Math.floor(args.limit ?? MAX_RETENTION_BATCH_SIZE), 1),
+      MAX_RETENTION_BATCH_SIZE,
+    );
+    const cutoffs = retentionCutoffs(now);
+    const probeSize = limit + 1;
+    const [battles, fetchLogs, runs, snapshots] = await Promise.all([
+      ctx.db
+        .query("brawlSeenBattles")
+        .withIndex("by_ingested_at", (q) => q.lt("ingestedAt", cutoffs.battleCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("brawlApiFetchLogs")
+        .withIndex("by_fetched_at", (q) => q.lt("fetchedAt", cutoffs.telemetryCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("brawlPipelineRuns")
+        .withIndex("by_started_at", (q) => q.lt("startedAt", cutoffs.telemetryCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("playerSnapshots")
+        .withIndex("by_recorded_at", (q) => q.lt("recordedAt", cutoffs.snapshotCutoff))
+        .take(probeSize),
+    ]);
+    const plan = planRetentionBatch(
+      {
+        battles: battles.length,
+        fetchLogs: fetchLogs.length,
+        runs: runs.length,
+        snapshots: snapshots.length,
+      },
+      limit,
+    );
+
+    await Promise.all([
+      ...battles.slice(0, plan.delete.battles).map((row) => ctx.db.delete(row._id)),
+      ...fetchLogs.slice(0, plan.delete.fetchLogs).map((row) => ctx.db.delete(row._id)),
+      ...runs.slice(0, plan.delete.runs).map((row) => ctx.db.delete(row._id)),
+      ...snapshots.slice(0, plan.delete.snapshots).map((row) => ctx.db.delete(row._id)),
+    ]);
+    await ctx.db.patch(args.runId, { updatedAt: now });
+    await incrementCounter(ctx, "retention_rows_deleted", plan.deleted, now);
+    return { status: "deleted" as const, deleted: plan.deleted, more: plan.more };
   },
 });
 
@@ -211,8 +468,13 @@ export const pipelineStatus = query({
       startedAt: v.number(),
       finishedAt: v.optional(v.number()),
       ok: v.boolean(),
+      state: v.optional(pipelineRunState),
+      claimed: v.optional(v.number()),
+      staleCompletions: v.optional(v.number()),
       note: v.optional(v.string()),
       discovered: v.optional(v.number()),
+      added: v.optional(v.number()),
+      directorySightings: v.optional(v.number()),
       fetched: v.optional(v.number()),
       battles: v.optional(v.number()),
       failures: v.optional(v.number()),
@@ -261,56 +523,17 @@ export const pipelineStatus = query({
         startedAt: run.startedAt,
         finishedAt: run.finishedAt,
         ok: run.ok,
+        state: run.state,
+        claimed: run.claimed,
+        staleCompletions: run.staleCompletions,
         note: run.note,
         discovered: run.discovered,
+        added: run.added,
+        directorySightings: run.directorySightings,
         fetched: run.fetched,
         battles: run.battles,
         failures: run.failures,
       })),
-    };
-  },
-});
-
-export const pruneBatch = internalMutation({
-  args: {
-    battleCutoff: v.number(),
-    telemetryCutoff: v.number(),
-    snapshotCutoff: v.number(),
-    limit: v.number(),
-  },
-  returns: v.object({ deleted: v.number(), more: v.boolean() }),
-  handler: async (ctx, args) => {
-    const limit = Math.min(Math.max(Math.floor(args.limit), 1), 256);
-    const [battles, fetches, runs, snapshots] = await Promise.all([
-      ctx.db
-        .query("brawlSeenBattles")
-        .withIndex("by_ingested_at", (q) => q.lt("ingestedAt", args.battleCutoff))
-        .take(limit),
-      ctx.db
-        .query("brawlApiFetchLogs")
-        .withIndex("by_fetched_at", (q) => q.lt("fetchedAt", args.telemetryCutoff))
-        .take(limit),
-      ctx.db
-        .query("brawlPipelineRuns")
-        .withIndex("by_started_at", (q) => q.lt("startedAt", args.telemetryCutoff))
-        .take(limit),
-      ctx.db
-        .query("playerSnapshots")
-        .withIndex("by_recorded_at", (q) => q.lt("recordedAt", args.snapshotCutoff))
-        .take(limit),
-    ]);
-
-    for (const row of [...battles, ...fetches, ...runs, ...snapshots]) {
-      await ctx.db.delete(row._id);
-    }
-
-    return {
-      deleted: battles.length + fetches.length + runs.length + snapshots.length,
-      more:
-        battles.length === limit ||
-        fetches.length === limit ||
-        runs.length === limit ||
-        snapshots.length === limit,
     };
   },
 });

@@ -21,11 +21,11 @@ import { PlayerSearch as PlayerSearchBox } from "@/components/PlayerSearch";
 import { ProfileActions } from "@/components/ProfileActions";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { apiFetch, brawlerBorderUrl, brawlerFeatureArtUrl, brawlerModelUrl, collection, profileIconUrl } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl, brawlerFeatureArtUrl, brawlerModelUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { formatPercent, normalizeTag, readableMode, trophies } from "@/lib/format";
 import { rememberRecentProfile } from "@/lib/preferences";
-import type { BattleLogItem, PlayerAnalytics, PlayerBattle, PlayerProfile, PlayerSearchResponse, PlayerSnapshot } from "@/lib/types";
+import type { BattleLogItem, BrawlerCatalogItem, PlayerAnalytics, PlayerBattle, PlayerProfile, PlayerSearchResponse, PlayerSnapshot } from "@/lib/types";
 import { useI18n, type Translator } from "@/lib/i18n";
 
 type PlayerSearch = { tag?: string; q?: string };
@@ -45,47 +45,27 @@ function PlayersPage() {
   const nameQuery = rawQuery?.trim() || "";
 
   const playerQuery = useQuery({
-    queryKey: ["player", tag],
+    ...brawlData.player(tag),
     enabled: Boolean(tag),
-    queryFn: async () => {
-      const payload = await apiFetch<{ player: PlayerProfile; battleLog: { items?: BattleLogItem[] } }>(
-        `/api/player?tag=${encodeURIComponent(tag!)}`,
-      );
-      return {
-        player: payload.player,
-        battles: collection<BattleLogItem>(payload.battleLog),
-      };
-    },
   });
 
   const directoryQuery = useQuery({
-    queryKey: ["player-search-page", nameQuery],
+    ...brawlData.playerSearch(nameQuery, 25),
     enabled: !tag && nameQuery.length >= 2,
-    queryFn: () => apiFetch<PlayerSearchResponse>(`/api/player-search?q=${encodeURIComponent(nameQuery)}&limit=25`),
   });
 
   const historyQuery = useQuery({
-    queryKey: ["player-history", tag, playerQuery.dataUpdatedAt],
+    ...brawlData.playerHistory(tag, playerQuery.dataUpdatedAt),
     enabled: Boolean(tag && playerQuery.data),
-    queryFn: () =>
-      apiFetch<{ snapshots: PlayerSnapshot[] }>(`/api/player-history?tag=${encodeURIComponent(tag!)}`).then(
-        (payload) => payload.snapshots,
-      ),
   });
 
   const analyticsQuery = useInfiniteQuery({
-    queryKey: ["player-analytics", tag, playerQuery.dataUpdatedAt],
+    ...brawlData.playerAnalytics(tag, playerQuery.dataUpdatedAt),
     enabled: Boolean(tag && playerQuery.data),
-    initialPageParam: undefined as number | undefined,
-    queryFn: ({ pageParam }) => apiFetch<PlayerAnalytics>(
-      `/api/player-analytics?tag=${encodeURIComponent(tag!)}&limit=50${pageParam ? `&before=${pageParam}` : ""}`,
-    ),
-    getNextPageParam: (page) => page.hasMore ? page.nextCursor : undefined,
   });
 
   const catalogQuery = useQuery({
-    queryKey: ["brawlers"],
-    queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog),
+    ...brawlData.brawlers(),
     enabled: Boolean(tag),
   });
 
@@ -166,7 +146,7 @@ function PlayerProfilePage({
   analytics?: PlayerAnalytics;
   trackedBattles: PlayerBattle[];
   liveBattles: BattleLogItem[];
-  catalog: Map<number, ReturnType<typeof normalizeCatalog>[number]>;
+  catalog: Map<number, BrawlerCatalogItem>;
   analyticsLoading: boolean;
   fetchingMore: boolean;
   onLoadMore: () => void;
@@ -375,7 +355,7 @@ function PlayerRoster({
 }: {
   player: PlayerProfile;
   brawlers: NonNullable<PlayerProfile["brawlers"]>;
-  catalog: Map<number, ReturnType<typeof normalizeCatalog>[number]>;
+  catalog: Map<number, BrawlerCatalogItem>;
 }) {
   const { t } = useI18n();
   const featured = brawlers.slice(0, 3);

@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageStatus } from "@/components/ui-helpers";
-import { apiFetch, brawlerBorderUrl, collection } from "@/lib/api";
-import { normalizeCatalog } from "@/lib/brawlers";
+import { brawlerBorderUrl } from "@/lib/artwork";
+import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n, type Translator } from "@/lib/i18n";
 import { aggregateMeta, type AggregatedMetaRow, type TrophyBucket } from "@/lib/meta";
 import { appPath } from "@/lib/paths";
-import type { MapListItem, MetaDailyPoint, MetaTrendsResponse, MetaTrendWindow } from "@/lib/types";
+import type { MetaDailyPoint, MetaTrendWindow } from "@/lib/types";
 
 type Metric = "win" | "use" | "picks" | "star";
 type Grouping = "brawler" | "map" | "mode";
@@ -43,10 +43,10 @@ function MetaResearchPage() {
   const compareBucket = search.compare || "previous";
   const trendWindow = search.window || "30";
   const minSamples = search.min || 25;
-  const catalogQuery = useQuery({ queryKey: ["brawlers"], queryFn: () => apiFetch("/api/brawlers").then(normalizeCatalog) });
-  const mapsQuery = useQuery({ queryKey: ["maps"], queryFn: () => apiFetch("/api/maps").then((payload) => collection<MapListItem>(payload)) });
-  const primaryQuery = useQuery({ queryKey: ["meta-trends", trophyBucket, trendWindow], queryFn: () => apiFetch<MetaTrendsResponse>(`/api/meta-trends?trophyBucket=${encodeURIComponent(trophyBucket)}&window=${trendWindow}`) });
-  const comparisonQuery = useQuery({ queryKey: ["meta-trends", compareBucket, trendWindow], enabled: compareBucket !== "off" && compareBucket !== "previous" && compareBucket !== trophyBucket, queryFn: () => apiFetch<MetaTrendsResponse>(`/api/meta-trends?trophyBucket=${encodeURIComponent(compareBucket)}&window=${trendWindow}`) });
+  const catalogQuery = useQuery(brawlData.brawlers());
+  const mapsQuery = useQuery(brawlData.maps());
+  const primaryQuery = useQuery(brawlData.metaTrends(trophyBucket, trendWindow));
+  const comparisonQuery = useQuery({ ...brawlData.metaTrends(compareBucket, trendWindow), enabled: compareBucket !== "off" && compareBucket !== "previous" && compareBucket !== trophyBucket });
   const catalog = useMemo(() => new Map((catalogQuery.data || []).map((item) => [item.id, item])), [catalogQuery.data]);
   const maps = useMemo(() => new Map((mapsQuery.data || []).map((item) => [item.id, item])), [mapsQuery.data]);
   const rows = useMemo(() => {

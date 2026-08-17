@@ -2,10 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Bell, FlaskConical, Settings, Star } from "lucide-react";
 import { useEffect } from "react";
-import { apiFetch, collection } from "@/lib/api";
+import { brawlData } from "@/lib/game-data";
 import { useI18n } from "@/lib/i18n";
 import { usePreferences } from "@/lib/preferences";
-import type { EventItem } from "@/lib/types";
 
 const ROTATION_KEY = "brawlstats.rotation.v1";
 
@@ -13,9 +12,8 @@ function useRotationAlerts() {
   const { alertsEnabled } = usePreferences();
   const { t } = useI18n();
   const eventsQuery = useQuery({
-    queryKey: ["events", "rotation-alerts"],
+    ...brawlData.events(),
     enabled: alertsEnabled,
-    queryFn: () => apiFetch("/api/events").then((payload) => collection<EventItem>(payload)),
     refetchInterval: alertsEnabled ? 5 * 60_000 : false,
   });
 

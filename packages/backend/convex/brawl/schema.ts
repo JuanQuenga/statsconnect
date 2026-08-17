@@ -15,6 +15,40 @@ export const clubActivityType = v.union(
   v.literal("trophy_change"),
 );
 
+export const pipelineRunState = v.union(
+  v.literal("running"),
+  v.literal("succeeded"),
+  v.literal("failed"),
+);
+
+export const upstreamConsumer = v.union(
+  v.literal("interactive"),
+  v.literal("crawler"),
+);
+
+export const upstreamSource = v.union(
+  v.literal("official"),
+  v.literal("public_metadata"),
+);
+
+export const upstreamErrorCode = v.union(
+  v.literal("invalid_tag"),
+  v.literal("not_configured"),
+  v.literal("unauthorized"),
+  v.literal("not_found"),
+  v.literal("rate_limited"),
+  v.literal("upstream_rejected"),
+  v.literal("unavailable"),
+  v.literal("invalid_response"),
+);
+
+export const upstreamOutcome = v.union(
+  v.literal("success"),
+  v.literal("upstream_rejected"),
+  v.literal("transport_failure"),
+  v.literal("configuration_error"),
+);
+
 export const brawlTables = {
   brawlSeenBattles: defineTable({
     dedupeKey: v.string(),
@@ -279,6 +313,10 @@ export const brawlTables = {
     lastBattleTime: v.optional(v.string()),
     consecutiveFailures: v.number(),
     disabled: v.boolean(),
+    leaseRunId: v.optional(v.id("brawlPipelineRuns")),
+    leaseToken: v.optional(v.string()),
+    leaseClaimedAt: v.optional(v.number()),
+    leaseExpiresAt: v.optional(v.number()),
   })
     .index("by_tag", ["tag"])
     .index("by_due", ["disabled", "nextDueAt"]),
@@ -288,6 +326,13 @@ export const brawlTables = {
     startedAt: v.number(),
     finishedAt: v.optional(v.number()),
     ok: v.boolean(),
+    state: v.optional(pipelineRunState),
+    updatedAt: v.optional(v.number()),
+    claimed: v.optional(v.number()),
+    staleCompletions: v.optional(v.number()),
+    discoveryRecordedAt: v.optional(v.number()),
+    added: v.optional(v.number()),
+    directorySightings: v.optional(v.number()),
     note: v.optional(v.string()),
     discovered: v.optional(v.number()),
     fetched: v.optional(v.number()),
@@ -306,5 +351,12 @@ export const brawlTables = {
     status: v.number(),
     ok: v.boolean(),
     fetchedAt: v.number(),
+    operation: v.optional(v.string()),
+    consumer: v.optional(upstreamConsumer),
+    outcome: v.optional(upstreamOutcome),
+    source: v.optional(upstreamSource),
+    durationMs: v.optional(v.number()),
+    errorCode: v.optional(upstreamErrorCode),
+    runId: v.optional(v.id("brawlPipelineRuns")),
   }).index("by_fetched_at", ["fetchedAt"]),
 };
