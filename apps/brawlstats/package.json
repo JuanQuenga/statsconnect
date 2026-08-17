@@ -6,10 +6,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "dev:backend": "convex dev",
     "build": "vite build",
-    "deploy:backend": "convex deploy",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p convex/tsconfig.json"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",

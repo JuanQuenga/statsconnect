@@ -30,16 +30,6 @@ icon = "run"
 command = "pnpm --filter @statsconnect/backend dev"
 
 [[actions]]
-name = "BrawlStats Convex Dev"
-icon = "run"
-command = "pnpm --filter brawlstats.io dev:backend"
-
-[[actions]]
-name = "ClashCrown Convex Dev"
-icon = "run"
-command = "pnpm --filter clash-crown convex:dev"
-
-[[actions]]
 name = "Typecheck All"
 icon = "tool"
 command = "pnpm typecheck"

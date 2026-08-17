@@ -1,6 +1,6 @@
 # BrawlStats.io
 
-Live Brawl Stars statistics: players, clubs, maps/meta, events, and official rankings. The frontend is a React SPA (Vite + TanStack Router/Query + Tailwind CSS v4 + shadcn/ui Base UI). Authenticated Supercell API traffic stays on Convex HTTP Actions.
+Live Brawl Stars statistics include players, clubs, maps, events, and official rankings. The Game Site is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS v4, and shadcn/ui Base UI. Its server Implementation lives in the Platform Backend's `brawl` namespace at `packages/backend/convex`. Convex HTTP Actions keep the Supercell API token out of the browser.
 
 ## What Works
 
@@ -33,23 +33,25 @@ The browser never receives the Supercell API token.
 
 ## Setup
 
+From the repository root:
+
 ```sh
 pnpm install
-pnpm convex dev
+pnpm --filter @statsconnect/backend dev
 ```
 
 Create a key at [developer.brawlstars.com](https://developer.brawlstars.com), then store it only in Convex:
 
 ```sh
-pnpm convex env set BRAWL_STARS_API_TOKEN your-token
+pnpm --dir packages/backend exec convex env set BRAWL_STARS_API_TOKEN your-token
 ```
 
-`convex dev` normally writes `VITE_CONVEX_URL` to `.env.local`; the frontend converts that `.convex.cloud` URL to the matching `.convex.site` HTTP Actions URL. You may instead set `VITE_CONVEX_SITE_URL` explicitly. See [`.env.example`](./.env.example).
+The canonical `convex dev` process writes `VITE_CONVEX_URL` to `packages/backend/.env.local`. Copy that URL to the BrawlStats frontend environment. The frontend converts a `.convex.cloud` URL to the matching `.convex.site` HTTP Actions URL. Set `VITE_CONVEX_SITE_URL` only when you need to override that conversion. See [`.env.example`](./.env.example).
 
 In another terminal:
 
 ```sh
-pnpm dev
+pnpm dev:brawlstats
 ```
 
 ### API IP allow-listing
@@ -57,18 +59,21 @@ pnpm dev
 Supercell API keys are tied to allowed source IPs. If the Convex deployment cannot use a directly allow-listed address, put a fixed-egress proxy in front of the official API and set:
 
 ```sh
-pnpm convex env set BRAWL_STARS_API_BASE_URL https://your-proxy.example/v1
+pnpm --dir packages/backend exec convex env set BRAWL_STARS_API_BASE_URL https://your-proxy.example/v1
 ```
 
 ## Commands
 
+Run these from the repository root:
+
 ```sh
-pnpm typecheck       # TypeScript verification
-pnpm dev             # Frontend development server
-pnpm dev:backend     # Convex development deployment
-pnpm build           # Production frontend bundle
-pnpm deploy:backend  # Deploy Convex functions
+pnpm --filter brawlstats.io typecheck      # BrawlStats TypeScript verification
+pnpm dev:brawlstats                        # BrawlStats frontend development server
+pnpm --filter @statsconnect/backend dev    # Canonical Convex development deployment
+pnpm --filter brawlstats.io build          # Production frontend bundle
 ```
+
+The root unified release deploys the Platform Backend. BrawlStats has no backend deploy command.
 
 ## Routes
 
@@ -105,10 +110,10 @@ Map win/use rates are **first-party**, not scraped from Brawlify:
 Crawler tuning is optional and belongs in Convex environment variables:
 
 ```sh
-pnpm convex env set BRAWL_DISCOVER_LIMIT 200
-pnpm convex env set BRAWL_CLUB_SEED 10
-pnpm convex env set BRAWL_CRAWL_BATCH 8
-pnpm convex env set BRAWL_CRAWL_REVISIT_MINUTES 30
+pnpm --dir packages/backend exec convex env set BRAWL_DISCOVER_LIMIT 200
+pnpm --dir packages/backend exec convex env set BRAWL_CLUB_SEED 10
+pnpm --dir packages/backend exec convex env set BRAWL_CRAWL_BATCH 8
+pnpm --dir packages/backend exec convex env set BRAWL_CRAWL_REVISIT_MINUTES 30
 ```
 
 Map detail UI hides tier lists until a brawler has enough picks (default 25).

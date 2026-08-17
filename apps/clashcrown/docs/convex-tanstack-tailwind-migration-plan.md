@@ -1,13 +1,13 @@
 # ClashCrown Vite + TanStack Architecture
 
-ClashCrown now uses the same frontend architecture as the other StatsConnect game surface while retaining its existing Convex backend.
+ClashCrown uses the same frontend stack as the other StatsConnect Game Site. Its server Implementation runs in the Platform Backend's `clash` namespace.
 
 ## Runtime
 
 - Vite + React 19
 - TanStack Router file routes under `src/routes`
 - TanStack Query for browser query orchestration
-- Convex for the database, scheduled ingestion, cached Clash Royale API calls, and live queries/actions
+- The canonical Convex Platform Backend for the database, scheduled ingestion, cached Clash Royale API calls, and live queries/actions
 - Tailwind CSS 4 plus the existing global visual system
 - Vercel static deployment with an SPA fallback to `index.html`
 
@@ -28,16 +28,16 @@ The small adapters in `src/components/Link.tsx`, `src/components/Image.tsx`, `sr
 ## Data and secrets
 
 - Browser code reads only `VITE_CONVEX_URL` and `VITE_STATSCONNECT_ORIGIN`.
-- Clash Royale API tokens remain in the Convex deployment environment.
+- Store Clash Royale API tokens in the Platform Backend deployment environment.
 - The browser never calls the official Clash Royale API directly.
-- Existing Convex cache, crawler, rollup, and cron behavior remains unchanged.
+- This frontend migration did not change the cache, crawler, rollup, or cron code under `packages/backend/convex/clash`.
 
 ## StatsConnect integration
 
 - The global Games switcher links to `{VITE_STATSCONNECT_ORIGIN}/launch/:game`.
 - StatsConnect resolves the user's connected tag and launches `/players/{tag}` on ClashCrown.
-- Direct dynamic routes are covered by the Vercel SPA rewrite.
-- Full shared identity and linked-tag hydration remain part of the Lakebed capsule migration described in the StatsConnect v2 spec.
+- The root Vercel SPA rewrite covers direct dynamic routes.
+- `packages/auth` and the Platform Backend handle shared Google sign-in and saved-profile synchronization. ClashCrown authorizes its separate personalization Module with device capabilities. See [`personalization-identity-adapter.md`](./personalization-identity-adapter.md).
 
 ## Verification
 

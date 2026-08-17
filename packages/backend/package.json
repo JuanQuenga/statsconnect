@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.12.3",
+  "exports": {
+    "./data-model": "./data-model.ts"
+  },
   "scripts": {
     "dev": "convex dev",
     "deploy": "convex deploy",

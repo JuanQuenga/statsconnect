@@ -2,6 +2,7 @@
   "name": "statsconnect-workspace",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.12.3",
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -14,9 +15,17 @@
     "dev:brawlstats": "pnpm --filter brawlstats.io dev",
     "dev:clashcrown": "pnpm --filter clash-crown dev",
     "build": "pnpm --filter statsconnect build && pnpm --filter brawlstats.io build && pnpm --filter clash-crown build",
-    "build:unified": "STATSCONNECT_UNIFIED_BUILD=1 pnpm --filter statsconnect build && STATSCONNECT_UNIFIED_BUILD=1 pnpm --filter brawlstats.io build && STATSCONNECT_UNIFIED_BUILD=1 pnpm --filter clash-crown build",
+    "build:unified": "node scripts/production-delivery.ts build",
+    "build:vercel": "node scripts/production-delivery.ts vercel",
     "deploy:backend": "pnpm --filter @statsconnect/backend deploy",
-    "deploy:unified": "pnpm --filter @statsconnect/backend deploy:with-frontend",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "deploy:unified": "node scripts/production-delivery.ts deploy",
+    "test": "node --test scripts/*.test.ts && pnpm -r --if-present test",
+    "test:delivery": "node --test scripts/production-delivery.test.ts",
+    "typecheck": "pnpm typecheck:delivery && pnpm -r --if-present typecheck",
+    "typecheck:delivery": "tsc --noEmit -p scripts/tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
   }
 }

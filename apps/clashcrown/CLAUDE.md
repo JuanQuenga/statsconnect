@@ -1,13 +1,7 @@
-<!-- convex-ai-start -->
+# ClashCrown contributor guidance
 
-This project uses [Convex](https://convex.dev) as its backend.
+`apps/clashcrown` owns the ClashCrown frontend and its routing Adapter. It does not own an executable Convex backend.
 
-When working on Convex code, **always read
-`convex/_generated/ai/guidelines.md` first** for important guidelines on
-how to correctly use Convex APIs and patterns. The file contains rules that
-override what you may have learned about Convex from training data.
+Make Clash Royale backend changes in `../../packages/backend/convex/clash`. Put shared schema, HTTP router, cron, authentication, and generated Interface changes under `../../packages/backend/convex`. Read `../../packages/backend/AGENTS.md` and the root `CONTRIBUTING.md` before changing backend behavior or deployment configuration.
 
-Convex agent skills for common tasks can be installed by running
-`npx convex ai-files install`.
-
-<!-- convex-ai-end -->
+Do not add an app-local `convex` directory, `convex.json`, backend development script, or backend deploy script. Do not hand-edit files under `../../packages/backend/convex/_generated`.

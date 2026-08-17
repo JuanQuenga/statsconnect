@@ -1,9 +1,6 @@
 # StatsConnect contributor and operations guide
 
-This is the working handbook for setting up, changing, deploying, and operating the StatsConnect network. It describes the code in this repository as of **August 13, 2026**. Pricing is time-sensitive; use the linked vendor pages before making a budget decision.
-
-> [!IMPORTANT]
-> Production delivery is in a partially merged state. The intended design is one Vercel deployment and one Convex deployment, but the root `deploy:unified` command currently calls a missing backend script, while an older GitHub Action can also deploy the backend. Read [Production deployment](#production-deployment) before releasing anything.
+Use this guide to set up, change, deploy, and operate StatsConnect. It matches the repository as of **August 16, 2026**. Check the linked vendor pages before making a budget decision because pricing changes.
 
 ## Contents
 
@@ -50,22 +47,24 @@ Use these names in code, issues, and documentation. See [`CONTEXT.md`](./CONTEXT
 
 | Path | Owner and purpose |
 | --- | --- |
-| `apps/statsconnect` | Hub SPA, browser-local viewer identity, connected profiles, and launch flows |
-| `apps/brawlstats` | Brawl Stars SPA and historical app-local Convex source |
-| `apps/clashcrown` | Clash Royale SPA and historical app-local Convex source |
+| `apps/statsconnect` | Hub SPA, connected profiles, and launch flows |
+| `apps/brawlstats` | Brawl Stars SPA and routing Adapter |
+| `apps/clashcrown` | Clash Royale SPA and routing Adapter |
 | `packages/backend` | **Canonical** production Convex schema, functions, HTTP routes, and crons |
+| `packages/auth` | Shared Google authentication and saved-profile synchronization |
 | `packages/site-nav` | Shared Site Navigation and Game Switcher |
 | `packages/site-errors` | Shared React error presentation |
 | `docs/adr` | Accepted architecture decisions |
 | `docs/UNIFIED_DEPLOYMENT.md` | Data consolidation and cutover notes |
 | `scripts/prepare-convex-import.mjs` | Rewrites old game snapshots for the unified schema |
+| `scripts/production-delivery.ts` | Defines production paths, outputs, public origins, build order, and release ownership |
 | `vercel.json` | Unified static build output and SPA route rewrites |
 
-The `apps/*/convex` directories are legacy/reference backends from the formerly separate projects. Frontend typechecks still include some of them, but production deployment from the repository root uses only `packages/backend/convex`. Put new production backend work in `packages/backend/convex`.
+`packages/backend/convex` is the sole executable Platform Backend. App directories have no Convex schemas, functions, crons, generated backend Interfaces, or backend deployment configuration. Put all backend work in the canonical package.
 
 Generated files have special handling:
 
-- Do not hand-edit `routeTree.gen.ts` or any `convex/_generated` file.
+- Do not hand-edit `routeTree.gen.ts` or any file under `packages/backend/convex/_generated`.
 - TanStack Router regenerates route trees from `src/routes`.
 - `convex dev` regenerates Convex API and data-model types.
 - The canonical generated backend types are tracked, so commit them when a schema or function surface changes.
@@ -195,6 +194,10 @@ Add `--prod` only when deliberately changing production.
 | `CLASH_MIN_DECK_USES` | `5` | Minimum observations before a deck is ranked |
 | `BETA_ADMIN_KEY` | none | Protects manual Clash queue seeding on the beta page |
 | `STATSCONNECT_ADAPTER_MODE` | live adapters | Set to `stub` for deterministic Hub development |
+| `BETTER_AUTH_SECRET` | none | Signs shared authentication sessions |
+| `GOOGLE_CLIENT_ID` | none | Google OAuth client ID for the shared authentication Module |
+| `GOOGLE_CLIENT_SECRET` | none | Google OAuth client secret |
+| `SITE_URL` | none | Public origin for the shared authentication Module |
 
 Supercell keys are source-IP restricted. Convex uses regional egress, so production normally needs a fixed-egress proxy. The existing ClashCrown documentation uses the RoyaleAPI proxy. A `403` usually means the key, proxy URL, or allow-listed IP does not agree.
 
@@ -219,11 +222,11 @@ Ignored `.env` files are convenience files, not a secrets manager. During this a
 
 The current schema has 52 tables and two text-search indexes. Game-owned functions and tables must not reach into another game's tables. Cross-game behavior belongs in `hub` or in an explicit adapter contract.
 
-### Hub identity is currently browser-local
+### Identity and connected-profile state
 
-The current Hub is not using authenticated accounts. It creates a random UUID in `localStorage` and stores data under `session:<uuid>`. Clearing site data loses that browser's link to its connected profiles; copying a viewer ID effectively copies access. Do not describe this as authentication or use it for sensitive user data.
+`packages/auth`, Better Auth, and the Platform Backend provide shared Google sign-in. The Platform Backend stores authenticated saved profiles in the Hub namespace and syncs them with browser profile state.
 
-`docs/SPEC.md` describes a Lakebed Auth direction, not the runtime currently implemented in these React/Convex apps. Treat authentication migration as separate product work.
+Some Hub connection and launch flows still create a random viewer UUID in `localStorage` and store records under `session:<uuid>`. Clearing site data loses that browser's link to those records. Anyone who has the viewer ID can access them. Do not call that ID authentication or use it for sensitive data. See [`docs/SPEC.md`](./docs/SPEC.md) for the current runtime contract.
 
 ### Public API surfaces
 
@@ -301,11 +304,12 @@ pnpm --filter @statsconnect/backend typecheck
 pnpm --filter statsconnect typecheck
 pnpm --filter brawlstats.io typecheck
 pnpm --filter clash-crown typecheck
+pnpm test:delivery
 ```
 
-There is currently no repository lint command and no automated test suite. A green typecheck is necessary but not sufficient. Manually verify the changed route against your development deployment, error/empty/loading states, the shared navigation when affected, and the corresponding `/beta` telemetry for crawler changes.
+The repository has no lint command. Unit tests cover `packages/auth` and `packages/site-nav`. Delivery tests cover production configuration. Also check the changed route against your development deployment, including error, empty, and loading states. Check Site Navigation when affected and the matching `/beta` telemetry after crawler changes.
 
-Before a backend change is considered ready, let `convex dev` push it to your development deployment and fix schema or code-generation errors. Do not test schema migrations for the first time in production.
+Keep `pnpm --filter @statsconnect/backend dev` running while you change backend code. Fix every schema or code-generation error it reports. Do not test a schema migration for the first time in production.
 
 ### Pull request checklist
 
@@ -318,14 +322,15 @@ Before a backend change is considered ready, let `convex dev` push it to your de
 - Schema changes include an existing-data migration plan.
 - Cron/crawler changes include a call, compute, I/O, retention, and upstream-rate estimate.
 - `pnpm typecheck` passes.
+- `pnpm test:delivery` passes when production routing, output, or release configuration changes.
 - Unified subpaths and direct-refresh routes were manually checked where relevant.
 - User-facing behavior and deployment/environment changes are documented.
 
 ## Production deployment
 
-### Intended production topology
+### Production topology
 
-ADR 0002 and the root `vercel.json` define the current target:
+ADR 0002 defines the architecture. `scripts/production-delivery.ts` defines the delivery topology. The root Vercel and app Vite Adapters use it to produce these artifacts:
 
 | URL | Artifact |
 | --- | --- |
@@ -334,36 +339,24 @@ ADR 0002 and the root `vercel.json` define the current target:
 | `https://stats.juanquenga.com/clashroyale/*` | ClashCrown |
 | Production Convex URL | One Platform Backend for all three apps |
 
-`build:unified` builds the Hub into `dist/`, BrawlStats into `dist/brawlstars`, and ClashCrown into `dist/clashroyale`. Root Vercel rewrites make each SPA refreshable at its routes.
+`build:unified` writes the Hub to `dist/`, BrawlStats to `dist/brawlstars`, and ClashCrown to `dist/clashroyale`. Root Vercel rewrites handle direct visits to SPA routes. `pnpm test:delivery` checks the Adapters against the delivery topology.
 
-Old app-level `vercel.json` files and the root README previously described three separate Vercel projects. They are migration artifacts, not the unified release entry point.
+The root Vercel project runs normal releases through `pnpm build:vercel`. Preview builds compile the three frontends without deploying Convex. Production builds deploy the Platform Backend, set its URL for the frontend build, and compile all three SPAs. Use `.github/workflows/convex-production.yml` only for manual emergency recovery.
 
-### Current release blockers
+Keep the production Convex deploy key out of Preview and Development. Redirect legacy domains to the unified paths or document why they remain. Never point them at another writable production backend.
 
-Do not treat `main` as safely deployable until these are resolved:
-
-1. Root `pnpm deploy:unified` calls `@statsconnect/backend` script `deploy:with-frontend`, but that script is missing from the current backend `package.json`. The intended command from the unification change was:
-
-   ```json
-   "deploy:with-frontend": "convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'pnpm --dir ../.. build:unified'"
-   ```
-
-2. `.github/workflows/convex-production.yml` still deploys the production backend after changes to `packages/backend` on `main`. Once the Vercel atomic deploy command is restored, a backend-changing commit can start both deployment paths. Choose exactly one production deploy owner; the unified architecture points to the root Vercel project.
-3. Production and preview secret scopes need verification. The production Convex deploy key must not be used by untrusted preview builds.
-4. Legacy app deployments and old domains should either redirect to the unified paths or be explicitly retained and documented. Avoid having two writable production backends.
-
-### Recommended release flow after the blockers are fixed
+### Release flow
 
 1. Open a pull request and get `pnpm typecheck` green.
 2. If the schema changes, use an additive/optional schema first and run the backfill in a development deployment.
 3. Review all Vercel Production variables and all Convex Production variables by name. Never paste their values into a PR.
 4. Merge to `main`.
-5. Let the root Vercel project run `pnpm deploy:unified`. Its Convex deploy command injects the exact production `VITE_CONVEX_URL` while building all three SPAs.
+5. Vercel runs `pnpm build:vercel`. In production, that command deploys the Platform Backend, sets `VITE_CONVEX_URL`, and builds all three SPAs.
 6. Verify Convex deployment logs and all 11 cron registrations.
 7. Smoke-test Hub connect/launch, Brawl player/API/meta, Clash player/meta, Site Navigation, direct route refreshes, and both beta telemetry pages.
 8. Watch Convex errors, function failure rate, action duration, database I/O, egress, and upstream `403`/`429` responses through the first crawler cycles.
 
-Do not manually deploy an app-local `convex` directory. Do not run both the Vercel backend deploy and the GitHub backend workflow for the same release.
+Do not create or manually deploy an app-local `convex` directory. Do not run both the Vercel backend deploy and the manual GitHub recovery workflow for the same release.
 
 ### Data migration, backup, and rollback
 
@@ -468,9 +461,9 @@ Use this order when documents disagree:
 
 1. Accepted ADRs, especially [`docs/adr/0002-unify-production-delivery-and-backend.md`](./docs/adr/0002-unify-production-delivery-and-backend.md)
 2. Current root scripts/configuration and `packages/backend`
-3. This contributor guide
-4. [`docs/UNIFIED_DEPLOYMENT.md`](./docs/UNIFIED_DEPLOYMENT.md) for migration details
-5. App READMEs for game-specific behavior
-6. Older app-level deployment files and planning specs
+3. [`docs/SPEC.md`](./docs/SPEC.md) for the current runtime contract
+4. This contributor guide
+5. [`docs/UNIFIED_DEPLOYMENT.md`](./docs/UNIFIED_DEPLOYMENT.md) for migration details
+6. App READMEs for game-specific behavior
 
 If the architecture changes, update the ADR/configuration, this guide, and the root README in the same pull request.

@@ -1,6 +1,6 @@
 # Clash Crown
 
-Clash Crown is a full Clash Royale companion website built with Vite, React, TypeScript, TanStack Router, TanStack Query, Tailwind CSS, and Convex.
+Clash Crown is a Clash Royale companion Game Site built with Vite, React, TypeScript, TanStack Router, TanStack Query, Tailwind CSS, and Convex. Its server Implementation lives in the Platform Backend's `clash` namespace at `packages/backend/convex`.
 
 ## Features
 
@@ -13,7 +13,7 @@ Clash Crown is a full Clash Royale companion website built with Vite, React, Typ
 
 ## Battle-log pipeline
 
-The official API exposes battles per player only, 25 at a time, so deck statistics have to be accumulated. Four crons in `convex/crons.ts` do that:
+The official API returns 25 battles per player. `packages/backend/convex/crons.ts` registers four jobs that accumulate deck statistics:
 
 | Job | Interval | What it does |
 | --- | --- | --- |
@@ -28,23 +28,26 @@ Visit `/beta` on the deployed site to watch queue depth, ingest counters, API fa
 
 ## Local setup
 
+Run setup commands from the repository root:
+
 1. Install dependencies with `pnpm install`.
-2. Run `pnpm convex:dev` once to create or connect a Convex deployment. Set the resulting deployment URL as `VITE_CONVEX_URL` in `.env.local`; Convex also writes `CONVEX_DEPLOYMENT`.
+2. Run `pnpm --filter @statsconnect/backend dev` once to create or connect the canonical Convex development deployment. Convex writes its selector and URLs to `packages/backend/.env.local`. Set that deployment URL as `VITE_CONVEX_URL` in `apps/clashcrown/.env.local`.
 3. Create a key at the [official Clash Royale developer portal](https://developer.clashroyale.com/) with `45.79.218.79` as its allowed IP address. This is the fixed egress IP documented by the [RoyaleAPI proxy](https://docs.royaleapi.com/proxy.html). Add the key and proxy URL to the Convex environment:
 
    ```bash
-   pnpm exec convex env set CLASH_ROYALE_API_TOKEN your_token
-   pnpm exec convex env set CLASH_ROYALE_API_BASE_URL https://proxy.royaleapi.dev/v1
+   pnpm --dir packages/backend exec convex env set CLASH_ROYALE_API_TOKEN your_token
+   pnpm --dir packages/backend exec convex env set CLASH_ROYALE_API_BASE_URL https://proxy.royaleapi.dev/v1
    ```
 
-4. Run the Vite development workflow with `pnpm dev`.
+4. Run the Vite development workflow with `pnpm dev:clashcrown`.
 
 Clash Royale API keys only accept individual source IPs, while Convex uses a regional egress range. The fixed-egress proxy keeps the token server-side and forwards requests to the official `/v1` API from the allowlisted IP.
 
 ## Checks
 
 ```bash
-pnpm typecheck
+pnpm --filter clash-crown typecheck
+pnpm --filter @statsconnect/backend typecheck
 ```
 
 ## Environment
@@ -53,7 +56,7 @@ See `.env-example`. The Clash Royale token belongs in the Convex environment, ne
 
 `VITE_STATSCONNECT_ORIGIN` controls the hub links in the shared Games switcher. It defaults to `https://statsconnect.com`.
 
-The pipeline reads these optional Convex environment variables, so it can be tuned without a redeploy:
+The Platform Backend pipeline reads these optional Convex environment variables, so it can be tuned without a redeploy:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |

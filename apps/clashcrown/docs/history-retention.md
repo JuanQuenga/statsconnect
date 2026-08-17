@@ -8,7 +8,7 @@ ClashCrown history starts when the application receives an official Clash Royale
 - Full card collections and raw API payloads are not copied into history. This keeps each snapshot small and avoids an unbounded array inside a document.
 - Consecutive identical profiles update `lastObservedAt` on the existing row. A new row is written only when a meaningful tracked field changes.
 - The existing battle-log crawler also records a partial observation for its target from the newest returned battle: starting trophies, battle deck, and clan association. These rows are labelled as battle-log observations and never imply that profile-only totals were fetched.
-- Full and migrated player snapshots expire after three years. The existing `profileHistory` trophy rows can be migrated with the internal, resumable `history:startLegacyBackfill` mutation. The migration copies only tag, name, trophy value, and original timestamp because those are the only historical fields present.
+- Full and migrated player snapshots expire after three years. The existing `profileHistory` trophy rows can be migrated with the Platform Backend's internal, resumable `clash/history:startLegacyBackfill` mutation. The migration copies only tag, name, trophy value, and original timestamp because those are the only historical fields present.
 
 The API provides `currentPathOfLegendSeasonResult`, `lastPathOfLegendSeasonResult`, and `bestPathOfLegendSeasonResult`, but no stable season identifier. The UI therefore presents these as API field snapshots and does not assign month or season names.
 

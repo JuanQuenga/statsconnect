@@ -20,9 +20,10 @@ export function hubLaunchPath(game: GameId): `/launch/${GameId}` {
 
 export function destinationUrl(game: GameId, playerTag: string): string {
   const tag = normalizeTag(playerTag);
+  const destinationRoot = `${origin(game)}/`;
   const url = game === "brawl-stars"
-    ? new URL("/players", origin(game))
-    : new URL(`/players/${encodeURIComponent(tag)}`, origin(game));
+    ? new URL("players", destinationRoot)
+    : new URL(`players/${encodeURIComponent(tag)}`, destinationRoot);
 
   if (game === "brawl-stars") url.searchParams.set("tag", tag);
   url.searchParams.set("from", "statsconnect");

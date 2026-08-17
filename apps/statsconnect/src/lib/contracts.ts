@@ -1,4 +1,4 @@
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "@statsconnect/backend/data-model";
 
 export type GameId = "clash-royale" | "brawl-stars";
 export type ProfileId = Id<"connectedProfiles">;
