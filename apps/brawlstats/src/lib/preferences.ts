@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { removeSharedProfile, saveSharedProfile } from "@statsconnect/site-nav";
+import { removeConnectedProfile, saveConnectedProfile } from "@statsconnect/auth";
 
 export const supportedLocales = ["en", "es", "de", "fr", "pt", "ja", "ko"] as const;
 export type Locale = (typeof supportedLocales)[number];
@@ -118,7 +118,7 @@ export function saveProfile(profile: Omit<SavedProfile, "savedAt">) {
     ].slice(0, 20),
   }));
   if (profile.name?.trim()) {
-    saveSharedProfile({ game: "brawl-stars", tag, name: profile.name });
+    saveConnectedProfile({ game: "brawl-stars", tag, name: profile.name });
   }
 }
 
@@ -128,7 +128,7 @@ export function removeSavedProfile(tag: string) {
     ...current,
     savedProfiles: current.savedProfiles.filter((item) => item.tag !== clean),
   }));
-  removeSharedProfile("brawl-stars", clean);
+  removeConnectedProfile("brawl-stars", clean);
 }
 
 export function rememberRecentProfile(profile: Omit<SavedProfile, "savedAt">) {

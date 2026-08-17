@@ -3,7 +3,7 @@ import Link from "@/components/Link";
 import { CardArt } from "@/components/portfolio/CardArt";
 import type { ReactNode } from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { stripSupercellColorTags } from "@statsconnect/site-nav";
+import { stripSupercellColorTags } from "@/lib/clash/format";
 
 /** Renders a rank with its movement since the previous ranking snapshot. */
 export function RankCell({ rank, previousRank }: { rank?: number; previousRank?: number }) {

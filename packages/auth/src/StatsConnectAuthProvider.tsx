@@ -6,25 +6,29 @@ import {
   convexClient,
   crossDomainClient,
 } from "@convex-dev/better-auth/client/plugins";
-import {
-  readSharedProfiles,
-  replaceSharedProfiles,
-  subscribeSharedProfileUpdates,
-} from "@statsconnect/site-nav/shared-profiles";
 import { createAuthClient } from "better-auth/react";
-import { ConvexReactClient } from "convex/react";
+import { ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import {
   createContext,
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { mergeSavedProfiles, type SavedProfile } from "./sync-profiles";
+import { getBrowserConnectedProfilesAdapter } from "./browser-connected-profiles";
+import {
+  createConnectedProfilesModule,
+  type AccountConnectedProfilesAdapter,
+  type ConnectedProfile,
+  type ConnectedProfileAccountSnapshot,
+  type ConnectedProfileGame,
+  type ConnectedProfilesModule,
+  type ConnectedProfilesSnapshot,
+  type PersistedConnectedProfile,
+} from "./connected-profiles";
 import { createSharedAuthStorage } from "./shared-auth-storage";
 
 export type StatsConnectAccount = {
@@ -37,20 +41,21 @@ export type StatsConnectAccount = {
 export type StatsConnectAuthState = {
   account: StatsConnectAccount | null;
   isLoading: boolean;
+  profiles: readonly ConnectedProfile[];
+  profilesStatus: ConnectedProfilesSnapshot["status"];
+  profilesError: string | null;
+  saveProfile: (profile: ConnectedProfile) => Promise<void>;
+  removeProfile: (game: ConnectedProfileGame, tag: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 type AccountState = {
   user: StatsConnectAccount;
-  profiles: SavedProfile[];
+  profiles: PersistedConnectedProfile[];
 } | null;
 
-type ProfileInput = {
-  game: "brawl-stars" | "clash-royale";
-  tag: string;
-  name: string;
-};
+type ProfileInput = ConnectedProfile;
 
 const accountStateRef = makeFunctionReference<"query", Record<string, never>, AccountState>(
   "hub/savedProfiles:accountState",
@@ -63,14 +68,25 @@ const removeProfileRef = makeFunctionReference<"mutation", { game: ProfileInput[
   "hub/savedProfiles:remove",
 );
 
-const unauthenticatedState: StatsConnectAuthState = {
+const noopAccountAdapter: AccountConnectedProfilesAdapter = {
+  merge: async () => undefined,
+  save: async () => undefined,
+  remove: async () => undefined,
+};
+
+const defaultState: StatsConnectAuthState = {
   account: null,
   isLoading: false,
+  profiles: [],
+  profilesStatus: "guest",
+  profilesError: null,
+  saveProfile: async () => undefined,
+  removeProfile: async () => undefined,
   signInWithGoogle: async () => undefined,
   signOut: async () => undefined,
 };
 
-const AuthContext = createContext<StatsConnectAuthState>(unauthenticatedState);
+const AuthContext = createContext<StatsConnectAuthState>(defaultState);
 
 function siteUrlFromCloudUrl(convexUrl: string): string {
   return convexUrl.replace(/\.convex\.cloud\/?$/, ".convex.site");
@@ -87,6 +103,15 @@ function browserAuthStorage() {
     },
     legacyStorage: window.localStorage,
   });
+}
+
+function useProfilesModule(
+  createModule: () => ConnectedProfilesModule,
+): { module: ConnectedProfilesModule; snapshot: ConnectedProfilesSnapshot } {
+  const [module] = useState(createModule);
+  useEffect(() => () => module.dispose(), [module]);
+  const snapshot = useSyncExternalStore(module.subscribe, module.getSnapshot, module.getSnapshot);
+  return { module, snapshot };
 }
 
 export function StatsConnectAuthProvider({
@@ -112,7 +137,7 @@ export function StatsConnectAuthProvider({
     };
   }, [configuredSiteUrl, configuredUrl]);
 
-  if (!clients) return <AuthContext.Provider value={unauthenticatedState}>{children}</AuthContext.Provider>;
+  if (!clients) return <GuestProfiles>{children}</GuestProfiles>;
   const authClient = clients.auth as unknown as AuthClient;
 
   return (
@@ -120,6 +145,23 @@ export function StatsConnectAuthProvider({
       <ConfiguredAuth authClient={authClient}>{children}</ConfiguredAuth>
     </ConvexBetterAuthProvider>
   );
+}
+
+function GuestProfiles({ children }: { children: ReactNode }) {
+  const profiles = useProfilesModule(() => createConnectedProfilesModule({
+    account: noopAccountAdapter,
+    browser: getBrowserConnectedProfilesAdapter(),
+  }));
+  const value = useMemo<StatsConnectAuthState>(() => ({
+    ...defaultState,
+    profiles: profiles.snapshot.profiles,
+    profilesStatus: profiles.snapshot.status,
+    profilesError: profiles.snapshot.error,
+    saveProfile: profiles.module.save,
+    removeProfile: profiles.module.remove,
+    signOut: async () => profiles.module.signOut(),
+  }), [profiles.module, profiles.snapshot]);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 function ConfiguredAuth({
@@ -134,56 +176,37 @@ function ConfiguredAuth({
   const mergeProfiles = useMutation(mergeProfilesRef);
   const saveProfile = useMutation(saveProfileRef);
   const removeProfile = useMutation(removeProfileRef);
-  const migratedUserId = useRef<string | null>(null);
-  const pendingProfiles = useRef<ProfileInput[]>([]);
-  const [mergeCompletedUserId, setMergeCompletedUserId] = useState<string | null>(null);
-  const [readyUserId, setReadyUserId] = useState<string | null>(null);
-
-  useEffect(() => subscribeSharedProfileUpdates((update) => {
-    if (!isAuthenticated) return;
-    if (update.type === "save") {
-      void saveProfile(update.profile).catch(() => undefined);
-    } else {
-      void removeProfile({ game: update.game, tag: update.tag }).catch(() => undefined);
-    }
-  }), [isAuthenticated, removeProfile, saveProfile]);
-
-  useEffect(() => {
-    if (!accountState || migratedUserId.current === accountState.user.id) return;
-    migratedUserId.current = accountState.user.id;
-    const browserProfiles = readSharedProfiles();
-    const merged = mergeSavedProfiles(
-      accountState.profiles,
-      browserProfiles.map((profile) => ({ ...profile, updatedAt: 0 })),
-    );
-    const profiles = merged.map(({ game, name, tag }) => ({ game, name, tag }));
-    pendingProfiles.current = profiles;
-    replaceSharedProfiles(profiles);
-    void mergeProfiles({ profiles })
-      .then(() => setMergeCompletedUserId(accountState.user.id))
-      .catch(() => {
-        migratedUserId.current = null;
-        setMergeCompletedUserId(null);
-        setReadyUserId(null);
-      });
-  }, [accountState, mergeProfiles]);
+  const accountAdapter = useMemo<AccountConnectedProfilesAdapter>(() => ({
+    merge: async (profiles) => {
+      await mergeProfiles({ profiles: [...profiles] });
+    },
+    save: async (profile) => {
+      await saveProfile(profile);
+    },
+    remove: async (game, tag) => {
+      await removeProfile({ game, tag });
+    },
+  }), [mergeProfiles, removeProfile, saveProfile]);
+  const profiles = useProfilesModule(() => createConnectedProfilesModule({
+    account: accountAdapter,
+    browser: getBrowserConnectedProfilesAdapter(),
+  }));
 
   useEffect(() => {
-    if (!accountState || mergeCompletedUserId !== accountState.user.id) return;
-    const complete = pendingProfiles.current.every((pending) => accountState.profiles.some((profile) => (
-      profile.game === pending.game && profile.tag === pending.tag && profile.name === pending.name
-    )));
-    if (complete) setReadyUserId(accountState.user.id);
-  }, [accountState, mergeCompletedUserId]);
-
-  useEffect(() => {
-    if (!accountState || readyUserId !== accountState.user.id) return;
-    replaceSharedProfiles(accountState.profiles.map(({ game, name, tag }) => ({ game, name, tag })));
-  }, [accountState, readyUserId]);
+    const snapshot: ConnectedProfileAccountSnapshot | null = accountState
+      ? { userId: accountState.user.id, profiles: accountState.profiles }
+      : null;
+    void profiles.module.reconcileAccount(snapshot);
+  }, [accountState, profiles.module]);
 
   const value = useMemo<StatsConnectAuthState>(() => ({
     account: accountState?.user ?? null,
     isLoading: isConvexAuthLoading || (isAuthenticated && accountState === undefined),
+    profiles: profiles.snapshot.profiles,
+    profilesStatus: profiles.snapshot.status,
+    profilesError: profiles.snapshot.error,
+    saveProfile: profiles.module.save,
+    removeProfile: profiles.module.remove,
     signInWithGoogle: async () => {
       await authClient.signIn.social({
         provider: "google",
@@ -192,13 +215,16 @@ function ConfiguredAuth({
     },
     signOut: async () => {
       await authClient.signOut();
-      migratedUserId.current = null;
-      pendingProfiles.current = [];
-      setMergeCompletedUserId(null);
-      setReadyUserId(null);
-      replaceSharedProfiles([]);
+      profiles.module.signOut();
     },
-  }), [accountState, authClient, isAuthenticated, isConvexAuthLoading]);
+  }), [
+    accountState,
+    authClient,
+    isAuthenticated,
+    isConvexAuthLoading,
+    profiles.module,
+    profiles.snapshot,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

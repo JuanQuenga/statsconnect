@@ -1,5 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useStatsConnectAuth } from "@statsconnect/auth";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
@@ -17,7 +18,7 @@ function errorMessage(error: unknown): string {
 
 export function ConnectTagForm({ game }: { game: GameId }) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const auth = useStatsConnectAuth();
   const [tag, setTag] = useState("");
   const [preview, setPreview] = useState<AdapterResult<ProfileSummary> | null>(null);
   const validation = tag.length > 0 ? tagError(tag) : null;
@@ -26,10 +27,15 @@ export function ConnectTagForm({ game }: { game: GameId }) {
     onSuccess: setPreview,
   });
   const connectMutation = useMutation({
-    mutationFn: () => dataClient.connect(game, tag),
+    mutationFn: async () => {
+      if (!preview) throw new Error("Check the player tag before saving it.");
+      await auth.saveProfile({
+        game,
+        tag: preview.data.playerTag,
+        name: preview.data.display.name,
+      });
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["hub-state"] });
-      await queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
       await navigate({ to: "/launch/$game", params: { game } });
     },
   });

@@ -1,11 +1,5 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType, type CSSProperties, type ReactNode } from "react";
-import {
-  readSharedProfiles,
-  sharedProfileHref,
-  subscribeSharedProfiles,
-  type SharedProfile,
-  type SharedProfileOrigins,
-} from "./shared-profiles";
+import { useEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
+import { gameSwitcherHref } from "./navigation-targets";
 import "./site-navigation.css";
 
 export type SiteId = "statsconnect" | "brawl-stars" | "clash-royale";
@@ -50,7 +44,11 @@ export type SiteNavigationAuthAction = {
   onClick: () => void;
 };
 
-export type SiteNavigationOrigins = Partial<Record<SiteId, string>>;
+export type SiteNavigationProfile = {
+  game: Exclude<SiteId, "statsconnect">;
+  tag: string;
+  name: string;
+};
 
 type NavigationStyle = CSSProperties & {
   "--sc-nav-accent"?: string;
@@ -66,23 +64,16 @@ export type SiteNavigationProps = {
   language?: SiteNavigationLanguage;
   account?: SiteNavigationAccount;
   authAction?: SiteNavigationAuthAction;
-  networkOrigins?: SiteNavigationOrigins;
+  hubOrigin?: string;
+  profiles?: readonly SiteNavigationProfile[];
   renderSearch?: (onNavigate: () => void) => ReactNode;
-  statsConnectOrigin?: string;
 };
 
 const sites = [
-  { id: "statsconnect", label: "StatsConnect", detail: "Game hub", path: "/", icon: "⌂" },
-  { id: "brawl-stars", label: "Brawl Stars", detail: "Open BrawlStats", path: "/", icon: "★" },
-  { id: "clash-royale", label: "Clash Royale", detail: "Open Royale Stats", path: "/", icon: "♛" },
+  { id: "statsconnect", label: "StatsConnect", detail: "Game hub", icon: "⌂" },
+  { id: "brawl-stars", label: "Brawl Stars", detail: "Open BrawlStats", icon: "★" },
+  { id: "clash-royale", label: "Clash Royale", detail: "Open Royale Stats", icon: "♛" },
 ] as const;
-
-const EMPTY_SHARED_PROFILES: SharedProfile[] = [];
-const DEFAULT_ORIGINS: Record<SiteId, string> = {
-  statsconnect: "https://stats.juanquenga.com",
-  "brawl-stars": "https://brawlstats.juanquenga.com",
-  "clash-royale": "https://clashcrown.juanquenga.com",
-};
 
 export const siteNavigationLanguages = [
   { value: "en", shortLabel: "EN", label: "English" },
@@ -127,21 +118,6 @@ function writeSharedLanguage(value: string) {
   window.dispatchEvent(new CustomEvent(LANGUAGE_EVENT, { detail: value }));
 }
 
-function normalizeOrigin(origin: string | undefined): string {
-  return (origin?.trim() || "https://stats.juanquenga.com").replace(/\/$/, "");
-}
-
-function resolvedOrigins(
-  statsConnectOrigin: string | undefined,
-  networkOrigins: SiteNavigationOrigins | undefined,
-): Record<SiteId, string> {
-  return {
-    statsconnect: normalizeOrigin(networkOrigins?.statsconnect ?? statsConnectOrigin),
-    "brawl-stars": normalizeOrigin(networkOrigins?.["brawl-stars"] ?? DEFAULT_ORIGINS["brawl-stars"]),
-    "clash-royale": normalizeOrigin(networkOrigins?.["clash-royale"] ?? DEFAULT_ORIGINS["clash-royale"]),
-  };
-}
-
 function MenuIcon({ open }: { open: boolean }) {
   return open ? (
     <svg viewBox="0 0 24 24" aria-hidden><path d="m6 6 12 12M18 6 6 18" /></svg>
@@ -159,11 +135,11 @@ function GamepadIcon() {
   );
 }
 
-function NetworkBrand({ currentSite, origin }: { currentSite: SiteId; origin: string }) {
+function NetworkBrand({ currentSite, hubOrigin }: { currentSite: SiteId; hubOrigin?: string }) {
   return (
     <a
       className="sc-nav__network-brand"
-      href={`${origin}/`}
+      href={gameSwitcherHref("statsconnect", hubOrigin)}
       aria-label="StatsConnect hub"
       aria-current={currentSite === "statsconnect" ? "page" : undefined}
     >
@@ -173,23 +149,22 @@ function NetworkBrand({ currentSite, origin }: { currentSite: SiteId; origin: st
   );
 }
 
-function gameProfiles(profiles: readonly SharedProfile[], game: SharedProfile["game"]): SharedProfile[] {
+function gameProfiles(
+  profiles: readonly SiteNavigationProfile[],
+  game: SiteNavigationProfile["game"],
+): SiteNavigationProfile[] {
   return profiles.filter((profile) => profile.game === game);
 }
 
 function NetworkSites({
   currentSite,
-  origins,
+  hubOrigin,
   profiles,
 }: {
   currentSite: SiteId;
-  origins: Record<SiteId, string>;
-  profiles: readonly SharedProfile[];
+  hubOrigin?: string;
+  profiles: readonly SiteNavigationProfile[];
 }) {
-  const profileOrigins: SharedProfileOrigins = {
-    "brawl-stars": origins["brawl-stars"],
-    "clash-royale": origins["clash-royale"],
-  };
   return (
     <nav className="sc-nav__network-sites" aria-label="StatsConnect game sites">
       {sites.slice(1).map((site) => {
@@ -198,14 +173,14 @@ function NetworkSites({
         const saved = gameProfiles(profiles, site.id);
         return (
           <div className="sc-nav__network-group" key={site.id}>
-            <a className="sc-nav__network-game" href={`${origins[site.id]}${site.path}`} aria-current={current ? "page" : undefined}>
+            <a className="sc-nav__network-game" href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
               <span className="sc-nav__network-game-icon" aria-hidden>{site.icon}</span>
               <span>{site.label}</span>
             </a>
             {saved.map((profile) => (
               <a
                 className="sc-nav__network-profile"
-                href={sharedProfileHref(profile, profileOrigins)}
+                href={gameSwitcherHref(profile, hubOrigin)}
                 key={`${profile.game}:${profile.tag}`}
                 title={`${profile.name} · #${profile.tag}`}
               >
@@ -221,17 +196,13 @@ function NetworkSites({
 
 function GamesMenu({
   currentSite,
-  origins,
+  hubOrigin,
   profiles,
 }: {
   currentSite: SiteId;
-  origins: Record<SiteId, string>;
-  profiles: readonly SharedProfile[];
+  hubOrigin?: string;
+  profiles: readonly SiteNavigationProfile[];
 }) {
-  const profileOrigins: SharedProfileOrigins = {
-    "brawl-stars": origins["brawl-stars"],
-    "clash-royale": origins["clash-royale"],
-  };
   return (
     <details className="sc-nav__games">
       <summary>
@@ -246,7 +217,7 @@ function GamesMenu({
           const saved = site.id === "statsconnect" ? [] : gameProfiles(profiles, site.id);
           return (
             <div className="sc-nav__game-menu-group" key={site.id}>
-              <a href={`${origins[site.id]}${site.path}`} aria-current={current ? "page" : undefined}>
+              <a href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
                 <span className="sc-nav__game-icon" aria-hidden>{site.icon}</span>
                 <span>
                   <strong>{site.label}</strong>
@@ -254,7 +225,7 @@ function GamesMenu({
                 </span>
               </a>
               {saved.map((profile) => (
-                <a className="sc-nav__game-menu-profile" href={sharedProfileHref(profile, profileOrigins)} key={`${profile.game}:${profile.tag}`}>
+                <a className="sc-nav__game-menu-profile" href={gameSwitcherHref(profile, hubOrigin)} key={`${profile.game}:${profile.tag}`}>
                   <span aria-hidden>#</span>
                   <span>
                     <strong>{profile.name}</strong>
@@ -389,28 +360,26 @@ export function SiteNavigation({
   brand,
   currentSite,
   endContent,
+  hubOrigin,
   language,
   links,
   linkAdapter: LinkAdapter,
-  networkOrigins,
+  profiles = [],
   renderSearch,
-  statsConnectOrigin,
 }: SiteNavigationProps) {
   const [open, setOpen] = useState(false);
-  const profiles = useSyncExternalStore(subscribeSharedProfiles, readSharedProfiles, () => EMPTY_SHARED_PROFILES);
   const close = () => setOpen(false);
-  const origins = resolvedOrigins(statsConnectOrigin, networkOrigins);
   const style: NavigationStyle = { "--sc-nav-accent": accentColor };
 
   return (
     <header className="sc-nav" style={style}>
       <div className="sc-nav__network">
         <div className="sc-nav__network-inner">
-          <NetworkBrand currentSite={currentSite} origin={origins.statsconnect} />
-          <NetworkSites currentSite={currentSite} origins={origins} profiles={profiles} />
+          <NetworkBrand currentSite={currentSite} hubOrigin={hubOrigin} />
+          <NetworkSites currentSite={currentSite} hubOrigin={hubOrigin} profiles={profiles} />
           <div className="sc-nav__network-actions">
             <LanguageSelector language={language} />
-            <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} origins={origins} profiles={profiles} /></div>
+            <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} hubOrigin={hubOrigin} profiles={profiles} /></div>
             {account ? <AccountChip account={account} /> : null}
             {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
           </div>

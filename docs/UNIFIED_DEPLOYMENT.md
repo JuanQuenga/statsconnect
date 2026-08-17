@@ -45,7 +45,7 @@ Backups do not contain deployment code, environment variables, or scheduled func
 Do not import into an existing production deployment. Create a fresh target deployment and keep all three current production deployments available for rollback.
 
 1. Export a current snapshot from each production deployment.
-2. Import the Hub snapshot unchanged so `connectedProfiles` references retain their IDs.
+2. Import `savedProfiles`, `connectThrottles`, and `profileCache` from the Hub snapshot as individual tables. Do not import the removed `connectedProfiles` or `viewerSettings` tables.
 3. Extract the BrawlStats and ClashCrown snapshot ZIP files into separate directories.
 4. Prepare the game-owned tables:
 
@@ -59,4 +59,4 @@ Do not import into an existing production deployment. Create a fresh target depl
 7. Verify Hub connections, both player searches, pipeline status, API calls, and all 11 cron registrations.
 8. Pause the old crawlers, take final exports, apply the final delta, and only then change the frontend Convex URL and public DNS.
 
-The game datasets currently contain no schema-declared cross-table document IDs. Convex regenerates their IDs when you move them into renamed tables. Import the Hub data as an unchanged snapshot because `viewerSettings.activeProfileId` references `connectedProfiles`.
+The game datasets currently contain no schema-declared cross-table document IDs. Their IDs are regenerated when they move into renamed tables. Account profiles keep their owner IDs when `savedProfiles` is imported. Old viewer-owned `connectedProfiles` rows cannot be matched to an account and have no automatic server migration. Browser profiles still migrate from the previous Site Navigation storage when that browser opens the new app.

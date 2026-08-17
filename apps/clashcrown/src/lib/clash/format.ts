@@ -1,3 +1,9 @@
+import { getLocale, type Locale } from "@/lib/i18n";
+
+export function stripSupercellColorTags(value: string): string {
+  return value.replace(/<\/?c(?:[0-9a-f]{1,8})?>/gi, "");
+}
+
 /**
  * The Clash Royale API returns timestamps in ISO-8601 *basic* format
  * (`20260725T140000.000Z`), which `new Date()` cannot parse directly.
@@ -35,4 +41,3 @@ export function relativeTime(value?: string, locale: Locale = getLocale()) {
   const days = Math.round(hours / 24);
   return locale === "es" ? `hace ${days} d` : `${days}d ago`;
 }
-import { getLocale, type Locale } from "@/lib/i18n";

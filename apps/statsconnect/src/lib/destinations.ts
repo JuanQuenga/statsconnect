@@ -14,8 +14,9 @@ function origin(game: GameId): string {
   return (configured?.trim() || DEFAULT_ORIGINS[game]).replace(/\/$/, "");
 }
 
-export function hubLaunchPath(game: GameId): `/launch/${GameId}` {
-  return `/launch/${game}`;
+export function hubLaunchPath(game: GameId, playerTag?: string): string {
+  if (!playerTag) return `/launch/${game}`;
+  return `/launch/${game}?tag=${encodeURIComponent(normalizeTag(playerTag))}`;
 }
 
 export function destinationUrl(game: GameId, playerTag: string): string {
