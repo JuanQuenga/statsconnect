@@ -2,16 +2,15 @@ import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { useEffect, useMemo, useState } from "react";
-import { useAction } from "convex/react";
-import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/portfolio/Layout";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { cardSlug } from "@/lib/clash/cards";
 import { buildUpgradePlans, MAX_CARD_LEVEL, type CardUpgradePlan, type UpgradeRarity } from "@/lib/clash/upgradeCosts";
-import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
-import { mapPlayerBundle } from "@/lib/clash/mappers";
-import { player as mockPlayer, type Player } from "@/lib/mock-data";
+import { isConvexConfigured } from "@/lib/convex";
+import { usePlayerAcquisition } from "@/lib/clash/profileAcquisition";
+import type { Player } from "@/lib/clash/domain";
+import { player as mockPlayer } from "@/lib/mock-data";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 const RARITIES: readonly UpgradeRarity[] = ["Common", "Rare", "Epic", "Legendary", "Champion"];
@@ -30,15 +29,10 @@ export default function UpgradesPage() {
 }
 
 function LiveUpgrades({ tag }: { tag: string }) {
-  const getPlayerBundle = useAction(playerBundleAction);
-  const query = useQuery({
-    queryKey: ["player-upgrades", tag],
-    queryFn: async () => mapPlayerBundle(await getPlayerBundle({ tag })),
-    retry: false
-  });
+  const query = usePlayerAcquisition(tag);
 
   if (query.isLoading) return <Layout><LoadingState label="player upgrades" /></Layout>;
-  if (query.error) return <Layout><ErrorState message={errorMessage(query.error)} /></Layout>;
+  if (query.errorMessage) return <Layout><ErrorState message={query.errorMessage} /></Layout>;
   if (!query.data) return <Layout><ErrorState message="No player data was returned." /></Layout>;
   return <UpgradePlanner player={query.data} />;
 }

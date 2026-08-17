@@ -27,6 +27,7 @@ export type ApiCard = {
 export type ApiArena = {
   id?: number;
   name?: string;
+  rawName?: string;
 };
 
 export type ApiClanReference = {

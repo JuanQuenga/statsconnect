@@ -9,7 +9,7 @@ import { cardSlug } from "@/lib/clash/cards";
 import { deckMetaQuery, isConvexConfigured } from "@/lib/convex";
 import { useRouter } from "@/lib/router";
 import { DEFAULT_META_MODE, DEFAULT_META_WINDOW } from "@/lib/useCardMeta";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 
 type DeckBuilderProps = {
   cards: Card[];

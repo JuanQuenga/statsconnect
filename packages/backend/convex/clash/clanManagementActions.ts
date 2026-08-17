@@ -3,17 +3,20 @@
 import { anyApi } from "convex/server";
 import { v } from "convex/values";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
-import { normalizeTag, tagPath } from "./lib/tag";
+import {
+  clashData,
+  clashUpstream,
+  ClashUpstreamError,
+  type ClashUpstreamResponse,
+} from "./clashFetch";
+import { normalizeTag } from "./lib/tag";
 import type {
-  ApiClan,
   ApiClanMember,
   ApiCurrentRiverRace,
   ApiRiverRaceClan,
   ApiRiverRaceLog,
   ApiRiverRaceParticipant
 } from "./lib/types";
-
-declare const process: { env: Record<string, string | undefined> };
 
 const managementApi = anyApi.clash.clanManagement;
 const MAX_HISTORY_WEEKS = 7;
@@ -47,19 +50,10 @@ type WarWeek = {
   }>;
 };
 
-function apiBaseUrl(): string {
-  return (process.env.CLASH_ROYALE_API_BASE_URL ?? "https://api.clashroyale.com/v1").replace(/\/$/, "");
-}
-
-async function fetchClash<T>(endpoint: string, optional = false): Promise<T | null> {
-  const token = process.env.CLASH_ROYALE_API_TOKEN;
-  if (!token) throw new Error("CLASH_ROYALE_API_TOKEN is not configured for roster observations.");
-  const response = await fetch(`${apiBaseUrl()}${endpoint}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
-  });
-  if (optional && response.status === 404) return null;
-  if (!response.ok) throw new Error(`Clash Royale API returned ${response.status} while observing the clan.`);
-  return (await response.json()) as T;
+function optionalWarData<T>(response: ClashUpstreamResponse<T>): T | null {
+  if (response.ok) return response.data;
+  if (response.kind === "http" && response.status === 404) return null;
+  throw new ClashUpstreamError(response);
 }
 
 function parseApiTimestamp(value?: string): number | undefined {
@@ -153,19 +147,21 @@ function mapWarWeeks(
 }
 
 async function observeOne(ctx: ActionCtx, inputTag: string): Promise<ObserveResult> {
+  const upstream = clashUpstream(ctx);
   const tag = normalizeTag(inputTag);
   const requestedAt = Date.now();
   const prepared = await ctx.runMutation(managementApi.prepareObservation, { tag, requestedAt }) as PrepareResult;
   if (!prepared.shouldObserve) return { observed: false, observedAt: prepared.lastObservedAt };
 
   try {
-    const encoded = tagPath(tag);
-    const [clan, current, log] = await Promise.all([
-      fetchClash<ApiClan>(`/clans/${encoded}`),
-      fetchClash<ApiCurrentRiverRace>(`/clans/${encoded}/currentriverrace`, true),
-      fetchClash<ApiRiverRaceLog>(`/clans/${encoded}/riverracelog`, true)
+    const [clanResponse, currentResponse, logResponse] = await Promise.all([
+      upstream.clan(tag),
+      upstream.currentRiverRace(tag),
+      upstream.riverRaceLog(tag),
     ]);
-    if (!clan) throw new Error("The clan profile was not returned by the Clash Royale API.");
+    const clan = clashData(clanResponse);
+    const current = optionalWarData(currentResponse);
+    const log = optionalWarData(logResponse);
     const observedAt = Date.now();
     const members = (clan.memberList ?? []).flatMap((member) => {
       const clean = cleanMember(member);

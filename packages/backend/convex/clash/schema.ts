@@ -165,9 +165,17 @@ export const clashTables = {
 
   clashApiFetchLogs: defineTable({
     endpoint: v.string(),
+    operation: v.optional(v.string()),
     status: v.number(),
     ok: v.boolean(),
-    fetchedAt: v.number()
+    fetchedAt: v.number(),
+    durationMs: v.optional(v.number()),
+    errorKind: v.optional(v.union(
+      v.literal("configuration"),
+      v.literal("network"),
+      v.literal("http"),
+      v.literal("invalid_response")
+    ))
   }).index("by_fetched_at", ["fetchedAt"]),
 
   // --- Battle-log collection pipeline -------------------------------------

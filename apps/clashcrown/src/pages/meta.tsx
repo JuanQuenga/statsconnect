@@ -13,7 +13,7 @@ import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { averageElixir, copyDeckLink, variantArt, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardCatalog } from "@/lib/useCardCatalog";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 import { isConvexConfigured, topCardsQuery, topDecksQuery, topTowerTroopsQuery } from "@/lib/convex";
 import { useI18n } from "@/lib/i18n";
 

@@ -9,7 +9,8 @@ import { Layout } from "@/components/portfolio/Layout";
 import { mapCardsPayload } from "@/lib/clash/mappers";
 import { cardsAction, errorMessage, isConvexConfigured } from "@/lib/convex";
 import { useRouter } from "@/lib/router";
-import { cards as localCards, type Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
+import { cards as localCards } from "@/lib/mock-data";
 import { useI18n } from "@/lib/i18n";
 
 type DeckSurface = "discover" | "war" | "builder";

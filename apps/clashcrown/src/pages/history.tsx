@@ -10,7 +10,8 @@ import {
   leaderboardSnapshotsQuery,
   type HistoricalLeaderboard,
   type HistoricalLeaderboardDetail,
-  type HistoricalLeaderboardSnapshot
+  type HistoricalLeaderboardSnapshot,
+  type HistoricalLeaderboardSnapshotId
 } from "@/lib/history";
 import { useQuery } from "@tanstack/react-query";
 import { useConvex } from "convex/react";
@@ -59,8 +60,8 @@ function LeaderboardHistory() {
   const detailQuery = useQuery({
     queryKey: ["leaderboard-history-detail", snapshotId, comparisonId],
     queryFn: () => convex.query(leaderboardSnapshotQuery, {
-      snapshotId: snapshotId!,
-      ...(comparisonId ? { compareToId: comparisonId } : {}),
+      snapshotId: snapshotId as HistoricalLeaderboardSnapshotId,
+      ...(comparisonId ? { compareToId: comparisonId as HistoricalLeaderboardSnapshotId } : {}),
       limit: 100
     }),
     enabled: Boolean(snapshotId),

@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useMutation, useQuery } from "convex/react";
 import { removeSharedProfile, saveSharedProfile } from "@statsconnect/site-nav";
 import {
@@ -14,37 +22,34 @@ import {
   savePersonalProfileMutation,
   setDefaultPersonalProfileMutation,
   updatePersonalPreferencesMutation,
-  type PersonalAlert,
 } from "@/lib/convex";
 import { isConvexConfigured } from "@/lib/convex";
 import {
-  readLocalPersonalization,
-  replaceLocalDevice,
-  writeLocalPersonalization,
-  type AlertPreferences,
-  type LocalPersonalizationState,
-  type ProfileKind,
-  type RecentProfile,
-  type TrackedProfile,
+  LocalPersonalizationAdapter,
+  SynchronizedPersonalizationAdapter,
+  type ObservationInput,
+  type PersonalizationAlert,
+  type PersonalizationDevice,
+  type PersonalizationStore,
+  type ProfileInput,
+  type SynchronizedPersonalizationTransport,
+  type SyncStatus,
+} from "@/lib/personalizationPersistence";
+import type {
+  AlertPreferences,
+  ProfileKind,
+  RecentProfile,
+  TrackedProfile,
 } from "@/lib/recentProfiles";
 
-export type ProfileInput = Pick<TrackedProfile, "kind" | "tag" | "name" | "clan">;
-
-export type ObservationInput = ProfileInput & {
-  trophies?: number;
-  chestName?: string;
-  chestIndex?: number;
-  warTrophies?: number;
-};
-
-type SyncStatus = "local" | "connecting" | "synced" | "error";
+export type { ObservationInput, ProfileInput } from "@/lib/personalizationPersistence";
 
 type PersonalizationContextValue = {
   status: SyncStatus;
   profiles: TrackedProfile[];
   recents: RecentProfile[];
   preferences: AlertPreferences;
-  devices: Array<{ label: string; createdAt: number; lastSeenAt: number }>;
+  devices: PersonalizationDevice[];
   error: string;
   notificationPermission: NotificationPermission | "unsupported";
   track: (profile: ProfileInput) => Promise<void>;
@@ -63,23 +68,18 @@ type PersonalizationContextValue = {
 
 const PersonalizationContext = createContext<PersonalizationContextValue | null>(null);
 
-function normalizeTag(tag: string) {
-  return tag.replace(/^#/, "").trim().toUpperCase();
-}
+const sharedProfiles = {
+  save: (profile: ProfileInput) => {
+    if (profile.kind === "players") {
+      saveSharedProfile({ game: "clash-royale", tag: profile.tag, name: profile.name });
+    }
+  },
+  remove: (kind: ProfileKind, tag: string) => {
+    if (kind === "players") removeSharedProfile("clash-royale", tag);
+  },
+};
 
-function keyOf(profile: Pick<ProfileInput, "kind" | "tag">) {
-  return `${profile.kind}:${normalizeTag(profile.tag)}`;
-}
-
-function saveState(setState: React.Dispatch<React.SetStateAction<LocalPersonalizationState>>, update: (current: LocalPersonalizationState) => LocalPersonalizationState) {
-  setState((current) => {
-    const next = update(current);
-    writeLocalPersonalization(next);
-    return next;
-  });
-}
-
-function deviceLabel() {
+function deviceLabel(): string {
   if (typeof navigator === "undefined") return "Browser";
   const platform = navigator.platform || "Browser";
   return `${platform} browser`.slice(0, 60);
@@ -89,33 +89,7 @@ function notificationPermission(): NotificationPermission | "unsupported" {
   return typeof Notification === "undefined" ? "unsupported" : Notification.permission;
 }
 
-function randomPairCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(26));
-  let code = "";
-  let buffer = 0;
-  let bits = 0;
-  for (const byte of bytes) {
-    buffer = (buffer << 8) | byte;
-    bits += 8;
-    while (bits >= 5) {
-      bits -= 5;
-      code += alphabet[(buffer >>> bits) & 31];
-    }
-  }
-  if (bits > 0) code += alphabet[(buffer << (5 - bits)) & 31];
-  return code;
-}
-
-function formatPairCode(code: string) {
-  return code.match(/.{1,6}/g)?.join("-") ?? code;
-}
-
-function normalizePairCode(code: string) {
-  return code.toUpperCase().replace(/[^A-Z2-9]/g, "");
-}
-
-function downloadJson(payload: object) {
+function downloadJson(payload: object): void {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const href = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -125,77 +99,23 @@ function downloadJson(payload: object) {
   URL.revokeObjectURL(href);
 }
 
-function showNotifications(alerts: PersonalAlert[]) {
+function showNotifications(alerts: PersonalizationAlert[]): void {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-  for (const alert of alerts) new Notification(alert.title, { body: alert.body, tag: `clashcrown-${alert.type}` });
+  for (const alert of alerts) {
+    new Notification(alert.title, { body: alert.body, tag: `clashcrown-${alert.type}` });
+  }
 }
 
 export function PersonalizationProvider({ children }: { children: ReactNode }) {
-  return isConvexConfigured ? <SyncedProvider>{children}</SyncedProvider> : <LocalProvider>{children}</LocalProvider>;
+  return isConvexConfigured ? <SynchronizedProvider>{children}</SynchronizedProvider> : <LocalProvider>{children}</LocalProvider>;
 }
 
 function LocalProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState(readLocalPersonalization);
-  const [permission, setPermission] = useState(notificationPermission);
-
-  const value = useMemo<PersonalizationContextValue>(() => ({
-    status: "local",
-    profiles: state.profiles,
-    recents: state.recents,
-    preferences: state.preferences,
-    devices: [],
-    error: "",
-    notificationPermission: permission,
-    track: async (profile) => {
-      if (profile.kind === "players") saveSharedProfile({ game: "clash-royale", tag: profile.tag, name: profile.name });
-      saveState(setState, (current) => {
-        const now = Date.now();
-        const normalized = { ...profile, tag: normalizeTag(profile.tag) };
-        const existing = current.profiles.find((candidate) => keyOf(candidate) === keyOf(normalized));
-        const profiles = existing
-          ? current.profiles.map((candidate) => candidate === existing ? { ...candidate, ...normalized, updatedAt: now } : candidate)
-          : [{ ...normalized, isDefault: false, createdAt: now, updatedAt: now }, ...current.profiles];
-        return { ...current, profiles };
-      });
-    },
-    untrack: async (kind, tag) => {
-      if (kind === "players") removeSharedProfile("clash-royale", tag);
-      saveState(setState, (current) => ({
-        ...current,
-        profiles: current.profiles.filter((profile) => keyOf(profile) !== keyOf({ kind, tag })),
-      }));
-    },
-    setDefault: async (tag) => saveState(setState, (current) => ({
-      ...current,
-      profiles: current.profiles.map((profile) => ({ ...profile, isDefault: profile.kind === "players" && tag !== null && profile.tag === normalizeTag(tag) })),
-    })),
-    remember: async (profile) => saveState(setState, (current) => {
-      const recent = { ...profile, tag: normalizeTag(profile.tag), visitedAt: Date.now() };
-      return { ...current, recents: [recent, ...current.recents.filter((candidate) => keyOf(candidate) !== keyOf(recent))].slice(0, 12) };
-    }),
-    clearRecents: () => saveState(setState, (current) => ({ ...current, recents: [] })),
-    updatePreferences: async (preferences) => saveState(setState, (current) => ({ ...current, preferences })),
-    requestNotifications: async () => {
-      if (typeof Notification === "undefined") return "unsupported";
-      const result = await Notification.requestPermission();
-      setPermission(result);
-      return result;
-    },
-    observe: async () => undefined,
-    createPairCode: async () => { throw new Error("Sync requires a configured Convex deployment."); },
-    pairWithCode: async () => { throw new Error("Sync requires a configured Convex deployment."); },
-    exportData: () => downloadJson({ exportedAt: new Date().toISOString(), sync: "local-only", profiles: state.profiles, recents: state.recents, preferences: state.preferences }),
-    clearAll: async () => setState(replaceLocalDevice()),
-  }), [permission, state]);
-
-  return <PersonalizationContext.Provider value={value}>{children}</PersonalizationContext.Provider>;
+  const [adapter] = useState(() => new LocalPersonalizationAdapter({ sharedProfiles }));
+  return <AdapterProvider adapter={adapter}>{children}</AdapterProvider>;
 }
 
-function SyncedProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState(readLocalPersonalization);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState("");
-  const [permission, setPermission] = useState(notificationPermission);
+function SynchronizedProvider({ children }: { children: ReactNode }) {
   const ensureAccount = useMutation(ensurePersonalAccountMutation);
   const saveProfile = useMutation(savePersonalProfileMutation);
   const removeProfile = useMutation(removePersonalProfileMutation);
@@ -207,97 +127,65 @@ function SyncedProvider({ children }: { children: ReactNode }) {
   const createCode = useMutation(createPairingCodeMutation);
   const redeemCode = useMutation(redeemPairingCodeMutation);
   const clearAccount = useMutation(clearPersonalAccountMutation);
-  const remote = useQuery(personalStateQuery, ready ? { deviceSecret: state.deviceSecret } : "skip");
+
+  const [adapter] = useState(() => {
+    const transport: SynchronizedPersonalizationTransport = {
+      ensureAccount,
+      saveProfile,
+      removeProfile,
+      setDefaultProfile: saveDefault,
+      recordRecent: saveRecent,
+      clearRecents: clearRemoteRecents,
+      updatePreferences: savePreferences,
+      observeProfile: saveObservation,
+      createPairingCode: createCode,
+      redeemPairingCode: redeemCode,
+      clearAccount,
+    };
+    return new SynchronizedPersonalizationAdapter({ transport, sharedProfiles });
+  });
+  const snapshot = useAdapterSnapshot(adapter);
+  const remote = useQuery(
+    personalStateQuery,
+    snapshot.readyForRemoteQuery ? { deviceSecret: snapshot.state.deviceSecret } : "skip",
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    void ensureAccount({
-      deviceSecret: state.deviceSecret,
-      deviceLabel: deviceLabel(),
-      importedProfiles: state.migratedToSync ? [] : state.profiles.map(({ kind, tag, name, clan }) => ({ kind, tag, name, clan })),
-      importedRecents: state.migratedToSync ? [] : state.recents.map(({ kind, tag, name, clan, visitedAt }) => ({ kind, tag, name, clan, visitedAt })),
-      importedPreferences: state.preferences,
-    }).then(() => {
-      if (cancelled) return;
-      saveState(setState, (current) => ({ ...current, migratedToSync: true }));
-      setReady(true);
-      setError("");
-    }).catch((caught: unknown) => {
-      if (cancelled) return;
-      setReady(true);
-      setError(caught instanceof Error ? caught.message : "Sync is temporarily unavailable. Local changes are still saved.");
-    });
-    return () => { cancelled = true; };
-  }, [ensureAccount, state.deviceSecret]);
+    void adapter.connect(deviceLabel());
+  }, [adapter, snapshot.state.deviceSecret]);
 
   useEffect(() => {
-    if (!remote) return;
-    saveState(setState, (current) => ({
-      ...current,
-      profiles: remote.profiles,
-      recents: remote.recents,
-      preferences: remote.preferences,
-      migratedToSync: true,
-    }));
-    setError("");
-  }, [remote]);
+    if (remote) adapter.receiveRemote(remote);
+  }, [adapter, remote]);
 
-  const runRemote = useCallback(async (work: () => Promise<unknown>) => {
-    try {
-      await work();
-      setError("");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Sync failed. The local copy is still available.");
-      throw caught;
-    }
-  }, []);
+  return <AdapterProvider adapter={adapter}>{children}</AdapterProvider>;
+}
+
+function AdapterProvider({
+  adapter,
+  children,
+}: {
+  adapter: PersonalizationStore;
+  children: ReactNode;
+}) {
+  const snapshot = useAdapterSnapshot(adapter);
+  const [permission, setPermission] = useState(notificationPermission);
+  const { state } = snapshot;
 
   const value = useMemo<PersonalizationContextValue>(() => ({
-    status: error ? "error" : remote ? "synced" : "connecting",
+    status: snapshot.status,
     profiles: state.profiles,
     recents: state.recents,
     preferences: state.preferences,
-    devices: remote?.devices ?? [],
-    error,
+    devices: snapshot.devices,
+    error: snapshot.error,
     notificationPermission: permission,
-    track: async (profile) => {
-      const normalized = { ...profile, tag: normalizeTag(profile.tag) };
-      if (normalized.kind === "players") saveSharedProfile({ game: "clash-royale", tag: normalized.tag, name: normalized.name });
-      saveState(setState, (current) => {
-        const now = Date.now();
-        const existing = current.profiles.find((candidate) => keyOf(candidate) === keyOf(normalized));
-        const profiles = existing
-          ? current.profiles.map((candidate) => candidate === existing ? { ...candidate, ...normalized, updatedAt: now } : candidate)
-          : [{ ...normalized, isDefault: false, createdAt: now, updatedAt: now }, ...current.profiles];
-        return { ...current, profiles };
-      });
-      await runRemote(() => saveProfile({ deviceSecret: state.deviceSecret, profile: normalized }));
-    },
-    untrack: async (kind, tag) => {
-      if (kind === "players") removeSharedProfile("clash-royale", tag);
-      saveState(setState, (current) => ({ ...current, profiles: current.profiles.filter((profile) => keyOf(profile) !== keyOf({ kind, tag })) }));
-      await runRemote(() => removeProfile({ deviceSecret: state.deviceSecret, kind, tag: normalizeTag(tag) }));
-    },
-    setDefault: async (tag) => {
-      saveState(setState, (current) => ({
-        ...current,
-        profiles: current.profiles.map((profile) => ({ ...profile, isDefault: profile.kind === "players" && tag !== null && profile.tag === normalizeTag(tag) })),
-      }));
-      await runRemote(() => saveDefault({ deviceSecret: state.deviceSecret, tag }));
-    },
-    remember: async (profile) => {
-      const recent = { ...profile, tag: normalizeTag(profile.tag), visitedAt: Date.now() };
-      saveState(setState, (current) => ({ ...current, recents: [recent, ...current.recents.filter((candidate) => keyOf(candidate) !== keyOf(recent))].slice(0, 12) }));
-      await runRemote(() => saveRecent({ deviceSecret: state.deviceSecret, recent }));
-    },
-    clearRecents: () => {
-      saveState(setState, (current) => ({ ...current, recents: [] }));
-      void runRemote(() => clearRemoteRecents({ deviceSecret: state.deviceSecret })).catch(() => undefined);
-    },
-    updatePreferences: async (preferences) => {
-      saveState(setState, (current) => ({ ...current, preferences }));
-      await runRemote(() => savePreferences({ deviceSecret: state.deviceSecret, preferences }));
-    },
+    track: adapter.track.bind(adapter),
+    untrack: adapter.untrack.bind(adapter),
+    setDefault: adapter.setDefault.bind(adapter),
+    remember: adapter.remember.bind(adapter),
+    clearRecents: adapter.clearRecents.bind(adapter),
+    updatePreferences: adapter.updatePreferences.bind(adapter),
     requestNotifications: async () => {
       if (typeof Notification === "undefined") return "unsupported";
       const result = await Notification.requestPermission();
@@ -305,38 +193,26 @@ function SyncedProvider({ children }: { children: ReactNode }) {
       return result;
     },
     observe: async (observation) => {
-      const alerts = await saveObservation({ deviceSecret: state.deviceSecret, ...observation, tag: normalizeTag(observation.tag) });
-      showNotifications(alerts);
+      showNotifications(await adapter.observe(observation));
     },
-    createPairCode: async () => {
-      const raw = randomPairCode();
-      const result = await createCode({ deviceSecret: state.deviceSecret, codeSecret: raw });
-      return { code: formatPairCode(raw), expiresAt: result.expiresAt };
-    },
-    pairWithCode: async (code) => {
-      const normalized = normalizePairCode(code);
-      if (normalized.length < 40) throw new Error("Enter the complete pairing code.");
-      await runRemote(() => redeemCode({ deviceSecret: state.deviceSecret, codeSecret: normalized, deviceLabel: deviceLabel() }));
-    },
+    createPairCode: adapter.createPairCode.bind(adapter),
+    pairWithCode: (code) => adapter.pairWithCode(code, deviceLabel()),
     exportData: () => downloadJson({
       exportedAt: new Date().toISOString(),
-      sync: "paired-capability",
+      sync: snapshot.status === "local" ? "local-only" : "paired-capability",
       profiles: state.profiles,
       recents: state.recents,
       preferences: state.preferences,
-      devices: remote?.devices ?? [],
+      ...(snapshot.status === "local" ? {} : { devices: snapshot.devices }),
     }),
-    clearAll: async () => {
-      await runRemote(() => clearAccount({ deviceSecret: state.deviceSecret }));
-      setState(replaceLocalDevice());
-      setReady(false);
-    },
-  }), [
-    clearAccount, clearRemoteRecents, createCode, error, permission, ready, redeemCode, remote, removeProfile, runRemote, saveDefault,
-    saveObservation, savePreferences, saveProfile, saveRecent, state,
-  ]);
+    clearAll: adapter.clearAll.bind(adapter),
+  }), [adapter, permission, snapshot, state]);
 
   return <PersonalizationContext.Provider value={value}>{children}</PersonalizationContext.Provider>;
+}
+
+function useAdapterSnapshot(adapter: PersonalizationStore) {
+  return useSyncExternalStore(adapter.subscribe, adapter.getSnapshot, adapter.getSnapshot);
 }
 
 export function usePersonalization() {

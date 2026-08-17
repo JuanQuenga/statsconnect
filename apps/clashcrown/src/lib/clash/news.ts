@@ -1,20 +1,9 @@
+import type { FunctionReturnType } from "convex/server";
 import type { Locale } from "@/lib/i18n";
+import { clashBackend } from "@/lib/platformBackend";
 
-export type OfficialNewsArticle = {
-  title: string;
-  url: string;
-  publishedAt: string;
-  imageUrl: string | null;
-  category: string;
-};
-
-export type OfficialNewsPayload = {
-  articles: OfficialNewsArticle[];
-  fetchedAt: number;
-  stale: boolean;
-  locale: Locale;
-  sourceUrl: string;
-};
+export type OfficialNewsPayload = FunctionReturnType<typeof clashBackend.catalog.officialNews>;
+export type OfficialNewsArticle = OfficialNewsPayload["articles"][number];
 
 export const officialArchiveUrl: Record<Locale, string> = {
   en: "https://supercell.com/en/games/clashroyale/blog/",

@@ -1,13 +1,12 @@
 import { AlertCircle, Check, Copy, Info, LoaderCircle, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useAction, useQuery as useConvexQuery } from "convex/react";
+import { useQuery as useConvexQuery } from "convex/react";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
 import { copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
-import { mapPlayerBundle } from "@/lib/clash/mappers";
+import { usePlayerAcquisition } from "@/lib/clash/profileAcquisition";
 import { normalizeTag } from "@/lib/clash/tag";
 import {
   deckCost,
@@ -19,8 +18,8 @@ import {
   type DiscoverySort,
   type PersonalizedDeck
 } from "@/lib/deckDiscovery";
-import { errorMessage, playerBundleAction } from "@/lib/convex";
-import type { Card, Player } from "@/lib/mock-data";
+import { errorMessage } from "@/lib/convex";
+import type { Card, Player } from "@/lib/clash/domain";
 
 type DiscoveryView = "discover" | "war";
 
@@ -47,7 +46,6 @@ function numeric(value: string, fallback: number) {
 }
 
 export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDiscoveryProps) {
-  const getPlayer = useAction(playerBundleAction);
   const [tagInput, setTagInput] = useState("");
   const [playerTag, setPlayerTag] = useState("");
   const [tagError, setTagError] = useState("");
@@ -90,12 +88,7 @@ export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDi
     limit: 100
   });
 
-  const playerQuery = useQuery({
-    queryKey: ["deck-discovery-player", playerTag],
-    queryFn: async () => mapPlayerBundle(await getPlayer({ tag: playerTag })),
-    enabled: Boolean(playerTag),
-    retry: false
-  });
+  const playerQuery = usePlayerAcquisition(playerTag, { enabled: Boolean(playerTag) });
   const player = playerQuery.data;
 
   const costFiltered = useMemo(() => {
@@ -163,16 +156,16 @@ export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDi
         tagInput={tagInput}
         setTagInput={setTagInput}
         onSubmit={connectPlayer}
-        loading={playerQuery.isFetching}
+        loading={playerQuery.isRefreshing}
         player={player}
-        error={tagError || (playerQuery.error ? errorMessage(playerQuery.error) : "")}
+        error={tagError || playerQuery.errorMessage || ""}
         onClear={() => { setPlayerTag(""); setTagInput(""); }}
       />
 
       {view === "war" ? (
         <WarDiscovery
           player={player}
-          loading={warDiscovery === undefined || playerQuery.isFetching}
+          loading={warDiscovery === undefined || playerQuery.isRefreshing}
           dataAvailable={Boolean(warDiscovery?.decks.length)}
           warSet={warSet}
           observed={personalizedWar}

@@ -8,7 +8,7 @@ import type {
   Player,
   PlayerAchievement,
   PlayerBadge
-} from "@/lib/mock-data";
+} from "@/lib/clash/domain";
 import {
   activeCardVariant,
   arenaImage,

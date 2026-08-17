@@ -1,19 +1,17 @@
 import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
-import { useAction } from "convex/react";
-import { useQuery } from "@tanstack/react-query";
 import { FormEvent, useEffect, useState } from "react";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { Layout } from "@/components/portfolio/Layout";
 import styles from "@/components/PlayerComparison.module.css";
 import { cardSlug } from "@/lib/clash/cards";
-import { errorMessage, isConvexConfigured, playerBundleAction } from "@/lib/convex";
-import { mapPlayerBundle } from "@/lib/clash/mappers";
+import { isConvexConfigured } from "@/lib/convex";
+import { usePlayerAcquisition } from "@/lib/clash/profileAcquisition";
 import { normalizeTag } from "@/lib/clash/tag";
 import type { FavoriteProfile, RecentProfile } from "@/lib/recentProfiles";
-import type { Card, Player } from "@/lib/mock-data";
+import type { Card, Player } from "@/lib/clash/domain";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 export default function PlayerComparePage() {
@@ -108,20 +106,11 @@ export default function PlayerComparePage() {
 }
 
 function ComparisonResults({ tagA, tagB }: { tagA: string; tagB: string }) {
-  const getPlayerBundle = useAction(playerBundleAction);
-  const first = useQuery({
-    queryKey: ["player-compare", tagA],
-    queryFn: async () => mapPlayerBundle(await getPlayerBundle({ tag: tagA })),
-    retry: false
-  });
-  const second = useQuery({
-    queryKey: ["player-compare", tagB],
-    queryFn: async () => mapPlayerBundle(await getPlayerBundle({ tag: tagB })),
-    retry: false
-  });
+  const first = usePlayerAcquisition(tagA);
+  const second = usePlayerAcquisition(tagB);
 
   if (first.isLoading || second.isLoading) return <LoadingState label="player comparison" />;
-  if (first.error || second.error) return <ErrorState message={errorMessage(first.error ?? second.error)} />;
+  if (first.errorMessage || second.errorMessage) return <ErrorState message={first.errorMessage ?? second.errorMessage ?? "Player comparison failed."} />;
   if (!first.data || !second.data) return <ErrorState message="No player data was returned." />;
 
   return <ComparisonView first={first.data} second={second.data} />;

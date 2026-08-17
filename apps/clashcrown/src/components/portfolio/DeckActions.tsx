@@ -1,7 +1,7 @@
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { copyDeckLink } from "@/lib/clash/assets";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 import styles from "./DeckActions.module.css";
 
 export function deckLinkForCards(cards: Card[]): string | undefined {

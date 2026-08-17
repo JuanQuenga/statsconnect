@@ -9,7 +9,7 @@ import { modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { UNKNOWN_CARD_IMAGE, variantArt } from "@/lib/clash/assets";
 import { cardReportQuery, deckReportQuery, towerReportQuery, type Archetype, type CardReport, type DeckReport, type EntityTrend } from "@/lib/analytics";
 import { useRouter } from "@/lib/router";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 
 function pct(value: number, signed = false) {
   const number = value * 100;

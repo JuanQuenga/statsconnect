@@ -9,7 +9,7 @@ import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { variantArt, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardCatalog } from "@/lib/useCardCatalog";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 import type { PipelineRun, PipelineStatusPayload } from "@/lib/clash/types";
 import {
   isConvexConfigured,

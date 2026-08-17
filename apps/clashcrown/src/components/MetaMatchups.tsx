@@ -1,27 +1,13 @@
-import { makeFunctionReference } from "convex/server";
+import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { UNKNOWN_CARD_IMAGE, variantArt } from "@/lib/clash/assets";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
+import { clashBackend } from "@/lib/platformBackend";
 
-type Matchup = {
-  oppDeckHash: string;
-  cardIds: number[];
-  uses: number;
-  wins: number;
-  winRate: number;
-};
-
-type DeckMatchupsPayload = {
-  windowDays: number;
-  minUses: number;
-  best: Matchup[];
-  worst: Matchup[];
-};
-
-const deckMatchupsQuery = makeFunctionReference<"query", { deckHash: string }, DeckMatchupsPayload>(
-  "meta:deckMatchups"
-);
+const deckMatchupsQuery = clashBackend.meta.deckMatchups;
+type DeckMatchupsPayload = FunctionReturnType<typeof deckMatchupsQuery>;
+type Matchup = DeckMatchupsPayload["best"][number];
 
 function pct(value: number) {
   return `${(value * 100).toFixed(1)}%`;

@@ -3,7 +3,7 @@ import Link from "@/components/Link";
 import { RefreshCcw, Settings2, Swords, User } from "lucide-react";
 import { RankCell } from "@/components/portfolio/DataTable";
 import { relativeTime } from "@/lib/clash/format";
-import type { Clan } from "@/lib/mock-data";
+import type { Clan } from "@/lib/clash/domain";
 import { useI18n, type Locale } from "@/lib/i18n";
 
 export function ClanProfile({ clan }: { clan: Clan }) {

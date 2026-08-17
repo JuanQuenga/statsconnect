@@ -1,5 +1,5 @@
 import Image from "@/components/Image";
-import type { Card } from "@/lib/mock-data";
+import type { Card } from "@/lib/clash/domain";
 import { Card as CardSurface, CardContent } from "@/components/ui/card";
 
 export function CardGrid({ cards }: { cards: Card[] }) {
