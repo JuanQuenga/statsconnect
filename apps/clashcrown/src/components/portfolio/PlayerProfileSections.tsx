@@ -103,6 +103,7 @@ export function PlayerBadgeSection({ badges = [] }: { badges?: PlayerBadge[] }) 
 }
 
 function BadgeCard({ badge }: { badge: PlayerBadge }) {
+  const label = humanizeBadgeName(badge.name);
   const level = optionalNumber(badge.level);
   const maxLevel = optionalNumber(badge.maxLevel);
   const progress = formatOptionalNumber(badge.progress);
@@ -112,22 +113,31 @@ function BadgeCard({ badge }: { badge: PlayerBadge }) {
   return (
     <article className="profile-badge-card">
       <div className="profile-badge-art">
-        {badge.image ? <CardArt src={badge.image} alt="" width={54} height={54} fallback="/images/icons/crown-gold.png" /> : <Award size={32} />}
+        {badge.image ? <CardArt src={badge.image} alt="" width={96} height={96} fallback="/images/icons/crown-gold.png" /> : <Award size={42} />}
       </div>
       <div>
-        <strong>{badge.name}</strong>
+        <strong>{label}</strong>
         {level !== undefined ? (
           <span>Level {level}{maxLevel !== undefined ? ` of ${maxLevel}` : ""}</span>
         ) : null}
         {progress !== undefined ? <small>{progress} progress</small> : null}
         {levelProgress !== undefined ? (
-          <span className="badge-level-track" role="progressbar" aria-label={`${badge.name} badge level`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(levelProgress)}>
+          <span className="badge-level-track" role="progressbar" aria-label={`${label} badge level`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(levelProgress)}>
             <i style={{ width: `${levelProgress}%` }} />
           </span>
         ) : null}
       </div>
     </article>
   );
+}
+
+function humanizeBadgeName(name: string) {
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Za-z])(\d)/g, "$1 $2")
+    .replace(/(\d)([A-Za-z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function PlayerAchievementsSection({ achievements = [] }: { achievements?: PlayerAchievement[] }) {
@@ -202,12 +212,13 @@ function ProfileFeatureStyles() {
     .support-card-list img { width: 54px; height: 68px; object-fit: contain; }
     .support-card-list span { overflow: hidden; max-width: 100%; color: white; font: 700 10px var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
     .support-card-list small { color: #8ea2c4; font: 9px var(--font-ui); }
-    .profile-badge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-    .profile-badge-card { min-width: 0; display: grid; grid-template-columns: 62px 1fr; gap: 12px; align-items: center; min-height: 94px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 40%, transparent); }
-    .profile-badge-art { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 16px; color: var(--primary); background: rgba(43, 84, 137, .52); }
-    .profile-badge-art img { max-width: 54px; max-height: 54px; object-fit: contain; }
+    .profile-badge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); column-gap: 24px; row-gap: 2px; }
+    .profile-badge-card { min-width: 0; display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; min-height: 116px; padding: 10px 4px; background: radial-gradient(circle at 42px 50%, rgba(94, 172, 255, .09), transparent 72px); box-shadow: inset 0 -1px rgba(88, 118, 157, .2); }
+    .profile-badge-art { width: 92px; height: 92px; position: relative; display: grid; place-items: center; color: var(--primary); }
+    .profile-badge-art::before { content: ""; width: 64px; height: 64px; position: absolute; border-radius: 50%; background: rgba(74, 151, 255, .22); filter: blur(18px); }
+    .profile-badge-art img { z-index: 1; width: 96px; max-width: none; height: 96px; max-height: none; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .34)); }
     .profile-badge-card > div:last-child { min-width: 0; display: grid; gap: 5px; }
-    .profile-badge-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-badge-card strong { overflow: hidden; font-size: 13px; line-height: 1.25; text-overflow: ellipsis; }
     .profile-badge-card span, .profile-badge-card small { color: var(--muted-foreground); font: 10px var(--font-ui); }
     .badge-level-track { height: 5px; overflow: hidden; border-radius: 999px; background: var(--secondary); }
     .badge-level-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #498fff, #7ae0ff); }
@@ -233,6 +244,10 @@ function ProfileFeatureStyles() {
       .favorite-card-panel { grid-template-columns: 74px 1fr; }
       .favorite-card-panel > img { width: 74px; height: 94px; }
       .profile-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .profile-badge-grid { grid-template-columns: 1fr; }
+      .profile-badge-card { grid-template-columns: 82px 1fr; min-height: 104px; }
+      .profile-badge-art { width: 82px; height: 82px; }
+      .profile-badge-art img { width: 88px; height: 88px; }
     }
   `}</style>;
 }

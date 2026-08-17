@@ -203,43 +203,33 @@
 .cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 3px;
 }
 
 .card {
   position: relative;
   min-width: 0;
-  padding: 7px 4px 6px;
-  border: 1px solid rgba(62, 88, 128, .18);
-  border-radius: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
   color: white;
-  background: rgba(15, 45, 82, .55);
+  background: transparent;
   text-align: center;
+  transition: transform .18s ease;
 }
 
 .card:hover {
-  border-color: rgba(238, 102, 239, .55);
+  transform: translateY(-2px);
 }
 
-.card :global(img) {
+.card :global(.game-card-art) {
   display: block;
   width: 100%;
-  height: 82px;
-  object-fit: contain;
-}
-
-.card strong {
-  display: block;
-  overflow: hidden;
-  margin-top: 4px;
-  font: 10px/1.2 var(--font-ui);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  height: auto;
 }
 
 .shared {
-  border-color: rgba(238, 102, 239, .62);
-  background: rgba(126, 44, 141, .25);
+  filter: drop-shadow(0 0 5px rgba(238, 102, 239, .7));
 }
 
 .sharedBadge {

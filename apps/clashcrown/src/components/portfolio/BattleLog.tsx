@@ -1,6 +1,8 @@
 import Link from "@/components/Link";
-import { CardArt } from "@/components/portfolio/CardArt";
 import { DeckActions } from "@/components/portfolio/DeckActions";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
+import { cardSlug } from "@/lib/clash/cards";
 import type { Battle, Card } from "@/lib/clash/domain";
 import styles from "./BattleLog.module.css";
 
@@ -114,34 +116,19 @@ function BattleSide({ side }: { side: Side }) {
           {towerHitPoints ? <div><dt>Towers left</dt><dd>{towerHitPoints}</dd></div> : null}
         </dl>
       ) : null}
-      <DeckGrid cards={side.cards} />
+      {side.cards.length ? <DeckCardGrid cards={side.cards} label={title} size="compact" /> : <p className={styles.unavailable}>Deck not returned by the API.</p>}
       {side.supportCards.length ? (
         <div className={styles.towerTroops}>
           <span>Tower troop</span>
-          <DeckGrid cards={side.supportCards} support />
+          <div className={styles.supportDeck}>
+            {side.supportCards.map((card, index) => (
+              <Link href={`/cards/${cardSlug(card.name)}`} key={`${card.id ?? card.name}-${index}`} aria-label={card.name}>
+                <GameCardArt card={card} size="library" />
+              </Link>
+            ))}
+          </div>
         </div>
       ) : null}
     </section>
-  );
-}
-
-function DeckGrid({ cards, support = false }: { cards: Card[]; support?: boolean }) {
-  if (!cards.length) return <p className={styles.unavailable}>Deck not returned by the API.</p>;
-  return (
-    <div className={`${styles.deck} ${support ? styles.supportDeck : ""}`} role="list" aria-label={support ? "Tower troop" : "Cards"}>
-      {cards.map((card, index) => <BattleCardSlot key={`${card.id ?? card.name}-${index}`} card={card} />)}
-    </div>
-  );
-}
-
-function BattleCardSlot({ card }: { card: Card }) {
-  const detail = [card.variant, card.level !== undefined ? `level ${card.level}` : undefined].filter(Boolean).join(", ");
-  return (
-    <div className={styles.slot} role="listitem" title={`${card.name}${detail ? `, ${detail}` : ""}`}>
-      {card.variant ? <span className={styles.variant}>{card.variant === "Evolution" ? "EVO" : "HERO"}</span> : null}
-      {card.level !== undefined ? <span className={styles.level}>Lv {card.level}</span> : null}
-      <CardArt src={card.image} alt={`${card.name}${detail ? `, ${detail}` : ""}`} width={74} height={91} />
-      <strong>{card.name}</strong>
-    </div>
   );
 }

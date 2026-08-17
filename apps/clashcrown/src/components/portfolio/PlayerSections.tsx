@@ -10,6 +10,7 @@ import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { DeckActions } from "@/components/portfolio/DeckActions";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollection";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
 import { TrophyActivityChart } from "@/components/portfolio/TrophyActivityChart";
@@ -38,7 +39,6 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
         <Image src={player.arenaImage} alt="" width={150} height={150} priority />
         {player.level !== undefined ? (
           <span className="profile-level-badge" aria-label={`${locale === "es" ? "Nivel" : "Level"} ${player.level}`}>
-            <small>{locale === "es" ? "Nivel" : "Level"}</small>
             {player.level}
           </span>
         ) : null}
@@ -303,9 +303,7 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
         </div>
         <DeckActions cards={cards} label="current deck" compact />
       </div>
-      <div className="current-deck-cluster" aria-label="Current eight-card deck">
-        {cards.map((card, index) => <DeckCardLink key={`${card.name}-${index}`} card={card} />)}
-      </div>
+      <DeckCardGrid cards={cards} label="Current eight-card deck" size="large" className="current-deck-cluster" />
       {supportCards.length ? (
         <div className="current-deck-support">
           <h3>Tower Troop</h3>
@@ -329,7 +327,7 @@ function CurrentDeckStyles() {
     .current-deck-heading > div:first-child { display: grid; gap: 5px; }
     .deck-cost-summary { margin: 0; color: var(--muted-foreground); font: 11px var(--font-ui); }
     .current-deck-heading > [aria-label] { flex: none; }
-    .current-deck-cluster { width: min(100%, 760px); display: grid; grid-template-columns: repeat(4, minmax(0, 168px)); justify-content: center; gap: 14px; margin: 8px auto 0; padding: 24px; border: 1px solid var(--border); border-radius: 18px; background: radial-gradient(circle at 50% 25%, rgba(59, 111, 180, .2), transparent 68%), color-mix(in srgb, var(--secondary) 36%, transparent); }
+    .current-deck-cluster { margin: 8px auto 0; padding: 14px 0; }
     .current-deck-card { min-width: 0; display: grid; place-items: center; border-radius: 13px; transition: background .18s ease, transform .18s ease; }
     .current-deck-card:hover { background: rgba(217, 107, 243, .08); transform: translateY(-3px); }
     .current-deck-support { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
@@ -340,8 +338,7 @@ function CurrentDeckStyles() {
     @media (max-width: 680px) {
       .current-deck-heading { align-items: flex-start; }
       .current-deck-heading > [aria-label] { width: 100%; }
-      .current-deck-cluster { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 12px 8px; }
-      .current-deck-card .game-card-art { width: 100%; }
+      .current-deck-cluster { padding-inline: 0; }
       .current-deck-support { align-items: flex-start; }
     }
   `}</style>;
@@ -370,9 +367,7 @@ export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
               <Badge variant="outline">{deck.uses} {deck.uses === 1 ? "battle" : "battles"}</Badge>
             </CardHeader>
             <CardContent className="personal-deck-content">
-              <div className="personal-deck-cards" aria-label={`Cards in deck ${index + 1}`}>
-                {deck.cards.map((card, cardIndex) => <DeckThumbnail key={`${card.name}-${cardIndex}`} card={card} />)}
-              </div>
+              <DeckCardGrid cards={deck.cards} label={`Cards in deck ${index + 1}`} size="standard" className="personal-deck-cards" />
               <div className="personal-deck-metrics">
                 <DeckMetric label="Win rate" value={`${deck.winRate.toFixed(1)}%`} emphasis={winRateTone(deck.winRate)} note={`${deck.wins}–${deck.uses - deck.wins} record`} />
                 <DeckMetric label="Average crowns" value={deck.averageCrowns.toFixed(2)} note="per battle" />
@@ -421,11 +416,6 @@ function battleModeLabel(mode: string) {
     .trim();
 }
 
-function DeckThumbnail({ card }: { card: Card }) {
-  const label = card.variant ? `${card.name} (${card.variant})` : card.name;
-  return <CardArt src={card.image} alt={label} width={64} height={80} />;
-}
-
 function DeckAnalyticsStyles() {
   return (
     <style>{`
@@ -440,8 +430,7 @@ function DeckAnalyticsStyles() {
       .personal-deck-index { width: 28px; height: 28px; display: grid; flex: none; place-items: center; border-radius: 9px; color: var(--primary); background: rgba(217, 107, 243, .1); font: 800 10px var(--font-ui); }
       .personal-deck-header [data-slot="badge"] { height: 26px; border-color: var(--border); color: var(--muted-foreground); background: var(--secondary); }
       .personal-deck-content { display: grid; gap: 16px; padding-block: 18px; }
-      .personal-deck-cards { width: min(100%, 408px); display: grid; grid-template-columns: repeat(4, minmax(0, 96px)); justify-content: center; gap: 8px; align-items: center; margin-inline: auto; }
-      .personal-deck-cards img { width: 100%; height: 118px; object-fit: contain; margin: 0; filter: drop-shadow(0 9px 11px rgba(0, 0, 0, .32)); }
+      .personal-deck-cards { margin-inline: auto; }
       .personal-deck-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--border); }
       .personal-deck-metric { min-width: 0; display: grid; align-content: center; gap: 3px; padding: 13px 10px; }
       .personal-deck-metric + .personal-deck-metric { border-left: 1px solid var(--border); }
@@ -455,16 +444,14 @@ function DeckAnalyticsStyles() {
       .personal-deck-footer > div { width: 100%; }
       @media (max-width: 980px) {
         .personal-deck-grid { grid-template-columns: 1fr; }
-        .personal-deck-cards { width: min(100%, 472px); grid-template-columns: repeat(4, minmax(0, 112px)); }
-        .personal-deck-cards img { height: 138px; }
+        .personal-deck-cards { --deck-grid-max-width: 472px; }
       }
       @media (max-width: 680px) {
         .deck-analytics-heading h2 { max-width: 100%; font-size: clamp(23px, 7vw, 28px); line-height: 1.05; text-wrap: balance; }
         .personal-deck-grid { gap: 10px; }
         .personal-deck-card { border-radius: 14px; }
         .personal-deck-header { padding-inline: 12px; }
-        .personal-deck-cards { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
-        .personal-deck-cards img { height: 88px; }
+        .personal-deck-cards { width: 100%; }
         .personal-deck-metric { padding-inline: 8px; }
         .personal-deck-metric strong { font-size: 17px; }
         .personal-deck-metric span { display: none; }

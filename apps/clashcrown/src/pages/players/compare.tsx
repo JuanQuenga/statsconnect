@@ -2,7 +2,7 @@ import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { FormEvent, useEffect, useState } from "react";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { Layout } from "@/components/portfolio/Layout";
 import styles from "@/components/PlayerComparison.module.css";
@@ -193,8 +193,7 @@ function DeckColumn({ cards, shared }: { cards: Card[]; shared: Set<string> }) {
               aria-label={`${card.name}${isShared ? " — shared by both players" : ""}`}
             >
               {isShared ? <span className={styles.sharedBadge}>Shared</span> : null}
-              <CardArt src={card.image} alt={card.name} width={82} height={100} />
-              <strong>{card.name}</strong>
+              <GameCardArt card={card} size="library" />
             </Link>
           );
         })}
