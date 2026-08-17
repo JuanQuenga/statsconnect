@@ -1,7 +1,4 @@
-import type { Id } from "../../convex/_generated/dataModel";
-
 export type GameId = "clash-royale" | "brawl-stars";
-export type ProfileId = Id<"connectedProfiles">;
 
 export type ProfileDisplay = {
   name: string;
@@ -12,53 +9,6 @@ export type ProfileDisplay = {
 
 export type ProfileSummary = { game: GameId; playerTag: string; display: ProfileDisplay };
 
-export type ConnectedProfile = {
-  id: ProfileId;
-  game: GameId;
-  playerTag: string;
-  display: ProfileDisplay;
-  connectedAt: number;
-  updatedAt: number;
-  lastSyncedAt: number;
-};
-
-export type Metric = { key: string; label: string; value: number; format: "integer" | "percent" };
-
-export type ProfileItem = {
-  kind: "card" | "brawler";
-  id: string;
-  name: string;
-  level: number | null;
-  rank: number | null;
-  score: number | null;
-  bestScore: number | null;
-  imageUrl: string | null;
-};
-
-export type RecentMatch = {
-  id: string;
-  occurredAt: number | null;
-  mode: string;
-  map: string | null;
-  result: "win" | "loss" | "draw" | "ranked" | "unknown";
-  rank: number | null;
-  scoreDelta: number | null;
-};
-
-export type UpcomingItem = { index: number; label: string };
-
-export type ProfileStats = {
-  game: GameId;
-  playerTag: string;
-  summary: ProfileSummary;
-  metrics: Metric[];
-  roster: ProfileItem[];
-  currentLoadout: ProfileItem[];
-  recentMatches: RecentMatch[];
-  upcoming: UpcomingItem[];
-  warnings: string[];
-};
-
 export type CacheMetadata = {
   state: "hit" | "refreshed" | "stale" | "stub";
   fetchedAt: number;
@@ -66,11 +16,9 @@ export type CacheMetadata = {
 };
 
 export type AdapterResult<T> = { data: T; cache: CacheMetadata };
-export type HubState = { activeProfileId: ProfileId | null; profiles: ConnectedProfile[] };
 
 export type ProfileErrorCode =
   | "INVALID_VIEWER"
-  | "PROFILE_NOT_CONNECTED"
   | "INVALID_TAG"
   | "PROFILE_NOT_FOUND"
   | "NOT_CONFIGURED"

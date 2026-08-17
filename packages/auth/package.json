@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "imports": {
+    "#connected-profiles": "./src/connected-profiles.ts"
+  },
   "exports": {
     ".": "./src/index.ts"
   },
@@ -22,7 +25,6 @@
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.12.5",
-    "@statsconnect/site-nav": "workspace:*",
     "better-auth": "~1.6.29"
   }
 }

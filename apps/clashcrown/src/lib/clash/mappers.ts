@@ -20,9 +20,8 @@ import {
   warLeague,
   UNKNOWN_CARD_IMAGE
 } from "./assets";
-import { formatApiDate } from "./format";
+import { formatApiDate, stripSupercellColorTags } from "./format";
 import { optionalNumber } from "@/lib/numbers";
-import { stripSupercellColorTags } from "@statsconnect/site-nav";
 import type {
   ApiBattle,
   ApiCard,

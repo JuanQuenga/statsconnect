@@ -1,17 +1,4 @@
 export { SiteNavigation, siteNavigationLanguages } from "./SiteNavigation";
-export {
-  parseSharedProfiles,
-  readSharedProfiles,
-  replaceSharedProfiles,
-  removeSharedProfile,
-  saveSharedProfile,
-  serializeSharedProfiles,
-  sharedProfileHref,
-  stripSupercellColorTags,
-  subscribeSharedProfiles,
-  subscribeSharedProfileUpdates,
-  updateSharedProfiles,
-} from "./shared-profiles";
 export type {
   SiteId,
   SiteNavigationAccount,
@@ -21,12 +8,6 @@ export type {
   SiteNavigationLink,
   SiteNavigationLinkAdapter,
   SiteNavigationLinkAdapterProps,
-  SiteNavigationOrigins,
+  SiteNavigationProfile,
   SiteNavigationProps,
 } from "./SiteNavigation";
-export type {
-  SharedProfile,
-  SharedProfileGame,
-  SharedProfileOrigins,
-  SharedProfileUpdate,
-} from "./shared-profiles";

@@ -1,18 +1,16 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
-import { isProfileStats, isProfileSummary } from "./adapters/guards";
+import { isProfileSummary } from "./adapters/guards";
 import { getAdapter } from "./adapters/registry";
 import {
   AdapterError,
-  type AdapterLoadResult,
   type AdapterResult,
   type GameId,
-  type ProfileStats,
   type ProfileSummary,
 } from "./adapters/types";
 
-type Resource = "summary" | "stats";
+type Resource = "summary";
 type Source = "direct" | "service" | "stub";
 
 const REFRESH_BUDGET = 10;
@@ -33,11 +31,7 @@ function sourceFor(game: GameId, resultState: AdapterResult<unknown>["cache"]["s
   return game === "clash-royale" ? "direct" : "service";
 }
 
-/**
- * `synced` is true only when this call actually reached the adapter and stored
- * fresh data. Cache hits and stale fallbacks report false, so callers can avoid
- * rewriting the connected-profile snapshot on a plain read (spec §6).
- */
+/** Reports whether this call fetched and stored fresh data. */
 export type ReadThroughResult<T> = { result: AdapterResult<T>; synced: boolean };
 
 export async function readThrough<T>(
@@ -47,7 +41,7 @@ export async function readThrough<T>(
     playerTag: string;
     resource: Resource;
     guard: (value: unknown) => value is T;
-    load: () => Promise<AdapterLoadResult<T>>;
+    load: () => Promise<AdapterResult<T>>;
   },
 ): Promise<ReadThroughResult<T>> {
   const cached = await ctx.runQuery(internal.hub.internal.profileCache.get, {
@@ -80,22 +74,10 @@ export async function readThrough<T>(
     if (!options.guard(fresh.data)) {
       throw new AdapterError("BAD_UPSTREAM_RESPONSE", "The game service returned an unexpected profile shape.");
     }
-    const rows = [
-      { resource: options.resource, data: fresh.data },
-      ...(fresh.primed ?? []),
-    ];
-    for (const row of rows) {
-      const valid = row.resource === "summary"
-        ? isProfileSummary(row.data)
-        : isProfileStats(row.data);
-      if (!valid) {
-        throw new AdapterError("BAD_UPSTREAM_RESPONSE", "The game service returned unexpected cached statistics.");
-      }
-    }
     await ctx.runMutation(internal.hub.internal.profileCache.put, {
       game: options.game,
       playerTag: options.playerTag,
-      rows: rows.map((row) => ({ resource: row.resource, payload: JSON.stringify(row.data) })),
+      rows: [{ resource: options.resource, payload: JSON.stringify(fresh.data) }],
       source: sourceFor(options.game, fresh.cache.state),
       fetchedAt: fresh.cache.fetchedAt,
       expiresAt: fresh.cache.expiresAt,
@@ -121,22 +103,13 @@ export async function readThrough<T>(
 async function refreshResource(
   ctx: ActionCtx,
   candidate: { game: GameId; playerTag: string },
-  resource: Resource,
-): Promise<ReadThroughResult<ProfileSummary | ProfileStats>> {
+): Promise<ReadThroughResult<ProfileSummary>> {
   const adapter = getAdapter(candidate.game);
-  if (resource === "summary") {
-    return readThrough(ctx, {
-      ...candidate,
-      resource,
-      guard: isProfileSummary,
-      load: () => adapter.getProfileSummary(candidate.playerTag),
-    });
-  }
   return readThrough(ctx, {
     ...candidate,
-    resource,
-    guard: isProfileStats,
-    load: () => adapter.getStats(candidate.playerTag),
+    resource: "summary",
+    guard: isProfileSummary,
+    load: () => adapter.getProfileSummary(candidate.playerTag),
   });
 }
 
@@ -160,20 +133,18 @@ export const refreshExpiredConnected = internalAction({
     let failedResources = 0;
 
     for (const candidate of candidates) {
-      for (const resource of ["summary", "stats"] as const) {
-        try {
-          const refreshed = await refreshResource(ctx, candidate, resource);
-          if (refreshed.synced) refreshedResources += 1;
-          else if (refreshed.result.cache.state === "stale") failedResources += 1;
-        } catch (error) {
-          failedResources += 1;
-          console.warn("Background profile cache refresh failed", {
-            game: candidate.game,
-            playerTag: candidate.playerTag,
-            resource,
-            error,
-          });
-        }
+      try {
+        const refreshed = await refreshResource(ctx, candidate);
+        if (refreshed.synced) refreshedResources += 1;
+        else if (refreshed.result.cache.state === "stale") failedResources += 1;
+      } catch (error) {
+        failedResources += 1;
+        console.warn("Background profile cache refresh failed", {
+          game: candidate.game,
+          playerTag: candidate.playerTag,
+          resource: "summary",
+          error,
+        });
       }
     }
 

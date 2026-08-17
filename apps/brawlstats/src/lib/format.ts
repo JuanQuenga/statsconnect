@@ -1,3 +1,7 @@
+export function stripSupercellColorTags(value: string): string {
+  return value.replace(/<\/?c(?:[0-9a-f]{1,8})?>/gi, "");
+}
+
 export function trophies(value: number | string | null | undefined) {
   return Number(value || 0).toLocaleString("en-US");
 }

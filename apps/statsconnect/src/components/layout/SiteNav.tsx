@@ -13,11 +13,6 @@ const links = [
   { href: "/settings/connections", label: "Settings" },
 ] as const;
 
-const networkOrigins = {
-  "brawl-stars": import.meta.env.VITE_BRAWLSTATS_ORIGIN?.trim() || "https://brawlstats.juanquenga.com",
-  "clash-royale": import.meta.env.VITE_CLASHCROWN_ORIGIN?.trim() || "https://clashcrown.juanquenga.com",
-} as const;
-
 function StatsConnectLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const active = href === "/" ? pathname === href : pathname.startsWith(href);
@@ -50,7 +45,8 @@ export function SiteNav() {
         label: "Sign in with Google",
         onClick: () => void auth.signInWithGoogle(),
       } : undefined}
-      networkOrigins={networkOrigins}
+      hubOrigin={window.location.origin}
+      profiles={auth.profiles}
       linkAdapter={StatsConnectLink}
       links={links}
       brand={

@@ -1,14 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { useStatsConnectAuth, type ConnectedProfile } from "@statsconnect/auth";
 import { ExternalLink, Link2, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { ErrorState, LoadingState, PageStatus } from "@/components/ui-helpers";
-import { Badge } from "@/components/ui/badge";
+import { PageStatus } from "@/components/ui-helpers";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import type { ConnectedProfile } from "@/lib/contracts";
 import { gameName, games } from "@/lib/contracts";
-import { dataClient, hubQueryOptions } from "@/lib/data-client";
 import { hubLaunchPath } from "@/lib/destinations";
 
 export const Route = createFileRoute("/settings/connections")({
@@ -17,27 +15,12 @@ export const Route = createFileRoute("/settings/connections")({
 });
 
 function ConnectionsPage() {
-  const queryClient = useQueryClient();
-  const hubQuery = useQuery(hubQueryOptions());
-  const [pendingDisconnect, setPendingDisconnect] =
-    useState<ConnectedProfile | null>(null);
-  const setActive = useMutation({
-    mutationFn: dataClient.setActive,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["hub-state"] }),
-  });
+  const auth = useStatsConnectAuth();
+  const [pendingDisconnect, setPendingDisconnect] = useState<ConnectedProfile | null>(null);
   const disconnect = useMutation({
-    mutationFn: dataClient.disconnect,
-    onSuccess: async () => {
-      setPendingDisconnect(null);
-      await queryClient.invalidateQueries({ queryKey: ["hub-state"] });
-    },
+    mutationFn: (profile: ConnectedProfile) => auth.removeProfile(profile.game, profile.tag),
+    onSuccess: () => setPendingDisconnect(null),
   });
-
-  if (hubQuery.isPending) return <LoadingState label="Loading connections" />;
-  if (hubQuery.isError)
-    return (
-      <ErrorState title="Connections unavailable" detail={hubQuery.error.message} />
-    );
 
   return (
     <section className="boot-in mx-auto max-w-4xl">
@@ -46,112 +29,69 @@ function ConnectionsPage() {
         Connections
       </h1>
       <p className="mt-4 max-w-xl text-muted-foreground">
-        Open, replace, or remove the game profiles connected to this browser.
+        Open, replace, or remove profiles saved in this browser and your signed-in account.
       </p>
 
       <div className="stagger mt-10 space-y-4">
         {games.map((game) => {
-          const profile = hubQuery.data.profiles.find(
-            (entry) => entry.game === game.id,
-          );
+          const profiles = auth.profiles.filter((profile) => profile.game === game.id);
           return (
             <article
               key={game.id}
               data-game={game.id}
               className="connection-row bevel bevel-lg relative overflow-hidden border border-border/60 bg-card/60 p-6 backdrop-blur-sm sm:p-7"
             >
-              <img
-                src={`/games/${game.id}.png`}
-                alt=""
-                aria-hidden
-                className="connection-row__art"
-              />
+              <img src={`/games/${game.id}.png`} alt="" aria-hidden className="connection-row__art" />
               <span
                 className="absolute inset-y-0 left-0 w-1 bg-[var(--game-accent)]"
-                style={{ opacity: profile ? 0.8 : 0.2 }}
+                style={{ opacity: profiles.length ? 0.8 : 0.2 }}
                 aria-hidden
               />
-              <div className="relative z-[1] flex flex-col gap-6 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-display text-xl font-semibold tracking-tight">
-                      {game.name}
-                    </h2>
-                    {profile?.id === hubQuery.data.activeProfileId ? (
-                      <Badge>Active</Badge>
-                    ) : null}
-                  </div>
-                  {profile ? (
-                    <>
-                      <p className="mt-3 truncate font-display text-lg font-semibold">
-                        {profile.display.name}
-                      </p>
-                      <p className="mt-1 font-numeric text-base tracking-[0.12em] text-muted-foreground">
-                        {profile.playerTag} · SYNCED{" "}
-                        {new Date(profile.lastSyncedAt).toLocaleString()}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="mt-3 text-sm uppercase tracking-[0.2em] text-muted-foreground">
-                      Slot empty
-                    </p>
-                  )}
+              <div className="relative z-[1] space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="font-display text-xl font-semibold tracking-tight">{game.name}</h2>
+                  <Link
+                    to="/connect/$game"
+                    params={{ game: game.id }}
+                    className={buttonVariants({ size: "sm", variant: profiles.length ? "secondary" : "default" })}
+                  >
+                    <Link2 className="size-3.5" />
+                    {profiles.length ? "Connect another" : "Connect"}
+                  </Link>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {profile ? (
-                    <>
+
+                {profiles.length ? profiles.map((profile) => (
+                  <div key={profile.tag} className="flex flex-col gap-4 border-t border-border/50 pt-4 sm:flex-row sm:items-center">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-display text-lg font-semibold">{profile.name}</p>
+                      <p className="mt-1 font-numeric text-base tracking-[0.12em] text-muted-foreground">#{profile.tag}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       <a
-                        href={hubLaunchPath(game.id)}
+                        href={hubLaunchPath(game.id, profile.tag)}
                         className={buttonVariants({ variant: "outline", size: "sm" })}
                       >
                         <ExternalLink className="size-3.5" />
                         Open
                       </a>
-                      {profile.id !== hubQuery.data.activeProfileId ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => setActive.mutate(profile.id)}
-                        >
-                          Set active
-                        </Button>
-                      ) : null}
-                      <Link
-                        to="/connect/$game"
-                        params={{ game: game.id }}
-                        className={buttonVariants({ variant: "secondary", size: "sm" })}
-                      >
-                        <Link2 className="size-3.5" />
-                        Reconnect
-                      </Link>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setPendingDisconnect(profile)}
-                      >
+                      <Button size="sm" variant="destructive" onClick={() => setPendingDisconnect(profile)}>
                         <Trash2 className="size-3.5" />
                         Disconnect
                       </Button>
-                    </>
-                  ) : (
-                    <Link
-                      to="/connect/$game"
-                      params={{ game: game.id }}
-                      className={buttonVariants({ size: "sm" })}
-                    >
-                      Connect
-                    </Link>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">No connected profiles</p>
+                )}
               </div>
             </article>
           );
         })}
       </div>
 
-      {setActive.isError ? (
+      {auth.profilesStatus === "error" ? (
         <PageStatus tone="error" className="mt-5">
-          {setActive.error.message}
+          {auth.profilesError ?? "Connected profiles could not be synchronized."}
         </PageStatus>
       ) : null}
       {disconnect.isError ? (
@@ -166,17 +106,15 @@ function ConnectionsPage() {
           if (!open) setPendingDisconnect(null);
         }}
         title={`Disconnect ${pendingDisconnect ? gameName(pendingDisconnect.game) : "game"}?`}
-        description="The saved connection will be removed from this browser. Shared cached public statistics are unaffected."
+        description="This profile will be removed from this browser and your signed-in account."
       >
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setPendingDisconnect(null)}>
-            Cancel
-          </Button>
+          <Button variant="secondary" onClick={() => setPendingDisconnect(null)}>Cancel</Button>
           <Button
             variant="destructive"
             disabled={!pendingDisconnect || disconnect.isPending}
             onClick={() => {
-              if (pendingDisconnect) disconnect.mutate(pendingDisconnect.id);
+              if (pendingDisconnect) disconnect.mutate(pendingDisconnect);
             }}
           >
             {disconnect.isPending ? "Disconnecting…" : "Disconnect"}

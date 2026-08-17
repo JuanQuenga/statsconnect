@@ -1,4 +1,4 @@
-import { stripSupercellColorTags } from "@statsconnect/site-nav";
+import { stripSupercellColorTags } from "./format";
 
 const CDN = "https://cdn.brawlify.com";
 

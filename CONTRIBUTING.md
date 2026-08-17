@@ -50,10 +50,11 @@ Use these names in code, issues, and documentation. See [`CONTEXT.md`](./CONTEXT
 
 | Path | Owner and purpose |
 | --- | --- |
-| `apps/statsconnect` | Hub SPA, browser-local viewer identity, connected profiles, and launch flows |
+| `apps/statsconnect` | Hub SPA, profile discovery, connected profiles, and Launch Routes |
 | `apps/brawlstats` | Brawl Stars SPA and historical app-local Convex source |
 | `apps/clashcrown` | Clash Royale SPA and historical app-local Convex source |
 | `packages/backend` | **Canonical** production Convex schema, functions, HTTP routes, and crons |
+| `packages/auth` | Shared account state and the connected-profile Module |
 | `packages/site-nav` | Shared Site Navigation and Game Switcher |
 | `packages/site-errors` | Shared React error presentation |
 | `docs/adr` | Accepted architecture decisions |
@@ -213,15 +214,17 @@ Ignored `.env` files are convenience files, not a secrets manager. During this a
 
 `packages/backend/convex/schema.ts` combines three table groups:
 
-- `hub/*`: connected profiles, viewer settings, throttles, and response cache
+- `hub/*`: account profile persistence, preview throttles, and summary cache
 - `brawl/*`: player/club history, battle observations, map/meta aggregates, crawler queue, runs, counters, and fetch logs
 - `clash/*`: API cache, player/leaderboard history, battle/deck/card/tower aggregates, personalization, clan management, crawler queue, runs, counters, and fetch logs
 
-The current schema has 52 tables and two text-search indexes. Game-owned functions and tables must not reach into another game's tables. Cross-game behavior belongs in `hub` or in an explicit adapter contract.
+The current schema has 51 tables and two text-search indexes. Game-owned functions and tables must not reach into another game's tables. Cross-game behavior belongs in `hub` or in an explicit Adapter Interface.
 
-### Hub identity is currently browser-local
+### Hub identity and connected profiles
 
-The current Hub is not using authenticated accounts. It creates a random UUID in `localStorage` and stores data under `session:<uuid>`. Clearing site data loses that browser's link to its connected profiles; copying a viewer ID effectively copies access. Do not describe this as authentication or use it for sensitive user data.
+Better Auth supplies the shared Google account. The connected-profile Module in `packages/auth` keeps guest profiles in browser storage and account profiles in the canonical Convex `savedProfiles` table. On sign-in, the Module merges both sets and writes the result to both Adapters. Sign-out clears the browser copy.
+
+The Hub still creates a random browser UUID, but only the preview throttle uses it. The UUID does not own connected profiles or grant access to account data.
 
 `docs/SPEC.md` describes a Lakebed Auth direction, not the runtime currently implemented in these React/Convex apps. Treat authentication migration as separate product work.
 
@@ -370,7 +373,7 @@ Do not manually deploy an app-local `convex` directory. Do not run both the Verc
 Read [`docs/UNIFIED_DEPLOYMENT.md`](./docs/UNIFIED_DEPLOYMENT.md) before moving data between deployments. The key rules are:
 
 - Create a fresh target deployment; do not merge old snapshots directly into a live populated production deployment.
-- Import the Hub snapshot intact so `viewerSettings.activeProfileId` references remain valid.
+- Import the supported Hub tables individually. Do not import the removed `connectedProfiles` or `viewerSettings` tables.
 - Rewrite old Brawl and Clash table names with `scripts/prepare-convex-import.mjs`, compare manifest counts, then import table by table.
 - Keep old production deployments available until the new frontend, data, APIs, and crons are verified.
 - Pause old crawlers before final delta/cutover so two systems do not ingest the same upstream stream.

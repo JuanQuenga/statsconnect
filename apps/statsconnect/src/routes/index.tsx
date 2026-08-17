@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { useStatsConnectAuth } from "@statsconnect/auth";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
@@ -14,7 +14,6 @@ import { GameChannelTile } from "@/components/lobby/GameChannelTile";
 import { TileNav } from "@/components/lobby/TileNav";
 import { buttonVariants } from "@/components/ui/button";
 import { games } from "@/lib/contracts";
-import { hubQueryOptions } from "@/lib/data-client";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -30,13 +29,13 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const hubQuery = useQuery(hubQueryOptions());
+  const auth = useStatsConnectAuth();
 
-  if (hubQuery.data?.profiles.length) {
-    return <ConnectedGameBoard hub={hubQuery.data} />;
+  if (auth.profiles.length) {
+    return <ConnectedGameBoard profiles={auth.profiles} />;
   }
 
-  return <LandingPage backendUnavailable={hubQuery.isError} />;
+  return <LandingPage backendUnavailable={auth.profilesStatus === "error"} />;
 }
 
 function LandingPage({ backendUnavailable }: { backendUnavailable: boolean }) {

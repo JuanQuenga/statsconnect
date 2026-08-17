@@ -4,24 +4,16 @@ import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { supportedLocales, useI18n, type Locale } from "@/lib/i18n";
 import { useRouterState } from "@tanstack/react-router";
 import {
-  saveSharedProfile,
   SiteNavigation,
   siteNavigationLanguages,
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 import { useStatsConnectAuth } from "@statsconnect/auth";
-import { useEffect } from "react";
-import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 const statsConnectOrigin = (
   import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim() ||
   import.meta.env.NEXT_PUBLIC_STATSCONNECT_ORIGIN?.trim()
 );
-const networkOrigins = {
-  "brawl-stars": import.meta.env.VITE_BRAWLSTATS_ORIGIN?.trim() || "https://brawlstats.juanquenga.com",
-  "clash-royale": import.meta.env.VITE_CLASHCROWN_ORIGIN?.trim() || "https://clashcrown.juanquenga.com",
-} as const;
-
 let arenaRouteState: { pathname: string | null; transitionClass: string } = {
   pathname: null,
   transitionClass: "",
@@ -59,15 +51,8 @@ function ClashCrownLink({ children, className, href, onNavigate }: SiteNavigatio
 export function Layout({ children, variant = "profile" }: { children: React.ReactNode; variant?: "home" | "profile" }) {
   const auth = useStatsConnectAuth();
   const { locale, setLocale, t } = useI18n();
-  const personalization = usePersonalization();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const arenaTransitionClass = arenaTransitionFor(pathname);
-
-  useEffect(() => {
-    for (const profile of personalization.profiles) {
-      if (profile.kind === "players") saveSharedProfile({ game: "clash-royale", tag: profile.tag, name: profile.name });
-    }
-  }, [personalization.profiles]);
 
   const navItems = [
     { href: "/", label: t("nav.home") },
@@ -104,8 +89,8 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
           label: "Sign in with Google",
           onClick: () => void auth.signInWithGoogle(),
         } : undefined}
-        statsConnectOrigin={statsConnectOrigin}
-        networkOrigins={networkOrigins}
+        hubOrigin={statsConnectOrigin}
+        profiles={auth.profiles}
         linkAdapter={ClashCrownLink}
         links={navItems}
         language={{

@@ -3,6 +3,7 @@ import { internalMutation, internalQuery } from "../../_generated/server";
 import { gameIdValidator } from "../schema";
 
 const resourceValidator = v.union(v.literal("summary"), v.literal("stats"));
+const writableResourceValidator = v.literal("summary");
 const sourceValidator = v.union(v.literal("direct"), v.literal("service"), v.literal("stub"));
 const refreshCandidateValidator = v.object({
   game: gameIdValidator,
@@ -75,7 +76,7 @@ export const listExpiredConnected = internalQuery({
       seen.add(key);
 
       const connected = await ctx.db
-        .query("connectedProfiles")
+        .query("savedProfiles")
         .withIndex("by_game_and_player_tag", (query) =>
           query.eq("game", row.game).eq("playerTag", row.playerTag))
         .take(1);
@@ -89,16 +90,12 @@ export const listExpiredConnected = internalQuery({
   },
 });
 
-/**
- * Upserts every affected resource for one (game, playerTag) in a single
- * transaction, so summary and stats can never diverge (spec §6). Any duplicate
- * rows left behind by an older write are collapsed onto the newest row.
- */
+/** Upserts the Hub-owned profile summary and collapses any duplicate rows. */
 export const put = internalMutation({
   args: {
     game: gameIdValidator,
     playerTag: v.string(),
-    rows: v.array(v.object({ resource: resourceValidator, payload: v.string() })),
+    rows: v.array(v.object({ resource: writableResourceValidator, payload: v.string() })),
     source: sourceValidator,
     fetchedAt: v.number(),
     expiresAt: v.number(),
@@ -148,8 +145,17 @@ export const pruneExpired = internalMutation({
     let deleted = 0;
 
     for (const row of expired) {
+      // Statistics were previously cached for Hub dashboards. They no longer
+      // have a reader, so expired legacy rows can be removed even when their
+      // profile remains connected.
+      if (row.resource === "stats") {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+        if (deleted === limit) break;
+        continue;
+      }
       const connected = await ctx.db
-        .query("connectedProfiles")
+        .query("savedProfiles")
         .withIndex("by_game_and_player_tag", (query) =>
           query.eq("game", row.game).eq("playerTag", row.playerTag))
         .take(1);

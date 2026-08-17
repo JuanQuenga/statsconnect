@@ -1,13 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { useStatsConnectAuth } from "@statsconnect/auth";
 import { useEffect } from "react";
 import { ErrorState, LoadingState } from "@/components/ui-helpers";
 import { gameName, isGameId } from "@/lib/contracts";
-import { dataClient, hubQueryOptions } from "@/lib/data-client";
 import { destinationUrl } from "@/lib/destinations";
+import { profileForLaunch } from "@/lib/launch-profiles";
+
+type LaunchSearch = {
+  tag?: string;
+};
 
 export const Route = createFileRoute("/launch/$game")({
   component: LaunchGamePage,
+  validateSearch: (search: Record<string, unknown>): LaunchSearch => ({
+    tag: typeof search.tag === "string" ? search.tag : undefined,
+  }),
   head: ({ params }) => ({
     meta: [{ title: `${isGameId(params.game) ? `Launching ${gameName(params.game)}` : "Launch"} · StatsConnect` }],
   }),
@@ -15,22 +22,23 @@ export const Route = createFileRoute("/launch/$game")({
 
 function LaunchGamePage() {
   const { game } = Route.useParams();
-  const hubQuery = useQuery(hubQueryOptions());
-  const profile = isGameId(game)
-    ? hubQuery.data?.profiles.find((entry) => entry.game === game)
-    : undefined;
+  const { tag } = Route.useSearch();
+  const auth = useStatsConnectAuth();
+  const profile = isGameId(game) ? profileForLaunch(auth.profiles, game, tag) : undefined;
+  const profilesReady = !auth.isLoading && (auth.profilesStatus === "guest" || auth.profilesStatus === "synced");
 
   useEffect(() => {
-    if (!profile || !isGameId(game)) return;
+    if (!profilesReady || !profile || !isGameId(game)) return;
 
-    void dataClient.setActive(profile.id).catch(() => undefined);
-    window.location.replace(destinationUrl(game, profile.playerTag));
-  }, [game, profile]);
+    window.location.replace(destinationUrl(game, profile.tag));
+  }, [game, profile, profilesReady]);
 
   if (!isGameId(game)) return <Navigate to="/connect" replace />;
-  if (hubQuery.isPending) return <LoadingState label={`Finding your ${gameName(game)} profile`} />;
-  if (hubQuery.isError) {
-    return <ErrorState title="Unable to launch game" detail={hubQuery.error.message} />;
+  if (auth.isLoading || auth.profilesStatus === "reconciling") {
+    return <LoadingState label={`Finding your ${gameName(game)} profile`} />;
+  }
+  if (auth.profilesStatus === "error") {
+    return <ErrorState title="Unable to launch game" detail={auth.profilesError ?? "Connected profiles are unavailable."} />;
   }
   if (!profile) {
     return <Navigate to="/connect/$game" params={{ game }} replace />;
