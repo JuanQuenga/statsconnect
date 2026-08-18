@@ -1,5 +1,5 @@
 import { CardArt } from "@/components/portfolio/CardArt";
-import { cardArtFallbacks, highestAvailableCardArt, selectCardArt } from "@/lib/clash/assets";
+import { cardArtFallbacks, highestAvailableCardArt, selectCardArt, slugify } from "@/lib/clash/assets";
 import type { Card } from "@/lib/clash/domain";
 
 type GameCardArtSize = "library" | "collection" | "deck";
@@ -30,6 +30,7 @@ export function GameCardArt({
   return (
     <span
       className={`game-card-art game-card-art-${size}`}
+      data-card={slugify(card.name)}
       data-rarity={rarity}
       data-variant={art.variant?.toLowerCase() ?? "base"}
     >

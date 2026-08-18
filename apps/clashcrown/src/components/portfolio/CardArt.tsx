@@ -43,6 +43,7 @@ export function CardArt({
       width={width}
       height={height}
       priority={priority}
+      data-fallback={source === src ? undefined : "true"}
       onError={() => {
         const next = sources[sources.indexOf(source) + 1];
         if (next) setSource(next);

@@ -1993,6 +1993,7 @@ button:disabled { cursor: wait; opacity: .62; }
   object-fit: contain;
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--game-card-accent) 76%, transparent)) drop-shadow(0 11px 12px rgba(0, 0, 0, .38));
 }
+.game-card-art[data-card="elite-barbarians"] > img[data-fallback="true"] { transform: scale(.92); }
 .game-card-art[data-variant="evolution"] > img { filter: drop-shadow(0 0 8px rgba(242, 70, 255, .72)) drop-shadow(0 0 4px var(--game-card-accent)) drop-shadow(0 12px 13px rgba(0, 0, 0, .4)); }
 .game-card-art[data-variant="hero"] > img { filter: drop-shadow(0 0 8px rgba(255, 195, 54, .68)) drop-shadow(0 0 4px var(--game-card-accent)) drop-shadow(0 12px 13px rgba(0, 0, 0, .4)); }
 .profile-deck-grid {
@@ -2040,15 +2041,12 @@ button:disabled { cursor: wait; opacity: .62; }
   z-index: 2;
   overflow: hidden;
   color: var(--game-card-level-start);
-  background: linear-gradient(180deg, var(--game-card-level-start) 20%, var(--game-card-level-end) 82%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  -webkit-text-fill-color: var(--game-card-level-start);
   -webkit-text-stroke: 1px #111827;
-  font: 900 var(--game-card-level-font)/1 var(--font-ui);
-  letter-spacing: -.055em;
+  font: 400 var(--game-card-level-font)/.95 var(--font-display);
+  letter-spacing: -.025em;
   text-overflow: ellipsis;
-  filter: drop-shadow(0 2px 0 #111827) drop-shadow(0 3px 3px rgba(0, 0, 0, .8)) drop-shadow(0 0 5px var(--game-card-accent));
+  filter: drop-shadow(0 2px 0 #111827) drop-shadow(0 3px 3px rgba(0, 0, 0, .72)) drop-shadow(0 0 4px var(--game-card-accent));
   white-space: nowrap;
   transform: translateX(-50%);
 }
