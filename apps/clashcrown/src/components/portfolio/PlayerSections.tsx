@@ -36,7 +36,16 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
     <section className="profile-hero">
       <div className="profile-hero-glow" aria-hidden="true" />
       <div className="profile-identity-art">
-        <Image src={player.arenaImage} alt="" width={150} height={150} priority />
+        <span className="profile-arena-art">
+          <Image src={player.arenaImage} alt={player.arena} width={240} height={240} priority />
+          <small>{player.arena}</small>
+        </span>
+        {player.favoriteCard ? (
+          <Link className="profile-favorite-art" href={`/cards/${cardSlug(player.favoriteCard.name)}`} aria-label={`Favorite card: ${player.favoriteCard.name}`}>
+            <CardArt src={player.favoriteCard.image} alt={player.favoriteCard.name} width={170} height={208} priority />
+            <span>Favorite · {player.favoriteCard.name}</span>
+          </Link>
+        ) : null}
         {player.level !== undefined ? (
           <span className="profile-level-badge" aria-label={`${locale === "es" ? "Nivel" : "Level"} ${player.level}`}>
             {player.level}
@@ -59,16 +68,17 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
             <span className="profile-no-clan"><Shield size={14} /> Independent player</span>
           )}
         </div>
-        <div className="card-detail-meta hero-chips">
-          <span className="status-chip">{player.arena}</span>
-          {player.pathOfLegends?.current?.trophies !== undefined ? (
-            <span className="status-chip">
-              Path of Legends · {formatNumber(player.pathOfLegends.current.trophies)}
-              {player.pathOfLegends.current.rank ? ` · #${formatNumber(player.pathOfLegends.current.rank)}` : ""}
-            </span>
-          ) : null}
-          {player.clanTag ? <Link className="status-chip" href={`/clans/${player.clanTag.replace(/^#/, "")}/war`}>{t("clan.war")}</Link> : null}
-        </div>
+        {player.pathOfLegends?.current?.trophies !== undefined || player.clanTag ? (
+          <div className="card-detail-meta hero-chips">
+            {player.pathOfLegends?.current?.trophies !== undefined ? (
+              <span className="status-chip">
+                Path of Legends · {formatNumber(player.pathOfLegends.current.trophies)}
+                {player.pathOfLegends.current.rank ? ` · #${formatNumber(player.pathOfLegends.current.rank)}` : ""}
+              </span>
+            ) : null}
+            {player.clanTag ? <Link className="status-chip" href={`/clans/${player.clanTag.replace(/^#/, "")}/war`}>{t("clan.war")}</Link> : null}
+          </div>
+        ) : null}
         <div className="profile-hero-actions">
           {actions}
           <PlayerShareActions player={player} compact />
@@ -119,23 +129,24 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
   ];
 
   return (
-    <section className="profile-section">
+    <section className="profile-section career-ledger-section">
       <div className="profile-section-heading">
-        <h2>Career snapshot</h2>
+        <div>
+          <h2>Career record</h2>
+          <p>Lifetime milestones and the latest ladder snapshot.</p>
+        </div>
         <div className="update-tools"><span>{updatedLabel(player.fetchedAt, locale)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? t("common.refreshing") : t("common.refresh")}</button></div>
       </div>
       {rows.length ? (
-        <div className="stat-matrix">
+        <dl className="career-ledger">
           {rows.map(([label, value]) => (
-            <div key={label} className="stat-cell">
+            <div key={label} className="career-ledger-row">
               <span className="stat-cell-icon"><Image src={statIcon(label, player.arenaImage)} alt="" width={32} height={32} /></span>
-              <div>
-                <strong>{value}</strong>
-                <span>{label}</span>
-              </div>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
             </div>
           ))}
-        </div>
+        </dl>
       ) : <p className="empty-results">The API did not report player statistics for this profile.</p>}
     </section>
   );
