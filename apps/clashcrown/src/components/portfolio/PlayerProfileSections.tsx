@@ -1,4 +1,4 @@
-import { Award, Sparkles, Star } from "lucide-react";
+import { Award, Star } from "lucide-react";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
 import { cardSlug } from "@/lib/clash/cards";
@@ -31,44 +31,57 @@ function profileDetails(player: Player): Detail[] {
 
 export function PlayerProfileDetails({ player }: { player: Player }) {
   const details = profileDetails(player);
-  if (!details.length && !player.supportCardCollection?.length) return null;
+  if (!player.favoriteCard && !details.length && !player.supportCardCollection?.length) return null;
 
   return (
     <section className="profile-section profile-details-section">
-      <div className="profile-section-heading">
-        <div>
-          <h2>Account record</h2>
-          <p>Identity, progression, and contribution details.</p>
-        </div>
+      <header className="profile-editorial-heading">
+        <div><h2>Account details</h2></div>
+        <p>Favorite card, clan role, and collection progress show how this account is built and where it has invested.</p>
+      </header>
+      <div className={player.favoriteCard ? "profile-detail-layout" : "profile-detail-layout profile-detail-layout-wide"}>
+        {player.favoriteCard ? <FavoriteCard card={player.favoriteCard} /> : null}
+        {details.length ? (
+          <dl className="profile-detail-grid">
+            {details.map((detail) => (
+              <div className="profile-detail-row" key={detail.label}>
+                <dt>{detail.label}</dt>
+                <dd>{detail.value}</dd>
+                {detail.note ? <small>{detail.note}</small> : null}
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </div>
-      {details.length ? (
-        <dl className="profile-detail-list">
-          {details.map((detail) => (
-            <div className="profile-detail-row" key={detail.label}>
-              <dt>{detail.label}</dt>
-              <dd>{detail.value}</dd>
-              {detail.note ? <small>{detail.note}</small> : null}
-            </div>
-          ))}
-        </dl>
-      ) : null}
       {player.supportCardCollection?.length ? <SupportCardCollection cards={player.supportCardCollection} /> : null}
-      <ProfileFeatureStyles />
     </section>
+  );
+}
+
+function FavoriteCard({ card }: { card: Card }) {
+  return (
+    <Link className="favorite-card-panel" href={`/cards/${cardSlug(card.name)}`}>
+      <strong className="favorite-card-label"><Star size={13} /> Favorite card</strong>
+      <CardArt src={card.image} alt={card.name} width={142} height={174} />
+      <span className="favorite-card-copy">
+        <strong>{card.name}</strong>
+        <small>{card.rarity} · {card.elixir || "?"} elixir</small>
+      </span>
+    </Link>
   );
 }
 
 function SupportCardCollection({ cards }: { cards: Card[] }) {
   return (
     <div className="support-collection">
-      <div>
+      <div className="support-collection-copy">
         <h3>Support-card collection</h3>
-        <p>The API returned these separately from the player&rsquo;s standard card collection.</p>
+        <p>Tower Troops defend the Crown Towers without taking one of the deck&rsquo;s eight card slots. Levels show this player&rsquo;s available choices.</p>
       </div>
       <div className="support-card-list">
         {cards.map((card) => (
           <Link href={`/cards/${cardSlug(card.name)}`} key={card.id ?? card.name} aria-label={card.name}>
-            <CardArt src={card.image} alt={card.name} width={64} height={80} />
+            <CardArt src={card.image} alt={card.name} width={88} height={108} />
             <span>{card.name}</span>
             {card.level !== undefined ? <small>Level {card.level}</small> : null}
           </Link>
@@ -80,18 +93,31 @@ function SupportCardCollection({ cards }: { cards: Card[] }) {
 
 export function PlayerBadgeSection({ badges = [] }: { badges?: PlayerBadge[] }) {
   if (!badges.length) return null;
+  const featured = badges.slice(0, 8);
+  const remaining = badges.slice(featured.length);
+
   return (
-    <section className="profile-section">
-      <div className="profile-section-heading"><h2>Badges ({badges.length})</h2></div>
-      <div className="profile-badge-grid">
-        {badges.map((badge, index) => <BadgeCard badge={badge} key={`${badge.name}-${index}`} />)}
+    <section className="profile-section profile-badges-section">
+      <header className="profile-editorial-heading">
+        <div><h2>Badge cabinet</h2></div>
+        <p>{badges.length} collectible milestones earned through play, including Card Mastery. Higher levels show further progress.</p>
+      </header>
+      <div className="profile-badge-featured">
+        {featured.map((badge, index) => <BadgeCard badge={badge} key={`${badge.name}-${index}`} />)}
       </div>
-      <ProfileFeatureStyles />
+      {remaining.length ? (
+        <details className="profile-badge-archive">
+          <summary><span>Complete cabinet</span><strong>View {remaining.length} more badges</strong></summary>
+          <div className="profile-badge-grid">
+            {remaining.map((badge, index) => <BadgeCard badge={badge} compact key={`${badge.name}-${index}`} />)}
+          </div>
+        </details>
+      ) : null}
     </section>
   );
 }
 
-function BadgeCard({ badge }: { badge: PlayerBadge }) {
+function BadgeCard({ badge, compact = false }: { badge: PlayerBadge; compact?: boolean }) {
   const label = humanizeBadgeName(badge.name);
   const level = optionalNumber(badge.level);
   const maxLevel = optionalNumber(badge.maxLevel);
@@ -100,9 +126,9 @@ function BadgeCard({ badge }: { badge: PlayerBadge }) {
     ? Math.min(100, Math.max(0, (level / maxLevel) * 100))
     : undefined;
   return (
-    <article className="profile-badge-card">
+    <article className={compact ? "profile-badge-card profile-badge-card-compact" : "profile-badge-card"}>
       <div className="profile-badge-art">
-        {badge.image ? <CardArt src={badge.image} alt="" width={96} height={96} fallback="/images/icons/crown-gold.png" /> : <Award size={42} />}
+        {badge.image ? <CardArt src={badge.image} alt="" width={124} height={124} fallback="/images/icons/crown-gold.png" /> : <Award size={42} />}
       </div>
       <div>
         <strong>{label}</strong>
@@ -133,14 +159,16 @@ export function PlayerAchievementsSection({ achievements = [] }: { achievements?
   if (!achievements.length) return null;
   return (
     <section className="profile-section achievements-section">
-      <div className="profile-section-heading"><h2>Achievements ({achievements.length})</h2></div>
+      <header className="profile-editorial-heading">
+        <div><h2>Achievements</h2></div>
+        <p>{achievements.length} classic goals across clan play, collection growth, challenges, and friendly battles.</p>
+      </header>
       <div className="achievement-list">
         {achievements.map((achievement, index) => (
           <AchievementRow achievement={achievement} key={`${achievement.name}-${index}`} />
         ))}
       </div>
-      <p className="table-note">Achievement progress is shown exactly as returned by the player API.</p>
-      <ProfileFeatureStyles />
+      <p className="table-note">Progress compares this player&rsquo;s recorded total with each goal&rsquo;s completion target.</p>
     </section>
   );
 }
@@ -153,7 +181,6 @@ function AchievementRow({ achievement }: { achievement: PlayerAchievement }) {
   const percentage = hasProgress ? Math.min(100, Math.max(0, (value / target) * 100)) : undefined;
   return (
     <article className="achievement-row">
-      <span className="achievement-icon"><Sparkles size={20} /></span>
       <span className="achievement-copy">
         <strong>{achievement.name}</strong>
         {achievement.info ? <small>{achievement.info}</small> : null}
@@ -175,62 +202,4 @@ function AchievementRow({ achievement }: { achievement: PlayerAchievement }) {
       ) : null}
     </article>
   );
-}
-
-function ProfileFeatureStyles() {
-  return <style>{`
-    .profile-detail-list { margin: 0; }
-    .profile-detail-row { display: grid; grid-template-columns: minmax(120px, 1fr) auto; gap: 4px 20px; align-items: baseline; padding: 13px 0; border-bottom: 1px solid rgba(116, 146, 188, .16); }
-    .profile-detail-row:last-child { border-bottom: 0; }
-    .profile-detail-row dt { color: var(--muted-foreground); font: 650 11px/1.4 var(--font-ui); }
-    .profile-detail-row dd { margin: 0; color: var(--foreground); font: 780 17px/1.2 var(--font-ui); text-align: right; }
-    .profile-detail-row small { grid-column: 1 / -1; color: var(--muted-foreground); font: 9px/1.4 var(--font-ui); }
-    .support-collection { display: grid; grid-template-columns: minmax(210px, .65fr) 1.35fr; gap: 24px; align-items: center; margin-top: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 32%, transparent); }
-    .support-collection h3 { margin: 5px 0; font-size: 17px; }
-    .support-collection p { margin: 0; color: #8ea2c4; font: 11px/1.5 var(--font-ui); }
-    .support-card-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(94px, 1fr)); gap: 10px; }
-    .support-card-list a { min-width: 0; display: grid; justify-items: center; gap: 4px; padding: 9px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 7px; background: rgba(3, 16, 28, .5); text-align: center; }
-    .support-card-list a:hover { border-color: rgba(238, 102, 239, .55); }
-    .support-card-list img { width: 54px; height: 68px; object-fit: contain; }
-    .support-card-list span { overflow: hidden; max-width: 100%; color: white; font: 700 10px var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
-    .support-card-list small { color: #8ea2c4; font: 9px var(--font-ui); }
-    .profile-badge-grid { overflow: visible; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); column-gap: 24px; row-gap: 2px; }
-    .profile-badge-card { min-width: 0; overflow: visible; display: grid; grid-template-columns: 124px 1fr; gap: 16px; align-items: center; min-height: 148px; padding: 10px 4px; box-shadow: inset 0 -1px rgba(88, 118, 157, .2); }
-    .profile-badge-art { width: 124px; height: 124px; position: relative; display: grid; place-items: center; color: var(--primary); }
-    .profile-badge-art::before { content: ""; width: 164px; height: 164px; position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(74, 151, 255, .2), rgba(74, 151, 255, .07) 42%, transparent 72%); pointer-events: none; }
-    .profile-badge-art img { z-index: 1; width: 128px; max-width: none; height: 128px; max-height: none; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .34)); }
-    .profile-badge-card > div:last-child { min-width: 0; display: grid; gap: 5px; }
-    .profile-badge-card strong { overflow: hidden; font-size: 13px; line-height: 1.25; text-overflow: ellipsis; }
-    .profile-badge-card span, .profile-badge-card small { color: var(--muted-foreground); font: 10px var(--font-ui); }
-    .badge-level-track { height: 5px; overflow: hidden; border-radius: 999px; background: var(--secondary); }
-    .badge-level-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #498fff, #7ae0ff); }
-    .achievement-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .achievement-row { min-height: 112px; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px 14px; align-items: center; padding: 15px 16px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 38%, transparent); }
-    .achievement-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--primary); background: rgba(217, 107, 243, .1); }
-    .achievement-copy { min-width: 0; display: grid; gap: 4px; }
-    .achievement-copy strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-    .achievement-copy small, .achievement-progress small { color: var(--muted-foreground); font: 10px/1.35 var(--font-ui); }
-    .achievement-stars { display: inline-flex; align-items: center; gap: 4px; color: var(--primary); font: 700 11px var(--font-ui); }
-    .achievement-progress { grid-column: 2 / -1; display: grid; gap: 7px; }
-    .achievement-progress > span:first-child { display: flex; justify-content: space-between; gap: 12px; }
-    .achievement-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--secondary); }
-    .achievement-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #498fff, var(--accent)); }
-    .achievement-value { justify-self: end; font-size: 16px; }
-    @media (max-width: 760px) {
-      .support-collection { grid-template-columns: 1fr; }
-      .achievement-list { grid-template-columns: 1fr; }
-      .achievement-row { grid-template-columns: 42px minmax(0, 1fr) auto; }
-      .achievement-progress, .achievement-value { grid-column: 2 / -1; width: 100%; }
-    }
-    @media (max-width: 480px) {
-      .favorite-card-panel { grid-template-columns: 74px 1fr; }
-      .favorite-card-panel > img { width: 74px; height: 94px; }
-      .profile-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .profile-badge-grid { grid-template-columns: 1fr; }
-      .profile-badge-card { grid-template-columns: 96px 1fr; gap: 12px; min-height: 118px; }
-      .profile-badge-art { width: 96px; height: 96px; }
-      .profile-badge-art::before { width: 132px; height: 132px; }
-      .profile-badge-art img { width: 102px; height: 102px; }
-    }
-  `}</style>;
 }

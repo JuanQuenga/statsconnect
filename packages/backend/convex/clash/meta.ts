@@ -578,10 +578,10 @@ function probe(rows: unknown[], cap: number) {
 }
 
 export const pipelineStatus = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { now: v.number() },
+  handler: async (ctx, args) => {
     const counters = await ctx.db.query("clashPipelineCounters").take(20);
-    const now = Date.now();
+    const now = args.now;
 
     const dueRows = await ctx.db
       .query("clashCrawlTargets")

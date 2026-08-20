@@ -14,7 +14,7 @@ import { ConnectedGameBoard } from "@/components/connected-game-board";
 import { GameChannelTile } from "@/components/lobby/GameChannelTile";
 import { TileNav } from "@/components/lobby/TileNav";
 import { buttonVariants } from "@/components/ui/button";
-import { games } from "@/lib/contracts";
+import { games, type StatsConnectPlusOffer } from "@/lib/contracts";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -36,7 +36,12 @@ function HomePage() {
     return <ConnectedGameBoard profiles={auth.profiles} />;
   }
 
-  return <LandingPage backendUnavailable={auth.profilesStatus === "error"} />;
+  return (
+    <LandingPage
+      backendUnavailable={auth.profilesStatus === "error"}
+      plusOffer={auth.plusOffer}
+    />
+  );
 }
 
 function LandingPage({

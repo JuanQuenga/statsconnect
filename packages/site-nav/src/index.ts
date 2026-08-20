@@ -1,4 +1,6 @@
 export { SiteNavigation, siteNavigationLanguages } from "./SiteNavigation";
+export { SiteSearch } from "./SiteSearch";
+export type { SiteSearchOption, SiteSearchProps } from "./SiteSearch";
 export type {
   SiteId,
   SiteNavigationAccount,

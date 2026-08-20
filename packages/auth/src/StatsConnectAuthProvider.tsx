@@ -38,12 +38,22 @@ export type StatsConnectAccount = {
   image: string | null;
 };
 
+export type StatsConnectPlusOffer = {
+  name: string;
+  scope: string;
+  availability: "foundation";
+  checkoutAvailable: boolean;
+  features: string[];
+  notice: string;
+};
+
 export type StatsConnectAuthState = {
   account: StatsConnectAccount | null;
   isLoading: boolean;
   profiles: readonly ConnectedProfile[];
   profilesStatus: ConnectedProfilesSnapshot["status"];
   profilesError: string | null;
+  plusOffer: StatsConnectPlusOffer | null;
   saveProfile: (profile: ConnectedProfile) => Promise<void>;
   removeProfile: (game: ConnectedProfileGame, tag: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -60,6 +70,11 @@ type ProfileInput = ConnectedProfile;
 const accountStateRef = makeFunctionReference<"query", Record<string, never>, AccountState>(
   "hub/savedProfiles:accountState",
 );
+const accessRef = makeFunctionReference<
+  "query",
+  { now: number },
+  { offer: StatsConnectPlusOffer }
+>("hub/access:getAccess");
 const mergeProfilesRef = makeFunctionReference<"mutation", { profiles: ProfileInput[] }, null>(
   "hub/savedProfiles:mergeBrowserProfiles",
 );
@@ -80,6 +95,7 @@ const defaultState: StatsConnectAuthState = {
   profiles: [],
   profilesStatus: "guest",
   profilesError: null,
+  plusOffer: null,
   saveProfile: async () => undefined,
   removeProfile: async () => undefined,
   signInWithGoogle: async () => undefined,
@@ -172,6 +188,8 @@ function ConfiguredAuth({
   children: ReactNode;
 }) {
   const { isAuthenticated, isLoading: isConvexAuthLoading } = useConvexAuth();
+  const [accessNow] = useState(() => Date.now());
+  const access = useQuery(accessRef, { now: accessNow });
   const accountState = useQuery(accountStateRef, isAuthenticated ? {} : "skip");
   const mergeProfiles = useMutation(mergeProfilesRef);
   const saveProfile = useMutation(saveProfileRef);
@@ -205,6 +223,7 @@ function ConfiguredAuth({
     profiles: profiles.snapshot.profiles,
     profilesStatus: profiles.snapshot.status,
     profilesError: profiles.snapshot.error,
+    plusOffer: access?.offer ?? null,
     saveProfile: profiles.module.save,
     removeProfile: profiles.module.remove,
     signInWithGoogle: async () => {
@@ -218,6 +237,7 @@ function ConfiguredAuth({
       profiles.module.signOut();
     },
   }), [
+    access,
     accountState,
     authClient,
     isAuthenticated,
