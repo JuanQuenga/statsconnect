@@ -1104,8 +1104,8 @@ button { cursor: pointer; }
 }
 
 .profile-identity-art > img {
-  width: 138px;
-  height: 138px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
   object-fit: contain;
   filter: drop-shadow(0 16px 20px rgba(0, 0, 0, .42));
   transform: rotate(2deg);
@@ -1135,7 +1135,7 @@ button { cursor: pointer; }
   margin: 9px 0 10px;
   overflow-wrap: anywhere;
   font-size: clamp(34px, 4vw, 56px);
-  line-height: .98;
+  line-height: 1.08;
   text-wrap: balance;
 }
 
@@ -1154,17 +1154,26 @@ button { cursor: pointer; }
 .profile-identity-meta a:hover { color: var(--foreground); }
 .profile-identity-meta a img { width: 22px; height: 25px; object-fit: contain; }
 
-.profile-hero .hero-chips { justify-content: flex-start; margin: 18px 0 0; }
+.profile-hero .hero-chips { align-items: center; justify-content: flex-start; gap: 0; margin: 18px 0 0; }
 .profile-hero .status-chip {
-  min-height: 30px;
-  border: 1px solid rgba(118, 148, 190, .24);
-  border-radius: 999px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: #c7d4e8;
-  background: rgba(18, 39, 66, .76);
-  font-size: 10px;
+  background: transparent;
+  font: 650 10px/1.4 var(--font-ui);
 }
+.profile-hero .status-chip + .status-chip::before {
+  content: "";
+  width: 1px;
+  height: 13px;
+  margin: 0 12px;
+  background: rgba(146, 169, 200, .34);
+}
+.profile-hero a.status-chip:hover { color: var(--foreground); background: transparent; }
 
-.profile-hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.profile-hero-actions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
 .profile-hero-actions > div[aria-label="Profile tracking controls"] {
   width: auto;
   margin: 0;
@@ -1172,17 +1181,24 @@ button { cursor: pointer; }
 }
 .profile-hero-actions > div[aria-label="Profile tracking controls"] button,
 .profile-hero-actions .player-share-actions button {
-  min-height: 38px;
+  min-width: 138px;
+  height: 40px;
+  min-height: 40px;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 15px;
   border-color: rgba(127, 157, 198, .32);
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--foreground);
   background: rgba(25, 48, 78, .86);
-  box-shadow: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset;
+  font: 700 11px/1 var(--font-ui);
+  white-space: nowrap;
 }
 .profile-hero-actions > div[aria-label="Profile tracking controls"] button:hover,
 .profile-hero-actions .player-share-actions button:hover { border-color: rgba(217, 107, 243, .62); background: rgba(37, 61, 94, .96); }
 .profile-hero-actions > div[aria-label="Profile tracking controls"] > span { display: none; }
-.profile-hero-actions .player-share-actions { margin: 0; }
+.profile-hero-actions .player-share-actions { align-items: flex-start; margin: 0; }
 
 .profile-hero-metrics {
   display: grid;
@@ -1650,7 +1666,7 @@ button { cursor: pointer; }
   }
   .profile-hero { grid-template-columns: 150px minmax(0, 1fr); min-height: 0; padding: 30px; }
   .profile-identity-art { width: 144px; height: 144px; border-radius: 34px; }
-  .profile-identity-art > img { width: 112px; height: 112px; }
+  .profile-identity-art > img { width: calc(100% - 12px); height: calc(100% - 12px); }
   .profile-level-badge { right: -8px; bottom: -10px; width: 62px; height: 62px; font-size: 19px !important; }
   .profile-hero-metrics { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .profile-hero-metric { grid-template-columns: 34px minmax(0, 1fr); padding: 8px; }
@@ -1970,7 +1986,7 @@ button:disabled { cursor: wait; opacity: .62; }
   isolation: isolate;
 }
 .game-card-art-library { width: 112px; --game-card-cost-size: 24px; --game-card-cost-font: 15px; }
-.game-card-art-deck { width: min(100%, 168px); --game-card-cost-size: 34px; --game-card-cost-font: 21px; --game-card-level-font: 18px; }
+.game-card-art-deck { width: min(100%, 168px); --game-card-cost-size: 34px; --game-card-cost-font: 21px; --game-card-level-font: 15px; }
 .game-card-art[data-rarity="rare"] { --game-card-accent: #ff9f43; --game-card-level-start: #ffe5a3; --game-card-level-end: #ff941f; }
 .game-card-art[data-rarity="epic"] { --game-card-accent: #db6cff; --game-card-level-start: #f5c7ff; --game-card-level-end: #d85bff; }
 .game-card-art[data-rarity="legendary"] { --game-card-accent: #63e6be; --game-card-level-start: #d1fff1; --game-card-level-end: #54dfb7; }

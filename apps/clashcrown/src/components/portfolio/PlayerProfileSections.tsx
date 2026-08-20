@@ -212,11 +212,11 @@ function ProfileFeatureStyles() {
     .support-card-list img { width: 54px; height: 68px; object-fit: contain; }
     .support-card-list span { overflow: hidden; max-width: 100%; color: white; font: 700 10px var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
     .support-card-list small { color: #8ea2c4; font: 9px var(--font-ui); }
-    .profile-badge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); column-gap: 24px; row-gap: 2px; }
-    .profile-badge-card { min-width: 0; display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; min-height: 116px; padding: 10px 4px; background: radial-gradient(circle at 42px 50%, rgba(94, 172, 255, .09), transparent 72px); box-shadow: inset 0 -1px rgba(88, 118, 157, .2); }
-    .profile-badge-art { width: 92px; height: 92px; position: relative; display: grid; place-items: center; color: var(--primary); }
-    .profile-badge-art::before { content: ""; width: 64px; height: 64px; position: absolute; border-radius: 50%; background: rgba(74, 151, 255, .22); filter: blur(18px); }
-    .profile-badge-art img { z-index: 1; width: 96px; max-width: none; height: 96px; max-height: none; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .34)); }
+    .profile-badge-grid { overflow: visible; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); column-gap: 24px; row-gap: 2px; }
+    .profile-badge-card { min-width: 0; overflow: visible; display: grid; grid-template-columns: 124px 1fr; gap: 16px; align-items: center; min-height: 148px; padding: 10px 4px; box-shadow: inset 0 -1px rgba(88, 118, 157, .2); }
+    .profile-badge-art { width: 124px; height: 124px; position: relative; display: grid; place-items: center; color: var(--primary); }
+    .profile-badge-art::before { content: ""; width: 164px; height: 164px; position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(74, 151, 255, .2), rgba(74, 151, 255, .07) 42%, transparent 72%); pointer-events: none; }
+    .profile-badge-art img { z-index: 1; width: 128px; max-width: none; height: 128px; max-height: none; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .34)); }
     .profile-badge-card > div:last-child { min-width: 0; display: grid; gap: 5px; }
     .profile-badge-card strong { overflow: hidden; font-size: 13px; line-height: 1.25; text-overflow: ellipsis; }
     .profile-badge-card span, .profile-badge-card small { color: var(--muted-foreground); font: 10px var(--font-ui); }
@@ -245,9 +245,10 @@ function ProfileFeatureStyles() {
       .favorite-card-panel > img { width: 74px; height: 94px; }
       .profile-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .profile-badge-grid { grid-template-columns: 1fr; }
-      .profile-badge-card { grid-template-columns: 82px 1fr; min-height: 104px; }
-      .profile-badge-art { width: 82px; height: 82px; }
-      .profile-badge-art img { width: 88px; height: 88px; }
+      .profile-badge-card { grid-template-columns: 96px 1fr; gap: 12px; min-height: 118px; }
+      .profile-badge-art { width: 96px; height: 96px; }
+      .profile-badge-art::before { width: 132px; height: 132px; }
+      .profile-badge-art img { width: 102px; height: 102px; }
     }
   `}</style>;
 }

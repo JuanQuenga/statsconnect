@@ -36,7 +36,7 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
     <section className="profile-hero">
       <div className="profile-hero-glow" aria-hidden="true" />
       <div className="profile-identity-art">
-        <Image src={player.arenaImage} alt="" width={150} height={150} priority />
+        <Image src={player.arenaImage} alt="" width={180} height={180} priority />
         {player.level !== undefined ? (
           <span className="profile-level-badge" aria-label={`${locale === "es" ? "Nivel" : "Level"} ${player.level}`}>
             {player.level}
