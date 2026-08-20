@@ -31,41 +31,30 @@ function profileDetails(player: Player): Detail[] {
 
 export function PlayerProfileDetails({ player }: { player: Player }) {
   const details = profileDetails(player);
-  if (!player.favoriteCard && !details.length && !player.supportCardCollection?.length) return null;
+  if (!details.length && !player.supportCardCollection?.length) return null;
 
   return (
     <section className="profile-section profile-details-section">
-      <div className="profile-section-heading"><h2>Account details</h2></div>
-      <div className={player.favoriteCard ? "profile-detail-layout" : "profile-detail-layout profile-detail-layout-wide"}>
-        {player.favoriteCard ? <FavoriteCard card={player.favoriteCard} /> : null}
-        {details.length ? (
-          <div className="profile-detail-grid">
-            {details.map((detail) => (
-              <div className="profile-detail-card" key={detail.label}>
-                <span>{detail.label}</span>
-                <strong>{detail.value}</strong>
-                {detail.note ? <small>{detail.note}</small> : null}
-              </div>
-            ))}
-          </div>
-        ) : null}
+      <div className="profile-section-heading">
+        <div>
+          <h2>Account record</h2>
+          <p>Identity, progression, and contribution details.</p>
+        </div>
       </div>
+      {details.length ? (
+        <dl className="profile-detail-list">
+          {details.map((detail) => (
+            <div className="profile-detail-row" key={detail.label}>
+              <dt>{detail.label}</dt>
+              <dd>{detail.value}</dd>
+              {detail.note ? <small>{detail.note}</small> : null}
+            </div>
+          ))}
+        </dl>
+      ) : null}
       {player.supportCardCollection?.length ? <SupportCardCollection cards={player.supportCardCollection} /> : null}
       <ProfileFeatureStyles />
     </section>
-  );
-}
-
-function FavoriteCard({ card }: { card: Card }) {
-  return (
-    <Link className="favorite-card-panel" href={`/cards/${cardSlug(card.name)}`}>
-      <strong className="favorite-card-label"><Star size={13} /> Favorite card</strong>
-      <CardArt src={card.image} alt={card.name} width={104} height={128} />
-      <span className="favorite-card-copy">
-        <strong>{card.name}</strong>
-        <small>{card.rarity} · {card.elixir || "?"} elixir</small>
-      </span>
-    </Link>
   );
 }
 
@@ -190,19 +179,12 @@ function AchievementRow({ achievement }: { achievement: PlayerAchievement }) {
 
 function ProfileFeatureStyles() {
   return <style>{`
-    .profile-detail-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; align-items: stretch; }
-    .profile-detail-layout-wide { grid-template-columns: 1fr; }
-    .favorite-card-panel { display: grid; grid-template-columns: 96px 1fr; grid-template-rows: auto 1fr; gap: 8px 16px; align-items: center; padding: 18px; border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border)); border-radius: 16px; color: var(--foreground); background: linear-gradient(145deg, rgba(95, 52, 119, .42), rgba(13, 29, 49, .9)); }
-    .favorite-card-panel:hover { border-color: color-mix(in srgb, var(--accent) 70%, white); transform: translateY(-2px); }
-    .favorite-card-label { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font: 700 11px var(--font-ui); }
-    .favorite-card-panel > img { width: 92px; height: 112px; object-fit: contain; }
-    .favorite-card-copy { display: grid; gap: 6px; }
-    .favorite-card-copy strong { font-size: 17px; }
-    .favorite-card-copy small { color: var(--muted-foreground); font: 10px var(--font-ui); }
-    .profile-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-    .profile-detail-card { min-height: 104px; display: grid; align-content: center; gap: 6px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 44%, transparent); }
-    .profile-detail-card span, .profile-detail-card small { color: var(--muted-foreground); font: 10px/1.35 var(--font-ui); }
-    .profile-detail-card strong { font-size: 20px; }
+    .profile-detail-list { margin: 0; }
+    .profile-detail-row { display: grid; grid-template-columns: minmax(120px, 1fr) auto; gap: 4px 20px; align-items: baseline; padding: 13px 0; border-bottom: 1px solid rgba(116, 146, 188, .16); }
+    .profile-detail-row:last-child { border-bottom: 0; }
+    .profile-detail-row dt { color: var(--muted-foreground); font: 650 11px/1.4 var(--font-ui); }
+    .profile-detail-row dd { margin: 0; color: var(--foreground); font: 780 17px/1.2 var(--font-ui); text-align: right; }
+    .profile-detail-row small { grid-column: 1 / -1; color: var(--muted-foreground); font: 9px/1.4 var(--font-ui); }
     .support-collection { display: grid; grid-template-columns: minmax(210px, .65fr) 1.35fr; gap: 24px; align-items: center; margin-top: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 32%, transparent); }
     .support-collection h3 { margin: 5px 0; font-size: 17px; }
     .support-collection p { margin: 0; color: #8ea2c4; font: 11px/1.5 var(--font-ui); }
@@ -235,7 +217,7 @@ function ProfileFeatureStyles() {
     .achievement-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #498fff, var(--accent)); }
     .achievement-value { justify-self: end; font-size: 16px; }
     @media (max-width: 760px) {
-      .profile-detail-layout, .support-collection { grid-template-columns: 1fr; }
+      .support-collection { grid-template-columns: 1fr; }
       .achievement-list { grid-template-columns: 1fr; }
       .achievement-row { grid-template-columns: 42px minmax(0, 1fr) auto; }
       .achievement-progress, .achievement-value { grid-column: 2 / -1; width: 100%; }

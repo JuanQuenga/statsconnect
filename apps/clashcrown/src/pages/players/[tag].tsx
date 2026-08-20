@@ -95,9 +95,11 @@ function PlayerDashboard({
         />
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
         {activeTab === "Statistics" ? (
-          <>
-            <PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} />
-            <PlayerProfileDetails player={player} />
+          <div className="player-statistics-flow">
+            <div className="player-overview-sheet">
+              <PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} />
+              <PlayerProfileDetails player={player} />
+            </div>
             <PlayerBadgeSection badges={player.badges} />
             <PlayerAchievementsSection achievements={player.achievements} />
             <PerformanceSection battles={player.battles} />
@@ -110,7 +112,7 @@ function PlayerDashboard({
               </div>
               <Link href={`/players/${player.tag.replace(/^#/, "")}/history`} className="pink-button">Open history</Link>
             </section>
-          </>
+          </div>
         ) : null}
         {activeTab === "Battles" ? <BattleHistory battles={player.battles} playerName={player.name} /> : null}
         {activeTab === "Decks" ? <><DeckAnalyticsSection battles={player.battles} /><DeckOverview cards={player.deck} supportCards={player.supportCards} /></> : null}
