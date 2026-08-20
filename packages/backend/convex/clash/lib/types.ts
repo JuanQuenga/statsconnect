@@ -38,6 +38,7 @@ export type ApiClanReference = {
 };
 
 export type ApiPlayerLeagueStats = {
+  leagueNumber?: number;
   trophies?: number;
   bestTrophies?: number;
   rank?: number | null;

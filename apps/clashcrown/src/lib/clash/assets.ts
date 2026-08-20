@@ -203,13 +203,22 @@ const ARENA_ID_TO_KEY: Record<number, string> = {
   54000132: "arena24",
   54000141: "arena24",
   54000142: "arena24",
-  54000143: "arena24",
+  54000143: "arena31",
   54000144: "arena24"
 };
 
 /** Highest arena/league image vendored under public/images/arenas. */
 const MAX_ARENA_INDEX = 24;
 const MAX_LEAGUE_INDEX = 10;
+const EXTRA_VENDORED_ARENA_INDICES = new Set([31]);
+
+/** Ranked league badge, with Ultimate Champion as the legacy-result fallback. */
+export function leagueImage(leagueNumber?: number): string {
+  const index = leagueNumber === undefined || !Number.isFinite(leagueNumber)
+    ? MAX_LEAGUE_INDEX
+    : Math.min(Math.max(Math.trunc(leagueNumber), 0), MAX_LEAGUE_INDEX);
+  return `/images/arenas/league${index}.png`;
+}
 
 /** API display names are subtitles rather than predictable `Arena N` labels. */
 const ARENA_NAME_TO_INDEX: Record<string, number> = {
@@ -249,7 +258,8 @@ const ARENA_NAME_TO_INDEX: Record<string, number> = {
 };
 
 function arenaKey(index: number): string {
-  return `arena${Math.min(Math.max(index, 0), MAX_ARENA_INDEX)}`;
+  const normalized = Math.max(Math.trunc(index), 0);
+  return `arena${normalized <= MAX_ARENA_INDEX || EXTRA_VENDORED_ARENA_INDICES.has(normalized) ? normalized : MAX_ARENA_INDEX}`;
 }
 
 /**

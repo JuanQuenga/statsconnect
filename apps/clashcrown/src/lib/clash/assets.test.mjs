@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { arenaImage, cardArtFallbacks, highestAvailableCardArt, selectCardArt } from "./assets.ts";
+import { arenaImage, cardArtFallbacks, highestAvailableCardArt, leagueImage, selectCardArt } from "./assets.ts";
 
 test("current Trophy Road arenas do not fall back to Training Camp", () => {
+  assert.equal(
+    arenaImage({ id: 54000143, name: "Little Prince's Tavern", rawName: "Arena_L17" }),
+    "/images/arenas/arena31.png"
+  );
+  assert.equal(arenaImage({ name: "Little Prince's Tavern" }), "/images/arenas/arena31.png");
   assert.equal(
     arenaImage({ id: 54000144, name: "Spirit Square", rawName: "Arena_L18" }),
     "/images/arenas/arena24.png"
@@ -15,6 +20,13 @@ test("arena resolution supports API subtitles and internal names", () => {
   assert.equal(arenaImage({ rawName: "Arena_L3" }), "/images/arenas/arena17.png");
   assert.equal(arenaImage({ name: "Arena 32" }), "/images/arenas/arena24.png");
   assert.equal(arenaImage(), "/images/arenas/arena0.png");
+});
+
+test("ranked league images use the matching vendored badge", () => {
+  assert.equal(leagueImage(1), "/images/arenas/league1.png");
+  assert.equal(leagueImage(10), "/images/arenas/league10.png");
+  assert.equal(leagueImage(99), "/images/arenas/league10.png");
+  assert.equal(leagueImage(), "/images/arenas/league10.png");
 });
 
 test("catalog cards show the highest available portrait tier", () => {

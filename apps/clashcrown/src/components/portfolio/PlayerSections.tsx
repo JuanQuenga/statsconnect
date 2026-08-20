@@ -3,7 +3,7 @@ import Link from "@/components/Link";
 import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { Crown, RefreshCcw, Shield, Swords, Trophy } from "lucide-react";
-import { NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
+import { leagueImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
@@ -32,29 +32,51 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
   const { formatNumber, locale, t } = useI18n();
   const wins = player.stats.Wins;
   const battles = player.stats.Battles ?? combinedStat(player.stats.Wins, player.stats.Losses, formatNumber);
+  const currentLeague = player.pathOfLegends?.current;
 
   return (
     <section className="profile-hero">
       <div className="profile-hero-glow" aria-hidden="true" />
       <div className="profile-identity-art">
-        <span className="profile-arena-art">
-          <Image src={player.arenaImage} alt={player.arena} width={240} height={240} priority />
-          <small>{player.arena}</small>
-        </span>
-        {player.favoriteCard ? (
-          <Link className="profile-favorite-art" href={`/cards/${cardSlug(player.favoriteCard.name)}`} aria-label={`Favorite card: ${player.favoriteCard.name}`}>
-            <CardArt src={player.favoriteCard.image} alt={player.favoriteCard.name} width={170} height={208} priority />
-            <span>Favorite · {player.favoriteCard.name}</span>
-          </Link>
-        ) : null}
-        {player.level !== undefined ? (
-          <span className="profile-level-badge" aria-label={`${locale === "es" ? "Nivel" : "Level"} ${player.level}`}>
-            {player.level}
+        <div className="profile-showcase-shelf" aria-label={locale === "es" ? "Selección del jugador" : "Player loadout"}>
+          {player.favoriteCard ? (
+            <Link className="profile-favorite-art" href={`/cards/${cardSlug(player.favoriteCard.name)}`} aria-label={`Favorite card: ${player.favoriteCard.name}`}>
+              <CardArt src={player.favoriteCard.image} alt={player.favoriteCard.name} width={122} height={149} priority />
+              <span className="profile-art-caption">
+                <small>{locale === "es" ? "Carta favorita" : "Favorite card"}</small>
+                <strong>{player.favoriteCard.name}</strong>
+              </span>
+            </Link>
+          ) : null}
+          {currentLeague ? (
+            <span className="profile-league-art" aria-label={`${locale === "es" ? "Liga actual" : "Current league"}${currentLeague.leagueNumber === undefined ? "" : ` ${currentLeague.leagueNumber}`}`}>
+              <Image src={leagueImage(currentLeague.leagueNumber)} alt="" width={80} height={80} />
+              <span className="profile-art-caption">
+                <small>{locale === "es" ? "Liga actual" : "Current league"}</small>
+                <strong>{currentLeague.leagueNumber === undefined ? (locale === "es" ? "Clasificatoria" : "Ranked") : `${locale === "es" ? "Liga" : "League"} ${currentLeague.leagueNumber}`}</strong>
+              </span>
+            </span>
+          ) : null}
+          <span className="profile-arena-loadout">
+            <Image src={player.arenaImage} alt={player.arena} width={112} height={112} priority />
+            <span className="profile-art-caption">
+              <small>{locale === "es" ? "Arena actual" : "Current arena"}</small>
+              <strong>{player.arena}</strong>
+            </span>
           </span>
-        ) : null}
+        </div>
       </div>
       <div className="profile-identity-copy">
         <h1>{player.name}</h1>
+        {player.level !== undefined ? (
+          <span className="profile-player-level" aria-label={`${locale === "es" ? "Nivel del rey" : "King level"} ${player.level}`}>
+            <span className="profile-level-badge">{player.level}</span>
+            <span>
+              <small>{locale === "es" ? "Nivel del rey" : "King level"}</small>
+              <strong>{player.level}</strong>
+            </span>
+          </span>
+        ) : null}
         <div className="profile-identity-meta">
           <strong>#{player.tag}</strong>
           <span aria-hidden="true">•</span>
@@ -124,7 +146,7 @@ export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: 
 
 export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Player; onRefresh: () => void; isRefreshing: boolean }) {
   const { formatNumber, locale, t } = useI18n();
-  const rows: Array<[string, string]> = Object.entries(player.stats);
+  const rows: Array<[string, string]> = Object.entries(player.stats).filter(([label]) => label !== "Arena");
   if (player.bestTrophies !== undefined) {
     rows.unshift([locale === "es" ? "Máximo de trofeos" : "Highest trophies", formatNumber(player.bestTrophies)]);
   }
@@ -150,7 +172,7 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
             {careerRows.map(([label, value]) => (
               <div key={label} className="career-row">
                 <dt>
-                  <Image src={statIcon(label, player.arenaImage)} alt="" width={26} height={26} />
+                  <Image src={statIcon(label)} alt="" width={26} height={26} />
                   <span>{label}</span>
                 </dt>
                 <dd>{value}</dd>
@@ -236,8 +258,7 @@ function PerformanceStat({ icon, value, label }: { icon: string; value: string; 
   );
 }
 
-function statIcon(label: string, arenaImage: string) {
-  if (label === "Arena") return arenaImage;
+function statIcon(label: string) {
   if (label.includes("card")) return "/images/icons/cardsq.png";
   if (label.includes("3 crown")) return "/images/icons/crown-gold.png";
   if (label.includes("donation")) return "/images/icons/crown-2d.png";
@@ -271,7 +292,7 @@ export function PathOfLegendsSeasons({ player }: { player: Player }) {
       <div className="pol-columns">
         {rows.map(({ label, result }) => (
           <div key={label} className="pol-card">
-            {result?.rank ? <Image className="pol-rank-icon" src="/images/ui-icons/ranklegendary.png" alt="" width={48} height={48} /> : null}
+            {result ? <Image className="pol-league-icon" src={leagueImage(result.leagueNumber)} alt="" width={64} height={64} /> : null}
             <span className="pol-label">{label}</span>
             <strong>{result?.trophies !== undefined ? formatNumber(result.trophies) : "—"}</strong>
             <span>{result?.rank ? `#${formatNumber(result.rank)}` : (locale === "es" ? "Sin clasificación" : "Unranked")}</span>

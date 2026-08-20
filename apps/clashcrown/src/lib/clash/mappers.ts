@@ -133,8 +133,13 @@ function mapChestList(payload: ApiChestList): Chest[] {
  */
 function mapPathOfLegendsResult(result?: ApiPlayerLeagueStats): PathOfLegendsResult | undefined {
   if (!result) return undefined;
-  if (result.trophies === undefined && result.bestTrophies === undefined && result.rank == null) return undefined;
-  return { trophies: optionalNumber(result.trophies), bestTrophies: optionalNumber(result.bestTrophies), rank: result.rank ?? null };
+  if (result.leagueNumber === undefined && result.trophies === undefined && result.bestTrophies === undefined && result.rank == null) return undefined;
+  return {
+    leagueNumber: optionalNumber(result.leagueNumber),
+    trophies: optionalNumber(result.trophies),
+    bestTrophies: optionalNumber(result.bestTrophies),
+    rank: result.rank ?? null
+  };
 }
 
 function mapPathOfLegends(source: ApiPlayer): Player["pathOfLegends"] {

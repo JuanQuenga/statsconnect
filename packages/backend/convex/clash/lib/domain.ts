@@ -34,6 +34,7 @@ export type Chest = {
 };
 
 export type PathOfLegendsResult = {
+  leagueNumber?: number;
   trophies?: number;
   bestTrophies?: number;
   rank?: number | null;

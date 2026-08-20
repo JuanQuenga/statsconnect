@@ -64,6 +64,7 @@ export type Chest = {
 
 /** One of the current, prior, or best Path of Legends snapshots exposed upstream. */
 export type PathOfLegendsResult = {
+  leagueNumber?: number;
   trophies?: number;
   bestTrophies?: number;
   rank?: number | null;
