@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { action, internalAction, internalMutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import { recordPlayerSightings, type PlayerSighting } from "./players";
+import { optionalBattleText } from "./ingestPolicy";
 import { trophyBucketFromTrophies } from "./stats";
 import {
   createBrawlUpstreamIntake,
@@ -17,7 +18,7 @@ type BattlePlayer = {
 
 type BattleLogItem = {
   battleTime?: string;
-  event?: { id?: number; mode?: string; map?: string };
+  event?: { id?: number; mode?: string; map?: unknown };
   battle?: {
     mode?: string;
     type?: string;
@@ -105,7 +106,7 @@ export const ingestBattleLogItems = internalMutation({
               battleTimestamp: timestamp,
               ingestedAt: Date.now(),
               mapId: Number.isFinite(mapId) && mapId > 0 ? mapId : undefined,
-              mapName: raw.event?.map,
+              mapName: optionalBattleText(raw.event?.map),
               mode,
               battleType: raw.battle?.type,
               result: personalResult(raw.battle),
