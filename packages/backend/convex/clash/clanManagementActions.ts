@@ -19,7 +19,21 @@ import type {
 } from "./lib/types";
 
 const managementApi = anyApi.clash.clanManagement;
+const metaApi = anyApi.clash.meta;
 const MAX_HISTORY_WEEKS = 7;
+
+declare const process: { env: Record<string, string | undefined> };
+
+function envNumber(name: string, fallback: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : fallback;
+}
+
+function envEnabled(name: string, fallback = true): boolean {
+  const value = process.env[name];
+  if (value === undefined) return fallback;
+  return !["0", "false", "off", "no"].includes(value.trim().toLowerCase());
+}
 
 type PrepareResult = { shouldObserve: boolean; lastObservedAt: number | null };
 type ObserveResult = { observed: boolean; observedAt: number | null };
@@ -197,8 +211,16 @@ export const pollTrackedClans = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
+    if (!envEnabled("CLASH_CRAWLER_ENABLED") || !envEnabled("CLASH_CLAN_WATCH_ENABLED")) {
+      return null;
+    }
     const due = await ctx.runQuery(managementApi.dueTrackedClans, { now: Date.now(), limit: 3 }) as Array<{ tag: string }>;
-    for (const clan of due) {
+    const budget = await ctx.runMutation(metaApi.reserveRequestBudget, {
+      job: "clanWatch",
+      requested: due.length * 3,
+      dailyLimit: envNumber("CLASH_CLAN_WATCH_DAILY_REQUEST_BUDGET", 36),
+    }) as { granted: number };
+    for (const clan of due.slice(0, Math.floor(budget.granted / 3))) {
       try {
         await observeOne(ctx, clan.tag);
       } catch {

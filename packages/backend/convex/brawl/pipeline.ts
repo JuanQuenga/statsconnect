@@ -10,6 +10,12 @@ import {
   settleTarget,
 } from "./pipelinePolicy";
 import {
+  boundedInteger,
+  envEnabled,
+  hourBucket,
+} from "./controls";
+import {
+  apiBudgetScope,
   crawlSource,
   pipelineRunState,
   upstreamConsumer,
@@ -17,6 +23,8 @@ import {
   upstreamOutcome,
   upstreamSource,
 } from "./schema";
+
+declare const process: { env: Record<string, string | undefined> };
 
 const targetInput = v.object({
   tag: v.string(),
@@ -76,6 +84,69 @@ async function incrementCounter(
   }
   await ctx.db.insert("brawlPipelineCounters", { name, value: amount, updatedAt: now });
 }
+
+export const reserveApiBudget = internalMutation({
+  args: {
+    scope: apiBudgetScope,
+    requested: v.number(),
+    limit: v.number(),
+    now: v.number(),
+  },
+  returns: v.object({ granted: v.number(), used: v.number(), limit: v.number() }),
+  handler: async (ctx, args) => {
+    const requested = Math.max(0, Math.floor(args.requested));
+    const limit = Math.max(0, Math.floor(args.limit));
+    const bucketStartedAt = hourBucket(args.now);
+    const key = `${args.scope}:${bucketStartedAt}`;
+    const row = await ctx.db
+      .query("brawlApiBudgets")
+      .withIndex("by_key", (query) => query.eq("key", key))
+      .unique();
+    const used = row?.reserved ?? 0;
+    const granted = Math.min(requested, Math.max(0, limit - used));
+
+    if (row) {
+      if (granted > 0) {
+        await ctx.db.patch(row._id, {
+          reserved: used + granted,
+          updatedAt: args.now,
+        });
+      }
+    } else if (granted > 0) {
+      await ctx.db.insert("brawlApiBudgets", {
+        key,
+        scope: args.scope,
+        bucketStartedAt,
+        reserved: granted,
+        updatedAt: args.now,
+      });
+    }
+
+    return { granted, used: used + granted, limit };
+  },
+});
+
+export const releaseApiBudget = internalMutation({
+  args: { scope: apiBudgetScope, unused: v.number(), now: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const unused = Math.max(0, Math.floor(args.unused));
+    if (unused === 0) return null;
+    const bucketStartedAt = hourBucket(args.now);
+    const key = `${args.scope}:${bucketStartedAt}`;
+    const row = await ctx.db
+      .query("brawlApiBudgets")
+      .withIndex("by_key", (query) => query.eq("key", key))
+      .unique();
+    if (row) {
+      await ctx.db.patch(row._id, {
+        reserved: Math.max(0, row.reserved - unused),
+        updatedAt: args.now,
+      });
+    }
+    return null;
+  },
+});
 
 export const recordUpstreamFetch = internalMutation({
   args: {
@@ -455,13 +526,28 @@ export const retainPipelineData = internalMutation({
 });
 
 export const pipelineStatus = query({
-  args: {},
+  args: { now: v.number() },
   returns: v.object({
     now: v.number(),
     counters: v.array(v.object({ name: v.string(), value: v.number(), updatedAt: v.number() })),
-    targets: v.object({ total: v.number(), due: v.number(), capped: v.boolean() }),
+    targets: v.object({ total: v.number(), due: v.number(), expiring: v.number(), capped: v.boolean() }),
     battlesLast24Hours: v.object({ count: v.number(), capped: v.boolean() }),
-    apiCallsLastHour: v.object({ total: v.number(), failures: v.number(), capped: v.boolean() }),
+    apiCallsLastHour: v.object({
+      total: v.number(),
+      failures: v.number(),
+      rateLimited: v.number(),
+      serverErrors: v.number(),
+      capped: v.boolean(),
+      windowStartedAt: v.number(),
+    }),
+    controls: v.object({
+      crawlerEnabled: v.boolean(),
+      publicUpstreamEnabled: v.boolean(),
+      crawlHourlyLimit: v.number(),
+      publicHourlyLimit: v.number(),
+      crawlReserved: v.number(),
+      publicReserved: v.number(),
+    }),
     recentRuns: v.array(v.object({
       id: v.id("brawlPipelineRuns"),
       job: v.string(),
@@ -480,9 +566,12 @@ export const pipelineStatus = query({
       failures: v.optional(v.number()),
     })),
   }),
-  handler: async (ctx) => {
-    const now = Date.now();
-    const [counters, targetProbe, dueProbe, battleProbe, fetchProbe, recentRuns] = await Promise.all([
+  handler: async (ctx, args) => {
+    const now = args.now;
+    const windowStartedAt = hourBucket(now);
+    const crawlBudgetKey = `crawl:${windowStartedAt}`;
+    const publicBudgetKey = `public:${windowStartedAt}`;
+    const [counters, targetProbe, dueProbe, battleProbe, fetchProbe, crawlBudget, publicBudget, recentRuns] = await Promise.all([
       ctx.db.query("brawlPipelineCounters").take(50),
       ctx.db.query("brawlCrawlTargets").take(1_001),
       ctx.db
@@ -497,8 +586,12 @@ export const pipelineStatus = query({
         .query("brawlApiFetchLogs")
         .withIndex("by_fetched_at", (q) => q.gte("fetchedAt", now - 60 * 60 * 1_000))
         .take(1_001),
+      ctx.db.query("brawlApiBudgets").withIndex("by_key", (q) => q.eq("key", crawlBudgetKey)).unique(),
+      ctx.db.query("brawlApiBudgets").withIndex("by_key", (q) => q.eq("key", publicBudgetKey)).unique(),
       ctx.db.query("brawlPipelineRuns").withIndex("by_started_at").order("desc").take(20),
     ]);
+
+    const recentFetches = fetchProbe.slice(0, 1_000);
 
     return {
       now,
@@ -506,6 +599,9 @@ export const pipelineStatus = query({
       targets: {
         total: Math.min(targetProbe.length, 1_000),
         due: Math.min(dueProbe.length, 1_000),
+        expiring: targetProbe.slice(0, 1_000).filter((row) =>
+          !row.disabled && row.expiresAt !== undefined && row.expiresAt <= now + 24 * 60 * 60 * 1_000
+        ).length,
         capped: targetProbe.length > 1_000 || dueProbe.length > 1_000,
       },
       battlesLast24Hours: {
@@ -514,8 +610,19 @@ export const pipelineStatus = query({
       },
       apiCallsLastHour: {
         total: Math.min(fetchProbe.length, 1_000),
-        failures: fetchProbe.slice(0, 1_000).filter((row) => !row.ok).length,
+        failures: recentFetches.filter((row) => !row.ok).length,
+        rateLimited: recentFetches.filter((row) => row.status === 429 || row.errorCode === "rate_limited").length,
+        serverErrors: recentFetches.filter((row) => row.status >= 500).length,
         capped: fetchProbe.length > 1_000,
+        windowStartedAt,
+      },
+      controls: {
+        crawlerEnabled: envEnabled(process.env.BRAWL_CRAWLER_ENABLED),
+        publicUpstreamEnabled: envEnabled(process.env.BRAWL_PUBLIC_API_ENABLED),
+        crawlHourlyLimit: boundedInteger(process.env.BRAWL_CRAWL_MAX_CALLS_PER_HOUR, 500, 0, 10_000),
+        publicHourlyLimit: boundedInteger(process.env.BRAWL_PUBLIC_MAX_CALLS_PER_HOUR, 1_000, 0, 20_000),
+        crawlReserved: crawlBudget?.reserved ?? 0,
+        publicReserved: publicBudget?.reserved ?? 0,
       },
       recentRuns: recentRuns.map((run) => ({
         id: run._id,

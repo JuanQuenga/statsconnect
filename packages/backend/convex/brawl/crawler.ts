@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction, type ActionCtx } from "../_generated/server";
+import { boundedInteger, envEnabled } from "./controls";
 import {
   brawlTagKey,
   createBrawlUpstreamIntake,
@@ -188,6 +189,12 @@ export const crawl = internalAction({
     });
     const intake = crawlerIntake(ctx, runId);
     const batchSize = integerEnv("BRAWL_CRAWL_BATCH", 8, 25);
+    const hourlyLimit = boundedInteger(
+      process.env.BRAWL_CRAWL_MAX_CALLS_PER_HOUR,
+      500,
+      0,
+      10_000,
+    );
     const revisitMinutes = integerEnv("BRAWL_CRAWL_REVISIT_MINUTES", 30, 24 * 60);
     const revisitMs = revisitMinutes * 60 * 1_000;
     let fetched = 0;
@@ -195,10 +202,51 @@ export const crawl = internalAction({
     let failures = 0;
 
     try {
-      const claim = await ctx.runMutation(internal.brawl.pipeline.claimCrawlBatch, {
-        runId,
-        limit: batchSize,
-        leaseMs: 5 * 60 * 1_000,
+      if (!envEnabled(process.env.BRAWL_CRAWLER_ENABLED)) {
+        await ctx.runMutation(internal.brawl.pipeline.completePipelineRun, {
+          runId,
+          outcome: "succeeded",
+          note: "Crawler disabled by BRAWL_CRAWLER_ENABLED.",
+        });
+        return { fetched, battles, failures };
+      }
+
+      const budgetNow = Date.now();
+      const budget = await ctx.runMutation(internal.brawl.pipeline.reserveApiBudget, {
+        scope: "crawl",
+        requested: batchSize * 2,
+        limit: hourlyLimit,
+        now: budgetNow,
+      });
+      const allowedTargets = Math.floor(budget.granted / 2);
+      if (allowedTargets === 0) {
+        await ctx.runMutation(internal.brawl.pipeline.completePipelineRun, {
+          runId,
+          outcome: "succeeded",
+          note: `Hourly crawl budget exhausted (${budget.used}/${budget.limit}).`,
+        });
+        return { fetched, battles, failures };
+      }
+
+      let claim;
+      try {
+        claim = await ctx.runMutation(internal.brawl.pipeline.claimCrawlBatch, {
+          runId,
+          limit: allowedTargets,
+          leaseMs: 5 * 60 * 1_000,
+        });
+      } catch (error) {
+        await ctx.runMutation(internal.brawl.pipeline.releaseApiBudget, {
+          scope: "crawl",
+          unused: budget.granted,
+          now: budgetNow,
+        });
+        throw error;
+      }
+      await ctx.runMutation(internal.brawl.pipeline.releaseApiBudget, {
+        scope: "crawl",
+        unused: Math.max(0, budget.granted - claim.targets.length * 2),
+        now: budgetNow,
       });
       if (claim.status !== "claimed") throw new Error("Crawl run is no longer active");
 

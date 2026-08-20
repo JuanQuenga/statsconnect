@@ -60,6 +60,42 @@ export async function bump(ctx: MutationCtx, name: string, delta: number) {
   else await ctx.db.insert("clashPipelineCounters", { name, value: delta, updatedAt: Date.now() });
 }
 
+export const reserveRequestBudget = internalMutation({
+  args: {
+    job: v.union(v.literal("discover"), v.literal("crawl"), v.literal("clanWatch")),
+    requested: v.number(),
+    dailyLimit: v.number(),
+  },
+  returns: v.object({ granted: v.number(), used: v.number(), limit: v.number() }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const day = dayKey(now);
+    const requested = Math.max(0, Math.floor(args.requested));
+    const limit = Math.max(0, Math.floor(args.dailyLimit));
+    const row = await ctx.db
+      .query("clashCrawlerBudgets")
+      .withIndex("by_day_and_job", (query) => query.eq("day", day).eq("job", args.job))
+      .unique();
+    const used = row?.reserved ?? 0;
+    const granted = Math.min(requested, Math.max(0, limit - used));
+
+    if (row) {
+      if (granted > 0) {
+        await ctx.db.patch(row._id, { reserved: used + granted, updatedAt: now });
+      }
+    } else if (granted > 0) {
+      await ctx.db.insert("clashCrawlerBudgets", {
+        day,
+        job: args.job,
+        reserved: granted,
+        updatedAt: now,
+      });
+    }
+
+    return { granted, used: used + granted, limit };
+  },
+});
+
 // --- Crawl queue ----------------------------------------------------------
 
 export const upsertTargets = internalMutation({
@@ -527,6 +563,13 @@ export const pruneBatch = internalMutation({
       .take(256);
     for (const row of staleRuns) await ctx.db.delete(row._id);
 
+    const budgetCutoff = dayKey(Date.now() - 2 * 86_400_000);
+    const staleBudgets = await ctx.db
+      .query("clashCrawlerBudgets")
+      .withIndex("by_day", (q) => q.lt("day", budgetCutoff))
+      .take(32);
+    for (const row of staleBudgets) await ctx.db.delete(row._id);
+
     const deleted =
       staleSeen.length +
       staleDecks.length +
@@ -537,7 +580,8 @@ export const pruneBatch = internalMutation({
       staleRankings +
       staleHistory +
       staleLogs.length +
-      staleRuns.length;
+      staleRuns.length +
+      staleBudgets.length;
     return { deleted, more: deleted > 0 };
   }
 });

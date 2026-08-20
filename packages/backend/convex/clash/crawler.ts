@@ -29,6 +29,25 @@ function envNumber(name: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function envEnabled(name: string, fallback = true): boolean {
+  const value = process.env[name];
+  if (value === undefined) return fallback;
+  return !["0", "false", "off", "no"].includes(value.trim().toLowerCase());
+}
+
+async function reserveBudget(
+  ctx: ActionCtx,
+  job: "discover" | "crawl",
+  requested: number,
+  dailyLimit: number,
+) {
+  return ctx.runMutation(internal.clash.meta.reserveRequestBudget, {
+    job,
+    requested,
+    dailyLimit,
+  });
+}
+
 type RunResult = { note?: string; counters?: Record<string, number> };
 const runResult = v.object({
   note: v.optional(v.string()),
@@ -98,21 +117,41 @@ export const discover = internalAction({
   handler: async (ctx, args) => {
     const upstream = clashUpstream(ctx);
     const limit = Math.min(args.limit ?? envNumber("CLASH_DISCOVER_LIMIT", 200), 1000);
-    const clanCount = Math.min(envNumber("CLASH_CLAN_SEED", 20), 100);
+    const configuredClanCount = Math.min(envNumber("CLASH_CLAN_SEED", 20), 100);
 
     return run(ctx, "discover", async (): Promise<RunResult> => {
+      if (!envEnabled("CLASH_CRAWLER_ENABLED")) {
+        return { note: "Crawler disabled by CLASH_CRAWLER_ENABLED.", counters: { disabled: 1 } };
+      }
+      const perRunLimit = Math.min(envNumber("CLASH_DISCOVER_REQUEST_BUDGET_PER_RUN", 12), 100);
+      const budget = await reserveBudget(
+        ctx,
+        "discover",
+        Math.min(perRunLimit, 3 + configuredClanCount),
+        envNumber("CLASH_DISCOVER_DAILY_REQUEST_BUDGET", 60),
+      );
+      if (budget.granted === 0) {
+        return {
+          note: `Daily discovery budget exhausted (${budget.used}/${budget.limit}).`,
+          counters: { budgetDenied: 1 },
+        };
+      }
+
       const targets: Array<{ tag: string; source: "leaderboard" | "clan"; priority: number }> = [];
       const sightings: Sighting[] = [];
+      let requests = 0;
 
       const boards = await upstream.leaderboards();
+      requests += 1;
       // Many boards come back with a null name, and ids climb with each new
       // instance of an event, so the highest named id is the live one.
       const activeBoard = boards.ok
         ? (boards.data.items ?? []).filter((board) => board.name).sort((a, b) => b.id - a.id)[0]
         : undefined;
 
-      if (activeBoard) {
+      if (activeBoard && requests < budget.granted) {
         const top = await upstream.leaderboard(activeBoard.id, limit);
+        requests += 1;
         if (top.ok) {
           const observedAt = Date.now();
           await ctx.runMutation(internal.clash.history.recordLeaderboardSnapshot, {
@@ -153,13 +192,18 @@ export const discover = internalAction({
 
       // Clan rosters start after the Path of Legends board in priority order,
       // so the leaderboard players keep the front of the queue.
-      const clans = await upstream.rankings("clans", GLOBAL_LOCATION_ID, clanCount);
+      const clans = requests < budget.granted
+        ? await upstream.rankings("clans", GLOBAL_LOCATION_ID, configuredClanCount)
+        : null;
+      if (clans) requests += 1;
 
-      if (clans.ok) {
+      if (clans?.ok) {
         let priority = limit;
         for (const clan of clans.data.items ?? []) {
+          if (requests >= budget.granted) break;
           if (!clan.tag) continue;
           const roster = await upstream.clan(clan.tag);
+          requests += 1;
           if (!roster.ok) continue;
           for (const member of roster.data.memberList ?? []) {
             if (!member.tag) continue;
@@ -183,12 +227,15 @@ export const discover = internalAction({
       if (!targets.length) {
         return {
           note: boards.ok ? "Leaderboards returned no players." : boards.message,
-          counters: { discovered: 0 }
+          counters: { discovered: 0, requests, reserved: budget.granted }
         };
       }
 
       const { added, seen } = await ctx.runMutation(internal.clash.meta.upsertTargets, { targets });
-      return { note: `${added} new of ${seen} seen`, counters: { discovered: seen, added } };
+      return {
+        note: `${added} new of ${seen} seen using ${requests}/${budget.granted} reserved requests`,
+        counters: { discovered: seen, added, requests, reserved: budget.granted },
+      };
     });
   }
 });
@@ -202,7 +249,26 @@ export const crawl = internalAction({
     const batch = Math.min(args.batch ?? envNumber("CLASH_CRAWL_BATCH", 8), 50);
 
     return run(ctx, "crawl", async (): Promise<RunResult> => {
-      const claimed = await ctx.runMutation(internal.clash.meta.claimTargets, { limit: batch, leaseMs: LEASE_MS });
+      if (!envEnabled("CLASH_CRAWLER_ENABLED")) {
+        return { note: "Crawler disabled by CLASH_CRAWLER_ENABLED.", counters: { disabled: 1 } };
+      }
+      const perRunLimit = Math.min(batch, envNumber("CLASH_CRAWL_REQUEST_BUDGET_PER_RUN", 8));
+      const budget = await reserveBudget(
+        ctx,
+        "crawl",
+        perRunLimit,
+        envNumber("CLASH_CRAWL_DAILY_REQUEST_BUDGET", 4_000),
+      );
+      if (budget.granted === 0) {
+        return {
+          note: `Daily crawl budget exhausted (${budget.used}/${budget.limit}).`,
+          counters: { budgetDenied: 1 },
+        };
+      }
+      const claimed = await ctx.runMutation(internal.clash.meta.claimTargets, {
+        limit: budget.granted,
+        leaseMs: LEASE_MS,
+      });
       if (!claimed.length) return { note: "No targets due.", counters: { fetched: 0, battles: 0 } };
 
       let battles = 0;
@@ -302,7 +368,14 @@ export const crawl = internalAction({
 
       return {
         note: `${claimed.length} tags, ${battles} new battles${failures ? `, ${failures} failed` : ""}`,
-        counters: { fetched: claimed.length, battles, observations, failures, named: sightings.length }
+        counters: {
+          fetched: claimed.length,
+          battles,
+          observations,
+          failures,
+          named: sightings.length,
+          reserved: budget.granted,
+        }
       };
     });
   }

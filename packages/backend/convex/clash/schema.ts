@@ -178,6 +178,15 @@ export const clashTables = {
     ))
   }).index("by_fetched_at", ["fetchedAt"]),
 
+  clashCrawlerBudgets: defineTable({
+    day: v.number(),
+    job: v.union(v.literal("discover"), v.literal("crawl"), v.literal("clanWatch")),
+    reserved: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_day_and_job", ["day", "job"])
+    .index("by_day", ["day"]),
+
   // --- Battle-log collection pipeline -------------------------------------
   // The official API only exposes battles per player, so deck statistics have
   // to be built by polling many players' battle logs over time.
