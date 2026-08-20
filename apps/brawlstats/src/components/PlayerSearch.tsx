@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { SiteSearch } from "@statsconnect/site-nav";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { normalizeTag, trophies } from "@/lib/format";
@@ -30,6 +30,7 @@ export function PlayerSearch({
   onNavigate,
 }: PlayerSearchProps) {
   const { t } = useI18n();
+  const suggestionsId = useId();
   const [value, setValue] = useState(initialValue);
   const [debounced, setDebounced] = useState(initialValue.trim());
   const [focused, setFocused] = useState(false);
@@ -108,30 +109,36 @@ export function PlayerSearch({
   const showResults = focused && debounced.length >= 2;
 
   return (
-    <form
-      onSubmit={submit}
-      className={cn("relative", compact ? "flex gap-2" : "flex flex-col gap-2 sm:flex-row", className)}
-    >
-      <div className="relative min-w-0 flex-1">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={value}
-          onChange={(event) => {
-            setValue(event.target.value);
-            setActiveIndex(-1);
-          }}
-          onFocus={() => setFocused(true)}
-          onBlur={() => window.setTimeout(() => setFocused(false), 120)}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder || t("search.placeholder")}
-          autoComplete="off"
-          className={cn("border-border/70 bg-card/70 pl-9", compact ? "h-9" : "h-11 text-base")}
-          aria-label={t("search.aria")}
-          aria-expanded={showResults}
-        />
+    <div className={cn("relative", className)}>
+      <SiteSearch
+        compact={compact}
+        value={value}
+        onValueChange={(next) => {
+          setValue(next);
+          setActiveIndex(-1);
+        }}
+        onSubmit={submit}
+        label={t("search.aria")}
+        placeholder={placeholder || t("search.placeholder")}
+        submitLabel={buttonLabel || t("common.search")}
+        submitIcon={<Search />}
+        inputProps={{
+          autoComplete: "off",
+          role: "combobox",
+          "aria-expanded": showResults,
+          "aria-controls": showResults ? suggestionsId : undefined,
+          onFocus: () => setFocused(true),
+          onBlur: () => window.setTimeout(() => setFocused(false), 120),
+          onKeyDown,
+        }}
+      />
 
-        {showResults ? (
-          <div className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border border-border bg-popover shadow-xl">
+      {showResults ? (
+        <div
+          id={suggestionsId}
+          role="listbox"
+          className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border border-border bg-popover shadow-xl"
+        >
             {searchQuery.isLoading ? (
               <p className="px-4 py-3 text-sm text-muted-foreground">{t("search.searching")}</p>
             ) : null}
@@ -164,17 +171,9 @@ export function PlayerSearch({
             {!searchQuery.isLoading && !choices.count ? (
               <p className="px-4 py-3 text-sm text-muted-foreground">{t("search.empty")}</p>
             ) : null}
-          </div>
-        ) : null}
-      </div>
-      <Button
-        type="submit"
-        size={compact ? "sm" : "lg"}
-        className={compact ? "h-9" : "h-11 w-full px-5 sm:w-auto"}
-      >
-        {buttonLabel || t("common.search")}
-      </Button>
-    </form>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

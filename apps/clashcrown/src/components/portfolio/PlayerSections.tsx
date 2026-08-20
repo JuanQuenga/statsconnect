@@ -24,7 +24,8 @@ const tabItems = [
   { label: "Statistics", message: "player.statistics", icon: "/images/icons/trophy.png" },
   { label: "Battles", message: "player.battles", icon: "/images/icons/sword.png" },
   { label: "Decks", message: "player.decks", icon: "/images/icons/cardsq.png" },
-  { label: "Cards", message: "player.cards", icon: "/images/icons/book-cards.png" }
+  { label: "Cards", message: "player.cards", icon: "/images/icons/book-cards.png" },
+  { label: "Chests", message: "player.upcomingChests", icon: "/images/chests/goldenchest.png" }
 ] satisfies Array<{ label: PlayerTab; message: MessageKey; icon: string }>;
 
 export function PlayerHero({ player, actions }: { player: Player; actions?: ReactNode }) {
@@ -95,7 +96,7 @@ function combinedStat(first: string | undefined, second: string | undefined, for
   return Number.isFinite(firstValue) && Number.isFinite(secondValue) ? formatNumber(firstValue + secondValue) : undefined;
 }
 
-export type PlayerTab = "Statistics" | "Battles" | "Decks" | "Cards";
+export type PlayerTab = "Statistics" | "Battles" | "Decks" | "Cards" | "Chests";
 
 export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: (tab: PlayerTab) => void }) {
   const { t } = useI18n();
@@ -113,30 +114,42 @@ export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: 
 
 export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Player; onRefresh: () => void; isRefreshing: boolean }) {
   const { formatNumber, locale, t } = useI18n();
-  const rows = [
-    ...(player.bestTrophies !== undefined ? [[locale === "es" ? "Máximo de trofeos" : "Highest trophies", formatNumber(player.bestTrophies)]] : []),
-    ...Object.entries(player.stats)
-  ];
+  const rows: Array<[string, string]> = Object.entries(player.stats);
+  if (player.bestTrophies !== undefined) {
+    rows.unshift([locale === "es" ? "Máximo de trofeos" : "Highest trophies", formatNumber(player.bestTrophies)]);
+  }
+  const [lead, ...careerRows] = rows;
 
   return (
-    <section className="profile-section">
-      <div className="profile-section-heading">
-        <h2>Career snapshot</h2>
+    <section className="profile-section career-section">
+      <header className="profile-editorial-heading profile-editorial-heading-tools">
+        <div><h2>Career snapshot</h2></div>
         <div className="update-tools"><span>{updatedLabel(player.fetchedAt, locale)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? t("common.refreshing") : t("common.refresh")}</button></div>
-      </div>
+      </header>
       {rows.length ? (
-        <div className="stat-matrix">
-          {rows.map(([label, value]) => (
-            <div key={label} className="stat-cell">
-              <span className="stat-cell-icon"><Image src={statIcon(label, player.arenaImage)} alt="" width={32} height={32} /></span>
-              <div>
-                <strong>{value}</strong>
-                <span>{label}</span>
-              </div>
+        <div className="career-ledger">
+          <div className="career-lead">
+            <Image src="/images/icons/trophy.png" alt="" width={76} height={76} />
+            <div>
+              <span>{lead[0]}</span>
+              <strong>{lead[1]}</strong>
+              <small>{locale === "es" ? "Mejor marca de la carrera" : "Career high-water mark"}</small>
             </div>
-          ))}
+          </div>
+          <dl className="career-rows">
+            {careerRows.map(([label, value]) => (
+              <div key={label} className="career-row">
+                <dt>
+                  <Image src={statIcon(label, player.arenaImage)} alt="" width={26} height={26} />
+                  <span>{label}</span>
+                </dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-      ) : <p className="empty-results">The API did not report player statistics for this profile.</p>}
+      ) : <p className="empty-results">No career statistics are available for this profile.</p>}
+      <p className="table-note">Career totals show long-term experience. Use recent performance below for a better read on current form.</p>
     </section>
   );
 }
@@ -148,11 +161,10 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
 
   return (
     <section className="profile-section performance-section">
-      <div className="section-heading">
-        <span className="filter-button static">Last {performance.games} battles</span>
-        <h2>Performance</h2>
-        <span />
-      </div>
+      <header className="profile-editorial-heading">
+        <div><h2>Performance</h2></div>
+        <p>A short-term read of results, streaks, and the modes this player has been playing.</p>
+      </header>
       <div className="stat-matrix performance-stats">
         <PerformanceStat
           icon="/images/icons/sword.png"
@@ -164,7 +176,7 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
         <PerformanceStat icon="/images/icons/sword.png" value={`${performance.currentWinStreak} / ${performance.bestWinStreak}`} label="Current / best streak" />
       </div>
       <div className="performance-grid">
-        <div className="performance-card">
+        <div className="performance-mode-table">
           <h3>Win rate by mode</h3>
           <div className="members-table-wrap">
             <table className="members-table">
@@ -181,7 +193,7 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
             </table>
           </div>
         </div>
-        <div className="performance-card recent-form-card">
+        <div className="performance-timeline recent-form-card">
           <h3>Recent form</h3>
           <div className="form-pips" role="list" aria-label={`Last ${performance.recent.length} battles, newest first`}>
             {performance.recent.map((battle, index) => (
@@ -200,8 +212,7 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
           <p className="table-note">Newest first · {performance.recent.length} of {performance.games} battles shown</p>
         </div>
       </div>
-      <p className="table-note">All figures are calculated from this player's last {performance.games} battles, so small samples can swing quickly.</p>
-      <PerformanceStyles />
+      <p className="table-note">Calculated from the latest {performance.games} recorded battles. Small samples can swing quickly.</p>
     </section>
   );
 }
@@ -212,31 +223,6 @@ function PerformanceStat({ icon, value, label }: { icon: string; value: string; 
       <Image src={icon} alt="" width={46} height={46} />
       <div><strong>{value}</strong><span>{label}</span></div>
     </div>
-  );
-}
-
-function PerformanceStyles() {
-  return (
-    <style>{`
-      .performance-stats { margin-bottom: 34px; }
-      .performance-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); gap: 28px; }
-      .performance-card { min-width: 0; padding: 18px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 7px; background: rgba(8, 24, 44, .52); }
-      .performance-card h3 { margin: 0 0 16px; color: #dfe8f8; font-size: 14px; }
-      .performance-card .members-table-wrap { margin: 0 -18px -18px; }
-      .performance-card .members-table td { height: 52px; }
-      .recent-form-card { display: flex; flex-direction: column; justify-content: center; }
-      .form-pips { display: flex; gap: 7px; flex-wrap: wrap; }
-      .form-pip { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 50%; color: white; font: 700 11px var(--font-ui); font-style: normal; }
-      .form-pip.win { background: #218b61; box-shadow: 0 0 0 1px rgba(83, 220, 151, .3) inset; }
-      .form-pip.loss { background: #a63c5b; box-shadow: 0 0 0 1px rgba(255, 126, 153, .3) inset; }
-      .form-pip.draw { background: #4a5a78; box-shadow: 0 0 0 1px rgba(142, 162, 196, .3) inset; }
-      .form-legend { display: flex; gap: 16px; margin-top: 18px; color: #8ea2c4; font: 11px var(--font-ui); }
-      .form-legend span { display: inline-flex; align-items: center; gap: 6px; }
-      .form-legend .form-pip { width: 18px; height: 18px; font-size: 9px; }
-      @media (max-width: 680px) {
-        .performance-grid { grid-template-columns: 1fr; }
-      }
-    `}</style>
   );
 }
 
@@ -268,23 +254,21 @@ export function PathOfLegendsSeasons({ player }: { player: Player }) {
 
   return (
     <section className="profile-section">
-      <div className="section-heading compact-heading">
-        <span className="filter-button static">Path of Legends</span>
-        <h2>{locale === "es" ? "Comparación de temporadas" : "Season Comparison"}</h2>
-        <span />
-      </div>
+      <header className="profile-editorial-heading">
+        <div><h2>{locale === "es" ? "Comparación de temporadas" : "Season comparison"}</h2></div>
+        <p>Compare this Ranked season with last season and the player&rsquo;s best recorded finish.</p>
+      </header>
       <div className="pol-columns">
         {rows.map(({ label, result }) => (
           <div key={label} className="pol-card">
+            {result?.rank ? <Image className="pol-rank-icon" src="/images/ui-icons/ranklegendary.png" alt="" width={48} height={48} /> : null}
             <span className="pol-label">{label}</span>
             <strong>{result?.trophies !== undefined ? formatNumber(result.trophies) : "—"}</strong>
             <span>{result?.rank ? `#${formatNumber(result.rank)}` : (locale === "es" ? "Sin clasificación" : "Unranked")}</span>
           </div>
         ))}
       </div>
-      <p className="table-note">
-        These are the only three Path of Legends snapshots the API returns — not a full season history.
-      </p>
+      <p className="table-note">Ranked resets each season. A rank appears only when this player has a recorded leaderboard placement.</p>
     </section>
   );
 }
@@ -346,7 +330,7 @@ function CurrentDeckStyles() {
 
 export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
   const decks = analyzePlayerBattles(battles).decks;
-  if (!decks.length) return <EmptyPanel title="No complete decks in this log" copy="The API has not returned enough eight-card battles to compare this player's decks yet." />;
+  if (!decks.length) return <EmptyPanel title="No complete decks in this log" copy="Recent battles do not include enough complete eight-card decks to compare yet." />;
 
   return (
     <section className="profile-section deck-analytics-section">
@@ -553,18 +537,16 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
 
   return (
     <section className="profile-section chart-section">
-      <div className="section-heading">
-        <FilterButton label="Observed" />
-        <h2>Trophy Activity</h2>
-        <span className="chart-range">
+      <header className="profile-editorial-heading">
+        <div><h2>Trophy activity</h2></div>
+        <p className="chart-range">
           {history.length} {locale === "es" ? "instantáneas" : "snapshots"} · {formatObservationWindow(mostRecent - earliest, locale)}
-        </span>
-      </div>
+        </p>
+      </header>
       <TrophyActivityChart data={data} label="Observed trophy snapshots trend" formatNumber={formatNumber} />
       <p className="table-note">
-        Each dot is a snapshot recorded when someone viewed this profile and the trophy count had changed since
-        the last view — not continuous tracking, so the gaps between points don&apos;t show when a rise or fall
-        actually happened.
+        Trophy Road standing is recorded when this profile is viewed and its trophy count has changed. Gaps between
+        points are not a complete battle-by-battle history.
       </p>
     </section>
   );
@@ -578,7 +560,7 @@ function ObservedProgressionChart({ history }: { history: ProfileHistoryPoint[] 
 function InferredProgressionChart({ player }: { player: Player }) {
   const { formatNumber } = useI18n();
   if (player.trophies === undefined) {
-    return <EmptyPanel title="No trophy activity available" copy="The API did not report a current trophy count for this player." />;
+    return <EmptyPanel title="No trophy activity available" copy="A current Trophy Road total is not available for this player." />;
   }
   const recentBattles = player.battles.filter((battle) => battle.trophyChange !== undefined).slice(0, 10).reverse();
   const startingTrophies = player.trophies - recentBattles.reduce((total, battle) => total + (battle.trophyChange ?? 0), 0);
@@ -597,15 +579,13 @@ function InferredProgressionChart({ player }: { player: Player }) {
 
   return (
     <section className="profile-section chart-section">
-      <div className="section-heading">
-        <FilterButton label="Inferred" />
-        <h2>Trophy Activity</h2>
-        <span className="chart-range">Last {recentBattles.length} battles</span>
-      </div>
+      <header className="profile-editorial-heading">
+        <div><h2>Trophy activity</h2></div>
+        <p className="chart-range">Last {recentBattles.length} battles</p>
+      </header>
       <TrophyActivityChart data={data} label="Recent trophy activity line chart" formatNumber={formatNumber} />
       <p className="table-note">
-        Inferred from this player&apos;s last {recentBattles.length} battles&apos; trophy changes — not observed
-        history.
+        Recent trophy changes reconstruct this {recentBattles.length}-battle run. It may not include battles outside the current log.
       </p>
     </section>
   );
@@ -617,7 +597,10 @@ export function ChestList({ chests }: { chests: Chest[] }) {
   return (
     <section className="profile-section chest-footer">
       {/* "My Chests" on someone else's profile read as the viewer's own. */}
-      <div className="profile-section-heading"><h2>{t("player.upcomingChests")}</h2></div>
+      <header className="profile-editorial-heading">
+        <div><h2>{t("player.upcomingChests")}</h2></div>
+        <p>+N shows how many reward chests are ahead in this player&rsquo;s cycle. +0 is next.</p>
+      </header>
       <div className="chest-row">
         {chests.map((chest, index) => (
           <div key={`${chest.name}-${index}`} className="chest-item" title={chest.name}>
@@ -626,13 +609,6 @@ export function ChestList({ chests }: { chests: Chest[] }) {
           </div>
         ))}
       </div>
-      <p className="chest-note">{t("player.chestExplanation")}</p>
     </section>
-  );
-}
-
-function FilterButton({ label = "Trophies" }: { label?: string } = {}) {
-  return (
-    <span className="filter-button static">{label}</span>
   );
 }

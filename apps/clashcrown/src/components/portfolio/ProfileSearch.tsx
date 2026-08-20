@@ -3,6 +3,7 @@ import { useRouter } from "@/lib/router";
 import { Clock, Search, X } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
+import { SiteSearch } from "@statsconnect/site-nav";
 import { normalizeTag } from "@/lib/clash/tag";
 import type { RecentProfile } from "@/lib/recentProfiles";
 import { useI18n } from "@/lib/i18n";
@@ -10,7 +11,6 @@ import { isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
 import type { DirectoryHit } from "@/lib/clash/types";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 /**
  * Profile lookup by name or by tag.
@@ -79,7 +79,6 @@ function recentRow(recent: RecentProfile): Row {
 function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate?: () => void }) {
   const { formatNumber, t } = useI18n();
   const id = useId();
-  const kindId = `${id}-kind`;
   const suggestionsId = `${id}-suggestions`;
   const router = useRouter();
   const [kind, setKind] = useState<SearchKind>("players");
@@ -192,42 +191,44 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
 
   const searching = kind === "players" && trimmed.length >= MIN_QUERY_LENGTH && results === undefined;
   const noMatches = kind === "players" && Boolean(trimmed) && !searching && !rows.length;
+  const contextOptions = [
+    { value: "players", label: t("search.players") },
+    { value: "clans", label: t("search.clans") },
+  ] as const;
 
   return (
     <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"} ref={wrapRef}>
-      <form className="search-box" onSubmit={submit} noValidate role="search">
-        <label className="sr-only" htmlFor={kindId}>
-          {t("search.profileType")}
-        </label>
-        <select
-          id={kindId}
-          className="search-type"
-          value={kind}
-          onChange={(event) => setKind(event.target.value as SearchKind)}
-        >
-          <option value="players">{t("search.players")}</option>
-          <option value="clans">{t("search.clans")}</option>
-        </select>
-        <Input
-          aria-label={kind === "players" ? "Player name or tag" : "Clan name or tag"}
-          placeholder={kind === "players" ? t("search.playerPlaceholder") : t("search.clanPlaceholder")}
-          value={term}
-          autoComplete="off"
-          role="combobox"
-          aria-expanded={open && rows.length > 0}
-          aria-controls={suggestionsId}
-          onFocus={() => setOpen(true)}
-          onChange={(event) => {
-            setTerm(event.target.value);
-            setOpen(true);
-            setError("");
-          }}
-          onKeyDown={onKeyDown}
-        />
-        <Button type="submit" className="search-submit h-full rounded-none" aria-label={`Search ${kind}`}>
-          <Search size={compact ? 20 : 27} />
-        </Button>
-      </form>
+      <SiteSearch
+        compact={compact}
+        value={term}
+        onValueChange={(value) => {
+          setTerm(value);
+          setOpen(true);
+          setError("");
+        }}
+        onSubmit={submit}
+        label={kind === "players" ? "Player name or tag" : "Clan name or tag"}
+        placeholder={kind === "players" ? t("search.playerPlaceholder") : t("search.clanPlaceholder")}
+        submitLabel={`Search ${kind}`}
+        submitIcon={<Search size={compact ? 20 : 22} />}
+        contextLabel={t("search.profileType")}
+        contextOptions={contextOptions}
+        contextValue={kind}
+        onContextChange={(value) => {
+          setKind(value);
+          setHighlight(-1);
+          setError("");
+        }}
+        showContext={open}
+        inputProps={{
+          autoComplete: "off",
+          role: "combobox",
+          "aria-expanded": open && rows.length > 0,
+          "aria-controls": suggestionsId,
+          onFocus: () => setOpen(true),
+          onKeyDown,
+        }}
+      />
 
       {open && (rows.length > 0 || searching || noMatches) ? (
         <div className="search-suggestions" id={suggestionsId} role="listbox">
@@ -293,12 +294,11 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
 /** No Convex, no directory — the tag lane still works entirely client-side. */
 function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?: () => void }) {
   const { locale, t } = useI18n();
-  const id = useId();
-  const kindId = `${id}-kind`;
   const router = useRouter();
   const [kind, setKind] = useState<SearchKind>("players");
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
+  const [engaged, setEngaged] = useState(false);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -314,29 +314,25 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
 
   return (
     <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"}>
-      <form className="search-box" onSubmit={submit} noValidate role="search">
-        <label className="sr-only" htmlFor={kindId}>
-          {t("search.profileType")}
-        </label>
-        <select
-          id={kindId}
-          className="search-type"
-          value={kind}
-          onChange={(event) => setKind(event.target.value as SearchKind)}
-        >
-          <option value="players">{t("search.playerTag")}</option>
-          <option value="clans">{t("search.clanTag")}</option>
-        </select>
-        <Input
-          aria-label={`${kind === "players" ? "Player" : "Clan"} tag`}
-          placeholder="#PLAYER_TAG"
-          value={tag}
-          onChange={(event) => setTag(event.target.value)}
-        />
-        <Button type="submit" className="search-submit h-full rounded-none" aria-label={`Search ${kind}`}>
-          <Search size={compact ? 20 : 27} />
-        </Button>
-      </form>
+      <SiteSearch
+        compact={compact}
+        value={tag}
+        onValueChange={setTag}
+        onSubmit={submit}
+        label={`${kind === "players" ? "Player" : "Clan"} tag`}
+        placeholder="#PLAYER_TAG"
+        submitLabel={`Search ${kind}`}
+        submitIcon={<Search size={compact ? 20 : 22} />}
+        contextLabel={t("search.profileType")}
+        contextOptions={[
+          { value: "players", label: t("search.playerTag") },
+          { value: "clans", label: t("search.clanTag") },
+        ]}
+        contextValue={kind}
+        onContextChange={setKind}
+        showContext={engaged}
+        inputProps={{ onFocus: () => setEngaged(true) }}
+      />
       {error ? (
         <p className="search-error" role="alert">
           {error}

@@ -368,8 +368,24 @@ export function SiteNavigation({
   renderSearch,
 }: SiteNavigationProps) {
   const [open, setOpen] = useState(false);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const close = () => setOpen(false);
   const style: NavigationStyle = { "--sc-nav-accent": accentColor };
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    mobileCloseRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.documentElement.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   return (
     <header className="sc-nav" style={style}>
@@ -410,9 +426,14 @@ export function SiteNavigation({
         </div>
       </div>
 
-      <div className={`sc-nav__mobile${open ? " is-open" : ""}`}>
+      {open ? <button type="button" className="sc-nav__mobile-backdrop" aria-label="Close navigation menu" onClick={close} /> : null}
+      <div className={`sc-nav__mobile${open ? " is-open" : ""}`} role={open ? "dialog" : undefined} aria-modal={open ? true : undefined} aria-label={open ? "Site navigation" : undefined}>
         {open ? (
-          <>
+          <div className="sc-nav__mobile-panel">
+            <header className="sc-nav__mobile-heading">
+              <div><strong>Explore Royale Stats</strong><span>Search or choose a section.</span></div>
+              <button ref={mobileCloseRef} type="button" aria-label="Close navigation menu" onClick={close}><MenuIcon open /></button>
+            </header>
             {renderSearch ? <div className="sc-nav__mobile-search">{renderSearch(close)}</div> : null}
             <nav className="sc-nav__mobile-links" aria-label="Mobile primary navigation">
               {links.map((link) => (
@@ -421,7 +442,7 @@ export function SiteNavigation({
                 </LinkAdapter>
               ))}
             </nav>
-          </>
+          </div>
         ) : null}
       </div>
     </header>

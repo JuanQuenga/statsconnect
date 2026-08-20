@@ -95,22 +95,22 @@ function PlayerDashboard({
         />
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
         {activeTab === "Statistics" ? (
-          <>
+          <div className="profile-story">
             <PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} />
-            <PlayerProfileDetails player={player} />
-            <PlayerBadgeSection badges={player.badges} />
-            <PlayerAchievementsSection achievements={player.achievements} />
             <PerformanceSection battles={player.battles} />
+            <PlayerProfileDetails player={player} />
             <ProgressionChart player={player} />
             <PathOfLegendsSeasons player={player} />
             <section className="history-callout">
               <div>
                 <h2>Profile history</h2>
-                <p>Review timestamped trophy, Path, collection, deck, clan, and profile-total changes without treating gaps as continuous tracking.</p>
+                <p>See when trophies, deck, clan, and collection totals changed across observed profile checks.</p>
               </div>
               <Link href={`/players/${player.tag.replace(/^#/, "")}/history`} className="pink-button">Open history</Link>
             </section>
-          </>
+            <PlayerBadgeSection badges={player.badges} />
+            <PlayerAchievementsSection achievements={player.achievements} />
+          </div>
         ) : null}
         {activeTab === "Battles" ? <BattleHistory battles={player.battles} playerName={player.name} /> : null}
         {activeTab === "Decks" ? <><DeckAnalyticsSection battles={player.battles} /><DeckOverview cards={player.deck} supportCards={player.supportCards} /></> : null}
@@ -124,7 +124,7 @@ function PlayerDashboard({
             <CardCollection player={player} catalogCards={catalogCards} catalogLoading={catalogLoading} catalogError={catalogError} />
           </>
         ) : null}
-        <ChestList chests={player.chests} />
+        {activeTab === "Chests" ? <div className="profile-story profile-story-single"><ChestList chests={player.chests} /></div> : null}
       </div>
     </Layout>
   );

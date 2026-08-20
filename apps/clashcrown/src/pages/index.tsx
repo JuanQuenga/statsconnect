@@ -4,76 +4,21 @@ import Link from "@/components/Link";
 import { ArrowRight, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useQuery as useConvexQuery } from "convex/react";
+import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { PersonalDashboard } from "@/components/personalization/PersonalDashboard";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
-import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
-import { useCardCatalog } from "@/lib/useCardCatalog";
-import { isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
-import type { Card, Player } from "@/lib/clash/domain";
-import { demoDecks, demoEvents, player } from "@/lib/mock-data";
-import { Badge } from "@/components/ui/badge";
+import { averageElixir, copyDeckLink, highestAvailableCardArt } from "@/lib/clash/assets";
+import { useCardLibrary } from "@/lib/useCardCatalog";
+import { errorMessage, globalTournamentsAction, isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
+import type { Card } from "@/lib/clash/domain";
+import type { ApiTournament, RankedCard } from "@/lib/clash/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type HeroSpotlight = {
-  name: string;
-  cardName: string;
-  kind: string;
-  copy: string;
-  art: string;
-};
-
-const heroes: HeroSpotlight[] = [
-  {
-    name: "Ronin",
-    cardName: "Ronin",
-    kind: "New legendary",
-    copy: "Twin blades turn close-range pressure into a sharp counterattack.",
-    art: "/images/art/hero-ronin-2026.webp"
-  },
-  {
-    name: "Princess Evolution",
-    cardName: "Princess",
-    kind: "New evolution",
-    copy: "Long-range control gets a colder, more punishing evolution.",
-    art: "/images/art/hero-princess-evolution-2026.webp"
-  },
-  {
-    name: "Hero Tombstone",
-    cardName: "Tombstone",
-    kind: "New hero",
-    copy: "A familiar defensive building returns with a royal reinforcement.",
-    art: "/images/art/hero-tombstone-2026.webp"
-  }
-];
-
 export default function HomePage() {
-  const [activeHero, setActiveHero] = useState(0);
-  const [battleIndex, setBattleIndex] = useState(0);
-
-  const playerQuery = useQuery<Player>({
-    queryKey: ["demo-player", "home"],
-    queryFn: async () => player,
-    initialData: player
-  });
-
-  const demoPlayer = playerQuery.data;
-  const selectedBattle = demoPlayer.battles[battleIndex % demoPlayer.battles.length];
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const timer = window.setInterval(() => {
-      setActiveHero((index) => (index + 1) % heroes.length);
-    }, 5200);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
   return (
     <Layout variant="home">
       <section className="royale-hero">
@@ -98,188 +43,189 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="royale-hero-showcase">
-            <div className="royale-hero-art">
-              <div className="royale-hero-character" key={heroes[activeHero].name}>
-                <div className="royale-hero-glow" />
-                <Image
-                  src={heroes[activeHero].art}
-                  alt={heroes[activeHero].name}
-                  width={430}
-                  height={500}
-                  priority
-                />
-              </div>
-              <HeroMetaPanel hero={heroes[activeHero]} />
-            </div>
-            <div className="royale-hero-selector" aria-label="Choose featured release">
-              {heroes.map((hero, index) => (
-                <button
-                  key={hero.name}
-                  type="button"
-                  className="royale-hero-selector-card"
-                  aria-label={`Show ${hero.name}`}
-                  aria-pressed={activeHero === index}
-                  onClick={() => setActiveHero(index)}
-                >
-                  <Image src={hero.art} alt="" width={62} height={74} />
-                </button>
-              ))}
-            </div>
-          </div>
+          {isConvexConfigured ? <LiveHeroSpotlight /> : <UnavailableHeroSpotlight />}
         </div>
       </section>
 
       <PersonalDashboard />
 
-      <section className="game-day page-band">
-        <div className="section-title-row">
-          <h2>Game of the day <SampleBadge /></h2>
-          <Link href="/players/CCDEMO" className="pink-button">See all games</Link>
-        </div>
-        <div className="game-board">
-          <PlayerMini name={demoPlayer.name} clan={demoPlayer.clan} />
-          <DeckStrip cards={selectedBattle.deck} />
-          <div className="score-card">
-            <span>{selectedBattle.date}</span>
-            <strong><i>{selectedBattle.crowns[0]}</i> - <i>{selectedBattle.crowns[1]}</i></strong>
-            <span>
-              {selectedBattle.mode}
-              {selectedBattle.trophyChange !== undefined
-                ? ` · ${selectedBattle.trophyChange > 0 ? "+" : ""}${selectedBattle.trophyChange}`
-                : ""}
-            </span>
-          </div>
-          <DeckStrip cards={[...selectedBattle.deck].reverse()} />
-          <PlayerMini name={selectedBattle.opponent} clan="Synetics" />
-        </div>
-        <Pager onPrevious={() => setBattleIndex((index) => (index + demoPlayer.battles.length - 1) % demoPlayer.battles.length)} onNext={() => setBattleIndex((index) => (index + 1) % demoPlayer.battles.length)} />
-      </section>
+      <PlayerSpecificDataState
+        title="Recent battles"
+        copy="Battle history belongs to a player profile. Search a tag to see current opponents, decks, crown scores, and trophy changes."
+        linkLabel="Find a player"
+      />
 
-      <section className="mirror-band">
-        <Image src="/images/art/mirror-battle-week.png" alt="Mirror Battle Week" width={365} height={190} />
-      </section>
+      {isConvexConfigured ? <MetaTopDeck /> : <UnavailableMetaSection title="Top observed deck" />}
 
-      {isConvexConfigured ? <MetaDeckOfTheDay /> : <SampleDeckOfTheDay />}
+      {isConvexConfigured ? <LiveEventLab /> : <UnavailableMetaSection title="Live tournaments" href="/tournaments" />}
 
-      <section className="event-lab page-band">
-        <div className="section-title-row">
-          <h2>Event Lab <SampleBadge /></h2>
-          <Link href="/tournaments" className="pink-button">Live tournaments</Link>
-        </div>
-        <div className="event-grid">
-          {demoEvents.map((event) => (
-            <article key={event.name} className="event-card">
-              <Image src={event.image} alt="" width={88} height={108} />
-              <div>
-                <span>{event.mode}</span>
-                <strong>{event.name}</strong>
-                <small>{event.reward}</small>
-                <div className="event-progress"><i style={{ width: `${event.progress}%` }} /></div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <PlayerSpecificDataState
+        title="Upcoming chests"
+        copy="Chest cycles are player-specific. Open a player profile and choose Upcoming Chests to see the current sequence."
+        linkLabel="Find a player"
+      />
 
-      <section className="chest-demo page-band">
-        <div className="section-title-row">
-          {/* demoPlayer, same as Event Lab — it needs the same disclosure. */}
-          <h2>Chest Timeline <SampleBadge /></h2>
-          <Button type="button" onClick={() => playerQuery.refetch()}>Resync</Button>
-        </div>
-        <div className="chest-demo-row">
-          {demoPlayer.chests.slice(0, 8).map((chest, index) => (
-            <div key={`${chest.name}-${index}`} className={index === 0 ? "active" : ""}>
-              <Image src={chest.image} alt={chest.name} width={58} height={58} />
-              <strong>{index === 0 ? "Next" : `+${chest.index}`}</strong>
-              <span>{chest.name}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {isConvexConfigured ? <MetaPopularCards /> : <SamplePopularCards />}
+      {isConvexConfigured ? <MetaPopularCards /> : <UnavailableMetaSection title="Most played card" href="/cards" />}
     </Layout>
   );
 }
 
-function HeroMetaPanel({ hero }: { hero: HeroSpotlight }) {
-  return isConvexConfigured ? <LiveHeroMetaPanel hero={hero} /> : <HeroMetaCard hero={hero} />;
-}
+type LiveSpotlight = {
+  card: Card;
+  stats: RankedCard;
+  rank: number;
+};
 
-function LiveHeroMetaPanel({ hero }: { hero: HeroSpotlight }) {
-  const byId = useCardCatalog();
+function LiveHeroSpotlight() {
+  const library = useCardLibrary();
   const payload = useConvexQuery(topCardsQuery, {
     mode: "pathOfLegends",
-    windowDays: 7,
-    limit: 200
+    windowDays: HOME_WINDOW_DAYS,
+    limit: 3
   });
-  const card = [...byId.values()].find((item) => cardSlug(item.name) === cardSlug(hero.cardName));
-  const stats = card ? payload?.cards.find((item) => item.cardId === card.id) : undefined;
+  const [active, setActive] = useState(0);
+  const spotlights = useMemo(
+    () => (payload?.cards ?? []).flatMap((stats, index) => {
+      const card = library.byId.get(stats.cardId);
+      return card ? [{ card, stats, rank: index + 1 }] : [];
+    }),
+    [library.byId, payload?.cards]
+  );
 
-  return <HeroMetaCard hero={hero} stats={stats} loading={payload === undefined} />;
-}
+  useEffect(() => {
+    if (spotlights.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setActive((index) => (index + 1) % spotlights.length), 5200);
+    return () => window.clearInterval(timer);
+  }, [spotlights.length]);
 
-function HeroMetaCard({
-  hero,
-  stats,
-  loading = false
-}: {
-  hero: HeroSpotlight;
-  stats?: { uses: number; winRate: number; usageRate: number };
-  loading?: boolean;
-}) {
-  const status = stats ? "Live meta" : loading ? "Syncing" : "Release spotlight";
+  if (payload === undefined || library.isLoading) {
+    return <HeroSpotlightState title="Loading popular cards…" copy="Reading the latest Path of Legends card sample." />;
+  }
+  if (library.error) {
+    return <HeroSpotlightState title="Card data is unavailable" copy={errorMessage(library.error)} />;
+  }
+  if (!spotlights.length) {
+    return (
+      <HeroSpotlightState
+        title="No ranked cards yet"
+        copy={`No Path of Legends card observations are available for the last ${HOME_WINDOW_DAYS} days.`}
+      />
+    );
+  }
+
+  const selectedIndex = active % spotlights.length;
+  const current = spotlights[selectedIndex];
+  const href = `/cards/${cardSlug(current.card.name)}`;
 
   return (
-    <div className="royale-hero-card">
-      <div className="hero-meta-header">
-        <span className={stats ? "is-live" : undefined}><i />{status}</span>
-        <small>Path of Legends, last 7 days</small>
+    <div className="royale-hero-showcase">
+      <div className="royale-hero-art">
+        <Link href={href} className="royale-hero-character royale-hero-character-card" key={current.card.name}>
+          <div className="royale-hero-glow" />
+          <CardArt
+            src={highestAvailableCardArt(current.card)}
+            alt={current.card.name}
+            width={360}
+            height={440}
+            priority
+          />
+        </Link>
+        <HeroMetaCard spotlight={current} decksObserved={payload.decksObserved} />
       </div>
-      <span className="hero-meta-kind">{hero.kind}</span>
-      <h2>{hero.name}</h2>
-      <p>{hero.copy}</p>
-      <div className="hero-meta-stats">
-        <div><span>Win rate</span><strong>{stats ? `${(stats.winRate * 100).toFixed(1)}%` : "—"}</strong></div>
-        <div><span>Usage</span><strong>{stats ? `${(stats.usageRate * 100).toFixed(1)}%` : "—"}</strong></div>
-        <div><span>Games</span><strong>{stats ? stats.uses.toLocaleString() : "—"}</strong></div>
+      <div className="royale-hero-selector" aria-label="Choose a popular card">
+        {spotlights.map((spotlight, index) => (
+          <button
+            key={spotlight.card.id ?? spotlight.card.name}
+            type="button"
+            className="royale-hero-selector-card"
+            aria-label={`Show ${spotlight.card.name}`}
+            aria-pressed={selectedIndex === index}
+            onClick={() => setActive(index)}
+          >
+            <CardArt src={highestAvailableCardArt(spotlight.card)} alt="" width={62} height={74} />
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-/** Marks a section that renders curated sample data rather than live API results. */
-function SampleBadge() {
-  return <Badge variant="outline" className="sample-badge">Sample</Badge>;
+function HeroMetaCard({
+  spotlight,
+  decksObserved
+}: {
+  spotlight: LiveSpotlight;
+  decksObserved: number;
+}) {
+  const { card, rank, stats } = spotlight;
+
+  return (
+    <div className="royale-hero-card">
+      <div className="hero-meta-header">
+        <span className="is-live"><i />Live meta</span>
+        <small>Path of Legends · {HOME_WINDOW_DAYS} days</small>
+      </div>
+      <span className="hero-meta-kind">#{rank} by appearances</span>
+      <h2><Link href={`/cards/${cardSlug(card.name)}`}>{card.name}</Link></h2>
+      <p>Ranked from {Math.round(decksObserved).toLocaleString()} observed decks.</p>
+      <div className="hero-meta-stats">
+        <div><span>Win rate</span><strong>{(stats.winRate * 100).toFixed(1)}%</strong></div>
+        <div><span>Usage</span><strong>{(stats.usageRate * 100).toFixed(1)}%</strong></div>
+        <div><span>Games</span><strong>{stats.uses.toLocaleString()}</strong></div>
+      </div>
+    </div>
+  );
+}
+
+function UnavailableHeroSpotlight() {
+  return (
+    <HeroSpotlightState
+      title="Live card rankings are unavailable"
+      copy="Connect the Royale Stats data service to load current Path of Legends card performance."
+    />
+  );
+}
+
+function HeroSpotlightState({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div className="royale-hero-showcase royale-hero-showcase-state" role="status">
+      <div>
+        <span>Path of Legends · {HOME_WINDOW_DAYS} days</span>
+        <strong>{title}</strong>
+        <p>{copy}</p>
+        <Link href="/meta">Open the meta report</Link>
+      </div>
+    </div>
+  );
 }
 
 // --- Live meta sections ---------------------------------------------------
 
 /**
- * The home page's two statistics sections read the same aggregates as `/meta`.
- * Both are split into a live and a sample component: the live half needs the
- * Convex provider, which `_app.tsx` only mounts when a deployment is
- * configured, so the branch has to happen above the hooks.
+ * The home page statistics read the same aggregates as `/meta`. Components
+ * using Convex hooks are mounted only when the app has a configured provider.
  */
 
 /** Modes deep enough in the crawl to headline the home page. */
 const HOME_MODES: MetaMode[] = ["pathOfLegends", "ladder", "clanWar"];
 const HOME_WINDOW_DAYS = 7;
 
-function MetaDeckOfTheDay() {
+function MetaTopDeck() {
   const [mode, setMode] = useState<MetaMode>("pathOfLegends");
   const [index, setIndex] = useState(0);
-  const byId = useCardCatalog();
+  const library = useCardLibrary();
   const payload = useConvexQuery(topDecksQuery, { mode, windowDays: HOME_WINDOW_DAYS, limit: 10 });
 
   const decks = payload?.decks ?? [];
   const deck = decks[Math.min(index, Math.max(decks.length - 1, 0))];
   const cards = useMemo(
-    () => (deck?.cardIds ?? []).map((id) => byId.get(id) ?? unknownCard(id)),
-    [deck?.cardIds, byId]
+    () => (deck?.cardIds ?? []).flatMap((id) => {
+      const card = library.byId.get(id);
+      return card ? [card] : [];
+    }),
+    [deck?.cardIds, library.byId]
   );
+  const hasCompleteDeck = !deck || cards.length === deck.cardIds.length;
 
   const elixir = averageElixir(cards.map((card) => ({ elixirCost: card.elixir })));
   const link = deck ? copyDeckLink(deck.cardIds) : undefined;
@@ -292,7 +238,7 @@ function MetaDeckOfTheDay() {
   return (
     <section className="deck-day page-band">
       <div className="section-title-row">
-        <h2>Deck of the day</h2>
+        <h2>Top observed deck</h2>
         <Link href="/meta" className="pink-button">See the full meta</Link>
       </div>
       <div className="archetype-tabs" aria-label="Battle mode">
@@ -313,12 +259,16 @@ function MetaDeckOfTheDay() {
         ))}
       </div>
 
-      {!deck ? (
+      {payload === undefined || library.isLoading ? (
+        <p className="table-note" role="status">Loading the latest deck statistics and card catalog…</p>
+      ) : library.error ? (
+        <p className="table-note" role="status">{errorMessage(library.error)}</p>
+      ) : !deck ? (
         <p className="table-note">
-          {payload
-            ? `No ${modeLabel(mode)} decks have been observed often enough in the last ${HOME_WINDOW_DAYS} days to rank.`
-            : "Loading the latest deck statistics…"}
+          No {modeLabel(mode)} decks have been observed often enough in the last {HOME_WINDOW_DAYS} days to rank.
         </p>
+      ) : !hasCompleteDeck ? (
+        <p className="table-note" role="status">This ranked deck includes a card that is not yet available in the live catalog.</p>
       ) : (
         <>
           <div className="deck-row">
@@ -354,13 +304,8 @@ function MetaDeckOfTheDay() {
   );
 }
 
-/** Placeholder so a missing card id still renders a slot instead of collapsing the strip. */
-function unknownCard(id: number): Card {
-  return { id, name: `Card ${id}`, elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
-}
-
 function MetaPopularCards() {
-  const byId = useCardCatalog();
+  const library = useCardLibrary();
   const payload = useConvexQuery(topCardsQuery, {
     mode: "pathOfLegends",
     windowDays: HOME_WINDOW_DAYS,
@@ -368,7 +313,7 @@ function MetaPopularCards() {
   });
 
   const top = payload?.cards[0];
-  const card = top ? byId.get(top.cardId) : undefined;
+  const card = top ? library.byId.get(top.cardId) : undefined;
 
   return (
     <section className="popular page-band">
@@ -376,135 +321,125 @@ function MetaPopularCards() {
         <h2>Most played card</h2>
         <Link href="/meta" className="pink-button">Card and deck rankings</Link>
       </div>
-      <div className="popular-grid">
-        <SparkChart
-          color="pink"
-          label="Winrate"
-          value={top ? `${(top.winRate * 100).toFixed(1)}%` : "—"}
-          delta={top ? `${top.uses.toLocaleString()} games` : "waiting on data"}
-        />
-        <div className="popular-card-center">
-          <Image
-            src={card?.image ?? UNKNOWN_CARD_IMAGE}
-            alt={card?.name ?? "Most played card"}
-            width={96}
-            height={120}
-          />
-          {card ? (
-            <Link href={`/cards/${cardSlug(card.name)}`}>
+      {payload === undefined || library.isLoading ? (
+        <HomeDataMessage message="Loading Path of Legends card statistics…" />
+      ) : library.error ? (
+        <HomeDataMessage message={errorMessage(library.error)} />
+      ) : !top ? (
+        <HomeDataMessage message={`No Path of Legends card observations are available for the last ${HOME_WINDOW_DAYS} days.`} />
+      ) : !card ? (
+        <HomeDataMessage message="The leading card is not yet available in the live card catalog." />
+      ) : (
+        <>
+          <div className="popular-grid">
+            <MetaMetric
+              color="pink"
+              label="Win rate"
+              value={`${(top.winRate * 100).toFixed(1)}%`}
+              detail={`${top.uses.toLocaleString()} games observed`}
+            />
+            <Link href={`/cards/${cardSlug(card.name)}`} className="popular-card-center">
+              <CardArt
+                src={highestAvailableCardArt(card)}
+                alt={card.name}
+                width={96}
+                height={120}
+              />
               <strong>{card.name}</strong>
             </Link>
-          ) : (
-            <strong>{top ? `Card ${top.cardId}` : "—"}</strong>
-          )}
-        </div>
-        <SparkChart
-          color="blue"
-          label="Usage"
-          value={top ? `${(top.usageRate * 100).toFixed(1)}%` : "—"}
-          delta={top ? "of decks seen" : "waiting on data"}
-        />
-      </div>
-      <p className="table-note">
-        {payload
-          ? `From ${Math.round(payload.decksObserved).toLocaleString()} decks observed in Path of Legends over the last ${HOME_WINDOW_DAYS} days. The official API publishes no statistics — these are counted from crawled battle logs.`
-          : "Loading card statistics…"}
-      </p>
+            <MetaMetric
+              color="blue"
+              label="Usage"
+              value={`${(top.usageRate * 100).toFixed(1)}%`}
+              detail="of observed decks"
+            />
+          </div>
+          <p className="table-note">
+            From {Math.round(payload.decksObserved).toLocaleString()} decks observed in Path of Legends over the last {HOME_WINDOW_DAYS} days. These rates are aggregated from crawled battle logs.
+          </p>
+        </>
+      )}
     </section>
   );
 }
 
-// --- Sample fallbacks (no Convex deployment configured) -------------------
-
-function SampleDeckOfTheDay() {
-  const [activeDeck, setActiveDeck] = useState(0);
-  const [archetype, setArchetype] = useState<"All" | "Control" | "Cycle" | "Beatdown" | "Bait">("All");
-
-  const filteredDecks = useMemo(
-    () => demoDecks.filter((deck) => archetype === "All" || deck.archetype === archetype),
-    [archetype]
-  );
-  const selectedDeck = filteredDecks[Math.min(activeDeck, filteredDecks.length - 1)] ?? demoDecks[0];
+function LiveEventLab() {
+  const getGlobalTournaments = useAction(globalTournamentsAction);
+  const query = useQuery<ApiTournament[]>({
+    queryKey: ["global-tournaments"],
+    queryFn: async () => (await getGlobalTournaments({})).tournaments.data.items ?? [],
+    staleTime: 10 * 60 * 1000,
+    retry: false
+  });
+  const tournaments = query.data?.slice(0, 3) ?? [];
 
   return (
-    <section className="deck-day page-band">
+    <section className="event-lab page-band">
       <div className="section-title-row">
-        <h2>Deck of the day <SampleBadge /></h2>
-        <Link href="/decks?tool=builder" className="pink-button">Open the deck builder</Link>
+        <h2>Live tournaments</h2>
+        <Link href="/tournaments" className="pink-button">View tournaments</Link>
       </div>
-      <div className="archetype-tabs" aria-label="Deck archetype filters">
-        {["All", "Control", "Cycle", "Beatdown", "Bait"].map((item) => (
-          <Button
-            key={item}
-            type="button"
-            variant={archetype === item ? "default" : "secondary"}
-            size="sm"
-            className={archetype === item ? "active" : ""}
-            onClick={() => {
-              setArchetype(item as typeof archetype);
-              setActiveDeck(0);
-            }}
-          >
-            {item}
-          </Button>
-        ))}
-      </div>
-      <div className="deck-row">
-        <div className="elixir-pill">
-          <Image src="/images/icons/elixir.png" alt="" width={26} height={26} />
-          <strong>{selectedDeck.cost.toFixed(1)} elixir<span>average cost</span></strong>
+      {query.isLoading ? (
+        <HomeDataMessage message="Loading current Global Tournaments…" />
+      ) : query.error ? (
+        <HomeDataMessage message={errorMessage(query.error)} />
+      ) : !tournaments.length ? (
+        <HomeDataMessage message="Clash Royale reports no Global Tournament running right now. Community tournaments remain available from the tournament search." />
+      ) : (
+        <div className="event-grid">
+          {tournaments.map((tournament) => (
+            <article key={tournament.tag} className="event-card event-card-live">
+              <span>{humanize(tournament.status)}</span>
+              <strong>{tournament.name ?? tournament.tag}</strong>
+              <small>
+                {typeof tournament.capacity === "number" && typeof tournament.maxCapacity === "number"
+                  ? `${tournament.capacity.toLocaleString()} of ${tournament.maxCapacity.toLocaleString()} players`
+                  : "Player count unavailable"}
+              </small>
+              <dl>
+                <div><dt>Level cap</dt><dd>{tournament.levelCap ?? "—"}</dd></div>
+                <div><dt>First prize</dt><dd>{tournament.firstPlaceCardPrize ? `${tournament.firstPlaceCardPrize.toLocaleString()} cards` : "—"}</dd></div>
+              </dl>
+            </article>
+          ))}
         </div>
-        <DeckStrip cards={selectedDeck.cards} />
-        <Button type="button" size="lg" className="copy-deck" onClick={() => setActiveDeck((index) => (index + 1) % filteredDecks.length)}>
-          <Image src="/images/icons/copy.png" alt="" width={26} height={28} />
-          Swap Deck
-        </Button>
-      </div>
-      <div className="deck-demo-copy">
-        <strong>{selectedDeck.name}</strong>
-        <span>{selectedDeck.spotlight}</span>
-      </div>
-      <div className="deck-metrics">
-        <strong>{selectedDeck.winRate.toFixed(1)}%<span>deck win rate</span></strong>
-        <strong>{selectedDeck.usage.toFixed(1)}%<span>usage rate</span></strong>
-        <strong>{selectedDeck.crowns.toFixed(2)}<span>crowns per game</span></strong>
-      </div>
-      <Pager onPrevious={() => setActiveDeck((index) => (index + filteredDecks.length - 1) % filteredDecks.length)} onNext={() => setActiveDeck((index) => (index + 1) % filteredDecks.length)} />
+      )}
+      {tournaments.length ? <p className="table-note">Current Global Tournaments published by Clash Royale.</p> : null}
     </section>
   );
 }
 
-function SamplePopularCards() {
+function humanize(value?: string) {
+  if (!value) return "Status unavailable";
+  return value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function PlayerSpecificDataState({ title, copy, linkLabel }: { title: string; copy: string; linkLabel: string }) {
   return (
-    <section className="popular page-band">
-      <div className="section-title-row">
-        <h2>Popular Cards <SampleBadge /></h2>
-        <Link href="/cards" className="pink-button">Browse the card library</Link>
+    <section className="home-data-state page-band">
+      <div>
+        <h2>{title}</h2>
+        <p>{copy}</p>
       </div>
-      <div className="popular-grid">
-        <SparkChart color="pink" label="Winrate" value="—" delta="sample" />
-        <div className="popular-card-center">
-          <Image src="/images/cards/three-musketeers.png" alt="Three Musketeers" width={96} height={120} />
-          <strong>Three Musketeers</strong>
-        </div>
-        <SparkChart color="blue" label="Usage" value="—" delta="sample" />
-      </div>
-      <p className="table-note">
-        Win-rate and usage statistics come from the battle-log pipeline, which needs a configured Convex deployment.
-      </p>
+      <Link href="/players" className="pink-button">{linkLabel}</Link>
     </section>
   );
 }
 
-function PlayerMini({ name, clan }: { name: string; clan: string }) {
+function UnavailableMetaSection({ title, href = "/meta" }: { title: string; href?: string }) {
   return (
-    <div className="player-mini">
-      <Image src="/images/clan-badges/16000004.png" alt="" width={42} height={52} />
-      <span>{clan} &gt;</span>
-      <strong>{name}</strong>
-      <small><Image src="/images/icons/trophy.png" alt="" width={16} height={16} />5877 <b>+27</b></small>
-    </div>
+    <section className="home-data-state page-band">
+      <div>
+        <h2>{title}</h2>
+        <p>Royale Stats cannot load this live section until its data service is configured.</p>
+      </div>
+      <Link href={href} className="pink-button">Open details</Link>
+    </section>
   );
+}
+
+function HomeDataMessage({ message }: { message: string }) {
+  return <p className="home-data-message" role="status">{message}</p>;
 }
 
 function DeckStrip({ cards }: { cards: Card[] }) {
@@ -527,17 +462,14 @@ function Pager({ onPrevious, onNext }: { onPrevious?: () => void; onNext?: () =>
   );
 }
 
-function SparkChart({ color, label, value, delta }: { color: "pink" | "blue"; label: string; value: string; delta: string }) {
+function MetaMetric({ color, label, value, detail }: { color: "pink" | "blue"; label: string; value: string; detail: string }) {
   return (
-    <div className={`spark spark-${color}`}>
+    <div className={`spark spark-${color} meta-metric`}>
       <div className="spark-label">
         <span>{label}</span>
         <strong>{value}</strong>
-        <small>{delta}</small>
+        <small>{detail}</small>
       </div>
-      <svg viewBox="0 0 360 120" aria-hidden="true">
-        <path d="M4 92 C30 90 38 18 67 20 C94 22 86 72 126 70 C164 68 160 82 196 82 C228 82 226 98 260 94 C287 90 292 54 318 64 C340 72 338 98 356 92" />
-      </svg>
     </div>
   );
 }

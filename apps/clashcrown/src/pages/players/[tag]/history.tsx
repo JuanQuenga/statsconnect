@@ -45,8 +45,7 @@ function PlayerHistory({ tag }: { tag: string }) {
         <section className="decks-hero history-hero">
           <h1>{latest?.name ?? `#${tag}`}</h1>
           <p>
-            A change log built only from profile payloads Royale Stats actually received. Gaps mean the profile was not
-            observed, not that nothing changed.
+            A timeline of this player&rsquo;s observed trophy, collection, deck, and clan changes. It begins when Royale Stats first sees a change.
           </p>
           <Link className="history-back-link" href={`/players/${tag}`}><ArrowLeft size={16} /> Back to profile</Link>
         </section>
@@ -59,11 +58,11 @@ function PlayerHistory({ tag }: { tag: string }) {
             <Link className="pink-button" href={`/players/${tag}`}>Load player profile</Link>
           </section>
         ) : (
-          <>
+          <div className="history-record">
             <CoverageSummary snapshots={snapshots} />
             <ApiPathSection snapshot={latest} />
             <ObservedTimeline snapshots={snapshots} />
-          </>
+          </div>
         )}
       </div>
     </Layout>
@@ -78,9 +77,9 @@ function CoverageSummary({ snapshots }: { snapshots: PlayerHistorySnapshot[] }) 
     <section className="history-coverage" aria-label="History coverage">
       <div><CalendarClock size={22} /><span>First observed</span><strong>{dateTime.format(oldest.observedAt)}</strong></div>
       <div><ShieldCheck size={22} /><span>Meaningful changes</span><strong>{snapshots.length.toLocaleString()}</strong></div>
-      <div><Database size={22} /><span>Full API snapshots</span><strong>{fullSnapshots.toLocaleString()}</strong></div>
+      <div><Database size={22} /><span>Detailed snapshots</span><strong>{fullSnapshots.toLocaleString()}</strong></div>
       <p>
-        Last checked {dateTime.format(newest.lastObservedAt)}. Unchanged refreshes extend coverage without adding a duplicate row.
+        Coverage runs through {dateTime.format(newest.lastObservedAt)}. Repeated views with no change do not create extra entries.
       </p>
     </section>
   );
@@ -94,20 +93,22 @@ function ApiPathSection({ snapshot }: { snapshot?: PlayerHistorySnapshot }) {
     { label: "Personal-best snapshot", value: path?.best }
   ];
   return (
-    <section className="profile-section">
-      <div className="section-heading compact-heading"><span className="filter-button static">Official API</span><h2>Path of Legends</h2><span /></div>
+    <section className="profile-section history-path-section">
+      <header className="history-section-heading">
+        <h2>Ranked season comparison</h2>
+        <p>Current, previous, and personal-best finishes show this player&rsquo;s Ranked level over time.</p>
+      </header>
       <div className="history-path-grid">
         {rows.map(({ label, value }) => (
           <article key={label} className="history-path-card">
             <span>{label}</span>
             <strong>{formatNumber(value?.trophies)}</strong>
-            <small>{value?.rank ? `Rank #${value.rank.toLocaleString()}` : "No rank returned"}</small>
+            <small>{value?.rank ? `Rank #${value.rank.toLocaleString()}` : "No leaderboard placement"}</small>
           </article>
         ))}
       </div>
       <p className="table-note">
-        Supercell returns current, last, and personal-best results but no stable season identifier. These labels describe
-        the API fields as observed {snapshot ? dateTime.format(snapshot.observedAt) : "—"}; Royale Stats does not assign season names.
+        Ranked seasons reset. These values compare the current, previous, and best recorded finish as observed {snapshot ? dateTime.format(snapshot.observedAt) : "—"}; season names are not available.
       </p>
     </section>
   );
@@ -115,20 +116,18 @@ function ApiPathSection({ snapshot }: { snapshot?: PlayerHistorySnapshot }) {
 
 function ObservedTimeline({ snapshots }: { snapshots: PlayerHistorySnapshot[] }) {
   return (
-    <section className="profile-section">
-      <div className="section-heading compact-heading">
-        <span className="filter-button static">Royale Stats observed</span>
+    <section className="profile-section history-timeline-section">
+      <header className="history-section-heading">
         <h2>Profile changes</h2>
-        <span className="chart-range">Newest first</span>
-      </div>
+        <p>Recorded changes, newest first.</p>
+      </header>
       <ol className="history-timeline">
         {snapshots.map((snapshot, index) => (
           <SnapshotCard key={snapshot.id} snapshot={snapshot} previous={snapshots[index + 1]} />
         ))}
       </ol>
       <p className="table-note">
-        Legacy rows contain only the trophy value and timestamp that were already stored. Full snapshots are retained for
-        three years; no pre-observation values or season assignments are inferred.
+        Earlier trophy-only entries may not include deck or collection details. Observations are snapshots, not continuous tracking.
       </p>
     </section>
   );
@@ -164,9 +163,9 @@ function SnapshotCard({ snapshot, previous }: { snapshot: PlayerHistorySnapshot;
         )) : <p>Only the fields listed in the source record were available.</p>}
       </div>
       <div className="history-context">
-        <span>Clan: <strong>{snapshot.clanName ?? "No clan returned"}</strong>{clanChanged ? " · changed" : ""}</span>
-        <span>Deck: <strong>{snapshot.currentDeck?.length ? `${snapshot.currentDeck.length} cards recorded` : "Not returned"}</strong></span>
-        <span>Arena: <strong>{snapshot.arenaName ?? "Not returned"}</strong></span>
+        <span>Clan: <strong>{snapshot.clanName ?? "Not recorded"}</strong>{clanChanged ? " · changed" : ""}</span>
+        <span>Deck: <strong>{snapshot.currentDeck?.length ? `${snapshot.currentDeck.length} cards recorded` : "Not recorded"}</strong></span>
+        <span>Arena: <strong>{snapshot.arenaName ?? "Not recorded"}</strong></span>
       </div>
     </li>
   );
@@ -181,7 +180,7 @@ function formatNumber(value?: number) {
 }
 
 function sourceLabel(source: PlayerHistorySnapshot["source"]) {
-  if (source === "api_profile") return "Full API snapshot";
-  if (source === "battle_log") return "Battle-log observation";
-  return "Legacy trophy record";
+  if (source === "api_profile") return "Profile snapshot";
+  if (source === "battle_log") return "Battle-log update";
+  return "Trophy snapshot";
 }
