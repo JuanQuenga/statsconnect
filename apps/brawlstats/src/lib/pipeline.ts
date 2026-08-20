@@ -4,9 +4,24 @@ import { makeFunctionReference } from "convex/server";
 export type PipelineStatus = {
   now: number;
   counters: Array<{ name: string; value: number; updatedAt: number }>;
-  targets: { total: number; due: number; capped: boolean };
+  targets: { total: number; due: number; expiring: number; capped: boolean };
   battlesLast24Hours: { count: number; capped: boolean };
-  apiCallsLastHour: { total: number; failures: number; capped: boolean };
+  apiCallsLastHour: {
+    total: number;
+    failures: number;
+    rateLimited: number;
+    serverErrors: number;
+    capped: boolean;
+    windowStartedAt: number;
+  };
+  controls: {
+    crawlerEnabled: boolean;
+    publicUpstreamEnabled: boolean;
+    crawlHourlyLimit: number;
+    publicHourlyLimit: number;
+    crawlReserved: number;
+    publicReserved: number;
+  };
   recentRuns: Array<{
     id: string;
     job: string;
@@ -23,7 +38,7 @@ export type PipelineStatus = {
 
 const pipelineStatusQuery = makeFunctionReference<
   "query",
-  Record<string, never>,
+  { now: number },
   PipelineStatus
 >("brawl/pipeline:pipelineStatus");
 
@@ -34,5 +49,5 @@ export async function fetchPipelineStatus(): Promise<PipelineStatus> {
     throw new Error("Set VITE_CONVEX_URL to view crawler health.");
   }
 
-  return await new ConvexHttpClient(deploymentUrl).query(pipelineStatusQuery, {});
+  return await new ConvexHttpClient(deploymentUrl).query(pipelineStatusQuery, { now: Date.now() });
 }

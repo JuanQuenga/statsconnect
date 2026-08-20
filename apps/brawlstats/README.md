@@ -100,9 +100,9 @@ The global Games switcher sends game changes through `{VITE_STATSCONNECT_ORIGIN}
 
 Map win/use rates are **first-party**, not scraped from Brawlify:
 
-1. Every successful `/api/player` lookup ingests its battle log and adds that player to the durable crawl queue
-2. A six-hour discovery job adds global ranking players and members of top clubs
-3. A two-minute worker claims due targets, ingests only newer battles, and retries failures with exponential backoff
+1. `/api/player` uses a shared read-through cache and ingests a fresh battle log without permanently tracking one-time lookups
+2. A six-hour discovery job adds global ranking players and members of top clubs as durable targets
+3. A two-minute worker claims due targets, polls battle logs adaptively, refreshes profiles separately, and backs off after failures
 4. Aggregates live in `mapBrawlerStats`, `mapTeamStats`, and directional matchup records (deduped via `seenBattles`)
 5. `/beta` exposes bounded queue health, API volume, ingestion coverage, and recent run history
 6. A six-hour maintenance job removes expired dedupe records and telemetry
@@ -115,6 +115,11 @@ pnpm --dir packages/backend exec convex env set BRAWL_CLUB_SEED 10
 pnpm --dir packages/backend exec convex env set BRAWL_CRAWL_BATCH 8
 pnpm --dir packages/backend exec convex env set BRAWL_CRAWL_REVISIT_MINUTES 30
 ```
+
+Set `BRAWL_CRAWLER_ENABLED=false` for the crawler kill switch or `BRAWL_PUBLIC_API_ENABLED=false`
+to stop new public upstream lookups while continuing to serve cached player responses. Public profile and battle-log
+cache TTLs default to 900 and 120 seconds and can be changed with `BRAWL_PLAYER_PROFILE_CACHE_SECONDS` and
+`BRAWL_PLAYER_BATTLE_CACHE_SECONDS`.
 
 Map detail UI hides tier lists until a brawler has enough picks (default 25).
 

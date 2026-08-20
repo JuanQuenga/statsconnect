@@ -61,9 +61,18 @@ The Platform Backend pipeline reads these optional Convex environment variables,
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `BETA_ADMIN_KEY` | unset | Required by the "queue a player" control on `/beta`. Without it the control is inert. |
+| `CLASH_CRAWLER_ENABLED` | `true` | Global kill switch for discovery, battle-log crawling, and background clan watches. |
+| `CLASH_CLAN_WATCH_ENABLED` | `true` | Independent kill switch for expiring clan watches. |
 | `CLASH_CRAWL_BATCH` | `8` | Battle logs fetched per crawl tick. Batch size × tick rate is the API request rate. |
+| `CLASH_CRAWL_REQUEST_BUDGET_PER_RUN` | `8` | Hard request reservation cap for one crawl tick. |
+| `CLASH_CRAWL_DAILY_REQUEST_BUDGET` | `4000` | Hard daily battle-log request budget. Unused reservations are released. |
 | `CLASH_DISCOVER_LIMIT` | `200` | Path of Legends leaderboard entries seeded per discovery run. |
 | `CLASH_CLAN_SEED` | `20` | Top clans whose rosters are seeded per discovery run. One request each. |
+| `CLASH_FIXED_SAMPLE_SIZE` | `50` | Top leaderboard players retained in the durable fixed sample tier. |
+| `CLASH_DISCOVER_REQUEST_BUDGET_PER_RUN` | `12` | Hard request reservation cap for one discovery run. |
+| `CLASH_DISCOVER_DAILY_REQUEST_BUDGET` | `60` | Hard daily discovery request budget. |
+| `CLASH_CLAN_WATCH_REQUEST_BUDGET_PER_RUN` | `9` | Hard request cap for one background clan-watch tick (three requests per clan). |
+| `CLASH_CLAN_WATCH_DAILY_REQUEST_BUDGET` | `36` | Hard daily background clan-watch request budget. |
 | `CLASH_RANKING_SIZE` | `100` | Decks kept per mode per window in the materialised leaderboard. |
 | `CLASH_MIN_DECK_USES` | `5` | Observations a deck needs before it is ranked at all. |
 

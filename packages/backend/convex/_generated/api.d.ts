@@ -41,15 +41,23 @@ import type * as hub_adapters_registry from "../hub/adapters/registry.js";
 import type * as hub_adapters_stub from "../hub/adapters/stub.js";
 import type * as hub_adapters_tags from "../hub/adapters/tags.js";
 import type * as hub_adapters_types from "../hub/adapters/types.js";
+import type * as hub_access from "../hub/access.js";
+import type * as hub_accessModel from "../hub/accessModel.js";
+import type * as hub_auth from "../hub/auth.js";
+import type * as hub_billing_adapter from "../hub/billing/adapter.js";
 import type * as hub_cacheAccess from "../hub/cacheAccess.js";
 import type * as hub_internal_connectThrottle from "../hub/internal/connectThrottle.js";
+import type * as hub_internal_entitlements from "../hub/internal/entitlements.js";
 import type * as hub_internal_profileCache from "../hub/internal/profileCache.js";
 import type * as hub_internal_profileWrites from "../hub/internal/profileWrites.js";
+import type * as hub_internal_watchTargets from "../hub/internal/watchTargets.js";
 import type * as hub_model from "../hub/model.js";
 import type * as hub_profileData from "../hub/profileData.js";
 import type * as hub_profiles from "../hub/profiles.js";
 import type * as hub_savedProfiles from "../hub/savedProfiles.js";
 import type * as hub_validators from "../hub/validators.js";
+import type * as hub_watchDemand from "../hub/watchDemand.js";
+import type * as hub_watchTargetModel from "../hub/watchTargetModel.js";
 
 import type {
   ApiFromModules,
@@ -91,15 +99,23 @@ declare const fullApi: ApiFromModules<{
   "hub/adapters/stub": typeof hub_adapters_stub;
   "hub/adapters/tags": typeof hub_adapters_tags;
   "hub/adapters/types": typeof hub_adapters_types;
+  "hub/access": typeof hub_access;
+  "hub/accessModel": typeof hub_accessModel;
+  "hub/auth": typeof hub_auth;
+  "hub/billing/adapter": typeof hub_billing_adapter;
   "hub/cacheAccess": typeof hub_cacheAccess;
   "hub/internal/connectThrottle": typeof hub_internal_connectThrottle;
+  "hub/internal/entitlements": typeof hub_internal_entitlements;
   "hub/internal/profileCache": typeof hub_internal_profileCache;
   "hub/internal/profileWrites": typeof hub_internal_profileWrites;
+  "hub/internal/watchTargets": typeof hub_internal_watchTargets;
   "hub/model": typeof hub_model;
   "hub/profileData": typeof hub_profileData;
   "hub/profiles": typeof hub_profiles;
   "hub/savedProfiles": typeof hub_savedProfiles;
   "hub/validators": typeof hub_validators;
+  "hub/watchDemand": typeof hub_watchDemand;
+  "hub/watchTargetModel": typeof hub_watchTargetModel;
 }>;
 
 /**

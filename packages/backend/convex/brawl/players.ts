@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, query } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
+import { hourBucket } from "./controls";
 
 export type PlayerSighting = {
   tag: string;
@@ -145,6 +146,7 @@ export async function recordPlayerSightings(
   players: PlayerSighting[],
 ): Promise<{ recorded: number }> {
     const now = Date.now();
+    let recorded = 0;
     const byTag = new Map<string, PlayerSighting>();
     for (const player of players.slice(0, 500)) {
       const tag = cleanTag(player.tag);
@@ -175,6 +177,14 @@ export async function recordPlayerSightings(
         updatedAt: now,
       };
       if (existing) {
+        const changed =
+          existing.name !== values.name ||
+          existing.nameLower !== values.nameLower ||
+          existing.clubTag !== values.clubTag ||
+          existing.clubName !== values.clubName ||
+          existing.trophies !== values.trophies ||
+          existing.iconId !== values.iconId;
+        if (!changed) continue;
         await ctx.db.patch(existing._id, { ...values, sightings: existing.sightings + 1 });
       } else {
         await ctx.db.insert("brawlPlayerDirectory", {
@@ -183,9 +193,10 @@ export async function recordPlayerSightings(
           sightings: 1,
         });
       }
+      recorded += 1;
     }
 
-    return { recorded: byTag.size };
+    return { recorded };
 }
 
 export const recordProfile = internalMutation({
@@ -210,10 +221,19 @@ export const recordProfile = internalMutation({
       updatedAt: now,
     };
     if (existingPlayer) {
-      await ctx.db.patch(existingPlayer._id, {
-        ...directoryValues,
-        sightings: existingPlayer.sightings + 1,
-      });
+      const changed =
+        existingPlayer.name !== directoryValues.name ||
+        existingPlayer.nameLower !== directoryValues.nameLower ||
+        existingPlayer.clubTag !== directoryValues.clubTag ||
+        existingPlayer.clubName !== directoryValues.clubName ||
+        existingPlayer.trophies !== directoryValues.trophies ||
+        existingPlayer.iconId !== directoryValues.iconId;
+      if (changed) {
+        await ctx.db.patch(existingPlayer._id, {
+          ...directoryValues,
+          sightings: existingPlayer.sightings + 1,
+        });
+      }
     } else {
       await ctx.db.insert("brawlPlayerDirectory", {
         tag,
@@ -250,6 +270,27 @@ export const recordProfile = internalMutation({
       brawlers: args.brawlers,
     };
     if (existingSnapshot) {
+      const unchanged =
+        existingSnapshot.name === snapshot.name &&
+        existingSnapshot.trophies === snapshot.trophies &&
+        existingSnapshot.highestTrophies === snapshot.highestTrophies &&
+        existingSnapshot.expLevel === snapshot.expLevel &&
+        existingSnapshot.victory3v3 === snapshot.victory3v3 &&
+        existingSnapshot.soloVictories === snapshot.soloVictories &&
+        existingSnapshot.duoVictories === snapshot.duoVictories &&
+        existingSnapshot.clubTag === snapshot.clubTag &&
+        existingSnapshot.clubName === snapshot.clubName &&
+        existingSnapshot.iconId === snapshot.iconId &&
+        existingSnapshot.brawlerCount === snapshot.brawlerCount &&
+        existingSnapshot.power11Count === snapshot.power11Count &&
+        existingSnapshot.rankedCurrent === snapshot.rankedCurrent &&
+        existingSnapshot.rankedCurrentName === snapshot.rankedCurrentName &&
+        existingSnapshot.rankedSeasonBest === snapshot.rankedSeasonBest &&
+        existingSnapshot.rankedSeasonBestName === snapshot.rankedSeasonBestName &&
+        existingSnapshot.rankedBest === snapshot.rankedBest &&
+        existingSnapshot.rankedBestName === snapshot.rankedBestName &&
+        JSON.stringify(existingSnapshot.brawlers ?? []) === JSON.stringify(snapshot.brawlers ?? []);
+      if (unchanged) return { createdSnapshot: false };
       await ctx.db.patch(existingSnapshot._id, snapshot);
       return { createdSnapshot: false };
     }
@@ -486,5 +527,123 @@ export const directorySize = query({
   handler: async (ctx) => {
     const rows = await ctx.db.query("brawlPlayerDirectory").take(10_001);
     return { count: Math.min(rows.length, 10_000), capped: rows.length > 10_000 };
+  },
+});
+
+const cacheClaim = v.object({
+  profileJson: v.optional(v.string()),
+  battleLogJson: v.optional(v.string()),
+  fetchProfile: v.boolean(),
+  fetchBattleLog: v.boolean(),
+  limited: v.boolean(),
+  inFlight: v.boolean(),
+});
+
+export const claimPlayerCache = internalMutation({
+  args: {
+    tag: v.string(),
+    profileTtlMs: v.number(),
+    battleLogTtlMs: v.number(),
+    leaseMs: v.number(),
+    budgetLimit: v.number(),
+    upstreamEnabled: v.boolean(),
+  },
+  returns: cacheClaim,
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("brawlPlayerCache")
+      .withIndex("by_tag", (q) => q.eq("tag", args.tag))
+      .unique();
+    const profileFresh = Boolean(
+      existing?.profileJson &&
+      existing.profileFetchedAt !== undefined &&
+      existing.profileFetchedAt > now - Math.max(0, args.profileTtlMs),
+    );
+    const battleLogFresh = Boolean(
+      existing?.battleLogJson &&
+      existing.battleLogFetchedAt !== undefined &&
+      existing.battleLogFetchedAt > now - Math.max(0, args.battleLogTtlMs),
+    );
+    const profileInFlight = (existing?.profileLeaseUntil ?? 0) > now;
+    const battleLogInFlight = (existing?.battleLogLeaseUntil ?? 0) > now;
+    const wantsProfile = args.upstreamEnabled && !profileFresh && !profileInFlight;
+    const wantsBattleLog = args.upstreamEnabled && !battleLogFresh && !battleLogInFlight;
+    const requested = Number(wantsProfile) + Number(wantsBattleLog);
+
+    const bucketStartedAt = hourBucket(now);
+    const budgetKey = `public:${bucketStartedAt}`;
+    const budget = requested > 0
+      ? await ctx.db.query("brawlApiBudgets").withIndex("by_key", (q) => q.eq("key", budgetKey)).unique()
+      : null;
+    let remaining = Math.max(0, Math.floor(args.budgetLimit) - (budget?.reserved ?? 0));
+
+    const fetchProfile = wantsProfile && remaining > 0;
+    if (fetchProfile) remaining -= 1;
+    const fetchBattleLog = wantsBattleLog && remaining > 0;
+    const reserved = Number(fetchProfile) + Number(fetchBattleLog);
+
+    if (reserved > 0) {
+      if (budget) {
+        await ctx.db.patch(budget._id, { reserved: budget.reserved + reserved, updatedAt: now });
+      } else {
+        await ctx.db.insert("brawlApiBudgets", {
+          key: budgetKey,
+          scope: "public",
+          bucketStartedAt,
+          reserved,
+          updatedAt: now,
+        });
+      }
+
+      const leases = {
+        profileLeaseUntil: fetchProfile ? now + args.leaseMs : existing?.profileLeaseUntil,
+        battleLogLeaseUntil: fetchBattleLog ? now + args.leaseMs : existing?.battleLogLeaseUntil,
+        updatedAt: now,
+      };
+      if (existing) {
+        await ctx.db.patch(existing._id, leases);
+      } else {
+        await ctx.db.insert("brawlPlayerCache", { tag: args.tag, ...leases });
+      }
+    }
+
+    return {
+      profileJson: existing?.profileJson,
+      battleLogJson: existing?.battleLogJson,
+      fetchProfile,
+      fetchBattleLog,
+      limited: requested > reserved,
+      inFlight: profileInFlight || battleLogInFlight,
+    };
+  },
+});
+
+export const completePlayerCache = internalMutation({
+  args: {
+    tag: v.string(),
+    profileAttempted: v.boolean(),
+    battleLogAttempted: v.boolean(),
+    profileJson: v.optional(v.string()),
+    battleLogJson: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("brawlPlayerCache")
+      .withIndex("by_tag", (q) => q.eq("tag", args.tag))
+      .unique();
+    if (!existing) return null;
+    const now = Date.now();
+    await ctx.db.patch(existing._id, {
+      profileJson: args.profileJson ?? existing.profileJson,
+      profileFetchedAt: args.profileJson === undefined ? existing.profileFetchedAt : now,
+      profileLeaseUntil: args.profileAttempted ? undefined : existing.profileLeaseUntil,
+      battleLogJson: args.battleLogJson ?? existing.battleLogJson,
+      battleLogFetchedAt: args.battleLogJson === undefined ? existing.battleLogFetchedAt : now,
+      battleLogLeaseUntil: args.battleLogAttempted ? undefined : existing.battleLogLeaseUntil,
+      updatedAt: now,
+    });
+    return null;
   },
 });

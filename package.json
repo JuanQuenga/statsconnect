@@ -10,6 +10,7 @@
     ]
   },
   "scripts": {
+    "estimate:crawler-cost": "node scripts/estimate-crawler-cost.mjs",
     "dev": "pnpm --parallel --filter @statsconnect/backend --filter statsconnect dev",
     "dev:hub": "pnpm --filter statsconnect dev",
     "dev:brawlstats": "pnpm --filter brawlstats.io dev",

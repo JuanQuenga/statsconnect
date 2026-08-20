@@ -2,6 +2,10 @@ import { ConvexError, v } from "convex/values";
 import { authComponent } from "../auth";
 import { mutation, query } from "../_generated/server";
 import { gameIdValidator } from "./schema";
+import {
+  registerConnectedProfile,
+  unregisterConnectedProfile,
+} from "./watchTargetModel";
 
 const savedProfileInput = v.object({
   game: gameIdValidator,
@@ -86,13 +90,26 @@ export const mergeBrowserProfiles = mutation({
           .eq("playerTag", playerTag))
         .unique();
       if (existing) {
-        if (existing.name !== name) await ctx.db.patch(existing._id, { name, updatedAt: now });
+        const refreshTargetKey = existing.refreshTargetKey ?? await registerConnectedProfile(
+          ctx,
+          { game: profile.game, entity: "player", tag: playerTag },
+          { now, nextDueAt: now },
+        );
+        if (existing.name !== name || existing.refreshTargetKey === undefined) {
+          await ctx.db.patch(existing._id, { name, refreshTargetKey, updatedAt: now });
+        }
       } else {
+        const refreshTargetKey = await registerConnectedProfile(
+          ctx,
+          { game: profile.game, entity: "player", tag: playerTag },
+          { now, nextDueAt: now },
+        );
         await ctx.db.insert("savedProfiles", {
           ownerId: user._id,
           game: profile.game,
           playerTag,
           name,
+          refreshTargetKey,
           createdAt: now,
           updatedAt: now,
         });
@@ -117,13 +134,25 @@ export const save = mutation({
         .eq("game", args.game)
         .eq("playerTag", playerTag))
       .unique();
-    if (existing) await ctx.db.patch(existing._id, { name, updatedAt: now });
-    else {
+    if (existing) {
+      const refreshTargetKey = existing.refreshTargetKey ?? await registerConnectedProfile(
+        ctx,
+        { game: args.game, entity: "player", tag: playerTag },
+        { now, nextDueAt: now },
+      );
+      await ctx.db.patch(existing._id, { name, refreshTargetKey, updatedAt: now });
+    } else {
+      const refreshTargetKey = await registerConnectedProfile(
+        ctx,
+        { game: args.game, entity: "player", tag: playerTag },
+        { now, nextDueAt: now },
+      );
       await ctx.db.insert("savedProfiles", {
         ownerId: user._id,
         game: args.game,
         playerTag,
         name,
+        refreshTargetKey,
         createdAt: now,
         updatedAt: now,
       });
@@ -144,7 +173,12 @@ export const remove = mutation({
         .eq("game", args.game)
         .eq("playerTag", normalizeTag(args.tag)))
       .unique();
-    if (profile) await ctx.db.delete(profile._id);
+    if (profile) {
+      if (profile.refreshTargetKey) {
+        await unregisterConnectedProfile(ctx, profile.refreshTargetKey, Date.now());
+      }
+      await ctx.db.delete(profile._id);
+    }
     return null;
   },
 });

@@ -44,8 +44,9 @@ const WINDOWS = [1, 7] as const;
 function Beta() {
   const [mode, setMode] = useState<MetaMode>("ladder");
   const [windowDays, setWindowDays] = useState<(typeof WINDOWS)[number]>(7);
+  const [now] = useState(() => Date.now());
 
-  const status = useQuery(pipelineStatusQuery, {});
+  const status = useQuery(pipelineStatusQuery, { now });
   const decks = useQuery(topDecksQuery, { mode, windowDays, limit: 20 });
   const cards = useQuery(topCardsQuery, { mode, windowDays, limit: 24 });
 
@@ -206,7 +207,7 @@ function RunLog({ runs }: { runs?: PipelineRun[] }) {
       title="Recent cron runs"
       head={["Job", "Started", "Took", "Result", "Detail"]}
       empty={runs?.length === 0}
-      note="Discovery every 6h, crawl every 2m, rollup every 30m, prune every 6h."
+      note="Discovery every 12h, crawl every 5m, rollup every 30m, prune every 6h."
     >
       {(runs ?? []).map((run) => (
         <tr key={run._id}>
