@@ -3755,17 +3755,17 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .site-arena-backdrop {
-  height: clamp(820px, 56.3vw, 941px);
+  height: clamp(900px, 61vw, 1080px);
   min-height: 0;
   transform: translateY(0) scale(1);
-  background-position: calc(50% + 32px) top;
-  opacity: .84;
-  filter: saturate(.74) brightness(.82) contrast(.9);
+  background-position: center top;
+  opacity: 1;
+  filter: none;
 }
 
 .site-frame-home .site-arena-backdrop::after {
   background:
-    linear-gradient(180deg, rgba(5, 13, 27, .12), rgba(5, 14, 28, .36) 48%, rgba(7, 17, 31, .82) 76%, var(--background) 100%),
+    linear-gradient(180deg, rgba(5, 13, 27, .12), rgba(5, 14, 28, .36) 48%, rgba(7, 17, 31, .82) 76%, var(--background) 92%, var(--background) 100%),
     linear-gradient(
       90deg,
       rgba(4, 12, 25, .3) 0%,
@@ -4350,8 +4350,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
     height: 820px;
     background-position: center top;
     background-size: auto 680px;
-    opacity: .88;
-    filter: saturate(.78) brightness(.88) contrast(.9);
+    opacity: 1;
+    filter: none;
   }
   .site-frame-home .site-arena-backdrop::after {
     background:
