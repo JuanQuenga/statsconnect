@@ -204,7 +204,7 @@ function Leaderboards() {
           </div>
           <div className={styles.heroArt} aria-hidden="true">
             <span className={styles.heroCrown}><Crown /></span>
-            <Image src="/images/art/prince.png" alt="" width={390} height={420} priority />
+            <Image src="/images/generated/leaderboard-champions-2026.webp" alt="" width={1209} height={1300} priority />
           </div>
         </section>
 
