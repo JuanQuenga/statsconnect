@@ -3755,6 +3755,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .site-arena-backdrop {
+  height: clamp(820px, 56.3vw, 941px);
+  min-height: 0;
   transform: translateY(0) scale(1);
   background-position: calc(50% + 32px) top;
   opacity: .84;
@@ -3763,7 +3765,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 
 .site-frame-home .site-arena-backdrop::after {
   background:
-    linear-gradient(180deg, rgba(5, 13, 27, .12), rgba(5, 14, 28, .46) 54%, var(--background) 100%),
+    linear-gradient(180deg, rgba(5, 13, 27, .12), rgba(5, 14, 28, .36) 48%, rgba(7, 17, 31, .82) 76%, var(--background) 100%),
     linear-gradient(
       90deg,
       rgba(4, 12, 25, .3) 0%,
@@ -3832,7 +3834,6 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   isolation: isolate;
   min-height: 680px;
   overflow: hidden;
-  border-bottom: 1px solid var(--border);
   background: transparent;
 }
 
@@ -3841,13 +3842,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .royale-hero::after {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  content: "";
-  background:
-    linear-gradient(90deg, rgba(6, 14, 27, .66) 0%, rgba(6, 14, 27, .52) 27%, rgba(6, 14, 27, .18) 55%, rgba(6, 14, 27, .04) 100%),
-    linear-gradient(180deg, rgba(7, 17, 31, .04) 42%, rgba(7, 17, 31, .22) 74%, var(--background) 100%);
+  content: none;
 }
 
 .royale-hero-inner {
@@ -4335,11 +4330,6 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   .royale-hero-inner { grid-template-columns: 1fr; padding-top: 24px; }
   .royale-hero-copy { padding: 72px 0 20px; }
   .royale-hero-showcase { min-height: 520px; }
-  .royale-hero::after {
-    background:
-      linear-gradient(180deg, rgba(6, 14, 27, .2), rgba(6, 14, 27, .3) 58%, var(--background) 100%),
-      linear-gradient(90deg, rgba(6, 14, 27, .76), rgba(6, 14, 27, .3) 62%, rgba(6, 14, 27, .1));
-  }
   .footer-inner { grid-template-columns: 1fr; gap: 38px; }
 }
 
@@ -4357,20 +4347,16 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
       linear-gradient(90deg, rgba(4, 12, 25, .72), rgba(4, 13, 27, .86) 52%, rgba(4, 12, 25, .66));
   }
   .site-frame-home .site-arena-backdrop {
+    height: 820px;
     background-position: center top;
-    background-size: 100% auto;
+    background-size: auto 680px;
     opacity: .88;
     filter: saturate(.78) brightness(.88) contrast(.9);
   }
   .site-frame-home .site-arena-backdrop::after {
     background:
-      linear-gradient(180deg, rgba(4, 12, 25, .14), rgba(5, 14, 28, .58) 46%, var(--background) 82%),
+      linear-gradient(180deg, rgba(4, 12, 25, .14), rgba(5, 14, 28, .52) 46%, var(--background) 80%, var(--background) 100%),
       linear-gradient(90deg, rgba(4, 12, 25, .5), rgba(4, 13, 27, .8) 58%, rgba(4, 12, 25, .18));
-  }
-  .royale-hero::after {
-    background:
-      linear-gradient(180deg, rgba(6, 14, 27, .16), rgba(6, 14, 27, .58) 360px, var(--background) 100%),
-      linear-gradient(90deg, rgba(6, 14, 27, .62), rgba(6, 14, 27, .18));
   }
   .royale-hero-inner { width: calc(100% - 32px); }
   .royale-hero-copy h1 { font-size: clamp(40px, 12.4vw, 56px); }
