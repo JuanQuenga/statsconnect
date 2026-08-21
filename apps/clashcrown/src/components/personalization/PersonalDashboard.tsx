@@ -1,8 +1,9 @@
-import { Bell, Check, Cloud, Copy, Download, Link2, ShieldCheck, Star, Trash2, UserRoundPlus, UsersRound } from "lucide-react";
+import { Bell, Check, Cloud, Copy, Download, Link2, LogIn, ShieldCheck, Star, Trash2, UserRoundPlus, UsersRound } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "@/components/Link";
 import { usePersonalization, type ProfileInput } from "./PersonalizationProvider";
 import styles from "./Personalization.module.css";
+import { useStatsConnectAuth, useStatsConnectProfileTracking } from "@statsconnect/auth";
 
 export function PersonalDashboard() {
   const personalization = usePersonalization();
@@ -37,7 +38,7 @@ export function PersonalDashboard() {
     try {
       await personalization.pairWithCode(pairInput);
       setPairInput("");
-      setPairMessage("Paired. Saved profiles from both browsers are being merged.");
+      setPairMessage("Paired. Dashboard profiles from both browsers are being merged.");
     } catch (error) {
       setPairMessage(error instanceof Error ? error.message : "Could not pair this browser.");
     } finally {
@@ -50,7 +51,7 @@ export function PersonalDashboard() {
   }
 
   async function clearEverything() {
-    if (!window.confirm("Delete all tracked profiles, recents, preferences, observations, and paired browser access? This cannot be undone.")) return;
+    if (!window.confirm("Delete all dashboard profiles, recents, preferences, observations, and paired browser access? This cannot be undone.")) return;
     setBusy(true);
     await personalization.clearAll().catch(() => undefined);
     setBusy(false);
@@ -60,8 +61,8 @@ export function PersonalDashboard() {
     <section className={`page-band ${styles.dashboard}`} aria-labelledby="personal-dashboard-title">
       <header className={styles.dashboardHeader}>
         <div>
-          <h2 id="personal-dashboard-title">Saved players and clans</h2>
-          <p>Tracked players, clans, alerts, and recent lookups—available on this browser even when sync is offline.</p>
+          <h2 id="personal-dashboard-title">Dashboard players and clans</h2>
+          <p>Players, clans, alerts, and recent lookups saved to this browser—even when dashboard sync is offline.</p>
         </div>
         <SyncBadge status={personalization.status} />
       </header>
@@ -84,8 +85,8 @@ export function PersonalDashboard() {
         <div className={styles.empty}>
           <UserRoundPlus size={28} />
           <div>
-            <strong>No tracked profiles yet</strong>
-            <p>Open a player or clan and choose “Track.” Saved profiles will appear here; no live stats are shown until you open and refresh them.</p>
+            <strong>No dashboard profiles yet</strong>
+            <p>Open a player or clan and choose “Save to dashboard.” Profiles will appear here; no live stats are shown until you open and refresh them.</p>
           </div>
           <Link href="/players" className="pink-button">Find a player</Link>
         </div>
@@ -101,7 +102,7 @@ export function PersonalDashboard() {
         <div className={styles.settingsGrid}>
           <section className={styles.settingCard}>
             <h3><Bell size={18} /> Browser alerts</h3>
-            <p>Opt in by signal. Alerts are checked only when a tracked profile is opened or refreshed while Royale Stats is running; there is no background observation.</p>
+            <p>Opt in by signal. Alerts are checked only when a dashboard profile is opened or refreshed while StatsConnect Clash Royale is running; there is no background observation.</p>
             <Preference checked={personalization.preferences.chestAlerts} label="Next chest changes" onChange={(checked) => setPreference("chestAlerts", checked)} />
             <Preference checked={personalization.preferences.progressionAlerts} label="Player trophy gains" onChange={(checked) => setPreference("progressionAlerts", checked)} />
             <Preference checked={personalization.preferences.warAlerts} label="Clan war trophy gains" onChange={(checked) => setPreference("warAlerts", checked)} />
@@ -118,7 +119,7 @@ export function PersonalDashboard() {
           <section className={styles.settingCard}>
             <h3><Link2 size={18} /> Pair another browser</h3>
             {personalization.status === "local" ? (
-              <p>Local fallback is active because Convex is not configured. Tracking and privacy controls still work on this browser, but pairing is unavailable.</p>
+              <p>Local fallback is active because Convex is not configured. Dashboard saves and privacy controls still work on this browser, but pairing is unavailable.</p>
             ) : (
               <>
                 <p>Create a one-time code here, then enter it on the other browser. Codes expire after 10 minutes and are consumed once.</p>
@@ -171,10 +172,10 @@ function SavedList({ title, icon, profiles }: { title: string; icon: ReactNode; 
                 {profile.isDefault ? <Check size={15} /> : <Star size={15} />}
               </button>
             ) : null}
-            <button type="button" className={styles.iconButton} aria-label={`Stop tracking ${profile.name}`} onClick={() => void personalization.untrack(profile.kind, profile.tag)}><Trash2 size={15} /></button>
+            <button type="button" className={styles.iconButton} aria-label={`Remove ${profile.name} from dashboard`} onClick={() => void personalization.untrack(profile.kind, profile.tag)}><Trash2 size={15} /></button>
           </div>
         </article>
-      )) : <p className={styles.listEmpty}>No tracked {title.toLowerCase()}.</p>}
+      )) : <p className={styles.listEmpty}>No dashboard {title.toLowerCase()} yet.</p>}
     </section>
   );
 }
@@ -188,20 +189,83 @@ function SyncBadge({ status }: { status: ReturnType<typeof usePersonalization>["
   return <span className={`${styles.syncBadge} ${styles[status]}`}><Cloud size={15} />{labels[status]}</span>;
 }
 
-export function TrackingControls({ profile }: { profile: ProfileInput }) {
+export function DashboardSaveControls({ profile }: { profile: ProfileInput }) {
   const personalization = usePersonalization();
   const tracked = personalization.profiles.find((candidate) => key(candidate) === key(profile));
   return (
-    <div className={styles.trackingControls} aria-label="Profile tracking controls">
+    <div className={styles.trackingControls} aria-label="Dashboard save controls">
       <button type="button" aria-pressed={Boolean(tracked)} onClick={() => void (tracked ? personalization.untrack(profile.kind, profile.tag) : personalization.track(profile))}>
-        {tracked ? <Check size={16} /> : <UserRoundPlus size={16} />}{tracked ? "Tracked" : "Track profile"}
+        {tracked ? <Check size={16} /> : <UserRoundPlus size={16} />}{tracked ? "Saved to dashboard" : "Save to dashboard"}
       </button>
       {profile.kind === "players" && tracked ? (
         <button type="button" aria-pressed={tracked.isDefault} onClick={() => void personalization.setDefault(tracked.isDefault ? null : tracked.tag)}>
           <Star size={16} fill={tracked.isDefault ? "currentColor" : "none"} />{tracked.isDefault ? "Default player" : "Make default"}
         </button>
       ) : null}
-      <span>{personalization.status === "synced" ? "Synced" : "Saved locally"}</span>
+      <span>{personalization.status === "synced" ? "Dashboard synced" : "On this device"}</span>
+    </div>
+  );
+}
+
+export function TrackingControls({ profile }: { profile: Pick<ProfileInput, "tag" | "name"> }) {
+  const auth = useStatsConnectAuth();
+  const tracking = useStatsConnectProfileTracking();
+  const [pending, setPending] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const tracked = tracking.isTracked("clash-royale", profile.tag);
+  const loading = tracking.status === "loading";
+  const authenticated = tracking.authenticated && Boolean(auth.account);
+
+  async function toggleTracking() {
+    setActionError(null);
+    if (!authenticated) {
+      try {
+        await auth.signInWithGoogle();
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : "Sign-in could not be started.");
+      }
+      return;
+    }
+
+    setPending(true);
+    try {
+      if (tracked) {
+        await tracking.untrackProfile("clash-royale", profile.tag);
+      } else {
+        await tracking.trackProfile({ game: "clash-royale", tag: profile.tag, name: profile.name });
+      }
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "The tracked profile could not be updated.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const statusMessage = actionError
+    ? actionError
+    : tracking.status === "error"
+      ? tracking.error ?? "Tracked profiles could not be loaded."
+      : loading
+        ? "Checking your tracked profiles…"
+        : pending
+          ? tracked ? "Removing tracked profile…" : "Adding tracked profile…"
+          : authenticated
+            ? tracked ? "Tracked across StatsConnect" : "Track this profile across StatsConnect"
+            : "Sign in to track profiles across StatsConnect";
+
+  return (
+    <div className={styles.trackingControls} aria-label="StatsConnect profile tracking controls">
+      <button
+        type="button"
+        aria-pressed={tracked}
+        aria-busy={pending || loading}
+        disabled={pending || loading}
+        onClick={() => void toggleTracking()}
+      >
+        {authenticated ? (tracked ? <Check size={16} /> : <UserRoundPlus size={16} />) : <LogIn size={16} />}
+        {loading ? "Checking…" : pending ? (tracked ? "Removing…" : "Tracking…") : tracked ? "Tracked" : authenticated ? "Track profile" : "Sign in to track"}
+      </button>
+      <span role={actionError || tracking.status === "error" ? "alert" : "status"} aria-live="polite">{statusMessage}</span>
     </div>
   );
 }

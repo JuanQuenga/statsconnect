@@ -81,13 +81,13 @@ function MetaResearchPage() {
     });
     const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a"); link.href = url; link.download = `brawlstats-meta-${grouping}-${trophyBucket}-${trendWindow}.csv`; link.click(); URL.revokeObjectURL(url);
+    const link = document.createElement("a"); link.href = url; link.download = `statsconnect-brawl-stars-meta-${grouping}-${trophyBucket}-${trendWindow}.csv`; link.click(); URL.revokeObjectURL(url);
   };
 
   const error = primaryQuery.error || catalogQuery.error || mapsQuery.error || comparisonQuery.error;
   return (
     <div className="page-shell">
-      <header className="page-intro"><p className="eyebrow">{t("meta.eyebrow")}</p><h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1><p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p></header>
+      <header className="page-intro"><h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1><p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p></header>
 
       <div className="data-surface grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
         <Filter label={t("meta.winRate")} value={metric} options={[["win", t("meta.winRate")], ["use", t("meta.useRate")], ["picks", t("meta.sampleSize")], ["star", t("meta.starRate")]]} onChange={(value) => update({ metric: value as Metric })} />
@@ -136,7 +136,7 @@ function TrendChart({ points }: { points: MetaDailyPoint[] }) {
   return (
     <Card className="gap-0 p-5 py-5">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <div><p className="eyebrow">{t("meta.dailyTrend")}</p><h2 className="section-title">{t("meta.trendTitle")}</h2></div>
+        <div><h2 className="section-title">{t("meta.trendTitle")}</h2></div>
         <p className="text-xs text-muted-foreground">{t("meta.trendDetail")}</p>
       </div>
       <div className="mt-5 flex h-52 items-end gap-1 overflow-x-auto border-b border-border pb-7" aria-label={t("meta.trendAria")}>

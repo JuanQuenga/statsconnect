@@ -84,7 +84,7 @@ export function ClanManagementDashboard({
         <div className="management-overview-copy">
           <h1 id="management-title">{clanName} management</h1>
           <p>
-            Decisions stay with your clan. Signals below only explain changes observed by Royale Stats; they are not official
+            Decisions stay with your clan. Signals below only explain changes observed by StatsConnect; they are not official
             Supercell recommendations and cannot see chat, conduct, or leadership context.
           </p>
           <div className="management-actions">

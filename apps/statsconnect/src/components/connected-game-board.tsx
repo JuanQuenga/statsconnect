@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import type { ConnectedProfile } from "@statsconnect/auth";
+import { gameDestinationPath } from "@statsconnect/site-nav";
 import { Play, Plus } from "lucide-react";
 import { useStageLight } from "@/components/lobby/ambient";
 import { TileNav } from "@/components/lobby/TileNav";
 import { buttonVariants } from "@/components/ui/button";
 import { gameName, games } from "@/lib/contracts";
-import { hubLaunchPath } from "@/lib/destinations";
 
 export function ConnectedGameBoard({
   profiles,
@@ -76,7 +76,7 @@ function ProfileTile({ profile }: { profile: ConnectedProfile }) {
     <a
       data-tile
       data-game={profile.game}
-      href={hubLaunchPath(profile.game, profile.tag)}
+      href={gameDestinationPath(profile.game, profile.tag)}
       className="tile bevel bevel-lg relative flex min-h-[210px] flex-col justify-between overflow-hidden border border-border/60 bg-card/70 p-7 backdrop-blur-sm"
       {...stageLight}
     >

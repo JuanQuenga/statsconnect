@@ -86,12 +86,12 @@ function PlayerDashboard({
   return (
     <Layout>
       <Head>
-        <title>{`${player.name} | Royale Stats`}</title>
+        <title>{`${player.name} | StatsConnect · Clash Royale statistics`}</title>
       </Head>
       <div className="profile-page">
         <PlayerHero
           player={player}
-          actions={isDemo ? null : <TrackingControls profile={{ kind: "players", tag: player.tag, name: player.name, clan: player.clan }} />}
+          actions={isDemo ? null : <TrackingControls profile={{ tag: player.tag, name: player.name }} />}
         />
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
         {activeTab === "Statistics" ? (

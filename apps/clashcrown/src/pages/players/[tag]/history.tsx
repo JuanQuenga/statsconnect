@@ -31,21 +31,21 @@ function PlayerHistory({ tag }: { tag: string }) {
   });
 
   if (query.isLoading) return <Layout><LoadingState label="observed player history" /></Layout>;
-  if (query.error) return <Layout><ErrorState message="Royale Stats could not read this player’s history right now." /></Layout>;
+  if (query.error) return <Layout><ErrorState message="StatsConnect could not read this player’s Clash Royale history right now." /></Layout>;
   const snapshots = query.data ?? [];
   const latest = snapshots.find((snapshot) => snapshot.source === "api_profile");
 
   return (
     <Layout>
       <Head>
-        <title>{`${latest?.name ?? `#${tag}`} History | Royale Stats`}</title>
-        <meta name="description" content="Timestamped Royale Stats player observations and API-provided Path of Legends snapshots." />
+        <title>{`${latest?.name ?? `#${tag}`} History | StatsConnect · Clash Royale statistics`}</title>
+        <meta name="description" content="Timestamped StatsConnect Clash Royale player observations and API-provided Path of Legends snapshots." />
       </Head>
       <div className="profile-page history-page">
         <section className="decks-hero history-hero">
           <h1>{latest?.name ?? `#${tag}`}</h1>
           <p>
-            A timeline of this player&rsquo;s observed trophy, collection, deck, and clan changes. It begins when Royale Stats first sees a change.
+            A timeline of this player&rsquo;s observed trophy, collection, deck, and clan changes. It begins when StatsConnect first sees a change.
           </p>
           <Link className="history-back-link" href={`/players/${tag}`}><ArrowLeft size={16} /> Back to profile</Link>
         </section>
@@ -54,7 +54,7 @@ function PlayerHistory({ tag }: { tag: string }) {
           <section className="history-empty" aria-live="polite">
             <Database size={34} />
             <h2>No observations yet</h2>
-            <p>Load the live player profile once to create the first snapshot. Royale Stats does not fabricate earlier seasons.</p>
+            <p>Load the live player profile once to create the first snapshot. StatsConnect does not fabricate earlier seasons.</p>
             <Link className="pink-button" href={`/players/${tag}`}>Load player profile</Link>
           </section>
         ) : (

@@ -169,25 +169,14 @@
     @apply mx-auto w-full max-w-7xl space-y-8 px-4 py-8 md:px-6 md:py-12;
   }
 
-  .page-intro :is(h1, .eyebrow, .text-muted-foreground),
-  .brawl-hero-copy :is(h1, .eyebrow, .text-muted-foreground) {
+  .page-intro :is(h1, .text-muted-foreground),
+  .brawl-hero-copy :is(h1, .text-muted-foreground) {
     text-shadow: 0 2px 18px rgba(2, 7, 14, 0.92);
-  }
-
-  .page-intro .eyebrow,
-  .brawl-hero-copy .eyebrow {
-    color: #f5c85b;
   }
 
   .page-intro .text-muted-foreground,
   .brawl-hero-copy .text-muted-foreground {
     color: #d5dde9;
-  }
-
-  .eyebrow {
-    @apply inline-flex items-center border-l-[3px] border-accent pl-3 text-sm font-semibold text-foreground/80;
-    letter-spacing: 0;
-    text-transform: none;
   }
 
   .section-title {

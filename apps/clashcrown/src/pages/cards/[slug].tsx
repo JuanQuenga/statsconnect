@@ -76,7 +76,7 @@ function CardDetail({ slug }: { slug: string }) {
   return (
     <Layout>
       <Head>
-        <title>{`${card.name} | Royale Stats`}</title>
+        <title>{`${card.name} | StatsConnect · Clash Royale statistics`}</title>
         <meta name="description" content={`${card.name} — ${card.rarity} card costing ${card.elixir} elixir.`} />
       </Head>
       <div className="profile-page">

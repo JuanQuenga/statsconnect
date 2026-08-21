@@ -1,6 +1,6 @@
 # Personalization identity
 
-The ClashCrown personalization Module has frontend code in the Game Site and backend code in `packages/backend/convex/clash/personalization.ts`. It runs on the Platform Backend and authorizes requests through a capability Interface.
+The Clash Royale personalization Module has frontend code in the Game Site and backend code in `packages/backend/convex/clash/personalization.ts`. It runs on the Platform Backend and authorizes requests through a capability Interface.
 
 ## Current contract
 
@@ -17,4 +17,4 @@ Any merge needs a migration contract that claims capability data, resolves confl
 
 ## Alert delivery boundary
 
-Alert preferences and last observations sync through Convex. ClashCrown only compares observations when a tracked profile is opened or manually refreshed while the app is running. Browser notifications are best-effort and require the browser permission; there is no service worker push or claim of continuous background monitoring.
+Alert preferences and last observations sync through Convex. The Clash Royale experience only compares observations when a tracked profile is opened or manually refreshed while the app is running. Browser notifications are best-effort and require the browser permission; there is no service worker push or claim of continuous background monitoring.

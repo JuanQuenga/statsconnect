@@ -48,7 +48,7 @@ function Tournaments() {
   return (
     <Layout>
       <Head>
-        <title>Tournaments | Royale Stats</title>
+        <title>Tournaments | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content="Live Global Tournaments and open community tournaments in Clash Royale." />
       </Head>
       <div className="profile-page">

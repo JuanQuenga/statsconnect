@@ -61,7 +61,6 @@ function ProgressionPage() {
   return (
     <div className="page-shell">
       <header className="page-intro">
-        <p className="eyebrow">{t("progression.eyebrow")}</p>
         <h1 className="font-display text-4xl md:text-5xl">{t("progression.title")}</h1>
         <p className="mt-3 max-w-3xl text-muted-foreground">{t("progression.description")}</p>
         <form onSubmit={submit} className="mt-5 flex max-w-xl gap-2"><Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="#PLAYER_TAG" aria-label={t("progression.playerTag")} /><Button type="submit">{t("progression.buildPlan")}</Button></form>
@@ -93,7 +92,7 @@ function ProgressionPage() {
           </Card>
 
           <section>
-            <div className="mb-4"><p className="eyebrow">{t("progression.metaAware")}</p><h2 className="section-title">{t("progression.recommended")}</h2><p className="mt-2 text-sm text-muted-foreground">{t("progression.recommendedDetail")}</p></div>
+            <div className="mb-4"><h2 className="section-title">{t("progression.recommended")}</h2><p className="mt-2 text-sm text-muted-foreground">{t("progression.recommendedDetail")}</p></div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {priorities.map((row, index) => <a key={row.id} href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/60"><span className="game-rank text-xl text-muted-foreground">{index + 1}</span><img src={brawlerBorderUrl(row.id)} alt="" className="size-14 rounded-xl" /><span className="min-w-0 flex-1"><strong className="game-label block">{row.name}</strong><span className="block text-xs text-muted-foreground">{t("progression.powerRecommendation", { power: row.power, recommendation: recommendationLabel(row.recommendation, t) })}</span><span className="game-stat mt-1 block text-xs text-primary">{t("progression.resources", { points: trophies(row.pointsRemaining), coins: trophies(row.powerCoinsRemaining + row.loadoutCoinsRemaining) })}</span></span></a>)}
             </div>
@@ -101,7 +100,7 @@ function ProgressionPage() {
           </section>
 
           <section>
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">{t("progression.fullModel")}</p><h2 className="section-title">{t("progression.costs")}</h2></div><Button size="sm" variant={showLocked ? "default" : "outline"} onClick={() => setShowLocked((value) => !value)}>{showLocked ? t("progression.includingLocked") : t("progression.ownedOnly")}</Button></div>
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><h2 className="section-title">{t("progression.costs")}</h2></div><Button size="sm" variant={showLocked ? "default" : "outline"} onClick={() => setShowLocked((value) => !value)}>{showLocked ? t("progression.includingLocked") : t("progression.ownedOnly")}</Button></div>
             <div className="data-surface overflow-hidden">
               <Table><TableHeader><TableRow><TableHead>{t("common.brawlers")}</TableHead><TableHead>{t("progression.power")}</TableHead><TableHead className="text-right">{t("progression.completion")}</TableHead><TableHead className="text-right">{t("progression.powerPoints")}</TableHead><TableHead className="text-right">{t("progression.powerCoins")}</TableHead><TableHead className="text-right">{t("progression.loadoutCoins")}</TableHead></TableRow></TableHeader><TableBody>{tableRows.map((row) => <TableRow key={row.id}><TableCell><a href={appPath(`/brawlers/${row.id}`)} className="flex items-center gap-3 hover:text-primary"><img src={brawlerBorderUrl(row.id)} alt="" className="size-10 rounded-lg" /><span><strong className="game-label block">{row.name}</strong><span className="text-xs text-muted-foreground">{row.unlocked ? t("progression.trophies", { count: trophies(row.trophies) }) : t("progression.notUnlocked")}</span></span></a></TableCell><TableCell><Badge className="game-stat" variant={row.power === 11 ? "default" : "secondary"}>{row.power}</Badge></TableCell><TableCell className="game-stat text-right">{formatPercent(row.coreCompletion)}</TableCell><TableCell className="game-stat text-right">{trophies(row.pointsRemaining)}</TableCell><TableCell className="game-stat text-right">{trophies(row.powerCoinsRemaining)}</TableCell><TableCell className="game-stat text-right">{trophies(row.loadoutCoinsRemaining)}</TableCell></TableRow>)}</TableBody></Table>
             </div>

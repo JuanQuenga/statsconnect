@@ -1,6 +1,6 @@
 # StatsConnect Hub
 
-The StatsConnect Hub owns game discovery, connected profiles, and canonical Launch Routes. It is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS, and the shared Site Navigation Module.
+The StatsConnect Hub owns game discovery, connected profiles, and canonical Game Destinations. It is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS, and the shared Site Navigation Module. Canonical navigation links directly to `/bs/*` and `/cr/*`; `/launch/:game` remains only for backward compatibility.
 
 ## Backend ownership
 

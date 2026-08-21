@@ -76,7 +76,7 @@ function CardLibrary() {
   return (
     <Layout>
       <Head>
-        <title>Cards | Royale Stats</title>
+        <title>Cards | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content="Every Clash Royale card with elixir cost, rarity and Evolution availability." />
       </Head>
       <div className="decks-page">

@@ -105,8 +105,8 @@ function LandingPage({
             <h2>Each game keeps the tools that fit it.</h2>
           </div>
           <p>
-            StatsConnect remembers your profiles. BrawlStats and Royale Stats
-            handle the game-specific detail.
+            StatsConnect remembers your profiles. Its Brawl Stars and Clash Royale
+            experiences keep the game-specific detail.
           </p>
         </div>
         <TileNav className="stagger grid gap-5 md:grid-cols-2">
@@ -114,7 +114,7 @@ function LandingPage({
             <GameChannelTile
               key={game.id}
               id={game.id}
-              name={game.id === "brawl-stars" ? "BrawlStats" : "Royale Stats"}
+              name={game.id === "brawl-stars" ? "StatsConnect · Brawl Stars statistics" : "StatsConnect · Clash Royale statistics"}
               description={game.description}
             />
           ))}

@@ -78,16 +78,16 @@ function NewsLayout({
   return (
     <Layout>
       <Head>
-        <title>{t("news.title")} | Royale Stats</title>
+        <title>{t("news.title")} | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content={t("news.description")} />
-        <meta property="og:title" content={`${t("news.title")} | Royale Stats`} />
+        <meta property="og:title" content={`${t("news.title")} | StatsConnect · Clash Royale statistics`} />
         <meta property="og:description" content={t("news.description")} />
         <link rel="canonical" href="/news" />
       </Head>
       <div className="editorial-page news-page">
         <section className="editorial-hero">
           <h1>{t("news.title")}</h1>
-          <p>{t("news.description")} Royale Stats stores only headline metadata and always sends you to the original article.</p>
+          <p>{t("news.description")} StatsConnect stores only headline metadata and always sends you to the original article.</p>
           <div className="editorial-actions">
             <a className="pink-button" href={sourceUrl} target="_blank" rel="noopener noreferrer">
               {t("common.source")} <ExternalLink size={15} />

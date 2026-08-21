@@ -1,6 +1,6 @@
 # Historical tracking
 
-ClashCrown history starts when the application receives an official Clash Royale API response. It does not infer player seasons, reconstruct missed leaderboard positions, or turn event scores into trophies.
+Clash Royale history starts when the application receives an official Clash Royale API response. It does not infer player seasons, reconstruct missed leaderboard positions, or turn event scores into trophies.
 
 ## Player observations
 

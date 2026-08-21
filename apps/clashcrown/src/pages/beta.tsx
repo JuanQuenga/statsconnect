@@ -57,7 +57,7 @@ function Beta() {
   return (
     <Layout>
       <Head>
-        <title>Beta | Royale Stats</title>
+        <title>Beta | StatsConnect · Clash Royale statistics</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className="profile-page">
@@ -407,7 +407,7 @@ function Playground({ byId }: { byId: Map<number, Card> }) {
         <div>
           <span>EntityCell</span>
           <div>
-            <EntityCell name="Royale Stats" sub="#2PP · 48 members" href="/clans/search" />
+            <EntityCell name="StatsConnect" sub="#2PP · 48 members" href="/clans/search" />
             <EntityCell name="No badge" sub="fallback layout" />
           </div>
         </div>

@@ -70,11 +70,10 @@ function MapsPage() {
   return (
     <div className="page-shell space-y-10">
       <div className="page-intro">
-        <p className="eyebrow">{t("maps.eyebrow")}</p>
         <h1 className="font-display text-4xl md:text-5xl">{t("maps.title")}</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           Browse the map archive, jump into today&apos;s rotation, and open any map for win/use rates aggregated from
-          official battle logs collected by BrawlStats.
+          official battle logs collected by StatsConnect.
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 {
-  "name": "BrawlStats.io",
-  "short_name": "BrawlStats",
-  "description": "Live Brawl Stars profiles, progression, map meta, and draft recommendations.",
+  "name": "StatsConnect · Brawl Stars statistics",
+  "short_name": "StatsConnect Brawl Stars",
+  "description": "Live Brawl Stars profiles, progression, map meta, and draft recommendations from StatsConnect.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

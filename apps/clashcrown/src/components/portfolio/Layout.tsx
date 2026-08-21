@@ -1,4 +1,3 @@
-import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { supportedLocales, useI18n, type Locale } from "@/lib/i18n";
@@ -99,11 +98,6 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
           options: siteNavigationLanguages.filter((option) => supportedLocales.includes(option.value as Locale)),
           onChange: (value) => setLocale(value as Locale),
         }}
-        brand={
-          <Link href="/" aria-label="Royale Stats home">
-            <Image src="/images/logo/royale-stats-wide.png" alt="Royale Stats" width={2143} height={667} priority />
-          </Link>
-        }
         renderSearch={(onNavigate) => (
           <div className="nav-search-tools">
             <ProfileSearch compact onNavigate={onNavigate} />
@@ -122,8 +116,9 @@ function SiteFooter() {
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-brand-row">
-          <Link href="/" aria-label="Royale Stats home">
-            <Image src="/images/logo/royale-stats-wide.png" alt="Royale Stats" width={2143} height={667} />
+          <Link href="/" aria-label="StatsConnect · Clash Royale statistics" className="statsconnect-game-brand">
+            <strong>StatsConnect</strong>
+            <span>Clash Royale statistics</span>
           </Link>
           <p>Player profiles, live meta insights, deck tools, and clan intelligence for Clash Royale.</p>
         </div>
@@ -154,7 +149,7 @@ function SiteFooter() {
               Fan Content Policy
             </a>.
           </p>
-          <p>© {new Date().getFullYear()} Royale Stats.</p>
+          <p>© {new Date().getFullYear()} StatsConnect · Clash Royale statistics.</p>
         </div>
       </div>
     </footer>

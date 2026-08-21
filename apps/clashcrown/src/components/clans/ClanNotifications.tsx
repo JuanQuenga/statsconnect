@@ -55,7 +55,7 @@ export function ClanNotifications({ tag, name, events }: { tag: string; name: st
   const status = useMemo(() => {
     if (permission === "unsupported") return "This browser does not support page notifications.";
     if (permission === "denied") return "Notifications are blocked in your browser settings.";
-    if (enabled && permission === "granted") return "On while Royale Stats is open in this browser.";
+    if (enabled && permission === "granted") return "On while StatsConnect Clash Royale is open in this browser.";
     return "Off. Nothing is sent until you opt in.";
   }, [enabled, permission]);
 

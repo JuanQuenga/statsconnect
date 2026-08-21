@@ -67,7 +67,6 @@ const baseEnglish = {
   "search.openTag": "Open #{tag}",
   "search.exactTag": "Exact player tag",
   "search.empty": "No tracked players yet. Try an exact #tag.",
-  "home.eyebrow": "Live Brawl Stars statistics",
   "home.description":
     "Track players, clubs, event rotation, map meta, and official rankings — powered by the Brawl Stars API and first-party battle aggregation.",
   "home.viewPlayer": "View player",
@@ -88,7 +87,6 @@ const baseEnglish = {
   "home.globalRankings": "Global rankings",
   "home.topPlayers": "Top players",
   "home.topClub": "Top club",
-  "player.eyebrow": "Player profile",
   "player.title": "Find any tracked player",
   "player.searchTitle": "Search by player name or tag",
   "player.searchDetail":
@@ -223,7 +221,6 @@ const baseEnglish = {
   "club.fromTrophies": "From trophies",
   "club.toTrophies": "To trophies",
   "club.delta": "Delta",
-  "maps.eyebrow": "Maps and meta",
   "maps.title": "Maps and live performance",
   "maps.liveRotation": "Live rotation",
   "maps.activeNow": "Active now",
@@ -260,7 +257,7 @@ const baseEnglish = {
   "maps.picks": "{count} picks",
   "maps.noTeams": "No team combinations have enough samples yet",
   "maps.sampleSummary":
-    "{samples} sampled brawler picks · Min {minimum} picks for tier lists · BrawlStats first-party meta",
+    "{samples} sampled brawler picks · Min {minimum} picks for tier lists · StatsConnect first-party Brawl Stars meta",
   "maps.minimumDetail":
     "We need at least {minimum} picks per brawler before publishing tier lists. Keep looking up players — battle logs feed this map automatically.",
   "maps.confidence":
@@ -273,10 +270,8 @@ const baseEnglish = {
   "maps.winRateText": "{rate} win rate",
   "maps.games": "{count} games",
   "maps.medianAvg": "Median · avg {average}",
-  "mode.eyebrow": "Game mode",
   "mode.loading": "Loading maps…",
   "mode.noMaps": "No maps for this mode",
-  "leaderboard.eyebrow": "Official rankings",
   "leaderboard.title": "Leaderboards",
   "leaderboard.loadFailed": "Failed to load rankings.",
   "leaderboard.loadingPlayers": "Loading players…",
@@ -286,7 +281,6 @@ const baseEnglish = {
   "leaderboard.empty": "No rankings available",
   "leaderboard.description":
     "Current-season player, club, and per-brawler rankings from the Brawl Stars API.",
-  "assistant.eyebrow": "Personalized strategy",
   "assistant.title": "Draft Lab",
   "assistant.shareText": "Try this Brawl Stars draft and map setup",
   "assistant.playerTag": "Player tag for owned-brawler recommendations",
@@ -329,7 +323,6 @@ const baseEnglish = {
   "assistant.newTeam": "new team",
   "assistant.counter": "{score} counter",
   "assistant.matchupPending": "matchup pending",
-  "settings.eyebrow": "Personal companion",
   "settings.languageDetail":
     "Navigation and companion tools support seven languages.",
   "settings.notificationsUnsupported":
@@ -340,16 +333,16 @@ const baseEnglish = {
   "settings.imported": "Preferences imported.",
   "settings.invalidFile": "That preferences file is invalid.",
   "settings.alertDetail":
-    "Get a browser notification when the live event rotation changes while BrawlStats is active.",
+    "Get a browser notification when the live event rotation changes while StatsConnect Brawl Stars is active.",
   "settings.disableAlerts": "Disable alerts",
   "settings.enableAlerts": "Enable alerts",
   "settings.installDetail":
-    "Install BrawlStats for a standalone window, offline shell, and faster return visits.",
-  "settings.installApp": "Install BrawlStats",
+    "Install StatsConnect Brawl Stars for a standalone window, offline shell, and faster return visits.",
+  "settings.installApp": "Install StatsConnect Brawl Stars",
   "settings.installed": "Already installed or unavailable",
   "settings.profileSwitcher": "Profile switcher",
   "settings.recent": "Recently viewed",
-  "settings.shareTitle": "Share BrawlStats",
+  "settings.shareTitle": "Share StatsConnect Brawl Stars",
   "settings.shareDetail":
     "Send the live maps, profiles, and Draft Lab to your team.",
   "settings.shareText": "Live Brawl Stars stats and draft recommendations",
@@ -361,17 +354,22 @@ const baseEnglish = {
   "alerts.changed": "Brawl Stars rotation changed",
   "alerts.newEvent": "New event",
   "alerts.newActive": "New maps and modes are active.",
-  "player.cardTitle": "BRAWLSTATS PLAYER CARD",
+  "player.cardTitle": "STATSCONNECT BRAWL STARS PLAYER CARD",
   "player.cardTracking": "Tracking",
   "player.cardBest": "Best trophies",
-  "player.cardFooter": "brawlstats · prospective battle analytics",
+  "player.cardFooter": "StatsConnect · prospective Brawl Stars analytics",
   "profile.save": "Save profile",
+  "profile.track": "Track profile",
+  "profile.tracked": "Tracked",
+  "profile.tracking": "Tracking…",
+  "profile.signInToTrack": "Sign in to track",
+  "profile.trackError": "Could not update tracking. Try again.",
   "profile.linkCopied": "Link copied",
   "profile.shared": "Shared",
   "profile.notShared": "Not shared",
   "profile.shareText": "{name} (#{tag}) · {trophies} trophies",
   "footer.description":
-    "Fan-made statistics for Brawl Stars. Map meta is aggregated from official battle logs collected by BrawlStats — not affiliated with Brawlify or Supercell.",
+    "Fan-made statistics for Brawl Stars. Map meta is aggregated from official battle logs collected by StatsConnect — not affiliated with Brawlify or Supercell.",
   "footer.legal":
     "Not affiliated with, endorsed, sponsored, or specifically approved by Supercell. See {policy}.",
   "footer.policy": "Supercell’s Fan Content Policy",
@@ -447,7 +445,6 @@ const esBase: Record<BaseTranslationKey, string> = {
   "search.exactTag": "Etiqueta de jugador exacta",
   "search.empty":
     "Aún no hay jugadores rastreados. Pruebe con una #etiqueta exacta.",
-  "home.eyebrow": "Estadísticas de Brawl Stars en vivo",
   "home.description":
     "Realice un seguimiento de los jugadores, clubes, rotación de eventos, meta mapas y clasificaciones oficiales, impulsado por la API de Brawl Stars y la agregación de batallas propia.",
   "home.viewPlayer": "Ver jugador",
@@ -468,7 +465,6 @@ const esBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Clasificaciones globales",
   "home.topPlayers": "Los mejores jugadores",
   "home.topClub": "club superior",
-  "player.eyebrow": "Perfil del jugador",
   "player.title": "Encuentra cualquier jugador rastreado",
   "player.searchTitle": "Buscar por nombre o etiqueta de jugador",
   "player.searchDetail":
@@ -603,7 +599,6 @@ const esBase: Record<BaseTranslationKey, string> = {
   "club.fromTrophies": "Trofeos anteriores",
   "club.toTrophies": "Trofeos nuevos",
   "club.delta": "Cambio",
-  "maps.eyebrow": "Mapas y meta",
   "maps.title": "Mapas y actuación en vivo.",
   "maps.liveRotation": "Rotación en vivo",
   "maps.activeNow": "Activo ahora",
@@ -641,7 +636,7 @@ const esBase: Record<BaseTranslationKey, string> = {
   "maps.noTeams":
     "Ninguna combinación de equipos tiene suficientes muestras todavía.",
   "maps.sampleSummary":
-    "Selecciones de luchadores de muestra de {samples} · Selecciones mínimas de {minimum} para listas de niveles · Meta propia de BrawlStats",
+    "Selecciones de luchadores de muestra de {samples} · Selecciones mínimas de {minimum} para listas de niveles · Meta propia de StatsConnect Brawl Stars",
   "maps.minimumDetail":
     "Necesitamos al menos selecciones {minimum} por luchador antes de publicar listas de niveles. Sigue buscando jugadores: los registros de batalla alimentan este mapa automáticamente.",
   "maps.confidence":
@@ -654,10 +649,8 @@ const esBase: Record<BaseTranslationKey, string> = {
   "maps.winRateText": "Tasa de victorias {rate}",
   "maps.games": "Juegos {count}",
   "maps.medianAvg": "Mediana · promedio {average}",
-  "mode.eyebrow": "Modo de juego",
   "mode.loading": "Cargando mapas…",
   "mode.noMaps": "No hay mapas para este modo.",
-  "leaderboard.eyebrow": "Rankings oficiales",
   "leaderboard.title": "Tablas de clasificación",
   "leaderboard.loadFailed": "No se pudieron cargar las clasificaciones.",
   "leaderboard.loadingPlayers": "Cargando jugadores…",
@@ -667,7 +660,6 @@ const esBase: Record<BaseTranslationKey, string> = {
   "leaderboard.empty": "No hay clasificaciones disponibles",
   "leaderboard.description":
     "Clasificaciones de jugadores, clubes y por luchador de la temporada actual de la API de Brawl Stars.",
-  "assistant.eyebrow": "Estrategia personalizada",
   "assistant.title": "Proyecto de laboratorio",
   "assistant.shareText":
     "Prueba este borrador y configuración de mapas de Brawl Stars",
@@ -713,7 +705,6 @@ const esBase: Record<BaseTranslationKey, string> = {
   "assistant.newTeam": "nuevo equipo",
   "assistant.counter": "Contador {score}",
   "assistant.matchupPending": "enfrentamiento pendiente",
-  "settings.eyebrow": "compañero personal",
   "settings.languageDetail":
     "Las herramientas de navegación y complementarias admiten siete idiomas.",
   "settings.notificationsUnsupported":
@@ -724,16 +715,16 @@ const esBase: Record<BaseTranslationKey, string> = {
   "settings.imported": "Preferencias importadas.",
   "settings.invalidFile": "Ese archivo de preferencias no es válido.",
   "settings.alertDetail":
-    "Recibe una notificación en el navegador cuando la rotación de eventos en vivo cambie mientras BrawlStats esté activo.",
+    "Recibe una notificación en el navegador cuando la rotación de eventos en vivo cambie mientras StatsConnect Brawl Stars esté activo.",
   "settings.disableAlerts": "Desactivar alertas",
   "settings.enableAlerts": "Habilitar alertas",
   "settings.installDetail":
-    "Instale BrawlStats para obtener una ventana independiente, un shell sin conexión y visitas posteriores más rápidas.",
-  "settings.installApp": "Instalar BrawlStats",
+    "Instale StatsConnect Brawl Stars para obtener una ventana independiente, un shell sin conexión y visitas posteriores más rápidas.",
+  "settings.installApp": "Instalar StatsConnect Brawl Stars",
   "settings.installed": "Ya instalado o no disponible",
   "settings.profileSwitcher": "Cambiador de perfiles",
   "settings.recent": "Visto recientemente",
-  "settings.shareTitle": "Compartir BrawlStats",
+  "settings.shareTitle": "Compartir StatsConnect Brawl Stars",
   "settings.shareDetail":
     "Envía los mapas en vivo, los perfiles y el Draft Lab a tu equipo.",
   "settings.shareText":
@@ -746,17 +737,22 @@ const esBase: Record<BaseTranslationKey, string> = {
   "alerts.changed": "La rotación de Brawl Stars cambió",
   "alerts.newEvent": "Nuevo evento",
   "alerts.newActive": "Nuevos mapas y modos están activos.",
-  "player.cardTitle": "TARJETA DE JUGADOR BRAWLSTATS",
+  "player.cardTitle": "TARJETA DE JUGADOR STATSCONNECT BRAWL STARS",
   "player.cardTracking": "Rastreando",
   "player.cardBest": "Mejores trofeos",
-  "player.cardFooter": "brawlstats · análisis prospectivo de batallas",
+  "player.cardFooter": "StatsConnect · análisis prospectivo de Brawl Stars",
   "profile.save": "Guardar perfil",
+  "profile.track": "Seguir perfil",
+  "profile.tracked": "En seguimiento",
+  "profile.tracking": "Siguiendo…",
+  "profile.signInToTrack": "Inicie sesión para seguir",
+  "profile.trackError": "No se pudo actualizar el seguimiento. Inténtelo de nuevo.",
   "profile.linkCopied": "Enlace copiado",
   "profile.shared": "Compartido",
   "profile.notShared": "No compartido",
   "profile.shareText": "{name} (#{tag}) · {trophies} trofeos",
   "footer.description":
-    "Estadísticas de Brawl Stars hechas por fans. El meta de mapas se agrega de registros de batalla oficiales recopilados por BrawlStats; no está afiliado con Brawlify ni Supercell.",
+    "Estadísticas de Brawl Stars hechas por fans. El meta de mapas se agrega de registros de batalla oficiales recopilados por StatsConnect; no está afiliado con Brawlify ni Supercell.",
   "footer.legal":
     "No afiliado, respaldado, patrocinado ni aprobado específicamente por Supercell. Consulta {policy}.",
   "footer.policy": "Política de contenido para fans de Supercell",
@@ -830,7 +826,6 @@ const deBase: Record<BaseTranslationKey, string> = {
   "search.exactTag": "Genauer Player-Tag",
   "search.empty":
     "Noch keine getrackten Spieler. Versuchen Sie es mit einem genauen #Tag.",
-  "home.eyebrow": "Live-Statistiken zu Brawl Stars",
   "home.description":
     "Verfolgen Sie Spieler, Clubs, Event-Rotation, Karten-Meta und offizielle Ranglisten – unterstützt durch die Brawl Stars API und First-Party-Battle-Aggregation.",
   "home.viewPlayer": "Spieler ansehen",
@@ -852,7 +847,6 @@ const deBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Globale Rankings",
   "home.topPlayers": "Top-Spieler",
   "home.topClub": "Spitzenverein",
-  "player.eyebrow": "Spielerprofil",
   "player.title": "Finden Sie einen beliebigen getrackten Player",
   "player.searchTitle": "Suche nach Spielernamen oder Tag",
   "player.searchDetail":
@@ -987,7 +981,6 @@ const deBase: Record<BaseTranslationKey, string> = {
   "club.fromTrophies": "Vorherige Trophäen",
   "club.toTrophies": "Neue Trophäen",
   "club.delta": "Änderung",
-  "maps.eyebrow": "Karten und Meta",
   "maps.title": "Karten und Live-Auftritt",
   "maps.liveRotation": "Live-Rotation",
   "maps.activeNow": "Jetzt aktiv",
@@ -1025,7 +1018,7 @@ const deBase: Record<BaseTranslationKey, string> = {
   "maps.noTeams":
     "Es gibt noch keine Teamkombination, die über genügend Proben verfügt",
   "maps.sampleSummary":
-    "{samples} ausgewählte Brawler-Picks · Min. {minimum} Picks für Ranglisten · BrawlStats First-Party-Meta",
+    "{samples} ausgewählte Brawler-Picks · Min. {minimum} Picks für Ranglisten · StatsConnect Brawl Stars First-Party-Meta",
   "maps.minimumDetail":
     "Wir benötigen mindestens {minimum} Picks pro Brawler, bevor wir Ranglisten veröffentlichen können. Suchen Sie weiter nach Spielern – Kampfprotokolle versorgen diese Karte automatisch.",
   "maps.confidence":
@@ -1038,10 +1031,8 @@ const deBase: Record<BaseTranslationKey, string> = {
   "maps.winRateText": "{rate} Gewinnrate",
   "maps.games": "{count} Spiele",
   "maps.medianAvg": "Median · Durchschnitt {average}",
-  "mode.eyebrow": "Spielmodus",
   "mode.loading": "Karten werden geladen…",
   "mode.noMaps": "Keine Karten für diesen Modus",
-  "leaderboard.eyebrow": "Offizielle Rangliste",
   "leaderboard.title": "Bestenlisten",
   "leaderboard.loadFailed": "Die Rangliste konnte nicht geladen werden.",
   "leaderboard.loadingPlayers": "Spieler werden geladen…",
@@ -1051,7 +1042,6 @@ const deBase: Record<BaseTranslationKey, string> = {
   "leaderboard.empty": "Keine Rangliste verfügbar",
   "leaderboard.description":
     "Spieler-, Club- und Pro-Brawler-Rangliste der aktuellen Saison aus der Brawl Stars API.",
-  "assistant.eyebrow": "Personalisierte Strategie",
   "assistant.title": "Entwurfslabor",
   "assistant.shareText":
     "Probieren Sie diesen Entwurf und die Karteneinrichtung von Brawl Stars aus",
@@ -1096,7 +1086,6 @@ const deBase: Record<BaseTranslationKey, string> = {
   "assistant.newTeam": "neues Team",
   "assistant.counter": "{score}-Zähler",
   "assistant.matchupPending": "Matchup steht noch aus",
-  "settings.eyebrow": "Persönlicher Begleiter",
   "settings.languageDetail":
     "Navigations- und Begleittools unterstützen sieben Sprachen.",
   "settings.notificationsUnsupported":
@@ -1108,16 +1097,16 @@ const deBase: Record<BaseTranslationKey, string> = {
   "settings.imported": "Einstellungen importiert.",
   "settings.invalidFile": "Diese Einstellungsdatei ist ungültig.",
   "settings.alertDetail":
-    "Erhalten Sie eine Browser-Benachrichtigung, wenn sich die Live-Event-Rotation ändert, während BrawlStats aktiv ist.",
+    "Erhalten Sie eine Browser-Benachrichtigung, wenn sich die Live-Event-Rotation ändert, während StatsConnect Brawl Stars aktiv ist.",
   "settings.disableAlerts": "Deaktivieren Sie Benachrichtigungen",
   "settings.enableAlerts": "Aktivieren Sie Benachrichtigungen",
   "settings.installDetail":
-    "Installieren Sie BrawlStats für ein eigenständiges Fenster, eine Offline-Shell und schnellere Wiederbesuche.",
-  "settings.installApp": "Installieren Sie BrawlStats",
+    "Installieren Sie StatsConnect Brawl Stars für ein eigenständiges Fenster, eine Offline-Shell und schnellere Wiederbesuche.",
+  "settings.installApp": "Installieren Sie StatsConnect Brawl Stars",
   "settings.installed": "Bereits installiert oder nicht verfügbar",
   "settings.profileSwitcher": "Profilumschalter",
   "settings.recent": "Kürzlich angesehen",
-  "settings.shareTitle": "Teile BrawlStats",
+  "settings.shareTitle": "Teile StatsConnect Brawl Stars",
   "settings.shareDetail":
     "Senden Sie die Live-Karten, Profile und Draft Lab an Ihr Team.",
   "settings.shareText":
@@ -1130,17 +1119,22 @@ const deBase: Record<BaseTranslationKey, string> = {
   "alerts.changed": "Die Rotation von Brawl Stars wurde geändert",
   "alerts.newEvent": "Neue Veranstaltung",
   "alerts.newActive": "Neue Karten und Modi sind aktiv.",
-  "player.cardTitle": "BRAWLSTATS-SPIELERKARTE",
+  "player.cardTitle": "STATSCONNECT BRAWL STARS-SPIELERKARTE",
   "player.cardTracking": "Tracking",
   "player.cardBest": "Beste Trophäen",
-  "player.cardFooter": "brawlstats · prospektive Kampfanalysen",
+  "player.cardFooter": "StatsConnect · prospektive Brawl Stars-Kampfanalysen",
   "profile.save": "Profil speichern",
+  "profile.track": "Profil verfolgen",
+  "profile.tracked": "Wird verfolgt",
+  "profile.tracking": "Wird verfolgt…",
+  "profile.signInToTrack": "Zum Verfolgen anmelden",
+  "profile.trackError": "Tracking konnte nicht aktualisiert werden. Bitte erneut versuchen.",
   "profile.linkCopied": "Link kopiert",
   "profile.shared": "Geteilt",
   "profile.notShared": "Nicht geteilt",
   "profile.shareText": "{name} (#{tag}) · {trophies} Trophäen",
   "footer.description":
-    "Von Fans erstellte Statistiken für Brawl Stars. Das Karten-Meta basiert auf offiziellen Kampfprotokollen von BrawlStats — ohne Verbindung zu Brawlify oder Supercell.",
+    "Von Fans erstellte Statistiken für Brawl Stars. Das Karten-Meta basiert auf offiziellen Kampfprotokollen von StatsConnect — ohne Verbindung zu Brawlify oder Supercell.",
   "footer.legal":
     "Nicht mit Supercell verbunden, unterstützt, gesponsert oder ausdrücklich genehmigt. Siehe {policy}.",
   "footer.policy": "Supercells Richtlinie für Fan-Inhalte",
@@ -1213,7 +1207,6 @@ const frBase: Record<BaseTranslationKey, string> = {
   "search.openTag": "Ouvrir #{tag}",
   "search.exactTag": "Étiquette exacte du joueur",
   "search.empty": "Aucun joueur suivi pour l'instant. Essayez un #tag exact.",
-  "home.eyebrow": "Statistiques de Brawl Stars en direct",
   "home.description":
     "Suivez les joueurs, les clubs, la rotation des événements, la méta de la carte et les classements officiels, grâce à l'API Brawl Stars et à l'agrégation de batailles propriétaires.",
   "home.viewPlayer": "Voir le joueur",
@@ -1234,7 +1227,6 @@ const frBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Classements mondiaux",
   "home.topPlayers": "Meilleurs joueurs",
   "home.topClub": "Meilleur club",
-  "player.eyebrow": "Profil du joueur",
   "player.title": "Trouvez n'importe quel joueur suivi",
   "player.searchTitle": "Rechercher par nom de joueur ou par tag",
   "player.searchDetail":
@@ -1369,7 +1361,6 @@ const frBase: Record<BaseTranslationKey, string> = {
   "club.fromTrophies": "Trophées précédents",
   "club.toTrophies": "Nouveaux trophées",
   "club.delta": "Variation",
-  "maps.eyebrow": "Cartes et méta",
   "maps.title": "Cartes et performances en direct",
   "maps.liveRotation": "Rotation en direct",
   "maps.activeNow": "Actif maintenant",
@@ -1407,7 +1398,7 @@ const frBase: Record<BaseTranslationKey, string> = {
   "maps.noTeams":
     "Aucune combinaison d'équipe n'a encore suffisamment d'échantillons",
   "maps.sampleSummary":
-    "Sélections de bagarreurs échantillonnées {samples} · Sélections minimales {minimum} pour les listes de niveaux · Méta propriétaire de BrawlStats",
+    "Sélections de bagarreurs échantillonnées {samples} · Sélections minimales {minimum} pour les listes de niveaux · Méta propriétaire de StatsConnect Brawl Stars",
   "maps.minimumDetail":
     "Nous avons besoin d'au moins des choix {minimum} par bagarreur avant de publier des listes de niveaux. Continuez à rechercher des joueurs : les journaux de bataille alimentent automatiquement cette carte.",
   "maps.confidence":
@@ -1420,10 +1411,8 @@ const frBase: Record<BaseTranslationKey, string> = {
   "maps.winRateText": "Taux de victoire {rate}",
   "maps.games": "Jeux {count}",
   "maps.medianAvg": "Médiane · moyenne {average}",
-  "mode.eyebrow": "Mode de jeu",
   "mode.loading": "Chargement des cartes…",
   "mode.noMaps": "Aucune carte pour ce mode",
-  "leaderboard.eyebrow": "Classements officiels",
   "leaderboard.title": "Classements",
   "leaderboard.loadFailed": "Échec du chargement des classements.",
   "leaderboard.loadingPlayers": "Chargement des joueurs…",
@@ -1433,7 +1422,6 @@ const frBase: Record<BaseTranslationKey, string> = {
   "leaderboard.empty": "Aucun classement disponible",
   "leaderboard.description":
     "Classements des joueurs, des clubs et des bagarreurs de la saison en cours issus de l'API Brawl Stars.",
-  "assistant.eyebrow": "Stratégie personnalisée",
   "assistant.title": "Projet de laboratoire",
   "assistant.shareText":
     "Essayez ce brouillon et cette configuration de carte de Brawl Stars",
@@ -1480,7 +1468,6 @@ const frBase: Record<BaseTranslationKey, string> = {
   "assistant.newTeam": "nouvelle équipe",
   "assistant.counter": "Compteur {score}",
   "assistant.matchupPending": "match en attente",
-  "settings.eyebrow": "Compagnon personnel",
   "settings.languageDetail":
     "Les outils de navigation et d'accompagnement prennent en charge sept langues.",
   "settings.notificationsUnsupported":
@@ -1492,12 +1479,12 @@ const frBase: Record<BaseTranslationKey, string> = {
   "settings.imported": "Préférences importées.",
   "settings.invalidFile": "Ce fichier de préférences n'est pas valide.",
   "settings.alertDetail":
-    "Recevez une notification du navigateur lorsque la rotation des événements en direct change pendant que BrawlStats est actif.",
+    "Recevez une notification du navigateur lorsque la rotation des événements en direct change pendant que StatsConnect Brawl Stars est actif.",
   "settings.disableAlerts": "Désactiver les alertes",
   "settings.enableAlerts": "Activer les alertes",
   "settings.installDetail":
-    "Installez BrawlStats pour une fenêtre autonome, un shell hors ligne et des visites de retour plus rapides.",
-  "settings.installApp": "Installer BrawlStats",
+    "Installez StatsConnect Brawl Stars pour une fenêtre autonome, un shell hors ligne et des visites de retour plus rapides.",
+  "settings.installApp": "Installer StatsConnect Brawl Stars",
   "settings.installed": "Déjà installé ou indisponible",
   "settings.profileSwitcher": "Sélecteur de profil",
   "settings.recent": "Récemment consulté",
@@ -1514,17 +1501,22 @@ const frBase: Record<BaseTranslationKey, string> = {
   "alerts.changed": "La rotation de Brawl Stars a été modifiée",
   "alerts.newEvent": "Nouvel événement",
   "alerts.newActive": "De nouvelles cartes et modes sont actifs.",
-  "player.cardTitle": "CARTE JOUEUR BRAWLSTATS",
+  "player.cardTitle": "CARTE JOUEUR STATSCONNECT BRAWL STARS",
   "player.cardTracking": "Suivi",
   "player.cardBest": "Meilleurs trophées",
-  "player.cardFooter": "brawlstats · analyse prospective des combats",
+  "player.cardFooter": "StatsConnect · analyse prospective des combats Brawl Stars",
   "profile.save": "Enregistrer le profil",
+  "profile.track": "Suivre le profil",
+  "profile.tracked": "Suivi",
+  "profile.tracking": "Suivi…",
+  "profile.signInToTrack": "Connectez-vous pour suivre",
+  "profile.trackError": "Impossible de mettre à jour le suivi. Réessayez.",
   "profile.linkCopied": "Lien copié",
   "profile.shared": "Partagé",
   "profile.notShared": "Non partagé",
   "profile.shareText": "{name} (#{tag}) · {trophies} trophées",
   "footer.description":
-    "Statistiques Brawl Stars créées par des fans. La méta des cartes provient des journaux de combat officiels collectés par BrawlStats — sans affiliation avec Brawlify ou Supercell.",
+    "Statistiques Brawl Stars créées par des fans. La méta des cartes provient des journaux de combat officiels collectés par StatsConnect — sans affiliation avec Brawlify ou Supercell.",
   "footer.legal":
     "Non affilié, approuvé, sponsorisé ou expressément validé par Supercell. Voir {policy}.",
   "footer.policy": "Politique de contenu des fans de Supercell",
@@ -1596,7 +1588,6 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "search.openTag": "Abra #{tag}",
   "search.exactTag": "Tag exata do jogador",
   "search.empty": "Nenhum jogador rastreado ainda. Experimente uma #tag exata.",
-  "home.eyebrow": "Estatísticas ao vivo do Brawl Stars",
   "home.description":
     "Acompanhe jogadores, clubes, rotação de eventos, meta de mapas e classificações oficiais - com tecnologia da API Brawl Stars e agregação de batalhas próprias.",
   "home.viewPlayer": "Ver jogador",
@@ -1617,7 +1608,6 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Classificações globais",
   "home.topPlayers": "Melhores jogadores",
   "home.topClub": "Melhor clube",
-  "player.eyebrow": "Perfil do jogador",
   "player.title": "Encontre qualquer jogador rastreado",
   "player.searchTitle": "Pesquise por nome ou tag do jogador",
   "player.searchDetail":
@@ -1752,7 +1742,6 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "club.fromTrophies": "Troféus anteriores",
   "club.toTrophies": "Novos troféus",
   "club.delta": "Variação",
-  "maps.eyebrow": "Mapas e meta",
   "maps.title": "Mapas e performance ao vivo",
   "maps.liveRotation": "Rotação ao vivo",
   "maps.activeNow": "Ativo agora",
@@ -1789,7 +1778,7 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "maps.picks": "Escolhas {count}",
   "maps.noTeams": "Nenhuma combinação de equipe tem amostras suficientes ainda",
   "maps.sampleSummary":
-    "{samples} amostras de escolhas de brawler · Escolhas mínimas de {minimum} para listas de níveis · BrawlStats meta original",
+    "{samples} amostras de escolhas de brawler · Escolhas mínimas de {minimum} para listas de níveis · StatsConnect Brawl Stars meta original",
   "maps.minimumDetail":
     "Precisamos de pelo menos escolhas {minimum} por lutador antes de publicar listas de níveis. Continue procurando jogadores – os registros de batalha alimentam este mapa automaticamente.",
   "maps.confidence":
@@ -1802,10 +1791,8 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "maps.winRateText": "Taxa de vitórias {rate}",
   "maps.games": "Jogos {count}",
   "maps.medianAvg": "Mediana · média {average}",
-  "mode.eyebrow": "Modo de jogo",
   "mode.loading": "Carregando mapas…",
   "mode.noMaps": "Não há mapas para este modo",
-  "leaderboard.eyebrow": "Classificações oficiais",
   "leaderboard.title": "Tabelas de classificação",
   "leaderboard.loadFailed": "Falha ao carregar classificações.",
   "leaderboard.loadingPlayers": "Carregando jogadores…",
@@ -1815,7 +1802,6 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "leaderboard.empty": "Nenhuma classificação disponível",
   "leaderboard.description":
     "Classificações de jogadores, clubes e lutadores da temporada atual da API Brawl Stars.",
-  "assistant.eyebrow": "Estratégia personalizada",
   "assistant.title": "Rascunho de laboratório",
   "assistant.shareText":
     "Experimente este rascunho e configuração do mapa do Brawl Stars",
@@ -1861,7 +1847,6 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "assistant.newTeam": "nova equipe",
   "assistant.counter": "Contador {score}",
   "assistant.matchupPending": "confronto pendente",
-  "settings.eyebrow": "Companheiro pessoal",
   "settings.languageDetail":
     "As ferramentas de navegação e complementares suportam sete idiomas.",
   "settings.notificationsUnsupported":
@@ -1873,16 +1858,16 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "settings.imported": "Preferências importadas.",
   "settings.invalidFile": "Esse arquivo de preferências é inválido.",
   "settings.alertDetail":
-    "Receba uma notificação do navegador quando a rotação do evento ao vivo mudar enquanto o BrawlStats estiver ativo.",
+    "Receba uma notificação do navegador quando a rotação do evento ao vivo mudar enquanto o StatsConnect Brawl Stars estiver ativo.",
   "settings.disableAlerts": "Desativar alertas",
   "settings.enableAlerts": "Habilitar alertas",
   "settings.installDetail":
-    "Instale o BrawlStats para obter uma janela independente, shell offline e visitas de retorno mais rápidas.",
-  "settings.installApp": "Instalar BrawlStats",
+    "Instale o StatsConnect Brawl Stars para obter uma janela independente, shell offline e visitas de retorno mais rápidas.",
+  "settings.installApp": "Instalar StatsConnect Brawl Stars",
   "settings.installed": "Já instalado ou indisponível",
   "settings.profileSwitcher": "Alternador de perfil",
   "settings.recent": "Visualizados recentemente",
-  "settings.shareTitle": "Compartilhe BrawlStats",
+  "settings.shareTitle": "Compartilhe StatsConnect Brawl Stars",
   "settings.shareDetail":
     "Envie mapas ao vivo, perfis e Draft Lab para sua equipe.",
   "settings.shareText":
@@ -1895,17 +1880,22 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "alerts.changed": "Rotação do Brawl Stars alterada",
   "alerts.newEvent": "Novo evento",
   "alerts.newActive": "Novos mapas e modos estão ativos.",
-  "player.cardTitle": "CARTÃO DE JOGADOR BRAWLSTATS",
+  "player.cardTitle": "CARTÃO DE JOGADOR STATSCONNECT BRAWL STARS",
   "player.cardTracking": "Rastreando",
   "player.cardBest": "Melhores troféus",
-  "player.cardFooter": "brawlstats · análise prospectiva de batalhas",
+  "player.cardFooter": "StatsConnect · análise prospectiva de batalhas Brawl Stars",
   "profile.save": "Salvar perfil",
+  "profile.track": "Acompanhar perfil",
+  "profile.tracked": "Acompanhando",
+  "profile.tracking": "Acompanhando…",
+  "profile.signInToTrack": "Entre para acompanhar",
+  "profile.trackError": "Não foi possível atualizar o acompanhamento. Tente novamente.",
   "profile.linkCopied": "Link copiado",
   "profile.shared": "Compartilhado",
   "profile.notShared": "Não compartilhado",
   "profile.shareText": "{name} (#{tag}) · {trophies} troféus",
   "footer.description":
-    "Estatísticas de Brawl Stars feitas por fãs. O meta dos mapas é agregado de registros oficiais de batalha coletados pelo BrawlStats — sem afiliação com Brawlify ou Supercell.",
+    "Estatísticas de Brawl Stars feitas por fãs. O meta dos mapas é agregado de registros oficiais de batalha coletados pelo StatsConnect — sem afiliação com Brawlify ou Supercell.",
   "footer.legal":
     "Não afiliado, endossado, patrocinado ou especificamente aprovado pela Supercell. Veja {policy}.",
   "footer.policy": "Política de conteúdo de fãs da Supercell",
@@ -1979,7 +1969,6 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "search.exactTag": "正確なプレイヤータグ",
   "search.empty":
     "追跡されているプレーヤーはまだいません。正確な #tag を試してください。",
-  "home.eyebrow": "Brawl Stars のライブ統計",
   "home.description":
     "Brawl Stars API とファーストパーティのバトル集計を利用して、プレイヤー、クラブ、イベント ローテーション、マップ メタ、公式ランキングを追跡します。",
   "home.viewPlayer": "プレーヤーを見る",
@@ -2000,7 +1989,6 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "世界ランキング",
   "home.topPlayers": "トッププレイヤー",
   "home.topClub": "トップクラブ",
-  "player.eyebrow": "選手プロフィール",
   "player.title": "追跡されているプレーヤーを検索する",
   "player.searchTitle": "プレイヤー名やタグで検索",
   "player.searchDetail":
@@ -2134,7 +2122,6 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "club.fromTrophies": "以前のトロフィー",
   "club.toTrophies": "新しいトロフィー",
   "club.delta": "変化",
-  "maps.eyebrow": "マップとメタ",
   "maps.title": "マップとライブパフォーマンス",
   "maps.liveRotation": "ライブローテーション",
   "maps.activeNow": "現在アクティブです",
@@ -2172,7 +2159,7 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "maps.noTeams":
     "まだ十分なサンプルを持っているチームの組み合わせがありません",
   "maps.sampleSummary":
-    "{samples} サンプリングされたブロウラーのピック · Tier リストの最小 {minimum} ピック · BrawlStats のファーストパーティ メタ",
+    "{samples} サンプリングされたブロウラーのピック · Tier リストの最小 {minimum} ピック · StatsConnect Brawl Stars のファーストパーティ メタ",
   "maps.minimumDetail":
     "Tier リストを公開する前に、ブローラーごとに少なくとも {minimum} のピックが必要です。プレイヤーを検索し続けます。戦闘ログはこのマップに自動的にフィードされます。",
   "maps.confidence":
@@ -2185,10 +2172,8 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "maps.winRateText": "{rate} 勝率",
   "maps.games": "{count} ゲーム",
   "maps.medianAvg": "中央値 · 平均 {average}",
-  "mode.eyebrow": "ゲームモード",
   "mode.loading": "マップを読み込み中…",
   "mode.noMaps": "このモードにはマップがありません",
-  "leaderboard.eyebrow": "公式ランキング",
   "leaderboard.title": "リーダーボード",
   "leaderboard.loadFailed": "ランキングの読み込みに失敗しました。",
   "leaderboard.loadingPlayers": "プレーヤーをロード中…",
@@ -2198,7 +2183,6 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "leaderboard.empty": "ランキングはありません",
   "leaderboard.description":
     "Brawl Stars API からの現在のシーズンのプレーヤー、クラブ、および喧嘩師ごとのランキング。",
-  "assistant.eyebrow": "パーソナライズされた戦略",
   "assistant.title": "ドラフトラボ",
   "assistant.shareText":
     "Brawl Stars のドラフトとマップのセットアップを試してください",
@@ -2244,7 +2228,6 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "assistant.newTeam": "新しいチーム",
   "assistant.counter": "{score}カウンター",
   "assistant.matchupPending": "マッチアップは保留中",
-  "settings.eyebrow": "個人的な同行者",
   "settings.languageDetail":
     "ナビゲーション ツールとコンパニオン ツールは 7 つの言語をサポートしています。",
   "settings.notificationsUnsupported":
@@ -2255,16 +2238,16 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "settings.imported": "設定がインポートされました。",
   "settings.invalidFile": "その設定ファイルは無効です。",
   "settings.alertDetail":
-    "BrawlStats がアクティブなときにライブ イベントのローテーションが変更されるとブラウザ通知を受け取ります。",
+    "StatsConnect Brawl Stars がアクティブなときにライブ イベントのローテーションが変更されるとブラウザ通知を受け取ります。",
   "settings.disableAlerts": "アラートを無効にする",
   "settings.enableAlerts": "アラートを有効にする",
   "settings.installDetail":
-    "スタンドアロン ウィンドウ、オフライン シェル、および迅速な再訪問のために BrawlStats をインストールします。",
-  "settings.installApp": "BrawlStats をインストールする",
+    "スタンドアロン ウィンドウ、オフライン シェル、および迅速な再訪問のために StatsConnect Brawl Stars をインストールします。",
+  "settings.installApp": "StatsConnect Brawl Stars をインストールする",
   "settings.installed": "すでにインストールされているか、使用できない",
   "settings.profileSwitcher": "プロファイルスイッチャー",
   "settings.recent": "最近見た",
-  "settings.shareTitle": "BrawlStatsをシェアする",
+  "settings.shareTitle": "StatsConnect Brawl Starsをシェアする",
   "settings.shareDetail":
     "ライブ マップ、プロファイル、Draft Lab をチームに送信します。",
   "settings.shareText": "Brawl Stars のライブ統計とドラフトの推奨事項",
@@ -2276,17 +2259,22 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "alerts.changed": "Brawl Stars のローテーションが変更されました",
   "alerts.newEvent": "新しいイベント",
   "alerts.newActive": "新しいマップとモードがアクティブになります。",
-  "player.cardTitle": "BRAWLSTATS プレイヤーカード",
+  "player.cardTitle": "STATSCONNECT BRAWL STARS プレイヤーカード",
   "player.cardTracking": "追跡中",
   "player.cardBest": "最高トロフィー",
-  "player.cardFooter": "brawlstats · 将来予測バトル分析",
+  "player.cardFooter": "StatsConnect · 将来予測 Brawl Stars バトル分析",
   "profile.save": "プロフィールを保存",
+  "profile.track": "プロフィールを追跡",
+  "profile.tracked": "追跡中",
+  "profile.tracking": "追跡中…",
+  "profile.signInToTrack": "追跡するにはログイン",
+  "profile.trackError": "追跡を更新できませんでした。もう一度お試しください。",
   "profile.linkCopied": "リンクをコピーしました",
   "profile.shared": "共有しました",
   "profile.notShared": "共有されませんでした",
   "profile.shareText": "{name} (#{tag}) · {trophies} トロフィー",
   "footer.description":
-    "ファン制作の Brawl Stars 統計です。マップメタは BrawlStats が収集した公式バトルログから集計されており、Brawlify や Supercell とは無関係です。",
+    "ファン制作の Brawl Stars 統計です。マップメタは StatsConnect が収集した公式バトルログから集計されており、Brawlify や Supercell とは無関係です。",
   "footer.legal":
     "Supercell との提携、承認、スポンサー関係、または特別な承認はありません。{policy}をご覧ください。",
   "footer.policy": "Supercell ファンコンテンツポリシー",
@@ -2359,7 +2347,6 @@ const koBase: Record<BaseTranslationKey, string> = {
   "search.exactTag": "정확한 플레이어 태그",
   "search.empty":
     "아직 추적된 플레이어가 없습니다. 정확한 #태그를 사용해 보세요.",
-  "home.eyebrow": "라이브 브롤스타즈 통계",
   "home.description":
     "Brawl Stars API 및 자사 전투 집계를 통해 플레이어, 클럽, 이벤트 순환, 맵 메타 및 공식 순위를 추적합니다.",
   "home.viewPlayer": "플레이어 보기",
@@ -2380,7 +2367,6 @@ const koBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "글로벌 순위",
   "home.topPlayers": "최고의 선수",
   "home.topClub": "최고의 클럽",
-  "player.eyebrow": "플레이어 프로필",
   "player.title": "추적된 플레이어 찾기",
   "player.searchTitle": "플레이어 이름이나 태그로 검색",
   "player.searchDetail":
@@ -2514,7 +2500,6 @@ const koBase: Record<BaseTranslationKey, string> = {
   "club.fromTrophies": "이전 트로피",
   "club.toTrophies": "새 트로피",
   "club.delta": "변화",
-  "maps.eyebrow": "지도와 메타",
   "maps.title": "지도 및 라이브 공연",
   "maps.liveRotation": "실시간 회전",
   "maps.activeNow": "현재 활동 중",
@@ -2551,7 +2536,7 @@ const koBase: Record<BaseTranslationKey, string> = {
   "maps.picks": "{count} 추천",
   "maps.noTeams": "아직 충분한 샘플이 있는 팀 조합이 없습니다.",
   "maps.sampleSummary":
-    "{samples} 샘플 싸움꾼 선택 · 계층 목록을 위한 최소 {minimum} 선택 · BrawlStats 자사 메타",
+    "{samples} 샘플 싸움꾼 선택 · 계층 목록을 위한 최소 {minimum} 선택 · StatsConnect Brawl Stars 자사 메타",
   "maps.minimumDetail":
     "티어 목록을 게시하기 전에 싸움꾼당 최소 {minimum} 선택이 필요합니다. 계속해서 플레이어를 찾으세요. 전투 로그가 이 지도에 자동으로 제공됩니다.",
   "maps.confidence":
@@ -2564,10 +2549,8 @@ const koBase: Record<BaseTranslationKey, string> = {
   "maps.winRateText": "{rate} 승률",
   "maps.games": "{count} 게임",
   "maps.medianAvg": "중앙값 · 평균 {average}",
-  "mode.eyebrow": "게임 모드",
   "mode.loading": "지도 로드 중…",
   "mode.noMaps": "이 모드에는 지도가 없습니다.",
-  "leaderboard.eyebrow": "공식 순위",
   "leaderboard.title": "리더보드",
   "leaderboard.loadFailed": "순위를 로드하지 못했습니다.",
   "leaderboard.loadingPlayers": "플레이어 로드 중…",
@@ -2577,7 +2560,6 @@ const koBase: Record<BaseTranslationKey, string> = {
   "leaderboard.empty": "사용 가능한 순위가 없습니다.",
   "leaderboard.description":
     "Brawl Stars API의 현재 시즌 선수, 클럽 및 브롤러별 순위.",
-  "assistant.eyebrow": "맞춤형 전략",
   "assistant.title": "드래프트 랩",
   "assistant.shareText": "이 Brawl Stars 초안 및 지도 설정을 사용해 보세요.",
   "assistant.playerTag": "소유한 싸움꾼 추천을 위한 플레이어 태그",
@@ -2622,7 +2604,6 @@ const koBase: Record<BaseTranslationKey, string> = {
   "assistant.newTeam": "새로운 팀",
   "assistant.counter": "{score} 카운터",
   "assistant.matchupPending": "대결 대기 중",
-  "settings.eyebrow": "개인 동반자",
   "settings.languageDetail": "탐색 및 도우미 도구는 7개 언어를 지원합니다.",
   "settings.notificationsUnsupported":
     "이 브라우저는 알림을 지원하지 않습니다.",
@@ -2632,16 +2613,16 @@ const koBase: Record<BaseTranslationKey, string> = {
   "settings.imported": "환경설정을 가져왔습니다.",
   "settings.invalidFile": "해당 기본 설정 파일이 잘못되었습니다.",
   "settings.alertDetail":
-    "BrawlStats가 활성화된 동안 실시간 이벤트 순환이 변경되면 브라우저 알림을 받습니다.",
+    "StatsConnect Brawl Stars가 활성화된 동안 실시간 이벤트 순환이 변경되면 브라우저 알림을 받습니다.",
   "settings.disableAlerts": "경고 비활성화",
   "settings.enableAlerts": "알림 활성화",
   "settings.installDetail":
-    "독립 실행형 창, 오프라인 셸 및 더 빠른 재방문을 위해 BrawlStats를 설치하세요.",
-  "settings.installApp": "BrawlStats 설치",
+    "독립 실행형 창, 오프라인 셸 및 더 빠른 재방문을 위해 StatsConnect Brawl Stars를 설치하세요.",
+  "settings.installApp": "StatsConnect Brawl Stars 설치",
   "settings.installed": "이미 설치되었거나 사용할 수 없음",
   "settings.profileSwitcher": "프로필 전환기",
   "settings.recent": "최근 본",
-  "settings.shareTitle": "BrawlStats 공유",
+  "settings.shareTitle": "StatsConnect Brawl Stars 공유",
   "settings.shareDetail": "실시간 지도, 프로필, Draft Lab을 팀에 보내세요.",
   "settings.shareText": "라이브 브롤스타즈 통계 및 추천 초안",
   "settings.deviceDetail":
@@ -2652,34 +2633,37 @@ const koBase: Record<BaseTranslationKey, string> = {
   "alerts.changed": "브롤스타즈 로테이션이 변경되었습니다.",
   "alerts.newEvent": "새로운 이벤트",
   "alerts.newActive": "새로운 지도와 모드가 활성화되었습니다.",
-  "player.cardTitle": "BRAWLSTATS 플레이어 카드",
+  "player.cardTitle": "STATSCONNECT BRAWL STARS 플레이어 카드",
   "player.cardTracking": "추적 중",
   "player.cardBest": "최고 트로피",
-  "player.cardFooter": "brawlstats · 전망적 전투 분석",
+  "player.cardFooter": "StatsConnect · 전망적 Brawl Stars 전투 분석",
   "profile.save": "프로필 저장",
+  "profile.track": "프로필 추적",
+  "profile.tracked": "추적 중",
+  "profile.tracking": "추적 중…",
+  "profile.signInToTrack": "추적하려면 로그인하세요",
+  "profile.trackError": "추적을 업데이트하지 못했습니다. 다시 시도하세요.",
   "profile.linkCopied": "링크 복사됨",
   "profile.shared": "공유됨",
   "profile.notShared": "공유되지 않음",
   "profile.shareText": "{name} (#{tag}) · {trophies} 트로피",
   "footer.description":
-    "팬이 만든 브롤스타즈 통계입니다. 맵 메타는 BrawlStats가 수집한 공식 전투 기록에서 집계되며 Brawlify 또는 Supercell과 관련이 없습니다.",
+    "팬이 만든 브롤스타즈 통계입니다. 맵 메타는 StatsConnect가 수집한 공식 전투 기록에서 집계되며 Brawlify 또는 Supercell과 관련이 없습니다.",
   "footer.legal":
     "Supercell과 제휴, 보증, 후원 또는 특별 승인을 받지 않았습니다. {policy}을 확인하세요.",
   "footer.policy": "Supercell 팬 콘텐츠 정책",
 };
 
 const featureEnglish = {
-  "error.eyebrow": "BrawlStats recovery",
   "error.title": "We hit a snag",
   "error.description":
     "This page could not be displayed. Your saved profiles and settings are safe.",
   "error.retry": "Try again",
-  "error.home": "Return to BrawlStats",
+  "error.home": "Return to StatsConnect Brawl Stars",
   "error.reference": "Error reference: {reference}",
   "error.details": "Technical details",
   "nav.meta": "Meta",
   "nav.progression": "Progression",
-  "brawlers.eyebrow": "Live catalog and observed meta",
   "brawlers.title": "Brawler directory",
   "brawlers.description":
     "Explore every released brawler, their complete catalog loadout, and first-party performance from sampled official battle logs.",
@@ -2699,8 +2683,7 @@ const featureEnglish = {
   "brawlers.earlySample": "Early sample",
   "brawlers.picks": "{count} picks",
   "brawlers.noMatches": "No brawlers match these filters",
-  "meta.eyebrow": "Meta research lab",
-  "meta.title": "Interrogate the live BrawlStats dataset",
+  "meta.title": "Interrogate the live StatsConnect Brawl Stars dataset",
   "meta.description":
     "Change the date window, metric, grouping, trophy range, and confidence floor. Compare with the preceding period or another trophy bracket, share the exact query, or export CSV.",
   "meta.winRate": "Win rate",
@@ -2848,7 +2831,7 @@ const featureEnglish = {
     "All-tracked mode has no equally sized preceding period.",
   "brawler.balanceHistory": "Balance history",
   "brawler.balanceHistoryDetail":
-    "The catalog identifies revision {version}, but does not include dated balance changes. BrawlStats does not invent a patch timeline.",
+    "The catalog identifies revision {version}, but does not include dated balance changes. StatsConnect does not invent a patch timeline.",
   "brawler.evidenceLimitation": "Evidence limitation",
   "brawler.buildLimitation":
     "Build choices are absent from official battle logs, so build win rates are not inferred.",
@@ -2865,7 +2848,6 @@ const featureEnglish = {
   "brawler.notEnoughMaps": "Not enough map samples yet",
   "brawler.noPriorSamples": "No prior samples",
   "brawler.headSamples": "{count} head-to-head samples",
-  "progression.eyebrow": "Account progression planner",
   "progression.title": "Plan the shortest path to a stronger roster",
   "progression.description":
     "Enter a player tag to estimate remaining Power Points and coins, measure collection completion, and prioritize upgrades using observed live-map performance.",
@@ -2920,17 +2902,15 @@ const featureEnglish = {
 type FeatureTranslationKey = keyof typeof featureEnglish;
 
 const esFeature: Record<FeatureTranslationKey, string> = {
-  "error.eyebrow": "Recuperación de BrawlStats",
   "error.title": "Algo salió mal",
   "error.description":
     "No se pudo mostrar esta página. Tus perfiles guardados y ajustes están seguros.",
   "error.retry": "Intentar de nuevo",
-  "error.home": "Volver a BrawlStats",
+  "error.home": "Volver a StatsConnect Brawl Stars",
   "error.reference": "Referencia del error: {reference}",
   "error.details": "Detalles técnicos",
   "nav.meta": "Meta",
   "nav.progression": "Progreso",
-  "brawlers.eyebrow": "Catálogo en vivo y meta observado",
   "brawlers.title": "Directorio de brawlers",
   "brawlers.description":
     "Explora cada brawler publicado, su equipamiento completo y el rendimiento propio calculado con registros de batalla oficiales.",
@@ -2950,8 +2930,7 @@ const esFeature: Record<FeatureTranslationKey, string> = {
   "brawlers.earlySample": "Muestra inicial",
   "brawlers.picks": "{count} selecciones",
   "brawlers.noMatches": "Ningún brawler coincide con estos filtros",
-  "meta.eyebrow": "Laboratorio de investigación del meta",
-  "meta.title": "Analiza el conjunto de datos en vivo de BrawlStats",
+  "meta.title": "Analiza el conjunto de datos en vivo de StatsConnect Brawl Stars",
   "meta.description":
     "Cambia el período, la métrica, la agrupación, el rango de trofeos y el mínimo de confianza. Compara períodos o rangos, comparte la consulta o exporta CSV.",
   "meta.winRate": "Tasa de victoria",
@@ -3101,7 +3080,7 @@ const esFeature: Record<FeatureTranslationKey, string> = {
     "El modo de todo el historial no tiene un período anterior equivalente.",
   "brawler.balanceHistory": "Historial de equilibrio",
   "brawler.balanceHistoryDetail":
-    "El catálogo identifica la revisión {version}, pero no incluye cambios fechados. BrawlStats no inventa una cronología.",
+    "El catálogo identifica la revisión {version}, pero no incluye cambios fechados. StatsConnect no inventa una cronología.",
   "brawler.evidenceLimitation": "Limitación de evidencia",
   "brawler.buildLimitation":
     "Los registros oficiales no incluyen configuraciones, por lo que no se infieren tasas.",
@@ -3118,7 +3097,6 @@ const esFeature: Record<FeatureTranslationKey, string> = {
   "brawler.notEnoughMaps": "Aún no hay suficientes muestras de mapas",
   "brawler.noPriorSamples": "Sin muestras anteriores",
   "brawler.headSamples": "{count} muestras directas",
-  "progression.eyebrow": "Planificador de progreso",
   "progression.title":
     "Planifica la ruta más corta hacia una plantilla más fuerte",
   "progression.description":
@@ -3172,17 +3150,15 @@ const esFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const deFeature: Record<FeatureTranslationKey, string> = {
-  "error.eyebrow": "BrawlStats-Wiederherstellung",
   "error.title": "Etwas ist schiefgelaufen",
   "error.description":
     "Diese Seite konnte nicht angezeigt werden. Deine gespeicherten Profile und Einstellungen sind sicher.",
   "error.retry": "Erneut versuchen",
-  "error.home": "Zurück zu BrawlStats",
+  "error.home": "Zurück zu StatsConnect Brawl Stars",
   "error.reference": "Fehlerreferenz: {reference}",
   "error.details": "Technische Details",
   "nav.meta": "Meta",
   "nav.progression": "Fortschritt",
-  "brawlers.eyebrow": "Live-Katalog und beobachtete Meta",
   "brawlers.title": "Brawler-Verzeichnis",
   "brawlers.description":
     "Entdecke alle veröffentlichten Brawler, ihre vollständige Katalogausrüstung und eigene Leistungsdaten aus offiziellen Kampfprotokollen.",
@@ -3202,8 +3178,7 @@ const deFeature: Record<FeatureTranslationKey, string> = {
   "brawlers.earlySample": "Frühe Stichprobe",
   "brawlers.picks": "{count} Picks",
   "brawlers.noMatches": "Keine Brawler entsprechen diesen Filtern",
-  "meta.eyebrow": "Meta-Forschungslabor",
-  "meta.title": "Untersuche den Live-Datensatz von BrawlStats",
+  "meta.title": "Untersuche den Live-Datensatz von StatsConnect Brawl Stars",
   "meta.description":
     "Ändere Zeitraum, Metrik, Gruppierung, Trophäenbereich und Mindestkonfidenz. Vergleiche Zeiträume oder Bereiche, teile die Abfrage oder exportiere CSV.",
   "meta.winRate": "Siegrate",
@@ -3353,7 +3328,7 @@ const deFeature: Record<FeatureTranslationKey, string> = {
     "Für den Gesamtverlauf gibt es keinen gleich langen Vorzeitraum.",
   "brawler.balanceHistory": "Balance-Verlauf",
   "brawler.balanceHistoryDetail":
-    "Der Katalog nennt Revision {version}, enthält aber keine datierten Balance-Änderungen. BrawlStats erfindet keine Patch-Zeitleiste.",
+    "Der Katalog nennt Revision {version}, enthält aber keine datierten Balance-Änderungen. StatsConnect erfindet keine Patch-Zeitleiste.",
   "brawler.evidenceLimitation": "Evidenzgrenze",
   "brawler.buildLimitation":
     "Build-Auswahl fehlt in offiziellen Protokollen; Build-Siegraten werden nicht abgeleitet.",
@@ -3370,7 +3345,6 @@ const deFeature: Record<FeatureTranslationKey, string> = {
   "brawler.notEnoughMaps": "Noch nicht genug Kartenstichproben",
   "brawler.noPriorSamples": "Keine früheren Stichproben",
   "brawler.headSamples": "{count} direkte Stichproben",
-  "progression.eyebrow": "Fortschrittsplaner",
   "progression.title": "Plane den kürzesten Weg zu einem stärkeren Kader",
   "progression.description":
     "Gib ein Spieler-Tag ein, um fehlende Powerpunkte und Münzen zu schätzen, den Sammlungsstand zu messen und Upgrades nach beobachteter Leistung zu priorisieren.",
@@ -3423,17 +3397,15 @@ const deFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const frFeature: Record<FeatureTranslationKey, string> = {
-  "error.eyebrow": "Récupération de BrawlStats",
   "error.title": "Un problème est survenu",
   "error.description":
     "Cette page n’a pas pu être affichée. Vos profils enregistrés et vos réglages sont en sécurité.",
   "error.retry": "Réessayer",
-  "error.home": "Retourner à BrawlStats",
+  "error.home": "Retourner à StatsConnect Brawl Stars",
   "error.reference": "Référence de l’erreur : {reference}",
   "error.details": "Détails techniques",
   "nav.meta": "Méta",
   "nav.progression": "Progression",
-  "brawlers.eyebrow": "Catalogue en direct et méta observée",
   "brawlers.title": "Répertoire des brawlers",
   "brawlers.description":
     "Explorez chaque brawler publié, son équipement complet et les performances calculées à partir des journaux de combat officiels.",
@@ -3453,8 +3425,7 @@ const frFeature: Record<FeatureTranslationKey, string> = {
   "brawlers.earlySample": "Échantillon précoce",
   "brawlers.picks": "{count} choix",
   "brawlers.noMatches": "Aucun brawler ne correspond à ces filtres",
-  "meta.eyebrow": "Laboratoire de recherche méta",
-  "meta.title": "Interrogez les données en direct de BrawlStats",
+  "meta.title": "Interrogez les données en direct de StatsConnect Brawl Stars",
   "meta.description":
     "Modifiez la période, la mesure, le regroupement, la tranche de trophées et le seuil de confiance. Comparez des périodes ou tranches, partagez la requête ou exportez en CSV.",
   "meta.winRate": "Taux de victoire",
@@ -3606,7 +3577,7 @@ const frFeature: Record<FeatureTranslationKey, string> = {
     "Le mode de suivi complet n'a pas de période précédente équivalente.",
   "brawler.balanceHistory": "Historique d'équilibrage",
   "brawler.balanceHistoryDetail":
-    "Le catalogue indique la révision {version}, mais pas les changements datés. BrawlStats n'invente pas de chronologie.",
+    "Le catalogue indique la révision {version}, mais pas les changements datés. StatsConnect n'invente pas de chronologie.",
   "brawler.evidenceLimitation": "Limite des preuves",
   "brawler.buildLimitation":
     "Les choix de build sont absents des journaux officiels ; aucun taux n'est déduit.",
@@ -3623,7 +3594,6 @@ const frFeature: Record<FeatureTranslationKey, string> = {
   "brawler.notEnoughMaps": "Pas encore assez d'échantillons de cartes",
   "brawler.noPriorSamples": "Aucun échantillon antérieur",
   "brawler.headSamples": "{count} échantillons directs",
-  "progression.eyebrow": "Planificateur de progression",
   "progression.title":
     "Planifiez le chemin le plus court vers un effectif plus fort",
   "progression.description":
@@ -3679,17 +3649,15 @@ const frFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const ptFeature: Record<FeatureTranslationKey, string> = {
-  "error.eyebrow": "Recuperação do BrawlStats",
   "error.title": "Algo deu errado",
   "error.description":
     "Não foi possível exibir esta página. Seus perfis salvos e configurações estão seguros.",
   "error.retry": "Tentar novamente",
-  "error.home": "Voltar ao BrawlStats",
+  "error.home": "Voltar ao StatsConnect Brawl Stars",
   "error.reference": "Referência do erro: {reference}",
   "error.details": "Detalhes técnicos",
   "nav.meta": "Meta",
   "nav.progression": "Progressão",
-  "brawlers.eyebrow": "Catálogo ao vivo e meta observado",
   "brawlers.title": "Diretório de brawlers",
   "brawlers.description":
     "Explore cada brawler lançado, seu conjunto completo e o desempenho próprio calculado com registros oficiais de batalha.",
@@ -3709,8 +3677,7 @@ const ptFeature: Record<FeatureTranslationKey, string> = {
   "brawlers.earlySample": "Amostra inicial",
   "brawlers.picks": "{count} escolhas",
   "brawlers.noMatches": "Nenhum brawler corresponde aos filtros",
-  "meta.eyebrow": "Laboratório de pesquisa do meta",
-  "meta.title": "Analise os dados ao vivo do BrawlStats",
+  "meta.title": "Analise os dados ao vivo do StatsConnect Brawl Stars",
   "meta.description":
     "Altere período, métrica, agrupamento, faixa de troféus e piso de confiança. Compare períodos ou faixas, compartilhe a consulta ou exporte CSV.",
   "meta.winRate": "Taxa de vitória",
@@ -3858,7 +3825,7 @@ const ptFeature: Record<FeatureTranslationKey, string> = {
     "O modo de todo o histórico não tem período anterior equivalente.",
   "brawler.balanceHistory": "Histórico de balanceamento",
   "brawler.balanceHistoryDetail":
-    "O catálogo identifica a revisão {version}, mas não inclui mudanças datadas. O BrawlStats não inventa uma linha do tempo.",
+    "O catálogo identifica a revisão {version}, mas não inclui mudanças datadas. O StatsConnect não inventa uma linha do tempo.",
   "brawler.evidenceLimitation": "Limite de evidência",
   "brawler.buildLimitation":
     "Escolhas de build não aparecem nos registros oficiais; taxas não são inferidas.",
@@ -3875,7 +3842,6 @@ const ptFeature: Record<FeatureTranslationKey, string> = {
   "brawler.notEnoughMaps": "Ainda não há amostras de mapas suficientes",
   "brawler.noPriorSamples": "Sem amostras anteriores",
   "brawler.headSamples": "{count} amostras diretas",
-  "progression.eyebrow": "Planejador de progressão",
   "progression.title": "Planeje o caminho mais curto para um elenco mais forte",
   "progression.description":
     "Digite uma tag para estimar pontos de poder e moedas restantes, medir a coleção e priorizar melhorias pelo desempenho observado.",
@@ -3928,17 +3894,15 @@ const ptFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const jaFeature: Record<FeatureTranslationKey, string> = {
-  "error.eyebrow": "BrawlStats リカバリー",
   "error.title": "問題が発生しました",
   "error.description":
     "このページを表示できませんでした。保存済みプロフィールと設定は安全です。",
   "error.retry": "もう一度試す",
-  "error.home": "BrawlStats に戻る",
+  "error.home": "StatsConnect Brawl Stars に戻る",
   "error.reference": "エラー参照: {reference}",
   "error.details": "技術的な詳細",
   "nav.meta": "メタ",
   "nav.progression": "進行状況",
-  "brawlers.eyebrow": "ライブカタログと観測メタ",
   "brawlers.title": "ブロウラー一覧",
   "brawlers.description":
     "公開済みブロウラー、完全なカタログ装備、公式バトルログから集計した独自の成績を確認できます。",
@@ -3958,8 +3922,7 @@ const jaFeature: Record<FeatureTranslationKey, string> = {
   "brawlers.earlySample": "初期サンプル",
   "brawlers.picks": "{count} ピック",
   "brawlers.noMatches": "条件に一致するブロウラーはいません",
-  "meta.eyebrow": "メタ研究ラボ",
-  "meta.title": "BrawlStats のライブデータを分析",
+  "meta.title": "StatsConnect Brawl Stars のライブデータを分析",
   "meta.description":
     "期間、指標、グループ、トロフィー帯、信頼度の下限を変更できます。前期間や別の帯と比較し、クエリ共有やCSV出力もできます。",
   "meta.winRate": "勝率",
@@ -4103,7 +4066,7 @@ const jaFeature: Record<FeatureTranslationKey, string> = {
   "brawler.noPreviousPeriod": "全追跡モードには同じ長さの前期間がありません。",
   "brawler.balanceHistory": "バランス調整履歴",
   "brawler.balanceHistoryDetail":
-    "カタログ改訂は {version} ですが、日付付き調整内容はありません。BrawlStatsは架空の更新履歴を作りません。",
+    "カタログ改訂は {version} ですが、日付付き調整内容はありません。StatsConnectは架空の更新履歴を作りません。",
   "brawler.evidenceLimitation": "データ上の制限",
   "brawler.buildLimitation":
     "公式ログにビルド選択がないため、ビルド勝率は推定しません。",
@@ -4120,7 +4083,6 @@ const jaFeature: Record<FeatureTranslationKey, string> = {
   "brawler.notEnoughMaps": "マップサンプルが不足しています",
   "brawler.noPriorSamples": "前期間のサンプルなし",
   "brawler.headSamples": "直接対戦 {count} 件",
-  "progression.eyebrow": "アカウント進行プランナー",
   "progression.title": "より強い編成への最短ルートを計画",
   "progression.description":
     "プレイヤータグを入力し、残りのパワーポイントとコイン、収集率、観測成績に基づく強化優先度を確認します。",
@@ -4174,17 +4136,15 @@ const jaFeature: Record<FeatureTranslationKey, string> = {
 };
 
 const koFeature: Record<FeatureTranslationKey, string> = {
-  "error.eyebrow": "BrawlStats 복구",
   "error.title": "문제가 발생했습니다",
   "error.description":
     "이 페이지를 표시할 수 없습니다. 저장된 프로필과 설정은 안전합니다.",
   "error.retry": "다시 시도",
-  "error.home": "BrawlStats로 돌아가기",
+  "error.home": "StatsConnect Brawl Stars로 돌아가기",
   "error.reference": "오류 참조: {reference}",
   "error.details": "기술 세부정보",
   "nav.meta": "메타",
   "nav.progression": "진행도",
-  "brawlers.eyebrow": "실시간 카탈로그와 관측 메타",
   "brawlers.title": "브롤러 목록",
   "brawlers.description":
     "출시된 모든 브롤러, 전체 카탈로그 장비, 공식 전투 로그에서 집계한 자체 성능을 확인하세요.",
@@ -4203,8 +4163,7 @@ const koFeature: Record<FeatureTranslationKey, string> = {
   "brawlers.earlySample": "초기 표본",
   "brawlers.picks": "{count}픽",
   "brawlers.noMatches": "필터와 일치하는 브롤러가 없습니다",
-  "meta.eyebrow": "메타 연구실",
-  "meta.title": "BrawlStats 실시간 데이터 분석",
+  "meta.title": "StatsConnect Brawl Stars 실시간 데이터 분석",
   "meta.description":
     "기간, 지표, 그룹, 트로피 구간, 신뢰도 하한을 바꾸세요. 이전 기간이나 다른 구간과 비교하고 링크 공유 또는 CSV 내보내기가 가능합니다.",
   "meta.winRate": "승률",
@@ -4350,7 +4309,7 @@ const koFeature: Record<FeatureTranslationKey, string> = {
     "전체 추적 모드에는 동일 길이의 이전 기간이 없습니다.",
   "brawler.balanceHistory": "밸런스 기록",
   "brawler.balanceHistoryDetail":
-    "카탈로그 개정은 {version}이지만 날짜별 밸런스 변경은 없습니다. BrawlStats는 패치 기록을 만들지 않습니다.",
+    "카탈로그 개정은 {version}이지만 날짜별 밸런스 변경은 없습니다. StatsConnect는 패치 기록을 만들지 않습니다.",
   "brawler.evidenceLimitation": "근거 제한",
   "brawler.buildLimitation":
     "공식 로그에 빌드 선택이 없어 빌드 승률을 추정하지 않습니다.",
@@ -4367,7 +4326,6 @@ const koFeature: Record<FeatureTranslationKey, string> = {
   "brawler.notEnoughMaps": "맵 표본이 아직 부족합니다",
   "brawler.noPriorSamples": "이전 표본 없음",
   "brawler.headSamples": "맞대결 표본 {count}개",
-  "progression.eyebrow": "계정 진행 플래너",
   "progression.title": "더 강한 로스터를 위한 최단 경로 계획",
   "progression.description":
     "플레이어 태그를 입력해 남은 파워 포인트와 코인, 수집 완성도, 관측 성능 기반 강화 우선순위를 확인하세요.",

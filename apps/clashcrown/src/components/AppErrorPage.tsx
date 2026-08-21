@@ -28,7 +28,7 @@ type ErrorPanelProps = {
 const fallbackCopy: ErrorCopy = {
   description: "This page could not be displayed. Your saved profiles and settings are safe.",
   details: "Technical details",
-  home: "Return to Royale Stats",
+  home: "Return to StatsConnect Clash Royale",
   reference: "Error reference: {reference}",
   retry: "Try again",
   title: "We hit a snag",

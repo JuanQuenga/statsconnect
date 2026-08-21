@@ -8,13 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageStatus } from "@/components/ui-helpers";
 import { fetchPipelineStatus, type PipelineStatus } from "@/lib/pipeline";
 
-const hubOrigin = (import.meta.env.VITE_STATSCONNECT_ORIGIN || "https://statsconnect.com").replace(/\/$/, "");
+const hubOrigin = (import.meta.env.VITE_STATSCONNECT_ORIGIN || "https://stats.juanquenga.com").replace(/\/$/, "");
 
 export const Route = createFileRoute("/beta")({
   component: PipelineBetaPage,
   head: () => ({
     meta: [
-      { title: "Data Pipeline Beta · BrawlStats.io" },
+      { title: "Data Pipeline Beta · StatsConnect Brawl Stars" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -50,10 +50,9 @@ function PipelineBetaPage() {
                     : "Awaiting first run"}
               </Badge>
             </div>
-            <p className="eyebrow">First-party data pipeline</p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl">Crawler control room</h1>
             <p className="mt-3 max-w-2xl text-muted-foreground">
-              Live coverage and run telemetry for the battle-log crawler behind BrawlStats map and team insights.
+              Live coverage and run telemetry for the battle-log crawler behind StatsConnect Brawl Stars map and team insights.
               Rankings and club rosters expand the durable crawl queue; one-time player lookups stay cache-only.
             </p>
           </div>

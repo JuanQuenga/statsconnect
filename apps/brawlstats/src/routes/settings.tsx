@@ -21,7 +21,7 @@ import { downloadText, shareContent } from "@/lib/share";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
-  head: () => ({ meta: [{ title: "Companion Settings · BrawlStats.io" }] }),
+  head: () => ({ meta: [{ title: "Companion Settings · StatsConnect Brawl Stars" }] }),
 });
 
 function SettingsPage() {
@@ -56,7 +56,6 @@ function SettingsPage() {
   return (
     <div className="page-shell">
       <div className="page-intro">
-        <p className="eyebrow">{t("settings.eyebrow")}</p>
         <h1 className="font-display text-4xl">{t("nav.settings")}</h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
           {t("settings.deviceDetail")}
@@ -100,11 +99,10 @@ function SettingsPage() {
       <section>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="eyebrow">{t("settings.profileSwitcher")}</p>
             <h2 className="font-display text-3xl">{t("nav.savedProfiles")}</h2>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => downloadText("brawlstats-preferences.json", exportPreferences(), "application/json")}>
+              <Button variant="outline" onClick={() => downloadText("statsconnect-brawl-stars-preferences.json", exportPreferences(), "application/json")}>
               <Download /> {t("settings.export")}
             </Button>
             <input ref={importRef} type="file" accept="application/json" className="hidden" onChange={(event) => importFile(event.target.files?.[0])} />
@@ -147,7 +145,7 @@ function SettingsPage() {
           <h2 className="font-display text-2xl">{t("settings.shareTitle")}</h2>
           <p className="text-sm text-muted-foreground">{t("settings.shareDetail")}</p>
         </div>
-        <Button variant="outline" onClick={() => shareContent({ title: "BrawlStats.io", text: t("settings.shareText"), url: window.location.origin })}>
+              <Button variant="outline" onClick={() => shareContent({ title: "StatsConnect · Brawl Stars statistics", text: t("settings.shareText"), url: window.location.origin })}>
           <Share2 /> {t("common.share")}
         </Button>
       </Card>

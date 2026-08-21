@@ -73,13 +73,13 @@ function LeaderboardHistory() {
   return (
     <Layout>
       <Head>
-        <title>History | Royale Stats</title>
-        <meta name="description" content="Timestamped Royale Stats leaderboard observations and historical rank comparisons." />
+        <title>History | StatsConnect · Clash Royale statistics</title>
+        <meta name="description" content="Timestamped StatsConnect Clash Royale leaderboard observations and historical rank comparisons." />
       </Head>
       <div className="profile-page history-page">
         <section className="decks-hero history-hero">
           <h1>Leaderboard History</h1>
-          <p>Browse API boards Royale Stats has actually captured and compare two observations. No ranks are reconstructed between timestamps.</p>
+          <p>Browse API boards StatsConnect has actually captured and compare two observations. No ranks are reconstructed between timestamps.</p>
           <Link className="history-back-link" href="/leaderboards">View live leaderboards</Link>
         </section>
 

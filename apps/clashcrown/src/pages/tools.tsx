@@ -31,9 +31,9 @@ export default function ToolsPage() {
   return (
     <Layout>
       <Head>
-        <title>{t("tools.title")} | Royale Stats</title>
+        <title>{t("tools.title")} | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content={t("tools.description")} />
-        <meta property="og:title" content={`${t("tools.title")} | Royale Stats`} />
+        <meta property="og:title" content={`${t("tools.title")} | StatsConnect · Clash Royale statistics`} />
         <meta property="og:description" content={t("tools.description")} />
         <link rel="canonical" href="/tools" />
       </Head>

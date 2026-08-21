@@ -1,4 +1,4 @@
-# BrawlStats.io Modernization Plan
+# Brawl Stars Experience Modernization Plan
 
 ## Status
 
@@ -31,4 +31,4 @@ Implemented (2026-08): React SPA + shadcn Base UI + maps meta pipeline.
 
 ## Visual direction
 
-Keep the BrawlStats.io brand (logo, name, competitive gold/teal-on-navy identity) while using the modern component system — not a generic purple dashboard clone.
+The former BrawlStats.io branding clause is superseded by [ADR-0002](../../docs/adr/0002-unify-production-delivery-and-backend.md): this is now the StatsConnect Brawl Stars experience. Preserve the competitive gold/teal-on-navy identity and game-specific visual system while using the modern component system — not a generic purple dashboard clone.

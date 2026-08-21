@@ -29,7 +29,7 @@ export const Route = createFileRoute("/assistant")({
     bucket: typeof search.bucket === "string" ? search.bucket : undefined,
   }),
   component: AssistantPage,
-  head: () => ({ meta: [{ title: "Draft Lab · BrawlStats.io" }] }),
+  head: () => ({ meta: [{ title: "Draft Lab · StatsConnect Brawl Stars" }] }),
 });
 
 function AssistantPage() {
@@ -66,7 +66,6 @@ function AssistantPage() {
     <div className="page-shell">
       <div className="page-intro grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
-          <p className="eyebrow">{t("assistant.eyebrow")}</p>
           <h1 className="font-display text-4xl md:text-5xl">{t("assistant.title")}</h1>
           <p className="mt-2 max-w-3xl text-muted-foreground">
             {t("assistant.description")}
@@ -74,7 +73,7 @@ function AssistantPage() {
         </div>
         <Button
           variant="outline"
-          onClick={() => shareContent({ title: `BrawlStats ${t("assistant.title")}`, text: t("assistant.shareText"), url: window.location.href })}
+          onClick={() => shareContent({ title: `StatsConnect Brawl Stars · ${t("assistant.title")}`, text: t("assistant.shareText"), url: window.location.href })}
         >
           <Share2 /> {t("assistant.shareSetup")}
         </Button>
@@ -324,7 +323,6 @@ function DraftAssistant({
         <div>
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
-              <p className="eyebrow">{t("assistant.liveRecommendation")}</p>
               <h2 className="font-display text-2xl">{t("assistant.bestRemaining")}</h2>
             </div>
             <p className="text-xs text-muted-foreground">{detailQuery.data?.sampleSize ? t("assistant.samples", { count: trophies(detailQuery.data.sampleSize) }) : ""}</p>

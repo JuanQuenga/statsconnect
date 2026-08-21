@@ -40,7 +40,7 @@ export function PlayerShareActions({ player, compact = false }: { player: Player
       if (action === "share" && nativeShare) {
         const file = new File([blob], filename, { type: "image/png" });
         await navigator.share({
-          title: `${player.name} · Royale Stats`,
+          title: `${player.name} · StatsConnect Clash Royale statistics`,
           text: `${player.name}'s Clash Royale profile and card collection`,
           files: [file]
         });

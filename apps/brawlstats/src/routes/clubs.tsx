@@ -128,7 +128,6 @@ function HistoryChart({ history }: { history: ClubHistoryResponse }) {
     <Card className="p-5">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="eyebrow">{t("club.prospective")}</p>
           <h3 className="font-display text-2xl">{t("club.trajectory")}</h3>
         </div>
         <div className="flex gap-4 text-xs text-muted-foreground">
@@ -156,7 +155,6 @@ function CommunityActivity({ data }: { data?: ClubCommunityResponse }) {
   return (
     <section>
       <div className="mb-4">
-        <p className="eyebrow">{t("club.community")}</p>
         <h2 className="font-display text-3xl">{t("club.recent")}</h2>
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -256,7 +254,6 @@ function ClubsPage() {
   return (
     <div className="page-shell">
       <div className="page-intro">
-        <p className="eyebrow">{t("club.intelligence")}</p>
         <h1 className="font-display text-4xl">{t("club.title")}</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t("club.description")}</p>
         <form onSubmit={onSearch} className="mt-4 flex max-w-lg gap-2">

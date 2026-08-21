@@ -1,6 +1,6 @@
-# BrawlStats.io
+# StatsConnect Brawl Stars Game Site
 
-Live Brawl Stars statistics include players, clubs, maps, events, and official rankings. The Game Site is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS v4, and shadcn/ui Base UI. Its server Implementation lives in the Platform Backend's `brawl` namespace at `packages/backend/convex`. Convex HTTP Actions keep the Supercell API token out of the browser.
+Live Brawl Stars statistics include players, clubs, maps, events, and official rankings. The Game Site is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS v4, and shadcn/ui Base UI. Its server implementation lives in the Platform Backend's `brawl` namespace at `packages/backend/convex`. Convex HTTP Actions keep the Supercell API token out of the browser. In unified production it is mounted at `https://stats.juanquenga.com/bs`.
 
 ## What Works
 
@@ -15,7 +15,7 @@ Live Brawl Stars statistics include players, clubs, maps, events, and official r
 - Meta research dashboard with grouping, trophy brackets, sample controls, comparison, shareable filters, and CSV export
 - First-party map meta (win rate / use rate) aggregated from official battle logs; history begins prospectively when observations are ingested
 - Typed localization across seven languages: English, Spanish, German, French, Portuguese, Japanese, and Korean
-- Durable battle-log crawler with queue/run telemetry at `/beta`
+- Durable battle-log crawler with queue/run telemetry at `/beta` (served as `/bs/beta` in unified production)
 - Current event rotation and brawler catalog artwork
 - Loading, empty, invalid-tag, missing-configuration, and upstream-error states
 
@@ -46,7 +46,7 @@ Create a key at [developer.brawlstars.com](https://developer.brawlstars.com), th
 pnpm --dir packages/backend exec convex env set BRAWL_STARS_API_TOKEN your-token
 ```
 
-The canonical `convex dev` process writes `VITE_CONVEX_URL` to `packages/backend/.env.local`. Copy that URL to the BrawlStats frontend environment. The frontend converts a `.convex.cloud` URL to the matching `.convex.site` HTTP Actions URL. Set `VITE_CONVEX_SITE_URL` only when you need to override that conversion. See [`.env.example`](./.env.example).
+The canonical `convex dev` process writes `VITE_CONVEX_URL` to `packages/backend/.env.local`. Copy that URL to the Brawl Stars frontend environment. The frontend converts a `.convex.cloud` URL to the matching `.convex.site` HTTP Actions URL. Set `VITE_CONVEX_SITE_URL` only when you need to override that conversion. See [`.env.example`](./.env.example).
 
 In another terminal:
 
@@ -73,9 +73,11 @@ pnpm --filter @statsconnect/backend dev    # Canonical Convex development deploy
 pnpm --filter brawlstats.io build          # Production frontend bundle
 ```
 
-The root unified release deploys the Platform Backend. BrawlStats has no backend deploy command.
+The root unified release deploys the Platform Backend. The Brawl Stars experience has no backend deploy command.
 
 ## Routes
+
+The routes below are app-relative. In unified production, prefix them with `/bs`.
 
 - `/`
 - `/players?tag=%23PLAYER_TAG`
@@ -94,7 +96,9 @@ The root unified release deploys the Platform Backend. BrawlStats has no backend
 
 ## StatsConnect hub
 
-The global Games switcher sends game changes through `{VITE_STATSCONNECT_ORIGIN}/launch/:game`. StatsConnect owns the connected tags and launches BrawlStats at `/players?tag=TAG`. Set `VITE_STATSCONNECT_ORIGIN` to the deployed hub origin; it defaults to `https://statsconnect.com`.
+The global Games switcher links directly to this experience at `{VITE_STATSCONNECT_ORIGIN}/bs/`, and saved profiles link to `/bs/players?tag=TAG`. Set `VITE_STATSCONNECT_ORIGIN` to the shared StatsConnect origin; it defaults to `https://stats.juanquenga.com`.
+
+Legacy `/brawlstars/*` URLs permanently redirect to the matching `/bs/*` URL.
 
 ## Map meta crawler
 
@@ -123,7 +127,7 @@ cache TTLs default to 900 and 120 seconds and can be changed with `BRAWL_PLAYER_
 
 Map detail UI hides tier lists until a brawler has enough picks (default 25).
 
-Player, club, matchup, and time-series history is prospective because the official API only returns a short current battle log and live profile/club state. BrawlStats labels sample sizes and coverage instead of presenting inferred history as complete. The public metadata catalog also does not currently provide trustworthy ownership/pricing data for every Hypercharge, Buffie, skin, pin, or special gear, so unsupported economy claims remain explicitly excluded.
+Player, club, matchup, and time-series history is prospective because the official API only returns a short current battle log and live profile/club state. The Brawl Stars experience labels sample sizes and coverage instead of presenting inferred history as complete. The public metadata catalog also does not currently provide trustworthy ownership/pricing data for every Hypercharge, Buffie, skin, pin, or special gear, so unsupported economy claims remain explicitly excluded.
 
 Credit BrawlAPI/Brawlify CDN for static artwork and map metadata only.
 

@@ -25,7 +25,6 @@ function GameModePage() {
   return (
     <div className="page-shell">
       <div className="page-intro">
-        <p className="eyebrow">{t("mode.eyebrow")}</p>
         <h1 className="font-display text-4xl">{modeName}</h1>
         <p className="mt-2 text-muted-foreground">{maps.length} maps in catalog</p>
       </div>

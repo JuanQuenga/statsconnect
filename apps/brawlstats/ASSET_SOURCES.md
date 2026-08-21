@@ -1,6 +1,6 @@
 # Asset Sources
 
-This site uses local brand assets plus current Brawl Stars assets served by Brawlify's CDN, and metadata from BrawlAPI.
+This site uses local game-specific assets plus current Brawl Stars assets served by Brawlify's CDN, and metadata from BrawlAPI. The assets retain their historical provenance while the public experience is now branded under StatsConnect.
 
 ## GitHub-backed CDN
 
@@ -27,13 +27,13 @@ Player, club, battle, event, and ranking statistics come from the official Brawl
 
 ## First-party map meta
 
-Win rate, use rate, and team composition aggregates are computed by BrawlStats from official battle logs stored in Convex. They are **not** Brawlify proprietary stats. Map detail responses join BrawlAPI map metadata with Convex `mapBrawlerStats`.
+Win rate, use rate, and team composition aggregates are computed by the Brawl Stars experience from official battle logs stored in Convex. They are **not** Brawlify proprietary stats. Map detail responses join BrawlAPI map metadata with Convex `mapBrawlerStats`.
 
 ## Local brand assets
 
 Site logo and recovered icons live under `public/assets/img/` (copied from `assets/img/`).
 
-The homepage arena background and character-group hero under `public/assets/generated/` were generated for BrawlStats.io with OpenAI image generation on 2026-08-10. The hero is fan art depicting the official Brawl Stars characters Colt, Shelly, and Spike.
+The homepage arena background and character-group hero under `public/assets/generated/` were originally generated for the former BrawlStats.io experience with OpenAI image generation on 2026-08-10. They remain Brawl Stars visual assets under StatsConnect; the hero is fan art depicting the official Brawl Stars characters Colt, Shelly, and Spike.
 
 ## Fan Content Notice
 

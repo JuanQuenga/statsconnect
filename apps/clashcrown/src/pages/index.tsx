@@ -181,7 +181,7 @@ function UnavailableHeroSpotlight() {
   return (
     <HeroSpotlightState
       title="Live card rankings are unavailable"
-      copy="Connect the Royale Stats data service to load current Path of Legends card performance."
+      copy="Connect the StatsConnect Clash Royale data service to load current Path of Legends card performance."
     />
   );
 }
@@ -431,7 +431,7 @@ function UnavailableMetaSection({ title, href = "/meta" }: { title: string; href
     <section className="home-data-state page-band">
       <div>
         <h2>{title}</h2>
-        <p>Royale Stats cannot load this live section until its data service is configured.</p>
+        <p>StatsConnect cannot load this live section until its Clash Royale data service is configured.</p>
       </div>
       <Link href={href} className="pink-button">Open details</Link>
     </section>

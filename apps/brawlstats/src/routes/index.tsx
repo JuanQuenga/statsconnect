@@ -22,7 +22,7 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
-    meta: [{ title: "BrawlStats.io" }],
+    meta: [{ title: "StatsConnect · Brawl Stars statistics" }],
   }),
 });
 
@@ -42,9 +42,8 @@ function HomePage() {
       <section className="brawl-hero border-b border-border">
         <div className="relative mx-auto grid min-h-[620px] max-w-7xl items-center gap-4 px-4 pt-12 md:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:pt-0">
           <div className="brawl-hero-copy relative z-10 self-center pb-4 lg:pb-16">
-            <p className="eyebrow">{t("home.eyebrow")}</p>
             <h1 className="mt-3 font-display text-5xl font-bold md:text-6xl">
-              BrawlStats<span className="text-primary">.io</span>
+              StatsConnect<span className="text-primary"> Brawl Stars</span>
             </h1>
             <p className="mt-4 max-w-xl text-lg text-muted-foreground">
               {t("home.description")}
@@ -82,7 +81,6 @@ function HomePage() {
 
         <section>
           <div className="mb-5">
-            <p className="eyebrow">{t("home.liveData")}</p>
             <h2 className="section-title">{t("home.newest")}</h2>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
@@ -113,7 +111,6 @@ function HomePage() {
           <div>
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <p className="eyebrow">{t("home.rotation")}</p>
                 <h2 className="section-title">{t("home.activeEvents")}</h2>
               </div>
               <Link to="/maps" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
@@ -149,7 +146,6 @@ function HomePage() {
 
           <div>
             <div className="mb-4">
-              <p className="eyebrow">{t("home.globalRankings")}</p>
               <h2 className="section-title">{t("home.topPlayers")}</h2>
             </div>
             <div className="data-surface overflow-hidden">

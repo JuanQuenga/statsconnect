@@ -1,6 +1,6 @@
-# ClashCrown Vite + TanStack Architecture
+# StatsConnect Clash Royale Vite + TanStack Architecture
 
-ClashCrown uses the same frontend stack as the other StatsConnect Game Site. Its server Implementation runs in the Platform Backend's `clash` namespace.
+The Clash Royale experience uses the same frontend stack as the other StatsConnect Game Site. Its server implementation runs in the Platform Backend's `clash` namespace.
 
 ## Runtime
 
@@ -34,10 +34,10 @@ The small adapters in `src/components/Link.tsx`, `src/components/Image.tsx`, `sr
 
 ## StatsConnect integration
 
-- The global Games switcher links to `{VITE_STATSCONNECT_ORIGIN}/launch/:game`.
-- StatsConnect resolves the user's connected tag and launches `/players/{tag}` on ClashCrown.
+- The global Games switcher links directly to `{VITE_STATSCONNECT_ORIGIN}/bs/` and `{VITE_STATSCONNECT_ORIGIN}/cr/`.
+- Saved StatsConnect profiles link directly to `/cr/players/{tag}` on the Clash Royale experience.
 - The root Vercel SPA rewrite covers direct dynamic routes.
-- `packages/auth` and the Platform Backend handle shared Google sign-in and saved-profile synchronization. ClashCrown authorizes its separate personalization Module with device capabilities. See [`personalization-identity-adapter.md`](./personalization-identity-adapter.md).
+- `packages/auth` and the Platform Backend handle shared Google sign-in and saved-profile synchronization. The Clash Royale experience authorizes its separate personalization Module with device capabilities. See [`personalization-identity-adapter.md`](./personalization-identity-adapter.md).
 
 ## Verification
 

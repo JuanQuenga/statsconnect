@@ -12,6 +12,7 @@ import { makeFunctionReference } from "convex/server";
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -29,6 +30,14 @@ import {
   type ConnectedProfilesSnapshot,
   type PersistedConnectedProfile,
 } from "./connected-profiles";
+import {
+  createProfileTrackingState,
+  requireProfileTrackingAuth,
+  ProfileTrackingAuthRequiredError,
+  StatsConnectAuthConfigurationError,
+  type ProfileTrackingInterface,
+  type ProfileTrackingState,
+} from "./profile-tracking";
 import { createSharedAuthStorage } from "./shared-auth-storage";
 
 export type StatsConnectAccount = {
@@ -53,6 +62,9 @@ export type StatsConnectAuthState = {
   profiles: readonly ConnectedProfile[];
   profilesStatus: ConnectedProfilesSnapshot["status"];
   profilesError: string | null;
+  profileTracking: ProfileTrackingState;
+  trackProfile: ProfileTrackingInterface["trackProfile"];
+  untrackProfile: ProfileTrackingInterface["untrackProfile"];
   plusOffer: StatsConnectPlusOffer | null;
   saveProfile: (profile: ConnectedProfile) => Promise<void>;
   removeProfile: (game: ConnectedProfileGame, tag: string) => Promise<void>;
@@ -95,10 +107,24 @@ const defaultState: StatsConnectAuthState = {
   profiles: [],
   profilesStatus: "guest",
   profilesError: null,
+  profileTracking: createProfileTrackingState({
+    status: "unauthenticated",
+    authenticated: false,
+    profiles: [],
+    error: null,
+  }),
+  trackProfile: async () => {
+    throw new ProfileTrackingAuthRequiredError();
+  },
+  untrackProfile: async () => {
+    throw new ProfileTrackingAuthRequiredError();
+  },
   plusOffer: null,
   saveProfile: async () => undefined,
   removeProfile: async () => undefined,
-  signInWithGoogle: async () => undefined,
+  signInWithGoogle: async () => {
+    throw new StatsConnectAuthConfigurationError();
+  },
   signOut: async () => undefined,
 };
 
@@ -173,8 +199,23 @@ function GuestProfiles({ children }: { children: ReactNode }) {
     profiles: profiles.snapshot.profiles,
     profilesStatus: profiles.snapshot.status,
     profilesError: profiles.snapshot.error,
+    profileTracking: createProfileTrackingState({
+      status: profiles.snapshot.status === "error" ? "error" : "unauthenticated",
+      authenticated: false,
+      profiles: [],
+      error: profiles.snapshot.error,
+    }),
+    trackProfile: async () => {
+      throw new ProfileTrackingAuthRequiredError();
+    },
+    untrackProfile: async () => {
+      throw new ProfileTrackingAuthRequiredError();
+    },
     saveProfile: profiles.module.save,
     removeProfile: profiles.module.remove,
+    signInWithGoogle: async () => {
+      throw new StatsConnectAuthConfigurationError();
+    },
     signOut: async () => profiles.module.signOut(),
   }), [profiles.module, profiles.snapshot]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -217,12 +258,42 @@ function ConfiguredAuth({
     void profiles.module.reconcileAccount(snapshot);
   }, [accountState, profiles.module]);
 
+  const trackProfile = useCallback(async (profile: ConnectedProfile) => {
+    requireProfileTrackingAuth(isAuthenticated);
+    await profiles.module.save(profile);
+  }, [isAuthenticated, profiles.module]);
+  const untrackProfile = useCallback(async (game: ConnectedProfileGame, tag: string) => {
+    requireProfileTrackingAuth(isAuthenticated);
+    await profiles.module.remove(game, tag);
+  }, [isAuthenticated, profiles.module]);
+  const accountReady = isAuthenticated && !isConvexAuthLoading && accountState !== undefined;
+  const accountTrackedProfiles = useMemo(
+    () => accountReady && accountState
+      ? accountState.profiles.map(({ game, tag, name }) => ({ game, tag, name }))
+      : [],
+    [accountReady, accountState],
+  );
+
   const value = useMemo<StatsConnectAuthState>(() => ({
     account: accountState?.user ?? null,
     isLoading: isConvexAuthLoading || (isAuthenticated && accountState === undefined),
     profiles: profiles.snapshot.profiles,
     profilesStatus: profiles.snapshot.status,
     profilesError: profiles.snapshot.error,
+    profileTracking: createProfileTrackingState({
+      status: isConvexAuthLoading || (isAuthenticated && accountState === undefined)
+        ? "loading"
+        : profiles.snapshot.status === "error"
+          ? "error"
+          : isAuthenticated
+            ? "ready"
+            : "unauthenticated",
+      authenticated: isAuthenticated,
+      profiles: accountTrackedProfiles,
+      error: profiles.snapshot.error,
+    }),
+    trackProfile,
+    untrackProfile,
     plusOffer: access?.offer ?? null,
     saveProfile: profiles.module.save,
     removeProfile: profiles.module.remove,
@@ -242,8 +313,11 @@ function ConfiguredAuth({
     authClient,
     isAuthenticated,
     isConvexAuthLoading,
+    accountTrackedProfiles,
     profiles.module,
     profiles.snapshot,
+    trackProfile,
+    untrackProfile,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -251,4 +325,13 @@ function ConfiguredAuth({
 
 export function useStatsConnectAuth(): StatsConnectAuthState {
   return useContext(AuthContext);
+}
+
+export function useStatsConnectProfileTracking(): ProfileTrackingInterface {
+  const auth = useStatsConnectAuth();
+  return {
+    ...auth.profileTracking,
+    trackProfile: auth.trackProfile,
+    untrackProfile: auth.untrackProfile,
+  };
 }

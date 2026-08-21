@@ -3,10 +3,16 @@
 One Vercel deployment serves the public application:
 
 - `/`: StatsConnect Hub
-- `/brawlstars/*`: BrawlStats
-- `/clashroyale/*`: ClashCrown
+- `/bs/*`: Brawl Stars experience
+- `/cr/*`: Clash Royale experience
 
-`scripts/production-delivery.ts` is the executable source of truth for the ordered app builds, route prefixes, output directories, and public origins. `pnpm build:unified` uses it to build the three isolated SPAs into the root `dist/` directory. The root `vercel.json` hosting Adapter provides the matching path fallbacks.
+`scripts/production-delivery.ts` is the executable source of truth for the ordered app builds, route prefixes, output directories, public origins, and generated application-shell manifest. `pnpm build:unified` builds three independently mountable applications into the root `dist/` directory. The root `vercel.json` hosting Adapter returns the persistent Hub document for product routes; the Hub runtime selects and mounts the experience that owns the requested path.
+
+The previous `/brawlstars/*` and `/clashroyale/*` URLs remain supported through permanent Vercel redirects to `/bs/*` and `/cr/*`. Redirects retain deep-link suffixes and query parameters, so existing profile, player, and beta links continue to resolve.
+
+If the legacy `brawlstats.juanquenga.com` or `clashcrown.juanquenga.com` hostnames remain attached to a Vercel project, configure domain-level permanent redirects to `https://stats.juanquenga.com/bs` and `https://stats.juanquenga.com/cr` respectively. Hostname redirects are an external domain setting; the root project route rules cover only path aliases on the canonical host.
+
+The shared Better Auth configuration continues to trust those two legacy origins temporarily so sessions can cross the redirect during rollout. Remove them after the external redirects and DNS migration are confirmed; `/bs` and `/cr` themselves are same-origin paths under `https://stats.juanquenga.com` and require no separate trusted origins.
 
 Vercel runs `pnpm build:vercel`. Production builds deploy the canonical Convex functions and inject the resulting `VITE_CONVEX_URL` while building all three frontends. Preview and development builds only build the frontends; they require a preview-scoped `VITE_CONVEX_URL` and never receive `CONVEX_DEPLOY_KEY`.
 
@@ -71,7 +77,7 @@ Do not import into an existing production deployment. Create a fresh target depl
 
 1. Export a current snapshot from each production deployment.
 2. Import `savedProfiles`, `connectThrottles`, and `profileCache` from the Hub snapshot as individual tables. Do not import the removed `connectedProfiles` or `viewerSettings` tables.
-3. Extract the BrawlStats and ClashCrown snapshot ZIP files into separate directories.
+3. Extract the legacy BrawlStats and ClashCrown snapshot ZIP files into separate directories.
 4. Prepare the game-owned tables:
 
    ```sh

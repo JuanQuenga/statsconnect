@@ -156,7 +156,7 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
 
   context.fillStyle = "#ee66ef";
   context.font = "700 18px ProximaNova, Inter, sans-serif";
-  context.fillText("CLASH CROWN · COLLECTION SNAPSHOT", 70, 62);
+  context.fillText("STATSCONNECT · CLASH ROYALE COLLECTION SNAPSHOT", 70, 62);
   context.fillStyle = "#ffffff";
   context.font = "700 54px ProximaNova, Inter, sans-serif";
   context.fillText(player.name, 70, 125, 760);
@@ -193,7 +193,7 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
   context.textAlign = "right";
   context.fillStyle = "#f8fbff";
   context.font = "700 17px ProximaNova, Inter, sans-serif";
-  context.fillText("clashcrown.juanquenga.com", 1130, 602);
+  context.fillText("stats.juanquenga.com/cr", 1130, 602);
   context.textAlign = "left";
 
   return canvasBlob(canvas);
@@ -201,5 +201,5 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
 
 export function playerShareFileName(player: Player): string {
   const name = player.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return `${name || player.tag.toLowerCase()}-clash-crown.png`;
+  return `${name || player.tag.toLowerCase()}-statsconnect-clash-royale.png`;
 }

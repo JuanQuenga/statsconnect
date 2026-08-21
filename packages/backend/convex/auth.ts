@@ -4,6 +4,7 @@ import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import authConfig from "./auth.config";
+import { authTrustedOrigins } from "./authOrigins";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -21,12 +22,7 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       },
     },
-    trustedOrigins: [
-      siteUrl,
-      "https://stats.juanquenga.com",
-      "https://brawlstats.juanquenga.com",
-      "https://clashcrown.juanquenga.com",
-    ],
+    trustedOrigins: authTrustedOrigins(siteUrl),
     plugins: [
       crossDomain({ siteUrl }),
       convex({ authConfig }),

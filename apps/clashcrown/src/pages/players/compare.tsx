@@ -59,7 +59,7 @@ export default function PlayerComparePage() {
   return (
     <Layout>
       <Head>
-        <title>Compare Players | Royale Stats</title>
+        <title>Compare Players | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content="Compare two Clash Royale players side by side." />
       </Head>
       <div className={`profile-page ${styles.workspace}`}>

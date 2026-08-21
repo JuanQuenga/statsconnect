@@ -63,14 +63,6 @@ export function SiteNav() {
         options: siteNavigationLanguages.filter((option) => supportedLocales.includes(option.value as Locale)),
         onChange: (value) => setLocale(value as Locale),
       }}
-      brand={
-        <Link to="/" aria-label={t("nav.home")}>
-          <img
-            src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-logo.png`}
-            alt="BrawlStats"
-          />
-        </Link>
-      }
       renderSearch={(onNavigate) => (
         <PlayerSearch compact buttonLabel={t("common.search")} onNavigate={onNavigate} />
       )}

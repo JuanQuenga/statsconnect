@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { useStatsConnectAuth } from "@statsconnect/auth";
+import { gameDestinationPath } from "@statsconnect/site-nav";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
@@ -17,7 +17,6 @@ function errorMessage(error: unknown): string {
 }
 
 export function ConnectTagForm({ game }: { game: GameId }) {
-  const navigate = useNavigate();
   const auth = useStatsConnectAuth();
   const [tag, setTag] = useState("");
   const [preview, setPreview] = useState<AdapterResult<ProfileSummary> | null>(null);
@@ -34,9 +33,10 @@ export function ConnectTagForm({ game }: { game: GameId }) {
         tag: preview.data.playerTag,
         name: preview.data.display.name,
       });
+      return preview.data.playerTag;
     },
-    onSuccess: async () => {
-      await navigate({ to: "/launch/$game", params: { game } });
+    onSuccess: (playerTag) => {
+      window.location.assign(gameDestinationPath(game, playerTag));
     },
   });
 

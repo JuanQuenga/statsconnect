@@ -7,8 +7,9 @@ export function FooterNotice() {
     <footer className="mt-auto border-t border-border bg-card/40">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-muted-foreground md:flex-row md:items-end md:justify-between md:px-6">
         <div>
-          <p className="font-display text-base text-foreground">BrawlStats.io</p>
-          <p className="mt-1 max-w-xl">
+          <p className="font-display text-base text-foreground">StatsConnect</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Brawl Stars statistics</p>
+          <p className="mt-3 max-w-xl">
             {t("footer.description")}
           </p>
         </div>

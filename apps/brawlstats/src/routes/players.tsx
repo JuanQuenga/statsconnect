@@ -165,7 +165,7 @@ function PlayerProfilePage({
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = `${player.name} (${player.tag}) · BrawlStats`;
+    document.title = `${player.name} (${player.tag}) · StatsConnect Brawl Stars statistics`;
     return () => {
       document.title = previousTitle;
     };
@@ -680,7 +680,7 @@ function downloadProfileCard(player: PlayerProfile, analytics: PlayerAnalytics |
   const url = URL.createObjectURL(new Blob([profileCardSvg(player, analytics, t, number)], { type: "image/svg+xml" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${player.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-brawlstats.svg`;
+  anchor.download = `${player.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-statsconnect-brawl-stars.svg`;
   anchor.click();
   URL.revokeObjectURL(url);
 }

@@ -8,7 +8,7 @@ import type { Clan } from "@/lib/clash/domain";
 import { clan as mockClan } from "@/lib/mock-data";
 import { isConvexConfigured } from "@/lib/convex";
 import { useClanAcquisition } from "@/lib/clash/profileAcquisition";
-import { TrackingControls } from "@/components/personalization/PersonalDashboard";
+import { DashboardSaveControls } from "@/components/personalization/PersonalDashboard";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 export default function ClanPage() {
@@ -41,11 +41,11 @@ function ClanDashboard({ clan, isRefreshing = false, onRefresh = () => undefined
   return (
     <Layout>
       <Head>
-        <title>{`${clan.name} | Royale Stats`}</title>
+        <title>{`${clan.name} | StatsConnect · Clash Royale statistics`}</title>
       </Head>
       <div className="profile-page clan-page">
         <ClanProfile clan={clan} />
-        <TrackingControls profile={{ kind: "clans", tag: clan.tag, name: clan.name }} />
+        <DashboardSaveControls profile={{ kind: "clans", tag: clan.tag, name: clan.name }} />
         <ClanChestProgress clan={clan} />
         <MemberTable clan={clan} onRefresh={onRefresh} isRefreshing={isRefreshing} />
       </div>

@@ -1,9 +1,9 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useStatsConnectAuth } from "@statsconnect/auth";
+import { gameDestinationPath } from "@statsconnect/site-nav";
 import { useEffect } from "react";
 import { ErrorState, LoadingState } from "@/components/ui-helpers";
 import { gameName, isGameId } from "@/lib/contracts";
-import { destinationUrl } from "@/lib/destinations";
 import { profileForLaunch } from "@/lib/launch-profiles";
 
 type LaunchSearch = {
@@ -30,7 +30,7 @@ function LaunchGamePage() {
   useEffect(() => {
     if (!profilesReady || !profile || !isGameId(game)) return;
 
-    window.location.replace(destinationUrl(game, profile.tag));
+    window.location.replace(gameDestinationPath(game, profile.tag));
   }, [game, profile, profilesReady]);
 
   if (!isGameId(game)) return <Navigate to="/connect" replace />;

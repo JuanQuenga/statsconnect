@@ -204,7 +204,7 @@ function BrawlerTrendChart({ points }: { points: MetaDailyPoint[] }) {
   const maxPicks = Math.max(1, ...points.map((point) => point.picks));
   return (
     <Card className="gap-0 p-5 py-5">
-      <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="eyebrow">{t("brawler.dailyRecord")}</p><h2 className="section-title">{t("brawler.dailyWinRate")}</h2></div><p className="text-xs text-muted-foreground">{t("brawler.opacityDetail")}</p></div>
+      <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 className="section-title">{t("brawler.dailyWinRate")}</h2></div><p className="text-xs text-muted-foreground">{t("brawler.opacityDetail")}</p></div>
       <div className="mt-5 flex h-52 items-end gap-1 overflow-x-auto border-b border-border pb-7" aria-label={t("brawler.trendAria")}>
         {points.map((point, index) => <div key={point.day} className="group relative flex h-full min-w-5 flex-1 items-end" title={t("brawler.trendPoint", { date: date(point.day, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }), rate: formatPercent(point.winRate), picks: trophies(point.picks) })}><div className="w-full rounded-t bg-accent transition group-hover:bg-primary" style={{ height: `${Math.max(3, point.winRate)}%`, opacity: 0.45 + (point.picks / maxPicks) * 0.55 }} />{index === 0 || index === points.length - 1 || (points.length > 14 && index % Math.ceil(points.length / 7) === 0) ? <span className="absolute top-full mt-2 whitespace-nowrap text-[10px] text-muted-foreground">{date(point.day, { month: "short", day: "numeric", timeZone: "UTC" })}</span> : null}</div>)}
       </div>

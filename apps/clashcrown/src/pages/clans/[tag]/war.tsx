@@ -67,7 +67,7 @@ function ClanWar({ tag }: { tag: string }) {
   return (
     <Layout>
       <Head>
-        <title>{`Clan War #${tag} | Royale Stats`}</title>
+        <title>{`Clan War #${tag} | StatsConnect · Clash Royale statistics`}</title>
       </Head>
       <div className="profile-page">
         <section className="decks-hero">

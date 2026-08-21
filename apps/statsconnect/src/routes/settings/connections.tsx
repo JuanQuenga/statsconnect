@@ -1,13 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useStatsConnectAuth, type ConnectedProfile } from "@statsconnect/auth";
-import { ExternalLink, Link2, Trash2 } from "lucide-react";
+import { gameDestinationPath } from "@statsconnect/site-nav";
+import { ArrowRight, Link2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { PageStatus } from "@/components/ui-helpers";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { gameName, games } from "@/lib/contracts";
-import { hubLaunchPath } from "@/lib/destinations";
 
 export const Route = createFileRoute("/settings/connections")({
   component: ConnectionsPage,
@@ -68,10 +68,10 @@ function ConnectionsPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <a
-                        href={hubLaunchPath(game.id, profile.tag)}
+                        href={gameDestinationPath(game.id, profile.tag)}
                         className={buttonVariants({ variant: "outline", size: "sm" })}
                       >
-                        <ExternalLink className="size-3.5" />
+                        <ArrowRight className="size-3.5" />
                         Open
                       </a>
                       <Button size="sm" variant="destructive" onClick={() => setPendingDisconnect(profile)}>

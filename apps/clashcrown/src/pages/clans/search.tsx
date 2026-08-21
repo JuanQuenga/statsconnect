@@ -65,7 +65,7 @@ function ClanSearch() {
   return (
     <Layout>
       <Head>
-        <title>{t("nav.clans")} | Royale Stats</title>
+        <title>{t("nav.clans")} | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content={locale === "es" ? "Busca clanes de Clash Royale por nombre, tamaño y puntuación." : "Find Clash Royale clans by name, size and clan score."} />
         <link rel="canonical" href="/clans/search" />
       </Head>
