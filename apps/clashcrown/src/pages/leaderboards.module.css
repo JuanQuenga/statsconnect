@@ -253,6 +253,7 @@
   .page { width: min(100% - 20px, 1340px); }
   .hero { border-radius: 20px; }
   .heroCopy { padding-inline: 18px; }
+  .heroCopy h1 { font-size: clamp(30px, 8.2vw, 34px); letter-spacing: -.04em; }
   .heroFacts span { padding-inline: 7px; }
   .modeSwitch { width: calc(100% - 14px); }
   .modeSwitch button strong { font-size: 10px; }
