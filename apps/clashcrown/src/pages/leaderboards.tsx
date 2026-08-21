@@ -194,7 +194,7 @@ function Leaderboards() {
       <div className={styles.page}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <h1>Clash Royale Rankings</h1>
+            <h1>Leaderboards</h1>
             <p>Find the players and clans setting the pace now, then use StatsConnect’s saved observations to see who is actually climbing.</p>
             <div className={styles.heroFacts} aria-label="Leaderboard coverage">
               <span><strong>{rows.length || "—"}</strong> positions</span>
