@@ -203,7 +203,7 @@ function Leaderboards() {
             </div>
           </div>
           <div className={styles.heroArt} aria-hidden="true">
-            <Image src="/images/art/leaderboards-hero-banner-2026.png" alt="" width={2172} height={724} priority />
+            <Image src="/images/art/leaderboards-hero-banner-2026-no-character.png" alt="" width={2172} height={724} priority />
           </div>
         </section>
 
