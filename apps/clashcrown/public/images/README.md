@@ -8,9 +8,8 @@ metadata come from the `master` branch of
 These assets are vendored under the [Supercell Fan Content Policy](https://supercell.com/en/fan-content-policy/).
 They are for this fan project only and must not be hotlinked as a CDN.
 
-`generated/leaderboard-champions-2026.webp` is original fan artwork generated
-for StatsConnect from user-provided composition and style references. It is not
-an official Supercell asset.
+`art/hero-ranked-legends-2026.png` is user-supplied official promotional art
+used by the leaderboard hero.
 
 To refresh the pinned asset set, review the SHA in `scripts/sync-assets.mjs`,
 then run:

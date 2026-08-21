@@ -37,9 +37,18 @@
 .heroFacts strong { display: block; margin-bottom: 4px; color: #fff; font-family: var(--font-display); font-size: 17px; font-weight: 400; }
 
 .heroArt { position: relative; align-self: stretch; min-height: 390px; }
-.heroArt > img { position: absolute; right: 0; bottom: -55px; width: min(100%, 390px); height: auto; filter: drop-shadow(0 28px 30px rgba(0, 0, 0, .42)); }
-.heroCrown { position: absolute; top: 46px; right: 60px; width: 86px; height: 86px; display: grid; place-items: center; border: 1px solid rgba(255, 212, 92, .52); border-radius: 50%; color: #ffd45c; background: rgba(7, 17, 31, .62); box-shadow: 0 0 60px rgba(255, 212, 92, .25); }
-.heroCrown svg { width: 38px; height: 38px; }
+.heroArt > img {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: min(650px, 145%);
+  height: 100%;
+  object-fit: cover;
+  object-position: 58% center;
+  filter: saturate(1.05) contrast(1.02);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 24%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 24%, #000 100%);
+}
 
 .modeSwitch {
   position: relative;
@@ -196,9 +205,15 @@
   .heroFacts span { min-width: 0; padding: 0 10px; font-size: 9px; }
   .heroFacts strong { font-size: 12px; }
   .heroArt { position: absolute; inset: 0; min-height: 0; }
-  .heroArt > img { right: -12px; bottom: 125px; width: 320px; opacity: .92; }
-  .heroCrown { top: 30px; right: 25px; width: 60px; height: 60px; }
-  .heroCrown svg { width: 27px; height: 27px; }
+  .heroArt > img {
+    inset: 0 0 auto;
+    width: 100%;
+    height: 340px;
+    object-position: 58% center;
+    opacity: .92;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
+  }
   .modeSwitch { width: calc(100% - 24px); gap: 4px; margin-top: -34px; }
   .modeSwitch button { min-height: 67px; grid-template-columns: 1fr; justify-items: center; gap: 5px; padding: 9px 5px; text-align: center; }
   .modeSwitch button > svg { width: 21px; height: 21px; }
