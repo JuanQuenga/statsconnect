@@ -219,6 +219,21 @@ export const clashTables = {
     .index("by_fingerprint", ["fingerprint"])
     .index("by_battle_time", ["battleTime"]),
 
+  /**
+   * Compact per-player battle observations for the profile activity calendar.
+   * The fingerprint keeps profile refreshes and crawler passes idempotent.
+   */
+  clashPlayerBattles: defineTable({
+    tag: v.string(),
+    fingerprint: v.string(),
+    battleTime: v.number(),
+    result: v.union(v.literal("win"), v.literal("loss"), v.literal("draw")),
+    retentionAt: v.number()
+  })
+    .index("by_tag_and_fingerprint", ["tag", "fingerprint"])
+    .index("by_tag_and_battle_time", ["tag", "battleTime"])
+    .index("by_retention_at", ["retentionAt"]),
+
   /** Per-day deck aggregates, incremented at ingest so nothing has to be rescanned. */
   deckStats: defineTable({
     day: v.number(),

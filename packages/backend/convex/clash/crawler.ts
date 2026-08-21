@@ -5,7 +5,7 @@ import type { ActionCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { clashUpstream, GLOBAL_LOCATION_ID } from "./clashFetch";
-import { battleObservations, META_MODES, type DeckObservation, type MetaMode } from "./lib/battles";
+import { battleObservations, META_MODES, playerBattleObservation, type DeckObservation, type MetaMode, type PlayerBattleObservation } from "./lib/battles";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -295,6 +295,7 @@ export const crawl = internalAction({
         }
 
         const collected: DeckObservation[] = [];
+        const playerActivity: PlayerBattleObservation[] = [];
         let targetSnapshot: {
           player: {
             tag: string;
@@ -308,6 +309,7 @@ export const crawl = internalAction({
         } | undefined;
         for (const battle of response.data ?? []) {
           const parsed = battleObservations(battle);
+          const activity = playerBattleObservation(battle, target.tag);
           for (const participant of [...(battle.team ?? []), ...(battle.opponent ?? [])]) {
             if (!participant.tag || !participant.name) continue;
             const participantTag = participant.tag.replace(/^#/, "").toUpperCase();
@@ -346,6 +348,7 @@ export const crawl = internalAction({
           const items = parsed;
           if (items.length && target.lastBattleTime && items[0].battleTime <= target.lastBattleTime) continue;
           collected.push(...items);
+          if (activity && (!target.lastBattleTime || activity.battleTime > target.lastBattleTime)) playerActivity.push(activity);
         }
 
         if (targetSnapshot) {
@@ -358,7 +361,14 @@ export const crawl = internalAction({
         const result = await ctx.runMutation(internal.clash.meta.ingestBattles, {
           targetId: target.id,
           observations: collected,
+          ...(playerActivity.length ? {
+            newestBattleTime: playerActivity.reduce((newest, battle) => Math.max(newest, battle.battleTime), 0)
+          } : {}),
           revisitSeconds: REVISIT_SECONDS
+        });
+        await ctx.runMutation(internal.clash.meta.ingestPlayerActivity, {
+          tag: target.tag,
+          battles: playerActivity
         });
         battles += result.battles;
         observations += result.observations;

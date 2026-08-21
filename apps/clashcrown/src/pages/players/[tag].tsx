@@ -15,6 +15,7 @@ import { useCardLibrary } from "@/lib/useCardCatalog";
 import { TrackingControls } from "@/components/personalization/PersonalDashboard";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { useI18n } from "@/lib/i18n";
+import { PlayerActivity } from "@/components/portfolio/PlayerActivity";
 
 export default function PlayerPage() {
   const router = useRouter();
@@ -97,6 +98,7 @@ function PlayerDashboard({
         {activeTab === "Statistics" ? (
           <div className="profile-story">
             <PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} />
+            <PlayerActivity player={player} isDemo={isDemo} />
             <PerformanceSection battles={player.battles} />
             <PlayerProfileDetails player={player} />
             <ProgressionChart player={player} />

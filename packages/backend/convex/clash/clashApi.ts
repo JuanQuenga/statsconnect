@@ -11,6 +11,7 @@ import {
   type ClashUpstreamResponse,
 } from "./clashFetch";
 import { normalizeTag } from "./lib/tag";
+import { playerBattleObservation } from "./lib/battles";
 import type {
   ApiBattle,
   ApiCardList,
@@ -65,7 +66,21 @@ type CacheDocument = {
 const cacheApi = anyApi.clash.cache;
 const playersApi = anyApi.clash.players;
 const historyApi = anyApi.clash.history;
+const metaApi = anyApi.clash.meta;
 type ActionCtx = GenericActionCtx<GenericDataModel>;
+
+async function recordPlayerActivity(ctx: ActionCtx, tag: string, battles: ApiBattle[]) {
+  try {
+    const observations = battles.flatMap((battle) => {
+      const observation = playerBattleObservation(battle, tag);
+      return observation ? [observation] : [];
+    });
+    await ctx.runMutation(metaApi.ingestPlayerActivity, { tag, battles: observations });
+  } catch {
+    // Activity is an enrichment side effect; profile delivery must survive a
+    // transient write/schema failure and can retry on the next profile load.
+  }
+}
 
 function defined<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
@@ -244,9 +259,11 @@ export const getPlayerBundle = actionGeneric({
     const allFresh = allCached && [playerCache, battleCache, chestCache].every((item) => item.expiresAt > Date.now());
 
     if (allFresh && !args.force) {
+      const cachedBattles = JSON.parse(battleCache.payload) as ApiBattle[];
+      await recordPlayerActivity(ctx, tag, cachedBattles);
       return {
         player: cachedPayload<ApiPlayer>(playerCache),
-        battles: cachedPayload<ApiBattle[]>(battleCache),
+        battles: { data: cachedBattles, fetchedAt: battleCache.fetchedAt, stale: false },
         chests: cachedPayload<ApiChestList>(chestCache)
       };
     }
@@ -276,6 +293,7 @@ export const getPlayerBundle = actionGeneric({
         source: "api_profile",
         observedAt: playerFetchedAt
       });
+      await recordPlayerActivity(ctx, tag, battles);
 
       // The looked-up player plus everyone they recently fought. One tag typed
       // in the search box makes fifty players findable by name.
@@ -299,9 +317,11 @@ export const getPlayerBundle = actionGeneric({
       };
     } catch (error) {
       if (allCached) {
+        const cachedBattles = JSON.parse(battleCache.payload) as ApiBattle[];
+        await recordPlayerActivity(ctx, tag, cachedBattles);
         return {
           player: cachedPayload<ApiPlayer>(playerCache, true),
-          battles: cachedPayload<ApiBattle[]>(battleCache, true),
+          battles: { data: cachedBattles, fetchedAt: battleCache.fetchedAt, stale: true },
           chests: cachedPayload<ApiChestList>(chestCache, true)
         };
       }

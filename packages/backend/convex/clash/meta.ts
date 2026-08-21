@@ -20,6 +20,7 @@ const RANKING_WINDOWS = [1, 7] as const;
 const MIN_TOWER_USES = 5;
 const MIN_MATCHUP_USES = 5;
 const PROFILE_HISTORY_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
+const PLAYER_ACTIVITY_RETENTION_MS = 120 * 24 * 60 * 60 * 1000;
 
 const observation = v.object({
   fingerprint: v.string(),
@@ -45,6 +46,8 @@ const matchupResult = v.object({
   wins: v.number(),
   winRate: v.number()
 });
+
+const playerBattleResult = v.union(v.literal("win"), v.literal("loss"), v.literal("draw"));
 
 function isKnownDeck(cardIds: number[]) {
   return cardIds.length === 8 && cardIds.every((cardId) => Number.isInteger(cardId) && cardId > 0);
@@ -105,9 +108,10 @@ export const upsertTargets = internalMutation({
   handler: async (ctx, args) => {
     let added = 0;
     for (const target of args.targets) {
+      const tag = target.tag.trim().replaceAll(" ", "").replace(/^#/, "").toUpperCase();
       const existing = await ctx.db
         .query("clashCrawlTargets")
-        .withIndex("by_tag", (q) => q.eq("tag", target.tag))
+        .withIndex("by_tag", (q) => q.eq("tag", tag))
         .unique();
 
       if (existing) {
@@ -123,7 +127,7 @@ export const upsertTargets = internalMutation({
       }
 
       await ctx.db.insert("clashCrawlTargets", {
-        tag: target.tag,
+        tag,
         source: target.source,
         priority: target.priority,
         nextDueAt: Date.now(),
@@ -164,6 +168,7 @@ export const ingestBattles = internalMutation({
   args: {
     targetId: v.optional(v.id("clashCrawlTargets")),
     observations: v.array(observation),
+    newestBattleTime: v.optional(v.number()),
     /** Seconds until this target is polled again. */
     revisitSeconds: v.number(),
     failed: v.optional(v.boolean())
@@ -184,7 +189,7 @@ export const ingestBattles = internalMutation({
           nextDueAt: now + args.revisitSeconds * 1000,
           lastBattleTime: args.observations.reduce(
             (newest, item) => Math.max(newest, item.battleTime),
-            target.lastBattleTime ?? 0
+            Math.max(target.lastBattleTime ?? 0, args.newestBattleTime ?? 0)
           )
         });
       }
@@ -416,6 +421,39 @@ export const ingestBattles = internalMutation({
   }
 });
 
+export const ingestPlayerActivity = internalMutation({
+  args: {
+    tag: v.string(),
+    battles: v.array(v.object({
+      fingerprint: v.string(),
+      battleTime: v.number(),
+      result: playerBattleResult
+    }))
+  },
+  returns: v.object({ inserted: v.number(), seen: v.number() }),
+  handler: async (ctx, args) => {
+    const tag = args.tag.trim().replaceAll(" ", "").replace(/^#/, "").toUpperCase();
+    let inserted = 0;
+
+    for (const battle of args.battles.slice(0, 50)) {
+      const existing = await ctx.db
+        .query("clashPlayerBattles")
+        .withIndex("by_tag_and_fingerprint", (q) => q.eq("tag", tag).eq("fingerprint", battle.fingerprint))
+        .first();
+      if (existing) continue;
+
+      await ctx.db.insert("clashPlayerBattles", {
+        tag,
+        ...battle,
+        retentionAt: battle.battleTime + PLAYER_ACTIVITY_RETENTION_MS
+      });
+      inserted += 1;
+    }
+
+    return { inserted, seen: Math.min(args.battles.length, 50) };
+  }
+});
+
 // --- Rollup ---------------------------------------------------------------
 
 export const deckStatsForDay = internalQuery({
@@ -512,6 +550,12 @@ export const pruneBatch = internalMutation({
       .take(256);
     for (const row of staleTowers) await ctx.db.delete(row._id);
 
+    const stalePlayerBattles = await ctx.db
+      .query("clashPlayerBattles")
+      .withIndex("by_retention_at", (q) => q.lt("retentionAt", Date.now()))
+      .take(256);
+    for (const row of stalePlayerBattles) await ctx.db.delete(row._id);
+
     const staleCache = await ctx.db
       .query("apiCache")
       .withIndex("by_expires_at", (q) => q.lt("expiresAt", Date.now()))
@@ -576,6 +620,7 @@ export const pruneBatch = internalMutation({
       staleMatchups.length +
       staleCards.length +
       staleTowers.length +
+      stalePlayerBattles.length +
       staleCache.length +
       staleRankings +
       staleHistory +

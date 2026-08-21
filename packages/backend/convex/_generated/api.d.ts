@@ -33,6 +33,7 @@ import type * as clash_lib_battles from "../clash/lib/battles.js";
 import type * as clash_lib_domain from "../clash/lib/domain.js";
 import type * as clash_lib_format from "../clash/lib/format.js";
 import type * as clash_lib_mockData from "../clash/lib/mockData.js";
+import type * as clash_lib_playerActivity from "../clash/lib/playerActivity.js";
 import type * as clash_lib_tag from "../clash/lib/tag.js";
 import type * as clash_lib_types from "../clash/lib/types.js";
 import type * as clash_meta from "../clash/meta.js";
@@ -97,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   "clash/lib/domain": typeof clash_lib_domain;
   "clash/lib/format": typeof clash_lib_format;
   "clash/lib/mockData": typeof clash_lib_mockData;
+  "clash/lib/playerActivity": typeof clash_lib_playerActivity;
   "clash/lib/tag": typeof clash_lib_tag;
   "clash/lib/types": typeof clash_lib_types;
   "clash/meta": typeof clash_meta;

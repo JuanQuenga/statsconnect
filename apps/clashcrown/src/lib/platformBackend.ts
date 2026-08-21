@@ -33,6 +33,7 @@ export const clashBackend = {
     seedTag: api.clash.meta.seedTag,
   },
   analytics: {
+    playerActivity: api.clash.analytics.playerActivity,
     cardReport: api.clash.analytics.cardReport,
     towerReport: api.clash.analytics.towerReport,
     deckReport: api.clash.analytics.deckReport,

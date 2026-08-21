@@ -1,6 +1,8 @@
 import { parseApiDate } from "./format";
 import type { Battle, Card } from "./domain";
 import type { ApiBattle, ApiBattleParticipant } from "./types";
+export { playerBattleObservation } from "./playerActivity";
+export type { PlayerBattleObservation } from "./playerActivity";
 
 /**
  * Battle modes worth aggregating into meta statistics. Every one of these is a

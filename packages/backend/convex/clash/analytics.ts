@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { metaMode } from "./schema";
 import { dayKeysBack, type MetaMode } from "./lib/battles";
+import { normalizeTag } from "./lib/tag";
 
 const MAX_WINDOW_DAYS = 7;
 const CARD_DAY_LIMIT = 400;
@@ -9,6 +10,9 @@ const TOWER_DAY_LIMIT = 100;
 const DECK_DAY_LIMIT = 750;
 const DETAIL_DECK_DAY_LIMIT = 600;
 const DETAIL_MATCHUP_DAY_LIMIT = 600;
+const PLAYER_ACTIVITY_WINDOW_DAYS = 90;
+const PLAYER_ACTIVITY_MAX_ROWS = 5000;
+const PLAYER_ACTIVITY_READ_LIMIT = PLAYER_ACTIVITY_MAX_ROWS + 1;
 
 const trendPoint = v.object({
   day: v.number(),
@@ -72,6 +76,14 @@ const archetype = v.object({
 type Aggregate = { uses: number; wins: number };
 type DeckAggregate = Aggregate & { deckHash: string; cardIds: number[]; evolutionIds: number[] };
 
+const playerActivityDay = v.object({
+  day: v.string(),
+  battles: v.number(),
+  wins: v.number(),
+  losses: v.number(),
+  draws: v.number()
+});
+
 function windowDays(value: number | undefined) {
   return Math.min(Math.max(Math.round(value ?? MAX_WINDOW_DAYS), 1), MAX_WINDOW_DAYS);
 }
@@ -110,6 +122,46 @@ function pointsFor(
     };
   });
 }
+
+export const playerActivity = query({
+  args: { tag: v.string() },
+  returns: v.object({
+    windowDays: v.number(),
+    capped: v.boolean(),
+    days: v.array(playerActivityDay)
+  }),
+  handler: async (ctx, args) => {
+    const tag = normalizeTag(args.tag);
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const cutoff = today.getTime() - (PLAYER_ACTIVITY_WINDOW_DAYS - 1) * 86_400_000;
+    const rows = await ctx.db
+      .query("clashPlayerBattles")
+      .withIndex("by_tag_and_battle_time", (q) => q.eq("tag", tag).gte("battleTime", cutoff))
+      .order("desc")
+      .take(PLAYER_ACTIVITY_READ_LIMIT);
+    const capped = rows.length > PLAYER_ACTIVITY_MAX_ROWS;
+    const days = new Map<string, { battles: number; wins: number; losses: number; draws: number }>();
+
+    for (const row of rows.slice(0, PLAYER_ACTIVITY_MAX_ROWS)) {
+      const day = new Date(row.battleTime).toISOString().slice(0, 10);
+      const current = days.get(day) ?? { battles: 0, wins: 0, losses: 0, draws: 0 };
+      current.battles += 1;
+      current.wins += row.result === "win" ? 1 : 0;
+      current.losses += row.result === "loss" ? 1 : 0;
+      current.draws += row.result === "draw" ? 1 : 0;
+      days.set(day, current);
+    }
+
+    return {
+      windowDays: PLAYER_ACTIVITY_WINDOW_DAYS,
+      capped,
+      days: [...days]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([day, totals]) => ({ day, ...totals }))
+    };
+  }
+});
 
 export const cardReport = query({
   args: { mode: metaMode, windowDays: v.optional(v.number()) },
