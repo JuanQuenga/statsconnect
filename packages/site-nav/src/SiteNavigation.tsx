@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type AnchorHTMLAttributes, type ComponentType, type CSSProperties, type ReactNode } from "react";
+import { handleApplicationNavigation } from "./application-navigation";
 import { gameSwitcherHref } from "./navigation-targets";
 import "./site-navigation.css";
 
@@ -56,7 +57,7 @@ type NavigationStyle = CSSProperties & {
 
 export type SiteNavigationProps = {
   accentColor?: string;
-  brand: ReactNode;
+  brand?: ReactNode;
   currentSite: SiteId;
   endContent?: ReactNode;
   links: readonly SiteNavigationLink[];
@@ -71,8 +72,8 @@ export type SiteNavigationProps = {
 
 const sites = [
   { id: "statsconnect", label: "StatsConnect", detail: "Game hub", icon: "⌂" },
-  { id: "brawl-stars", label: "Brawl Stars", detail: "Open BrawlStats", icon: "★" },
-  { id: "clash-royale", label: "Clash Royale", detail: "Open Royale Stats", icon: "♛" },
+  { id: "brawl-stars", label: "Brawl Stars", detail: "Open Brawl Stars statistics" },
+  { id: "clash-royale", label: "Clash Royale", detail: "Open Clash Royale statistics" },
 ] as const;
 
 export const siteNavigationLanguages = [
@@ -135,9 +136,22 @@ function GamepadIcon() {
   );
 }
 
-function NetworkBrand({ currentSite, hubOrigin }: { currentSite: SiteId; hubOrigin?: string }) {
+function ApplicationLink({ href, onClick, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
   return (
     <a
+      {...props}
+      href={href}
+      onClick={(event) => {
+        onClick?.(event);
+        handleApplicationNavigation(event, href);
+      }}
+    />
+  );
+}
+
+function NetworkBrand({ currentSite, hubOrigin }: { currentSite: SiteId; hubOrigin?: string }) {
+  return (
+    <ApplicationLink
       className="sc-nav__network-brand"
       href={gameSwitcherHref("statsconnect", hubOrigin)}
       aria-label="StatsConnect hub"
@@ -145,7 +159,25 @@ function NetworkBrand({ currentSite, hubOrigin }: { currentSite: SiteId; hubOrig
     >
       <span className="sc-nav__network-mark" aria-hidden>SC</span>
       <strong>StatsConnect</strong>
-    </a>
+    </ApplicationLink>
+  );
+}
+
+function SiteIcon({
+  className,
+  hubOrigin,
+  site,
+}: {
+  className: string;
+  hubOrigin?: string;
+  site: (typeof sites)[number];
+}) {
+  return (
+    <span className={className} aria-hidden>
+      {site.id === "statsconnect"
+        ? site.icon
+        : <img src={`${gameSwitcherHref(site.id, hubOrigin)}apple-touch-icon.png`} alt="" />}
+    </span>
   );
 }
 
@@ -173,19 +205,19 @@ function NetworkSites({
         const saved = gameProfiles(profiles, site.id);
         return (
           <div className="sc-nav__network-group" key={site.id}>
-            <a className="sc-nav__network-game" href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
-              <span className="sc-nav__network-game-icon" aria-hidden>{site.icon}</span>
+            <ApplicationLink className="sc-nav__network-game" href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
+              <SiteIcon className="sc-nav__network-game-icon" hubOrigin={hubOrigin} site={site} />
               <span>{site.label}</span>
-            </a>
+            </ApplicationLink>
             {saved.map((profile) => (
-              <a
+              <ApplicationLink
                 className="sc-nav__network-profile"
                 href={gameSwitcherHref(profile, hubOrigin)}
                 key={`${profile.game}:${profile.tag}`}
                 title={`${profile.name} · #${profile.tag}`}
               >
                 {profile.name}
-              </a>
+              </ApplicationLink>
             ))}
           </div>
         );
@@ -217,21 +249,21 @@ function GamesMenu({
           const saved = site.id === "statsconnect" ? [] : gameProfiles(profiles, site.id);
           return (
             <div className="sc-nav__game-menu-group" key={site.id}>
-              <a href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
-                <span className="sc-nav__game-icon" aria-hidden>{site.icon}</span>
+              <ApplicationLink href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
+                <SiteIcon className="sc-nav__game-icon" hubOrigin={hubOrigin} site={site} />
                 <span>
                   <strong>{site.label}</strong>
                   <small>{detail}</small>
                 </span>
-              </a>
+              </ApplicationLink>
               {saved.map((profile) => (
-                <a className="sc-nav__game-menu-profile" href={gameSwitcherHref(profile, hubOrigin)} key={`${profile.game}:${profile.tag}`}>
+                <ApplicationLink className="sc-nav__game-menu-profile" href={gameSwitcherHref(profile, hubOrigin)} key={`${profile.game}:${profile.tag}`}>
                   <span aria-hidden>#</span>
                   <span>
                     <strong>{profile.name}</strong>
                     <small>#{profile.tag}</small>
                   </span>
-                </a>
+                </ApplicationLink>
               ))}
             </div>
           );
@@ -371,6 +403,9 @@ export function SiteNavigation({
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const close = () => setOpen(false);
   const style: NavigationStyle = { "--sc-nav-accent": accentColor };
+  const applicationOrigin = typeof window !== "undefined" && window.__statsConnectApplicationShell
+    ? window.location.origin
+    : hubOrigin;
 
   useEffect(() => {
     if (!open) return;
@@ -391,11 +426,11 @@ export function SiteNavigation({
     <header className="sc-nav" style={style}>
       <div className="sc-nav__network">
         <div className="sc-nav__network-inner">
-          <NetworkBrand currentSite={currentSite} hubOrigin={hubOrigin} />
-          <NetworkSites currentSite={currentSite} hubOrigin={hubOrigin} profiles={profiles} />
+          <NetworkBrand currentSite={currentSite} hubOrigin={applicationOrigin} />
+          <NetworkSites currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
           <div className="sc-nav__network-actions">
             <LanguageSelector language={language} />
-            <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} hubOrigin={hubOrigin} profiles={profiles} /></div>
+            <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} /></div>
             {account ? <AccountChip account={account} /> : null}
             {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
           </div>
@@ -404,7 +439,7 @@ export function SiteNavigation({
 
       <div className="sc-nav__site">
         <div className={`sc-nav__inner${currentSite === "statsconnect" ? " sc-nav__inner--hub" : ""}`}>
-          <div className="sc-nav__brand">{brand}</div>
+          {brand ? <div className="sc-nav__brand">{brand}</div> : null}
           <nav className="sc-nav__links" aria-label="Primary navigation">
             {links.map((link) => (
               <LinkAdapter key={link.href} href={link.href} className="sc-nav__link" onNavigate={close}>
@@ -431,7 +466,7 @@ export function SiteNavigation({
         {open ? (
           <div className="sc-nav__mobile-panel">
             <header className="sc-nav__mobile-heading">
-              <div><strong>Explore Royale Stats</strong><span>Search or choose a section.</span></div>
+              <div><strong>Explore StatsConnect</strong><span>Search or choose a section.</span></div>
               <button ref={mobileCloseRef} type="button" aria-label="Close navigation menu" onClick={close}><MenuIcon open /></button>
             </header>
             {renderSearch ? <div className="sc-nav__mobile-search">{renderSearch(close)}</div> : null}

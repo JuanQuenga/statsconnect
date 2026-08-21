@@ -2,21 +2,43 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pnpm build:vercel",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/brawlstars",
+      "destination": "/bs",
+      "permanent": true
+    },
+    {
+      "source": "/brawlstars/:path*",
+      "destination": "/bs/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/clashroyale",
+      "destination": "/cr",
+      "permanent": true
+    },
+    {
+      "source": "/clashroyale/:path*",
+      "destination": "/cr/:path*",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
-      "source": "/brawlstars/beta",
+      "source": "/bs/beta",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {
-      "source": "/clashroyale/beta",
+      "source": "/cr/beta",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
   ],
   "rewrites": [
-    { "source": "/brawlstars", "destination": "/brawlstars/index.html" },
-    { "source": "/brawlstars/:path*", "destination": "/brawlstars/index.html" },
-    { "source": "/clashroyale", "destination": "/clashroyale/index.html" },
-    { "source": "/clashroyale/:path*", "destination": "/clashroyale/index.html" },
+    { "source": "/bs", "destination": "/index.html" },
+    { "source": "/bs/:path*", "destination": "/index.html" },
+    { "source": "/cr", "destination": "/index.html" },
+    { "source": "/cr/:path*", "destination": "/index.html" },
     { "source": "/:path*", "destination": "/index.html" }
   ]
 }

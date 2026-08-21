@@ -35,6 +35,7 @@ export default defineConfig({
     ? {
         outDir: viteOutputDirectory(delivery.id),
         emptyOutDir: delivery.clearsUnifiedOutput,
+        manifest: true,
       }
     : undefined,
 });

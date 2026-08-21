@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { brawlerBorderUrl, mapImageUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlerBorderUrl, brawlerHeroArtwork, mapImageUrl, profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n, type Translator } from "@/lib/i18n";
@@ -41,6 +42,7 @@ function BrawlerDetailPage() {
     enabled: Number.isInteger(brawlerId) && brawlerId > 0,
   });
   const brawler = catalogQuery.data?.find((item) => item.id === brawlerId);
+  const heroArtwork = brawler ? brawlerHeroArtwork(brawler.id, brawler) : undefined;
   const maps = useMemo(() => new Map((mapsQuery.data || []).map((map) => [map.id, map])), [mapsQuery.data]);
   const eligibleMaps = useMemo(() => (trendQuery.data?.current.stats || []).filter((row) => row.picks >= (trendQuery.data?.minPicks || 25)), [trendQuery.data]);
   const bestMaps = useMemo(() => [...eligibleMaps].sort((a, b) => b.winRate - a.winRate || b.picks - a.picks).slice(0, 8), [eligibleMaps]);
@@ -110,7 +112,17 @@ function BrawlerDetailPage() {
                 <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">{brawler.description}</p>
                 <p className="mt-4 text-xs text-muted-foreground">{t("brawler.catalogRevision", { version: brawler.version || t("brawler.unversioned") })}</p>
               </div>
-              <img src={brawler.imageUrl2 || brawler.imageUrl || brawlerBorderUrl(brawler.id)} alt={brawler.name} className="mx-auto max-h-72 w-full object-contain drop-shadow-2xl" />
+              {heroArtwork ? (
+                <ImageWithFallback
+                  src={heroArtwork.src}
+                  fallbackSrc={heroArtwork.fallbackSrc}
+                  alt={brawler.name}
+                  data-art-kind={heroArtwork.kind}
+                  className={heroArtwork.kind === "feature"
+                    ? "mx-auto max-h-72 w-full rounded-xl object-cover drop-shadow-2xl"
+                    : "mx-auto max-h-72 w-full object-contain drop-shadow-2xl"}
+                />
+              ) : null}
             </div>
           </section>
 

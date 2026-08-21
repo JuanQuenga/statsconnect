@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -23,6 +24,15 @@ export type VercelReleasePlan = Readonly<{
   mode: "frontend-preview" | "production-release";
 }>;
 
+type ViteManifestEntry = Readonly<{
+  css?: readonly string[];
+  file: string;
+  imports?: readonly string[];
+  isEntry?: boolean;
+}>;
+
+type ViteManifest = Readonly<Record<string, ViteManifestEntry>>;
+
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
 export const publicOrigin = "https://stats.juanquenga.com";
@@ -39,17 +49,17 @@ export const deliveryApps = [
   {
     clearsUnifiedOutput: false,
     id: "brawlstats",
-    outputDirectory: "dist/brawlstars",
+    outputDirectory: "dist/bs",
     packageName: "brawlstats.io",
-    routePrefix: "/brawlstars",
+    routePrefix: "/bs",
     workspaceDirectory: "apps/brawlstats",
   },
   {
     clearsUnifiedOutput: false,
     id: "clashcrown",
-    outputDirectory: "dist/clashroyale",
+    outputDirectory: "dist/cr",
     packageName: "clash-crown",
-    routePrefix: "/clashroyale",
+    routePrefix: "/cr",
     workspaceDirectory: "apps/clashcrown",
   },
 ] as const satisfies readonly DeliveryApp[];
@@ -65,9 +75,22 @@ export function publicAppOrigin(app: DeliveryApp): string {
 }
 
 export const unifiedPublicEnvironment = {
-  VITE_BRAWLSTATS_ORIGIN: publicAppOrigin(deliveryApp("brawlstats")),
-  VITE_CLASHCROWN_ORIGIN: publicAppOrigin(deliveryApp("clashcrown")),
   VITE_STATSCONNECT_ORIGIN: publicAppOrigin(deliveryApp("statsconnect")),
+} as const;
+
+export const applicationShellManifestPath = "dist/application-shell-manifest.json";
+
+const applicationShellMetadata = {
+  brawlstats: {
+    shellId: "brawl-stars",
+    themeColor: "#0a101a",
+    title: "StatsConnect · Brawl Stars statistics",
+  },
+  clashcrown: {
+    shellId: "clash-royale",
+    themeColor: "#15102a",
+    title: "StatsConnect · Clash Royale statistics",
+  },
 } as const;
 
 export function viteBasePath(id: DeliveryAppId): string {
@@ -127,6 +150,57 @@ export function runUnifiedBuild(): void {
   for (const app of deliveryApps) {
     runCommand({ command: "pnpm", args: ["--filter", app.packageName, "build"] }, environment);
   }
+
+  writeApplicationShellManifest();
+}
+
+function publicAssetPath(app: DeliveryApp, file: string): string {
+  return `${app.routePrefix}/${file.replace(/^\/+/, "")}`;
+}
+
+function entryStyles(viteManifest: ViteManifest, key: string): string[] {
+  const styles = new Set<string>();
+  const visited = new Set<string>();
+
+  function visit(entryKey: string): void {
+    if (visited.has(entryKey)) return;
+    visited.add(entryKey);
+    const entry = viteManifest[entryKey];
+    if (!entry) return;
+    for (const style of entry.css ?? []) styles.add(style);
+    for (const imported of entry.imports ?? []) visit(imported);
+  }
+
+  visit(key);
+  return [...styles];
+}
+
+export function writeApplicationShellManifest(): void {
+  const applications = Object.fromEntries(
+    deliveryApps.slice(1).map((app) => {
+      const metadata = applicationShellMetadata[app.id as keyof typeof applicationShellMetadata];
+      const manifestPath = path.join(repositoryRoot, app.outputDirectory, ".vite/manifest.json");
+      const viteManifest = JSON.parse(readFileSync(manifestPath, "utf8")) as ViteManifest;
+      const entry = viteManifest["index.html"];
+      if (!entry?.isEntry) throw new Error(`Missing Vite entry manifest for ${app.id}.`);
+
+      return [
+        metadata.shellId,
+        {
+          entry: publicAssetPath(app, entry.file),
+          styles: entryStyles(viteManifest, "index.html").map((file) => publicAssetPath(app, file)),
+          themeColor: metadata.themeColor,
+          title: metadata.title,
+        },
+      ];
+    }),
+  );
+
+  writeFileSync(
+    path.join(repositoryRoot, applicationShellManifestPath),
+    `${JSON.stringify({ version: 1, applications }, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 function usage(): never {

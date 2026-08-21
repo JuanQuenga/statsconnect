@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  applicationShellManifestPath,
   deliveryApps,
   planVercelRelease,
   publicAppOrigin,
@@ -19,6 +20,7 @@ type VercelConfiguration = {
   buildCommand: string;
   headers: Array<{ source: string }>;
   outputDirectory: string;
+  redirects: Array<{ destination: string; permanent: boolean; source: string }>;
   rewrites: Array<{ destination: string; source: string }>;
 };
 
@@ -45,11 +47,11 @@ test("unified delivery orders apps in one collision-free output tree", () => {
   }
 
   assert.equal(viteBasePath("statsconnect"), "/");
-  assert.equal(viteBasePath("brawlstats"), "/brawlstars/");
-  assert.equal(viteBasePath("clashcrown"), "/clashroyale/");
+  assert.equal(viteBasePath("brawlstats"), "/bs/");
+  assert.equal(viteBasePath("clashcrown"), "/cr/");
   assert.equal(viteOutputDirectory("statsconnect"), "../../dist");
-  assert.equal(viteOutputDirectory("brawlstats"), "../../dist/brawlstars");
-  assert.equal(viteOutputDirectory("clashcrown"), "../../dist/clashroyale");
+  assert.equal(viteOutputDirectory("brawlstats"), "../../dist/bs");
+  assert.equal(viteOutputDirectory("clashcrown"), "../../dist/cr");
 });
 
 test("unified public origins are derived from the public route prefixes", () => {
@@ -58,24 +60,13 @@ test("unified public origins are derived from the public route prefixes", () => 
     deliveryApps.map((app) => publicAppOrigin(app)),
     [
       "https://stats.juanquenga.com",
-      "https://stats.juanquenga.com/brawlstars",
-      "https://stats.juanquenga.com/clashroyale",
+      "https://stats.juanquenga.com/bs",
+      "https://stats.juanquenga.com/cr",
     ],
   );
   assert.deepEqual(unifiedPublicEnvironment, {
-    VITE_BRAWLSTATS_ORIGIN: "https://stats.juanquenga.com/brawlstars",
-    VITE_CLASHCROWN_ORIGIN: "https://stats.juanquenga.com/clashroyale",
     VITE_STATSCONNECT_ORIGIN: "https://stats.juanquenga.com",
   });
-
-  assert.equal(
-    new URL("players", `${unifiedPublicEnvironment.VITE_BRAWLSTATS_ORIGIN}/`).pathname,
-    "/brawlstars/players",
-  );
-  assert.equal(
-    new URL("players/CCDEMO", `${unifiedPublicEnvironment.VITE_CLASHCROWN_ORIGIN}/`).pathname,
-    "/clashroyale/players/CCDEMO",
-  );
 });
 
 test("the Vercel release plan deploys the Platform Backend only in production", () => {
@@ -100,9 +91,24 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   assert.equal(vercel.buildCommand, "pnpm build:vercel");
   assert.equal(vercel.outputDirectory, deliveryApps[0]?.outputDirectory);
 
+  assert.deepEqual(vercel.redirects, [
+    { source: "/brawlstars", destination: "/bs", permanent: true },
+    { source: "/brawlstars/:path*", destination: "/bs/:path*", permanent: true },
+    { source: "/clashroyale", destination: "/cr", permanent: true },
+    { source: "/clashroyale/:path*", destination: "/cr/:path*", permanent: true },
+  ]);
+  for (const redirect of vercel.redirects) {
+    assert.equal(redirect.permanent, true);
+    // Vercel forwards the incoming query when the destination does not define one.
+    assert.equal(redirect.destination.includes("?"), false);
+    if (redirect.source.endsWith("/:path*")) {
+      assert.equal(redirect.destination.endsWith("/:path*"), true);
+    }
+  }
+
   const expectedGameRewrites = deliveryApps.slice(1).flatMap((app) => [
-    { source: app.routePrefix, destination: `/${app.outputDirectory}/index.html`.replace("/dist/", "/") },
-    { source: `${app.routePrefix}/:path*`, destination: `/${app.outputDirectory}/index.html`.replace("/dist/", "/") },
+    { source: app.routePrefix, destination: "/index.html" },
+    { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
   ]);
   assert.deepEqual(vercel.rewrites, [
     ...expectedGameRewrites,
@@ -114,6 +120,10 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   );
 });
 
+test("the unified build owns a generated application-shell manifest", () => {
+  assert.equal(applicationShellManifestPath, "dist/application-shell-manifest.json");
+});
+
 test("root scripts own the unified delivery entry points", async () => {
   const packageJson = await readJson<RootPackage>("package.json");
   assert.equal(packageJson.scripts["build:unified"], "node scripts/production-delivery.ts build");
@@ -122,5 +132,20 @@ test("root scripts own the unified delivery entry points", async () => {
 
   for (const app of deliveryApps) {
     await assert.rejects(access(path.join(repositoryRoot, app.workspaceDirectory, "vercel.json")));
+  }
+});
+
+test("game manifests resolve their icons inside their mounted subpaths", async () => {
+  const clashManifest = await readJson<{ icons: Array<{ src: string }>; scope: string; start_url: string }>(
+    "apps/clashcrown/public/site.webmanifest",
+  );
+  const brawlManifest = await readJson<{ icons: Array<{ src: string }>; scope: string; start_url: string }>(
+    "apps/brawlstats/public/manifest.webmanifest",
+  );
+
+  for (const manifest of [brawlManifest, clashManifest]) {
+    assert.equal(manifest.start_url, "./");
+    assert.equal(manifest.scope, "./");
+    assert.equal(manifest.icons.every((icon) => !icon.src.startsWith("/")), true);
   }
 });

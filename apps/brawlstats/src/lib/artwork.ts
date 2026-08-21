@@ -20,6 +20,21 @@ export function brawlerModelUrl(id: number) {
   return cdnImage(`brawlers/model/${id}.png`);
 }
 
+type BrawlerHeroArtMetadata = Readonly<{
+  imageUrl?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
+}>;
+
+export function brawlerHeroArtwork(id: number, metadata: BrawlerHeroArtMetadata) {
+  const featureArt = brawlerFeatureArtUrl(id);
+  return {
+    fallbackSrc: metadata.imageUrl2 || metadata.imageUrl || metadata.imageUrl3 || brawlerBorderUrl(id),
+    kind: featureArt ? "feature" as const : "model" as const,
+    src: featureArt || brawlerModelUrl(id),
+  };
+}
+
 const BRAWLER_FEATURE_ART: Readonly<Record<number, string>> = {
   16000107: "https://brawlstars.inbox.supercell.com/xdjcscmv3zo3/4CF9yj49X04L66kRTG2ZyI/5410496b3d48d6c65fec7072099e4f2e/800x433.png",
 };
