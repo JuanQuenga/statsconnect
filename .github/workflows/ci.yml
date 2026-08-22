@@ -1,17 +1,17 @@
-name: Emergency Convex backend deploy
+name: CI
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
 
 concurrency:
-  group: convex-production
-  cancel-in-progress: false
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -28,8 +28,3 @@ jobs:
 
       - name: Verify release gate
         run: pnpm verify
-
-      - name: Deploy Convex functions
-        run: pnpm --filter @statsconnect/backend run deploy
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}

@@ -60,19 +60,33 @@ test("frontend package scripts do not invoke Convex", () => {
   );
 });
 
+function readOptionalText(relativePath: string): string | null {
+  const filePath = path.join(workspaceRoot, relativePath);
+  return existsSync(filePath) ? readFileSync(filePath, "utf8") : null;
+}
+
 test("developer tools point Convex commands at packages/backend", () => {
-  assert.doesNotMatch(
-    readText(".codex/environments/environment.toml"),
-    /--filter (?:statsconnect|brawlstats\.io|clash-crown) (?:dev:backend|convex:dev)/,
-  );
+  // .codex/environments/environment.toml is optional tooling configuration;
+  // when present, its dev actions must not target app-local Convex backends.
+  const codexEnvironment = readOptionalText(".codex/environments/environment.toml");
+  if (codexEnvironment !== null) {
+    assert.doesNotMatch(
+      codexEnvironment,
+      /--filter (?:statsconnect|brawlstats\.io|clash-crown) (?:dev:backend|convex:dev)/,
+    );
+  }
   assert.doesNotMatch(readText(".gitignore"), /apps\/\*\/convex/);
 
   for (const environmentFile of [
     "apps/brawlstats/.env.example",
     "apps/clashcrown/.env-example",
   ]) {
+    const contents =
+      readOptionalText(environmentFile) ??
+      readOptionalText(environmentFile.replace(/\.env\.example$/, ".env-example"));
+    assert.notEqual(contents, null, `${environmentFile} must exist`);
     assert.doesNotMatch(
-      readText(environmentFile),
+      contents ?? "",
       /^(?:BRAW_|CLASH_|BETTER_AUTH_SECRET|GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET|SITE_URL)=/m,
       `${environmentFile} must contain browser variables only`,
     );
@@ -103,4 +117,41 @@ test("packages/backend exports Convex configuration and data types", () => {
     ),
     true,
   );
+});
+
+test("release gates use the complete workspace verification", () => {
+  const rootPackage = readJson<{ packageManager?: string; scripts?: Record<string, string> }>(
+    "package.json",
+  );
+  const expectedPackageManager = /^pnpm@(?<version>\d+\.\d+\.\d+)$/.exec(
+    rootPackage.packageManager ?? "",
+  )?.groups?.version;
+
+  assert.equal(
+    rootPackage.scripts?.verify,
+    "node scripts/release-gate.ts",
+    "the release gate must be executable from the root",
+  );
+
+  for (const workflowPath of [
+    ".github/workflows/ci.yml",
+    ".github/workflows/convex-production.yml",
+  ]) {
+    const workflow = readText(workflowPath);
+    assert.equal(
+      workflow.includes("run: pnpm verify"),
+      true,
+      `${workflowPath} must run the shared release gate`,
+    );
+    assert.equal(
+      /(?:^|\n)\s*- name: [^\n]+\n\s*run: pnpm (typecheck|test)\n/.test(workflow),
+      false,
+      `${workflowPath} must not bypass the shared gate`,
+    );
+    assert.equal(
+      /(?:^|\n)\s*version: (\d+\.\d+\.\d+)\n/.exec(workflow)?.[1],
+      expectedPackageManager,
+      `${workflowPath} must pin the project package manager version`,
+    );
+  }
 });
