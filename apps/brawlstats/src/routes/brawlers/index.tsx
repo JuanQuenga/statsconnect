@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,6 @@ import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { aggregateMeta, type TrophyBucket } from "@/lib/meta";
-import { appPath } from "@/lib/paths";
 
 type BrawlersSearch = {
   q?: string;
@@ -104,7 +103,7 @@ function BrawlersPage() {
           const stat = stats.get(brawler.id);
           const eligible = (stat?.picks || 0) >= (metaQuery.data?.minPicks || 25);
           return (
-            <a key={brawler.id} href={appPath(`/brawlers/${brawler.id}`)} className="group block">
+            <Link key={brawler.id} to="/brawlers/$brawlerId" params={{ brawlerId: String(brawler.id) }} className="group block">
               <Card className="h-full gap-0 overflow-hidden py-0 transition group-hover:ring-primary/60">
                 <div className="relative aspect-[4/3] overflow-hidden" style={{ background: `linear-gradient(145deg, ${brawler.color}55, #101926 72%)` }}>
                   <img src={brawler.imageUrl || brawlerBorderUrl(brawler.id)} alt={brawler.name} className="h-full w-full object-contain transition group-hover:scale-[1.03]" loading="lazy" />
@@ -122,7 +121,7 @@ function BrawlersPage() {
                   </div>
                 </div>
               </Card>
-            </a>
+            </Link>
           );
         })}
       </div>

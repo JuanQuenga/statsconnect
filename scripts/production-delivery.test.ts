@@ -110,7 +110,12 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: app.routePrefix, destination: "/index.html" },
     { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
   ]);
+  const expectedBrawlerAssetRewrites = [
+    { source: "/bs/assets/brawlers/3d/:path*", destination: "/api/brawlers-3d/:path*" },
+    { source: "/assets/brawlers/3d/:path*", destination: "/api/brawlers-3d/:path*" },
+  ];
   assert.deepEqual(vercel.rewrites, [
+    ...expectedBrawlerAssetRewrites,
     ...expectedGameRewrites,
     { source: "/:path*", destination: "/index.html" },
   ]);

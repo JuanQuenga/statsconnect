@@ -35,6 +35,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/bs/assets/brawlers/3d/:path*", "destination": "/api/brawlers-3d/:path*" },
+    { "source": "/assets/brawlers/3d/:path*", "destination": "/api/brawlers-3d/:path*" },
     { "source": "/bs", "destination": "/index.html" },
     { "source": "/bs/:path*", "destination": "/index.html" },
     { "source": "/cr", "destination": "/index.html" },

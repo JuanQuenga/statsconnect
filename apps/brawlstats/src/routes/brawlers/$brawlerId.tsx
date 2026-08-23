@@ -120,7 +120,7 @@ function BrawlerDetailPage() {
                   artworkSrc={heroArtwork.src}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   artworkKind={heroArtwork.kind}
-                  className="relative z-10 mx-auto -my-8 h-[420px] w-[calc(100%+2rem)] max-w-none -translate-x-4 md:-mr-12 md:h-[520px] md:w-[calc(100%+6rem)] md:translate-x-0"
+                  className="relative z-10 mx-auto -my-8 h-[420px] w-full max-w-none md:h-[520px]"
                 />
               ) : null}
               {heroArtwork?.kind === "feature" ? (

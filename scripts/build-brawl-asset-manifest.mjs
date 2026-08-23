@@ -1,0 +1,493 @@
+#!/usr/bin/env node
+
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { copyFileSync } from "node:fs";
+import { mkdir, readFile, writeFile, copyFile } from "node:fs/promises";
+import path from "node:path";
+import { validateBrawlAnimationGlb } from "./validate-brawl-animation.mjs";
+
+const DEFAULT_COMMIT = "e39b51ecd3dc7be45ac7d2b1f0210bc4cea054f0";
+const DEFAULT_VERSION = "68.250";
+const animationFields = ["IdleAnim", "WalkAnim", "PrimarySkillAnim", "SecondarySkillAnim", "OverchargedSecondarySkillAnim", "PrimarySkillRecoilAnim", "SecondarySkillRecoilAnim", "ReloadingAnim", "PushbackAnim", "ChargeMoveAnim", "DeployAnim", "HappyAnim", "HappyLoopAnim", "SadAnim", "SadLoopAnim", "LobbyAnim", "LobbyLoopAnim", "HeroScreenIdleAnim", "HeroScreenAnim", "HeroScreenLoopAnim", "SignatureAnim", "ProfileAnim", "IntroAnim", "EnterAnim", "ExitAnim"];
+const faceFields = ["IdleFace", "WalkFace", "HappyFace", "HappyLoopFace", "SadFace", "SadLoopFace", "LobbyFace", "LobbyLoopFace", "HeroScreenIdleFace", "HeroScreenFace", "HeroScreenLoopFace", "SignatureFace", "ProfileFace", "IntroFace"];
+const explicitTrue = (value) => value === true || (typeof value === "string" && value.trim().toLowerCase() === "true");
+const animationLabels = {
+  IdleAnim: "Idle Anim", WalkAnim: "Walking Anim", PrimarySkillAnim: "Attack Anim", SecondarySkillAnim: "Ulti Anim", OverchargedSecondarySkillAnim: "Overcharged Ulti Anim",
+  PrimarySkillRecoilAnim: "Attack Recoil", SecondarySkillRecoilAnim: "Ulti Recoil", ReloadingAnim: "Reload Anim", PushbackAnim: "Pushback Anim", ChargeMoveAnim: "Charge Anim", DeployAnim: "Deploy Anim",
+  HappyAnim: "Win Anim", HappyLoopAnim: "Win Loop Anim", SadAnim: "Lose Anim", SadLoopAnim: "Lose Loop Anim", LobbyAnim: "Lobby Anim", LobbyLoopAnim: "Lobby Loop Anim",
+  HeroScreenIdleAnim: "Hero Screen Idle", HeroScreenAnim: "Hero Screen Anim", HeroScreenLoopAnim: "Hero Screen Loop", SignatureAnim: "Signature Anim", ProfileAnim: "Profile Anim", IntroAnim: "Intro Anim", EnterAnim: "Enter Anim", ExitAnim: "Exit Anim",
+};
+
+function args() {
+  const values = new Map();
+  for (let i = 2; i < process.argv.length; i += 1) {
+    const value = process.argv[i];
+    if (!value.startsWith("--")) continue;
+    const [key, inline] = value.slice(2).split("=", 2);
+    const next = process.argv[i + 1];
+    values.set(key, inline ?? (next && !next.startsWith("--") ? process.argv[++i] : true));
+  }
+  return values;
+}
+
+function csv(text) {
+  const rows = []; let row = []; let cell = ""; let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index]; const next = text[index + 1];
+    if (quoted) { if (character === '"' && next === '"') { cell += '"'; index += 1; } else if (character === '"') quoted = false; else cell += character; }
+    else if (character === '"') quoted = true;
+    else if (character === ",") { row.push(cell); cell = ""; }
+    else if (character === "\n") { row.push(cell.replace(/\r$/, "")); rows.push(row); row = []; cell = ""; }
+    else cell += character;
+  }
+  if (row.length) { row.push(cell); rows.push(row); }
+  const [header, , ...data] = rows;
+  return data.filter((candidate) => candidate.length > 1).map((candidate, rowIndex) => ({ rowIndex, ...Object.fromEntries(header.map((key, index) => [key, candidate[index] ?? ""])) }));
+}
+
+function gitShow(repo, commit, file) {
+  return execFileSync("git", ["-C", repo, "show", `${commit}:${file}`], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+}
+
+function gitFiles(repo, commit, prefix) {
+  return execFileSync("git", ["-C", repo, "ls-tree", "-r", "--name-only", commit, "--", prefix], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }).trim().split("\n").filter(Boolean);
+}
+
+function normalizeApiCatalog(value) {
+  if (Array.isArray(value)) return value;
+  if (value && Array.isArray(value.list)) return value.list;
+  throw new Error("--api-catalog must contain an array or an object with a list array");
+}
+
+function assetKey(id, skinId) {
+  const safeSkin = String(skinId).replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  return `${id ?? "unknown"}-${safeSkin || "skin"}`;
+}
+
+function modelBaseName(model) {
+  return (model ?? "").split(":", 1)[0] || null;
+}
+
+function animationCandidates(model, field) {
+  const base = modelBaseName(model);
+  if (!base) return [];
+  const stem = base.replace(/(?:_redux|_base)?_geo\.glb$/i, "");
+  const stems = [...new Set([stem, stem.split("_", 1)[0]])];
+  const suffixes = {
+    IdleAnim: ["idle"], WalkAnim: ["walk"], PrimarySkillAnim: ["attack", "primary"],
+    SecondarySkillAnim: ["ulti", "swing", "secondary"], OverchargedSecondarySkillAnim: ["ulti", "swing", "secondary"],
+    PrimarySkillRecoilAnim: ["attack"], SecondarySkillRecoilAnim: ["ulti", "swing"],
+    ReloadingAnim: ["reload"], PushbackAnim: ["pushback"], ChargeMoveAnim: ["charge"], DeployAnim: ["deploy"],
+    HappyAnim: ["win", "happy"], HappyLoopAnim: ["winloop", "happyloop"], SadAnim: ["lose", "sad"], SadLoopAnim: ["loseloop", "sadloop"],
+    LobbyAnim: ["win", "lobby"], LobbyLoopAnim: ["winloop", "lobbyloop"], HeroScreenIdleAnim: ["idle"], HeroScreenAnim: ["win", "hero"], HeroScreenLoopAnim: ["winloop", "heroloop"],
+  }[field] ?? [];
+  const candidates = [];
+  for (const candidateStem of stems) {
+    for (const suffix of suffixes) candidates.push(`${candidateStem}_${suffix}.glb`);
+    if (field === "IdleAnim") {
+      candidates.push(`${candidateStem}_idle_anim.glb`, `${candidateStem}_anim_idle.glb`);
+    }
+  }
+  return [...new Set(candidates)];
+}
+
+function unavailable(reason) { return { kind: "unavailable", reason }; }
+function localAsset(file) { return file ? { kind: "ready", url: `/assets/brawlers/3d/${file}` } : unavailable("not-captured"); }
+
+const options = args();
+const repo = options.get("mirror");
+if (!repo) throw new Error("--mirror is required and must point to a local source mirror");
+const commit = options.get("commit") ?? DEFAULT_COMMIT;
+const version = options.get("version") ?? DEFAULT_VERSION;
+const output = options.get("output") ?? "/tmp/brawl-asset-manifest.json";
+const shardsDir = options.get("shards-dir");
+const auditOutput = options.get("audit-output");
+const packageDir = options.get("package-dir");
+const composedDir = options.get("composed-dir");
+const textureDir = options.get("texture-dir");
+const convertedDir = options.get("converted-dir");
+const apiCatalogPath = options.get("api-catalog");
+const referenceBridgePath = options.get("reference-bridge");
+const allowDiagnosticReferenceAssets = options.has("allow-diagnostic-reference-assets");
+const converterDir = options.get("converter-dir");
+const converterCommit = options.get("converter-commit") ?? "a0ac5f47b8e2088c088b0043f49508611f7bc660";
+if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("--commit must be a full git SHA");
+if (repo.includes("http://") || repo.includes("https://")) throw new Error("--mirror must be a local repository");
+if (referenceBridgePath && !allowDiagnosticReferenceAssets) throw new Error("--reference-bridge requires --allow-diagnostic-reference-assets");
+if (allowDiagnosticReferenceAssets && !referenceBridgePath) throw new Error("--allow-diagnostic-reference-assets requires --reference-bridge");
+if (converterDir) {
+  if (!/^[a-f0-9]{40}$/.test(converterCommit)) throw new Error("--converter-commit must be a full git SHA");
+  const actualConverterCommit = execFileSync("git", ["-C", converterDir, "rev-parse", converterCommit], { encoding: "utf8" }).trim();
+  if (actualConverterCommit !== converterCommit) throw new Error(`converter commit mismatch: expected ${converterCommit}, got ${actualConverterCommit}`);
+  const rotationReader = await readFile(path.join(converterDir, "lib/animation/continuousPackedReader.py"), "utf8");
+  if (!rotationReader.includes("decode_base_rotation_component") || !rotationReader.includes("signed_value -= 0x10000")) {
+    throw new Error("converter is missing the signed uint16 quaternion base-rotation patch");
+  }
+  const constants = await readFile(path.join(converterDir, "lib/odin_constants.py"), "utf8");
+  const attributes = await readFile(path.join(converterDir, "lib/odin_attribute.py"), "utf8");
+  if (!constants.includes("HalfVector2 = 22") || !constants.includes("OdinAttributeFormat.HalfVector2: 2") || !attributes.includes("case OdinAttributeFormat.HalfVector2")) {
+    throw new Error("converter is missing Odin HalfVector2 UV support");
+  }
+}
+const sourceFiles = new Set(gitFiles(repo, commit, `${version}/sc3d`));
+const characters = csv(gitShow(repo, commit, `${version}/csv_logic/characters.csv`));
+const skins = csv(gitShow(repo, commit, `${version}/csv_logic/skins.csv`));
+const confs = csv(gitShow(repo, commit, `${version}/csv_logic/skin_confs.csv`));
+const faces = csv(gitShow(repo, commit, `${version}/csv_client/faces.csv`));
+const faceExportBySymbol = new Map(faces.flatMap((face) => {
+  if (!face.ExportName) return [];
+  return face.Name ? [[face.Name, face.ExportName], [face.ExportName, face.ExportName]] : [[face.ExportName, face.ExportName]];
+}));
+const referenceBridge = referenceBridgePath ? JSON.parse(await readFile(referenceBridgePath, "utf8")) : null;
+const apiCatalog = apiCatalogPath ? normalizeApiCatalog(JSON.parse(await readFile(apiCatalogPath, "utf8"))) : [];
+const apiById = new Map(apiCatalog.filter((entry) => Number.isSafeInteger(entry.id)).map((entry) => [entry.id, entry]));
+const apiByName = new Map(apiCatalog.filter((entry) => typeof entry.name === "string").map((entry) => [entry.name.toLowerCase(), entry]));
+const skinRows = new Map(skins.map((skin) => [skin.Conf, skin]));
+const sourcePath = (file) => file ? `${version}/sc3d/${file}` : null;
+const modelAsset = (model) => {
+  const base = modelBaseName(model);
+  return base && !model.includes(":") && sourceFiles.has(sourcePath(base)) ? base : null;
+};
+const sourceTexture = (texture) => texture && sourceFiles.has(sourcePath(texture)) ? texture : null;
+const convertedPath = (category, id, extension) => convertedDir ? path.join(convertedDir, category, `${id}.${extension}`) : null;
+const contentAddressedAsset = (relative) => {
+  if (!convertedDir) return unavailable("not-captured");
+  const source = path.join(convertedDir, relative);
+  if (!existsSync(source)) return unavailable("not-captured");
+  const digest = createHash("sha256").update(readFileSync(source)).digest("hex").slice(0, 16);
+  const extension = path.extname(relative);
+  const stem = relative.slice(0, -extension.length);
+  const hashedRelative = `${stem}.${digest}${extension}`;
+  const target = path.join(convertedDir, hashedRelative);
+  if (!existsSync(target)) copyFileSync(source, target);
+  return localAsset(hashedRelative);
+};
+const convertedAsset = (category, id, extension) => {
+  const file = convertedPath(category, id, extension);
+  return file && existsSync(file) ? contentAddressedAsset(`${category}/${id}.${extension}`) : unavailable("not-captured");
+};
+const convertedAnimation = (key, field) => {
+  const relative = `animations/${key}/${field}.glb`;
+  const file = convertedDir ? path.join(convertedDir, relative) : null;
+  if (!file || !existsSync(file)) return unavailable("not-captured");
+  const validation = validateBrawlAnimationGlb(readFileSync(file));
+  return validation.ok ? contentAddressedAsset(relative) : unavailable(validation.reason);
+};
+const convertedFace = (key, field) => {
+  const relative = `faces/${key}/${field}.bin`;
+  return convertedDir && existsSync(path.join(convertedDir, relative)) ? contentAddressedAsset(relative) : unavailable("not-captured");
+};
+const convertedFaceFps = (key) => {
+  if (!convertedDir) return null;
+  const metadata = path.join(convertedDir, "faces", key, "IdleFace.meta.json");
+  if (!existsSync(metadata)) return null;
+  try {
+    const fps = JSON.parse(readFileSync(metadata, "utf8")).fps;
+    return Number.isFinite(fps) && fps > 0 ? fps : null;
+  } catch { return null; }
+};
+const convertedFaceAtlas = (key) => {
+  const relative = `faces/${key}/atlas.png`;
+  return convertedDir && existsSync(path.join(convertedDir, relative)) ? contentAddressedAsset(relative) : unavailable("not-captured");
+};
+const convertedNamedAsset = (file) => convertedDir && existsSync(path.join(convertedDir, file)) ? contentAddressedAsset(file) : unavailable("not-captured");
+const characterId = (character) => {
+  if (!character) return null;
+  const legacyId = 16000000 + character.rowIndex;
+  const api = apiById.get(legacyId) ?? apiByName.get((character.Name ?? "").toLowerCase());
+  return api?.id ?? legacyId;
+};
+const releasedApiIds = new Set(apiCatalog.filter((entry) => entry.released === true).map((entry) => entry.id));
+const isReleasedCharacter = (character) => {
+  const id = characterId(character);
+  return apiCatalog.length ? releasedApiIds.has(id) : character?.Type === "Hero" && character.Disabled !== "true";
+};
+const bridgeReadyAssets = (value, output = []) => {
+  if (!value || typeof value !== "object") return output;
+  if (value.kind === "ready" && typeof value.url === "string") output.push(value);
+  for (const child of Object.values(value)) bridgeReadyAssets(child, output);
+  return output;
+};
+const bridgeGeometryMetadata = (entry) => {
+  const metadata = entry.geometryMetadata ?? entry.assets?.geometry?.metadata;
+  return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+};
+const readGlbJsonAndBin = (file) => {
+  if (!file || !existsSync(file)) return null;
+  const bytes = readFileSync(file);
+  if (bytes.length < 20 || bytes.toString("ascii", 0, 4) !== "glTF" || bytes.readUInt32LE(4) !== 2) return null;
+  let offset = 12;
+  let json = null;
+  let bin = null;
+  while (offset + 8 <= bytes.length) {
+    const length = bytes.readUInt32LE(offset);
+    const type = bytes.readUInt32LE(offset + 4);
+    const chunk = bytes.subarray(offset + 8, offset + 8 + length);
+    if (type === 0x4e4f534a) json = JSON.parse(chunk.toString("utf8"));
+    if (type === 0x004e4942) bin = chunk;
+    offset += 8 + length;
+  }
+  return json && bin ? { json, bin } : null;
+};
+const bridgeGeometryUvRange = (entry) => {
+  const metadata = bridgeGeometryMetadata(entry);
+  if (Array.isArray(metadata.uvRange?.min) && Array.isArray(metadata.uvRange?.max)) return metadata.uvRange;
+  const geometry = entry.assets?.geometry;
+  if (!geometry?.url || !convertedDir) return null;
+  const relative = geometry.url.replace(/^\/assets\/brawlers\/3d\//, "");
+  const parsed = readGlbJsonAndBin(path.join(convertedDir, relative));
+  if (!parsed) return null;
+  const ranges = [];
+  for (const mesh of parsed.json.meshes ?? []) for (const primitive of mesh.primitives ?? []) {
+    const accessorIndex = primitive.attributes?.TEXCOORD_0;
+    const accessor = Number.isInteger(accessorIndex) ? parsed.json.accessors?.[accessorIndex] : null;
+    if (!accessor || accessor.type !== "VEC2") continue;
+    if (Array.isArray(accessor.min) && Array.isArray(accessor.max)) { ranges.push({ min: accessor.min, max: accessor.max }); continue; }
+    const view = parsed.json.bufferViews?.[accessor.bufferView];
+    if (!view || accessor.componentType !== 5126) continue;
+    const componentBytes = 4;
+    const stride = view.byteStride ?? componentBytes * 2;
+    const start = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+    const min = [Infinity, Infinity];
+    const max = [-Infinity, -Infinity];
+    for (let index = 0; index < accessor.count; index += 1) {
+      const base = start + index * stride;
+      const values = [parsed.bin.readFloatLE(base), parsed.bin.readFloatLE(base + componentBytes)];
+      for (let axis = 0; axis < 2; axis += 1) { min[axis] = Math.min(min[axis], values[axis]); max[axis] = Math.max(max[axis], values[axis]); }
+    }
+    if (min.every(Number.isFinite) && max.every(Number.isFinite)) ranges.push({ min, max });
+  }
+  if (!ranges.length) return null;
+  return { min: ranges.reduce((out, range) => out.map((value, index) => Math.min(value, range.min[index])), [Infinity, Infinity]), max: ranges.reduce((out, range) => out.map((value, index) => Math.max(value, range.max[index])), [-Infinity, -Infinity]) };
+};
+const bridgeUvSource = (entry) => {
+  const metadata = bridgeGeometryMetadata(entry);
+  if (["KHR_texture_transform", "COLLADA2GLTF", "67/68", "default"].includes(metadata.uvSource)) return metadata.uvSource;
+  const range = bridgeGeometryUvRange(entry);
+  if (range && range.min.every((value) => value >= -0.001) && range.max.every((value) => value <= 1.001)) return "default";
+  return "default";
+};
+const bridgeAsset = (value, extension = null) => {
+  if (!value || value.kind !== "ready" || typeof value.url !== "string" || !isStrictLocalBridgeUrl(value.url)) return unavailable("reference-bridge-asset-not-ready");
+  if (extension && !value.url.toLowerCase().endsWith(extension)) return unavailable("reference-bridge-asset-extension-invalid");
+  return { kind: "ready", url: value.url };
+};
+const isStrictLocalBridgeUrl = (value) => /^\/assets\/brawlers\/3d\/[^\\]*$/.test(value);
+const bridgeFace = (asset, atlas) => ({ symbol: null, exportName: null, resolved: asset?.kind === "ready" && atlas?.kind === "ready", ready: asset?.kind === "ready" && atlas?.kind === "ready", atlas: bridgeAsset(atlas, ".png"), binary: bridgeAsset(asset, ".bin"), startFrame: 0, endFrame: -1, fps: 60 });
+const bridgeRuntimeEntry = (entry) => {
+  const assets = entry.assets ?? {};
+  const animations = assets.animations ?? {};
+  const metadata = entry.animationMetadata ?? {};
+  const animationMap = { idle: "IdleAnim", walking: "WalkAnim", weapon: "PrimarySkillAnim", ulti: "SecondarySkillAnim", lobby: "HappyAnim", lose: "SadAnim" };
+  const animationOutput = {};
+  for (const [sourceKey, field] of Object.entries(animationMap)) {
+    const asset = animations[sourceKey];
+    if (!asset) continue;
+    const detail = metadata[sourceKey] ?? {};
+    animationOutput[field] = { symbol: null, exported: bridgeAsset(asset, ".glb"), label: detail.label ?? animationLabels[field] ?? field, startFrame: detail.startFrame ?? 0, endFrame: detail.endFrame ?? -1, fps: detail.fps ?? 60 };
+  }
+  const atlas = assets.faceAtlas;
+  const faceAssets = { face: assets.face, happy: assets.faces?.happy, sad: assets.faces?.sad };
+  const facesOutput = {};
+  for (const field of faceFields) {
+    const sourceKey = field.startsWith("Happy") || ["LobbyFace", "HeroScreenFace", "SignatureFace"].includes(field) ? "happy" : field.startsWith("Sad") ? "sad" : "face";
+    facesOutput[field] = bridgeFace(faceAssets[sourceKey], atlas);
+  }
+  const uvSource = bridgeUvSource(entry);
+  const materialSlots = Array.isArray(entry.materialSlots) ? entry.materialSlots.map((slot) => {
+    const output = { ...slot };
+    output.uvSource = uvSource;
+    output.stencilUvPolicy = slot.stencilUvPolicy ?? "identity";
+    for (const key of ["diffuseTexture", "specularTexture", "diffuseLightmap", "specularLightmap", "stencilTexture", "emissionTexture", "colorizeTexture"]) if (slot[key] !== undefined) output[key] = bridgeAsset(slot[key]);
+    return output;
+  }) : [];
+  return {
+    brawlerId: entry.brawlerId,
+    skinId: entry.skinId,
+    character: entry.character,
+    publicCharacter: entry.character,
+    released: true,
+    baseModel: bridgeAsset(assets.geometry, ".glb"),
+    diffuseTexture: bridgeAsset(assets.texture, ".png"),
+    animations: animationOutput,
+    faces: facesOutput,
+    capabilities: { outline: { kind: "postprocess", enabled: entry.capabilities?.outline?.enabled === true } },
+    assetGroup: "reference-bridge",
+    materialSlots,
+    cameraScale: Number(entry.cameraScale) || 1,
+    faceFlags: { faceCoversWholeTexture: explicitTrue(entry.faceFlags?.coversWholeTexture) ? "true" : null, faceScaledUpTexture: explicitTrue(entry.faceFlags?.scaledUpTexture) ? "true" : null, disableHeadRotation: explicitTrue(entry.faceFlags?.disableHeadRotation) ? "true" : null },
+    source: { referenceBridge: true, sourceKind: entry.source?.kind ?? null, assetSetId: entry.source?.assetSetId ?? null },
+    sourceReadiness: { model: true, diffuse: true, idle: animationOutput.IdleAnim?.exported.kind === "ready", readyForConversion: false },
+    conversionPlan: null,
+    sourceBytes: null,
+    unavailableReasons: [],
+  };
+};
+const validateReferenceBridge = (bridge) => {
+  if (!bridge || bridge.kind !== "reference-asset-bridge" || !Array.isArray(bridge.entries)) throw new Error("reference bridge must be a reference-asset-bridge manifest");
+  for (const entry of bridge.entries) {
+    const identity = { sourceKind: null, assetSetId: null };
+    if (entry.status !== "ready") throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} is unavailable`);
+    if (entry.source?.contentAddressed !== true) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} is not content-addressed`);
+    const assets = bridgeReadyAssets(entry);
+    if (!assets.length) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} has no assets`);
+    const uvSource = bridgeUvSource(entry);
+    const geometryMetadata = bridgeGeometryMetadata(entry);
+    if (geometryMetadata.sourceKind && geometryMetadata.sourceKind !== entry.source?.kind) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} mixes geometry source kind and bridge source kind`);
+    if (uvSource === "67/68") throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} uses the pinned-local 67/68 UV policy`);
+    for (const slot of entry.materialSlots ?? []) if (slot.uvSource && slot.uvSource !== uvSource) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} has a material UV policy mismatch: ${slot.uvSource} vs ${uvSource}`);
+    for (const asset of assets) {
+      if (asset.sourceKind === "pinned-local" || typeof asset.sourceKind !== "string" || typeof asset.assetSetId !== "string") throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} mixes or omits asset provenance`);
+      if (!/^[a-f0-9]{64}$/i.test(asset.sha256 ?? "") || !asset.url.includes(asset.sha256.toLowerCase())) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} has an invalid content hash`);
+      if (convertedDir) {
+        const relative = asset.url.replace(/^\/assets\/brawlers\/3d\//, "");
+        const local = path.join(convertedDir, relative);
+        if (!existsSync(local)) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} asset is missing locally: ${asset.url}`);
+        const actualHash = createHash("sha256").update(readFileSync(local)).digest("hex");
+        if (actualHash !== asset.sha256.toLowerCase()) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} asset hash does not match local bytes: ${asset.url}`);
+      }
+      if (identity.sourceKind === null) identity.sourceKind = asset.sourceKind;
+      if (identity.assetSetId === null) identity.assetSetId = asset.assetSetId;
+      if (identity.sourceKind !== asset.sourceKind || identity.assetSetId !== asset.assetSetId) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} mixes source kinds or asset sets`);
+    }
+  }
+  return bridge.entries;
+};
+const entries = confs.map((conf) => {
+  const confCharacterNames = new Set((conf.Character ?? "").split(";"));
+  const character = characters.find((candidate) => confCharacterNames.has(candidate.Name) || candidate.Name.split(";").some((name) => confCharacterNames.has(name)));
+  const skin = skinRows.get(conf.Name);
+  const animationSymbols = Object.fromEntries(animationFields.map((field) => [field, conf[field] || null]));
+  const faceSymbols = Object.fromEntries(faceFields.map((field) => [field, conf[field] || null]));
+  const faceExportNames = Object.fromEntries(faceFields.map((field) => [field, faceSymbols[field] ? faceExportBySymbol.get(faceSymbols[field]) ?? null : null]));
+  const model = modelAsset(conf.Model);
+  const modelSourceFile = modelBaseName(conf.Model);
+  const modelSourcePresent = Boolean(modelSourceFile && sourceFiles.has(sourcePath(modelSourceFile)));
+  const compositeModel = Boolean(conf.Model?.includes(":"));
+  const diffuse = sourceTexture(skin?.DiffuseTexture);
+  const idleCandidates = animationCandidates(conf.Model, "IdleAnim");
+  const idleSource = idleCandidates.find((candidate) => sourceFiles.has(sourcePath(candidate))) ?? null;
+  const animationSources = Object.fromEntries(animationFields.map((field) => [field, animationCandidates(conf.Model, field).find((candidate) => sourceFiles.has(sourcePath(candidate))) ?? null]));
+  const id = characterId(character);
+  const key = assetKey(id, conf.Name);
+  const released = isReleasedCharacter(character);
+  const apiCharacter = apiById.get(id) ?? apiByName.get((character?.Name ?? "").toLowerCase());
+  const syntheticCharacter = Boolean(conf.Character?.includes(";"));
+  const baseModelAsset = convertedDir && model ? convertedAsset("models", key, "glb") : unavailable(model ? "not-captured" : "model-not-present-in-pinned-source");
+  const diffuseTextureAsset = convertedDir && diffuse ? convertedAsset("textures", key, "png") : unavailable(diffuse ? "not-captured" : "diffuse-texture-not-present-in-pinned-source");
+  const materialSlots = baseModelAsset.kind === "ready" ? [
+    { materialName: "character_metal_mat", diffuse: true, lightmapDiffuse: true, specular: true, stencil: true, uvSource: "67/68", stencilUvPolicy: "2x-flip-y", diffuseTexture: diffuseTextureAsset, diffuseLightmap: convertedNamedAsset("menu_metal_diffuse_lightmap.png"), specularLightmap: convertedNamedAsset("menu_metal_specular_lightmap.png") },
+    { materialName: "character_mat", diffuse: true, lightmapDiffuse: true, specular: true, stencil: true, uvSource: "67/68", stencilUvPolicy: "2x-flip-y", diffuseTexture: diffuseTextureAsset, diffuseLightmap: convertedNamedAsset("menu_diffuse_lightmap.png"), specularLightmap: convertedNamedAsset("menu_specular_lightmap.png") },
+  ] : [];
+  const unavailableReasons = [];
+  if (syntheticCharacter) unavailableReasons.push("default-source-entry-missing");
+  if (!model) unavailableReasons.push(compositeModel && modelSourcePresent ? "composite-model-not-captured" : "model-not-present-in-pinned-source");
+  if (!diffuse) unavailableReasons.push("diffuse-texture-not-present-in-pinned-source");
+  if (!conf.PortraitCameraFile || !sourceFiles.has(`${version}/sc3d/${conf.PortraitCameraFile}`)) unavailableReasons.push("portrait-camera-not-captured");
+  if (!idleSource) unavailableReasons.push("idle-animation-not-present-in-pinned-source");
+  const exportedAnimations = Object.fromEntries(animationFields.map((field) => [field, animationSymbols[field] ? convertedAnimation(key, field) : unavailable("not-configured")]));
+  const faceAtlas = convertedFaceAtlas(key);
+  const faceFps = convertedFaceFps(key) ?? 60;
+  const exportedFaces = Object.fromEntries(faceFields.map((field) => {
+    const symbol = faceSymbols[field];
+    const exportName = faceExportNames[field];
+    if (!symbol) return [field, { atlas: unavailable("not-configured"), binary: unavailable("not-configured") }];
+    if (!exportName) return [field, { atlas: unavailable("face-export-not-mapped"), binary: unavailable("face-export-not-mapped") }];
+    return [field, { atlas: faceAtlas, binary: convertedFace(key, field) }];
+  }));
+  if (Object.entries(animationSymbols).some(([field, symbol]) => symbol && exportedAnimations[field].kind !== "ready")) unavailableReasons.push("animation-export-not-run");
+  if (Object.values(faceSymbols).some((symbol) => symbol && !faceExportBySymbol.has(symbol))) unavailableReasons.push("face-symbol-not-mapped");
+  if (Object.entries(faceExportNames).some(([field, exportName]) => exportName && exportedFaces[field].binary.kind !== "ready")) unavailableReasons.push("face-export-not-captured");
+  return {
+    brawlerId: id,
+    skinId: conf.Name,
+    character: conf.Character,
+    publicCharacter: apiCharacter?.name ?? null,
+    released,
+    assetGroup: "pinned-local",
+    baseModel: baseModelAsset,
+    diffuseTexture: diffuseTextureAsset,
+    source: { model: conf.Model || null, modelFile: modelSourceFile, compositeModel, portraitCamera: conf.PortraitCameraFile || null, diffuse: skin?.DiffuseTexture || null, diffuseFile: diffuse, specular: skin?.SpecularTexture || null, materials: skin?.MaterialsFile || null, customShader: skin?.CustomShader || null, outlineShader: skin?.OutlineShader || null, animations: animationSources, idle: idleSource },
+    animations: Object.fromEntries(animationFields.map((field) => [field, { symbol: animationSymbols[field], exported: exportedAnimations[field], label: animationLabels[field] ?? field, startFrame: 0, endFrame: -1, fps: 60 }])),
+    faces: Object.fromEntries(faceFields.map((field) => { const face = exportedFaces[field]; const exportName = faceExportNames[field]; return [field, { symbol: faceSymbols[field], exportName, resolved: Boolean(exportName), ready: Boolean(exportName && face.atlas.kind === "ready" && face.binary.kind === "ready"), atlas: face.atlas, binary: face.binary, startFrame: 0, endFrame: -1, fps: faceFps }]; })),
+    capabilities: { outline: { kind: "postprocess", enabled: baseModelAsset.kind === "ready" && diffuseTextureAsset.kind === "ready" } },
+    materialSlots,
+    cameraScale: Number(character?.HomeScreenScale) || 1,
+    orientation: { heroX: character?.HeroScreenXOffset || null, heroZ: character?.HeroScreenZOffset || null, battleX: character?.BattleIntroXOffset || null, battleZ: character?.BattleIntroZOffset || null },
+    faceFlags: { faceCoversWholeTexture: explicitTrue(conf.FaceCoversWholeTexture) ? "true" : null, faceScaledUpTexture: explicitTrue(conf.FaceScaledUpTexture) ? "true" : null, disableHeadRotation: explicitTrue(conf.DisableHeadRotation) ? "true" : null },
+    conversionPlan: { key, model: model ? { input: sourcePath(model), output: `models/${key}.glb` } : null, texture: diffuse ? { input: sourcePath(diffuse), output: `textures/${key}.png` } : null, animations: Object.fromEntries(Object.entries(animationSources).filter(([, file]) => file).map(([field, file]) => [field, { input: sourcePath(file), output: `animations/${key}/${field}.glb`, label: animationLabels[field] ?? field, startFrame: 0, endFrame: -1, fps: 60 }])), faces: Object.fromEntries(Object.entries(faceSymbols).filter(([, symbol]) => symbol).map(([field, symbol]) => [field, { symbol, exportName: faceExportNames[field], atlas: `faces/${key}/atlas.png`, binary: `faces/${key}/${field}.bin`, startFrame: 0, endFrame: -1, fps: 60 }])) },
+    sourceReadiness: { model: Boolean(model), diffuse: Boolean(diffuse), idle: Boolean(idleSource), readyForConversion: Boolean(!syntheticCharacter && model && diffuse && idleSource) },
+    sourceBytes: null,
+    unavailableReasons: [...new Set(unavailableReasons)],
+  };
+});
+if (referenceBridge) {
+  for (const bridgeEntry of validateReferenceBridge(referenceBridge)) {
+    const replacement = bridgeRuntimeEntry(bridgeEntry);
+    const existingIndex = entries.findIndex((entry) => entry.brawlerId === replacement.brawlerId && entry.skinId === replacement.skinId);
+    if (existingIndex >= 0) entries[existingIndex] = replacement;
+    else entries.push(replacement);
+  }
+}
+const brawlerCharacters = characters.filter(isReleasedCharacter);
+const defaults = brawlerCharacters.map((character) => entries.find((entry) => entry.skinId === character.DefaultSkin)).filter(Boolean);
+const releasedSkins = entries.filter((entry) => entry.released);
+const conversionReady = entries.filter((entry) => entry.sourceReadiness.readyForConversion);
+const apiIntersection = apiCatalog.length ? brawlerCharacters.map((character) => ({ brawlerId: characterId(character), character: character.Name, apiName: (apiById.get(characterId(character)) ?? apiByName.get(character.Name.toLowerCase()))?.name ?? null, present: Boolean(apiById.get(characterId(character)) ?? apiByName.get(character.Name.toLowerCase())) })) : [];
+const manifest = { schemaVersion: 1, source: { repository: "brawl-stars-assets-cache", commit, version, externalUrls: [], ...(converterDir ? { converter: { repository: "Daniil-SV/Supercell-Flat-Converter", commit: converterCommit, patch: "scripts/patches/supercell-flat-converter-continuous-rotation.patch" } } : {}), ...(referenceBridge ? { diagnosticReferenceBridge: { inventory: referenceBridge.source?.inventory ?? null, sourceKind: referenceBridge.entries[0]?.source?.kind ?? null, assetSetId: referenceBridge.entries[0]?.source?.assetSetId ?? null } } : {}) }, counts: { characters: characters.length, brawlerCharacters: brawlerCharacters.length, releasedBrawlers: brawlerCharacters.length, skins: skins.length, skinConfs: confs.length, releasedSkins: releasedSkins.length, defaults: defaults.length, sourceReadySkins: conversionReady.length, sourceReadyDefaults: defaults.filter((entry) => entry.sourceReadiness.readyForConversion).length, sourceBytesForReadySkins: null, sourceSc3dFiles: sourceFiles.size }, apiIntersection, defaults, releasedSkins, skins: entries };
+if (packageDir && composedDir && textureDir) {
+  await mkdir(path.join(packageDir, "models"), { recursive: true }); await mkdir(path.join(packageDir, "textures"), { recursive: true });
+  const crowModel = path.join(composedDir, "crow-textured-idle.glb"); const crowTexture = path.join(textureDir, "crow_tex.png");
+  await copyFile(crowModel, path.join(packageDir, "models", "16000012.glb")); await copyFile(crowTexture, path.join(packageDir, "textures", "16000012.png"));
+  manifest.pilot = { status: "diagnostic-unverified", reason: "composed-idle-visual-QA-failed", brawlerId: 16000012, skinId: "CrowDefault", package: { model: "models/16000012.glb", texture: "textures/16000012.png" }, animations: { idle: "embedded-in-diagnostic-glb", walk: unavailable("animation-export-not-run"), win: unavailable("animation-export-not-run"), lose: unavailable("animation-export-not-run"), attack: unavailable("animation-export-not-run"), ulti: unavailable("animation-export-not-run") } };
+}
+if (JSON.stringify(manifest).includes("http://") || JSON.stringify(manifest).includes("https://")) throw new Error("manifest contains external URL");
+const runtimeEntry = (entry) => ({
+  brawlerId: entry.brawlerId,
+  skinId: entry.skinId,
+  character: entry.character,
+  publicCharacter: entry.publicCharacter,
+  released: entry.released,
+  assetGroup: entry.assetGroup,
+  baseModel: entry.baseModel,
+  diffuseTexture: entry.diffuseTexture,
+  animations: Object.fromEntries(Object.entries(entry.animations).filter(([, animation]) => animation.exported.kind === "ready")),
+  faces: Object.fromEntries(Object.entries(entry.faces).filter(([, face]) => face.ready === true)),
+  capabilities: entry.capabilities,
+  materialSlots: entry.materialSlots,
+  cameraScale: entry.cameraScale,
+  faceFlags: entry.faceFlags,
+});
+if (shardsDir) {
+  await mkdir(shardsDir, { recursive: true });
+  const shardIds = [...new Set([...defaults, ...releasedSkins].map((entry) => entry.brawlerId).filter((id) => Number.isSafeInteger(id)))].sort((left, right) => left - right);
+  for (const brawlerId of shardIds) {
+    const shard = {
+      schemaVersion: 1,
+      kind: "brawler",
+      brawlerId,
+      defaults: defaults.filter((entry) => entry.brawlerId === brawlerId).map(runtimeEntry),
+      releasedSkins: releasedSkins.filter((entry) => entry.brawlerId === brawlerId).map(runtimeEntry),
+    };
+    if (JSON.stringify(shard).includes("http://") || JSON.stringify(shard).includes("https://")) throw new Error(`shard ${brawlerId} contains external URL`);
+    const shardText = `${JSON.stringify(shard, null, 2)}\n`;
+    const shardHash = createHash("sha256").update(shardText).digest("hex").slice(0, 16);
+    await writeFile(path.join(shardsDir, `${brawlerId}.${shardHash}.json`), shardText);
+  }
+  const index = {
+    schemaVersion: 1,
+    kind: "index",
+    brawlers: shardIds.map((brawlerId) => {
+      const shardText = `${JSON.stringify({ schemaVersion: 1, kind: "brawler", brawlerId, defaults: defaults.filter((entry) => entry.brawlerId === brawlerId).map(runtimeEntry), releasedSkins: releasedSkins.filter((entry) => entry.brawlerId === brawlerId).map(runtimeEntry) }, null, 2)}\n`;
+      const shardHash = createHash("sha256").update(shardText).digest("hex").slice(0, 16);
+      return { brawlerId, shard: `/assets/brawlers/3d/catalog/${brawlerId}.${shardHash}.json` };
+    }),
+  };
+  await writeFile(output, `${JSON.stringify(index, null, 2)}\n`);
+  if (auditOutput) await writeFile(auditOutput, `${JSON.stringify(manifest, null, 2)}\n`);
+} else {
+  await writeFile(output, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+console.log(JSON.stringify({ output, auditOutput: auditOutput ?? null, shardsDir: shardsDir ?? null, shardCount: shardsDir ? new Set([...defaults, ...releasedSkins].map((entry) => entry.brawlerId).filter((id) => Number.isSafeInteger(id))).size : 0, defaults: defaults.length, skins: entries.length, sourceSc3dFiles: sourceFiles.size, pilot: Boolean(manifest.pilot) }));
