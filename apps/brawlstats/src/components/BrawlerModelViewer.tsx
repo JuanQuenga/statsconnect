@@ -113,6 +113,59 @@ function rotationOnlyIdleClip(animations: readonly THREE.AnimationClip[]): THREE
   return undefined;
 }
 
+function idleClip(animations: readonly THREE.AnimationClip[], useFullTrackClip: boolean): THREE.AnimationClip | undefined {
+  if (!useFullTrackClip) return rotationOnlyIdleClip(animations);
+  return animations.find((animation) => animation.duration > 0);
+}
+
+function aimCrowBone(model: THREE.Object3D, boneName: string, worldDirection: THREE.Vector3): void {
+  const bone = model.getObjectByName(boneName);
+  const parent = bone?.parent;
+  if (!bone || !parent) return;
+
+  const parentInverse = new THREE.Matrix4().copy(parent.matrixWorld).invert();
+  const localDirection = worldDirection.clone().transformDirection(parentInverse).normalize();
+  bone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), localDirection);
+}
+
+function relaxCrowArms(model: THREE.Object3D): void {
+  model.updateMatrixWorld(true);
+  aimCrowBone(model, "L_shoulder_s", new THREE.Vector3(0.5, -0.866, 0));
+  aimCrowBone(model, "R_shoulder_s", new THREE.Vector3(-0.5, -0.866, 0));
+  model.updateMatrixWorld(true);
+  aimCrowBone(model, "L_elbow_s", new THREE.Vector3(0.3, -0.954, 0));
+  aimCrowBone(model, "R_elbow_s", new THREE.Vector3(-0.3, -0.954, 0));
+}
+
+function prepareCrowModel(model: THREE.Object3D): THREE.Object3D[] {
+  for (const name of ["knife_01GeoPIV_1", "knife_02GeoPIV_1", "knife_03GeoPIV_1"]) {
+    const dagger = model.getObjectByName(name);
+    if (dagger) dagger.visible = false;
+  }
+
+  relaxCrowArms(model);
+
+  const head = model.getObjectByName("head_s");
+  if (!head) return [];
+
+  const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xf5f7ff, side: THREE.DoubleSide });
+  const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0x111827, side: THREE.DoubleSide });
+  const eyes: THREE.Object3D[] = [];
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.CircleGeometry(0.25, 20), eyeMaterial);
+    eye.scale.y = 1.25;
+    eye.position.set(side * 0.7, 2.1, 2.44);
+    eye.name = `crowEye_${side < 0 ? "left" : "right"}`;
+    const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.14, 16), pupilMaterial);
+    pupil.position.z = 0.01;
+    pupil.name = `${eye.name}_pupil`;
+    eye.add(pupil);
+    head.add(eye);
+    eyes.push(eye);
+  }
+  return eyes;
+}
+
 function reportModelFallback(brawlerId: number, reason: string, error?: unknown): void {
   const detail = error instanceof Error && error.message ? ` (${error.message})` : "";
   console.warn(`[BrawlerModelViewer] ${brawlerId}: ${reason}${detail}`);
@@ -158,6 +211,7 @@ export function BrawlerModelViewer({
     let resizeObserver: ResizeObserver | undefined;
     let mixer: THREE.AnimationMixer | undefined;
     let model: THREE.Object3D | undefined;
+    let crowEyes: THREE.Object3D[] = [];
 
     const loadModel = async () => {
       let loadingStage = "geometry";
@@ -192,6 +246,7 @@ export function BrawlerModelViewer({
         texture.needsUpdate = true;
         const meshCount = applyDiffuseAtlas(model, texture);
         if (meshCount === 0) throw new Error("model contains no renderable mesh");
+        if (brawlerId === 16000012) crowEyes = prepareCrowModel(model);
 
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas });
         renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -247,6 +302,7 @@ export function BrawlerModelViewer({
           const elapsed = clock.getDelta();
           mixer?.update(elapsed);
           controls.update(elapsed);
+          for (const eye of crowEyes) eye.lookAt(camera.position);
           renderer.render(scene, camera);
           animationFrame = window.requestAnimationFrame(render);
         };
@@ -254,17 +310,17 @@ export function BrawlerModelViewer({
 
         if (animationUrl) {
           void loader.loadAsync(animationUrl).then((animationGltf) => {
-            const idleClip = rotationOnlyIdleClip(animationGltf.animations);
+            const idle = idleClip(animationGltf.animations, brawlerId === 16000012);
             disposeModelResources(animationGltf.scene);
             if (cancelled || !model) return;
-            if (!idleClip) {
+            if (!idle) {
               setIdleAnimationState("failed");
-              reportModelFallback(brawlerId, "idle clip contains no usable bone rotations; keeping static model");
+              reportModelFallback(brawlerId, "idle clip contains no usable tracks; keeping static model");
               return;
             }
 
             mixer = new THREE.AnimationMixer(model);
-            mixer.clipAction(idleClip).reset().play();
+            mixer.clipAction(idle).reset().play();
             setIdleAnimationState("playing");
           }).catch((error: unknown) => {
             if (cancelled) return;
