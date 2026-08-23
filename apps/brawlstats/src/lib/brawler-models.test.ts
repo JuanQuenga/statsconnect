@@ -4,33 +4,29 @@ import {
   BRAWLER_MODEL_ASSETS,
   brawlerModel3dAsset,
   brawlerModel3dUrl,
-  brawlerModelAnimationUrl,
 } from "./brawler-models.ts";
 
-test("indexes only verified default models from the standard glTF catalog", () => {
-  assert.equal(Object.keys(BRAWLER_MODEL_ASSETS).length, 45);
-  assert.deepEqual(brawlerModel3dAsset(16000000), {
-    modelFilename: "shelly_redux_geo.glb",
-    textureFilename: "shelly_redux_tex.ktx",
-  });
-  assert.equal(brawlerModel3dUrl(16000000), "https://raw.githubusercontent.com/tailsjs/brawl-stars-assets/master/55.243/sc3d/shelly_redux_geo.glb");
+test("indexes only the four runtime-verified local models", () => {
+  assert.deepEqual(Object.keys(BRAWLER_MODEL_ASSETS).map(Number), [
+    16000018, 16000022, 16000045, 16000080,
+  ]);
+  assert.deepEqual(brawlerModel3dAsset(16000080), { filename: "16000080.glb" });
+  assert.equal(brawlerModel3dUrl(16000080), "/assets/brawlers/3d/16000080.glb");
 });
 
 test("leaves unsupported and newer brawlers on their official PNG fallback", () => {
-  assert.equal(brawlerModel3dAsset(16000005), undefined);
+  assert.equal(brawlerModel3dAsset(16000000), undefined);
+  assert.equal(brawlerModel3dAsset(16000012), undefined);
+  assert.equal(brawlerModel3dAsset(16000053), undefined);
   assert.equal(brawlerModel3dUrl(16000082), undefined);
   assert.equal(brawlerModel3dUrl(16000108), undefined);
 });
 
-test("returns only verified idle animation URLs", () => {
-  assert.equal(
-    Object.values(BRAWLER_MODEL_ASSETS).filter((asset) => asset.animationFilename).length,
-    37,
-  );
-  assert.equal(brawlerModelAnimationUrl(16000012), undefined);
-  assert.equal(brawlerModelAnimationUrl(16000053), undefined);
-  assert.equal(brawlerModel3dUrl(16000053), undefined);
-  assert.equal(brawlerModelAnimationUrl(16000000), undefined);
+test("uses one self-contained local GLB per registered model", () => {
+  for (const [id, asset] of Object.entries(BRAWLER_MODEL_ASSETS)) {
+    assert.equal(asset.filename, `${id}.glb`);
+    assert.equal(brawlerModel3dUrl(Number(id)), `/assets/brawlers/3d/${id}.glb`);
+  }
 });
 
 test("rejects fractional and unsafe IDs", () => {
@@ -41,8 +37,7 @@ test("rejects fractional and unsafe IDs", () => {
 
 test("keeps every source filename explicit and immutable", () => {
   for (const [id, asset] of Object.entries(BRAWLER_MODEL_ASSETS)) {
-    assert.match(asset.modelFilename, /_geo\.glb$/);
-    assert.match(asset.textureFilename, /_tex\.ktx$/);
+    assert.match(asset.filename, /^160000\d+\.glb$/);
     assert.equal(brawlerModel3dAsset(Number(id)), asset);
   }
 });

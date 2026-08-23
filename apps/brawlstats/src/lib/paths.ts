@@ -1,4 +1,5 @@
 export function appPath(path: string): string {
   if (!path.startsWith("/")) return path;
-  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+  const baseUrl = import.meta.env?.BASE_URL ?? "/";
+  return `${baseUrl}${path.replace(/^\/+/, "")}`;
 }

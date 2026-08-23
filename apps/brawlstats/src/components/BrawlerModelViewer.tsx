@@ -6,9 +6,7 @@ import { ImageWithFallback } from "@/components/ImageWithFallback";
 import {
   brawlerModel3dAsset,
   brawlerModel3dUrl,
-  brawlerModelAnimationUrl,
 } from "@/lib/brawler-models";
-import { appPath } from "@/lib/paths";
 
 function materialTextures(material: THREE.Material): readonly (THREE.Texture | null)[] {
   if (material instanceof THREE.MeshStandardMaterial) {
@@ -57,64 +55,24 @@ function disposeModelResources(model: THREE.Object3D): void {
   materials.forEach((material) => material.dispose());
 }
 
-function applyDiffuseAtlas(model: THREE.Object3D, texture: THREE.Texture): number {
-  const replacedMaterials = new Set<THREE.Material>();
-  const replacedTextures = new Set<THREE.Texture>();
-  const normalizedGeometries = new Set<THREE.BufferGeometry>();
-  const previewMaterial = new THREE.MeshBasicMaterial({
-    map: texture,
-    side: THREE.DoubleSide,
-  });
-  let meshCount = 0;
-
-  model.traverse((object) => {
-    if (!(object instanceof THREE.Mesh)) return;
-
-    meshCount += 1;
-    if (!normalizedGeometries.has(object.geometry)) {
-      const uv = object.geometry.getAttribute("uv");
-      if (uv && !uv.normalized) {
-        const normalizedUv = new Float32Array(uv.count * 2);
-        for (let index = 0; index < uv.count; index += 1) {
-          normalizedUv[index * 2] = uv.getX(index) / 4096;
-          normalizedUv[index * 2 + 1] = uv.getY(index) / 4096;
-        }
-        object.geometry.setAttribute("uv", new THREE.BufferAttribute(normalizedUv, 2));
-      }
-      normalizedGeometries.add(object.geometry);
-    }
-    const previousMaterials = Array.isArray(object.material) ? object.material : [object.material];
-    previousMaterials.forEach((material) => {
-      replacedMaterials.add(material);
-      materialTextures(material).forEach((materialTexture) => {
-        if (materialTexture && materialTexture !== texture) replacedTextures.add(materialTexture);
-      });
-    });
-    object.material = Array.isArray(object.material)
-      ? object.material.map(() => previewMaterial)
-      : previewMaterial;
-  });
-
-  replacedTextures.forEach((materialTexture) => materialTexture.dispose());
-  replacedMaterials.forEach((material) => material.dispose());
-  return meshCount;
+function embeddedIdleClip(animations: readonly THREE.AnimationClip[]): THREE.AnimationClip | undefined {
+  return animations.find((animation) => animation.duration > 0 && animation.tracks.length > 0);
 }
 
-function rotationOnlyIdleClip(animations: readonly THREE.AnimationClip[]): THREE.AnimationClip | undefined {
-  for (const animation of animations) {
-    if (animation.duration <= 0) continue;
-    const rotationTracks = animation.tracks.filter(
-      (track): track is THREE.QuaternionKeyframeTrack => track instanceof THREE.QuaternionKeyframeTrack,
-    );
-    if (rotationTracks.length > 0) {
-      return new THREE.AnimationClip(`${animation.name || "idle"}-in-place`, animation.duration, rotationTracks);
-    }
+function sampleAnimatedBounds(model: THREE.Object3D, clip: THREE.AnimationClip): THREE.Box3 {
+  const mixer = new THREE.AnimationMixer(model);
+  const action = mixer.clipAction(clip);
+  action.play();
+  const bounds = new THREE.Box3();
+  const sampleTimes = [0, clip.duration * 0.25, clip.duration * 0.5, clip.duration * 0.75, clip.duration];
+  for (const time of sampleTimes) {
+    mixer.setTime(time);
+    model.updateMatrixWorld(true);
+    bounds.union(new THREE.Box3().setFromObject(model));
   }
-  return undefined;
-}
-
-function idleClip(animations: readonly THREE.AnimationClip[]): THREE.AnimationClip | undefined {
-  return rotationOnlyIdleClip(animations);
+  action.stop();
+  mixer.uncacheRoot(model);
+  return bounds;
 }
 
 function reportModelFallback(brawlerId: number, reason: string, error?: unknown): void {
@@ -165,14 +123,12 @@ export function BrawlerModelViewer({
   const [idleAnimationState, setIdleAnimationState] = useState<IdleAnimationState>("unavailable");
   const modelAsset = brawlerModel3dAsset(brawlerId);
   const modelUrl = brawlerModel3dUrl(brawlerId);
-  const animationUrl = brawlerModelAnimationUrl(brawlerId);
-  const textureUrl = modelAsset ? appPath(`/assets/brawlers/3d/${brawlerId}.webp`) : undefined;
 
   useEffect(() => {
     setModelReady(false);
-    setIdleAnimationState(animationUrl ? "loading" : "unavailable");
+    setIdleAnimationState(modelUrl ? "loading" : "unavailable");
     const canvas = canvasRef.current;
-    if (!canvas || !modelUrl || !textureUrl) return;
+    if (!canvas || !modelUrl) return;
 
     let cancelled = false;
     let animationFrame = 0;
@@ -183,15 +139,9 @@ export function BrawlerModelViewer({
     let model: THREE.Object3D | undefined;
 
     const loadModel = async () => {
-      let loadingStage = "geometry";
+      let loadingStage = "self-contained GLB";
       try {
-        const loadingManager = new THREE.LoadingManager();
-        loadingManager.setURLModifier((url) => {
-          if (/\.pvr(?:$|\?)/i.test(url)) return textureUrl;
-          if (/menu_(?:metal_)?(?:diffuse|specular)_lightmap\.png(?:$|\?)/i.test(url)) return textureUrl;
-          return url;
-        });
-        const loader = new GLTFLoader(loadingManager);
+        const loader = new GLTFLoader();
         const modelGltf = await loader.loadAsync(modelUrl);
         model = modelGltf.scene;
         if (cancelled) {
@@ -200,30 +150,41 @@ export function BrawlerModelViewer({
           return;
         }
 
-        loadingStage = "diffuse atlas";
-        const texture = await new THREE.TextureLoader().loadAsync(textureUrl);
-        if (cancelled) {
-          texture.dispose();
-          disposeModelResources(model);
-          model = undefined;
-          return;
-        }
-
-        loadingStage = "WebGL renderer";
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.flipY = false;
-        texture.needsUpdate = true;
-        const meshCount = applyDiffuseAtlas(model, texture);
+        const idle = embeddedIdleClip(modelGltf.animations);
+        if (!idle) throw new Error("self-contained GLB contains no embedded idle animation");
+        const meshCount = model.getObjectByProperty("isMesh", true) ? 1 : 0;
         if (meshCount === 0) throw new Error("model contains no renderable mesh");
+        model.rotation.y = modelAsset?.yaw ?? 0;
+
+        loadingStage = "animated bounds";
+        const bounds = sampleAnimatedBounds(model, idle);
+        model.updateMatrixWorld(true);
+        mixer = new THREE.AnimationMixer(model);
+        mixer.clipAction(idle).play();
+        setIdleAnimationState("playing");
 
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas });
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.setClearAlpha(0);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
-        texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+        model.traverse((object) => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          materials.forEach((material) => {
+            materialTextures(material).forEach((texture) => {
+              if (texture) texture.anisotropy = Math.min(renderer?.capabilities.getMaxAnisotropy() ?? 1, 8);
+            });
+          });
+        });
 
         const scene = new THREE.Scene();
-        const bounds = new THREE.Box3().setFromObject(model);
+        const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        keyLight.position.set(3, 5, 4);
+        scene.add(keyLight);
+        const fillLight = new THREE.DirectionalLight(0xb8d5ff, 0.35);
+        fillLight.position.set(-4, 2, 1);
+        scene.add(fillLight);
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x26364a, 0.55));
         const size = bounds.getSize(new THREE.Vector3());
         const center = bounds.getCenter(new THREE.Vector3());
         const largestDimension = Math.max(size.x, size.y, size.z);
@@ -231,13 +192,13 @@ export function BrawlerModelViewer({
           throw new Error("model has invalid dimensions");
         }
 
-        model.position.sub(center);
-        scene.add(model);
+        const wrapper = new THREE.Group();
+        wrapper.add(model);
+        wrapper.position.sub(center);
+        scene.add(wrapper);
         const camera = new THREE.PerspectiveCamera(32, 1, 0.01, largestDimension * 20);
         const cameraDirection = new THREE.Vector3(0.18, 0.05, 1.18).normalize();
-        const centeredBounds = bounds.clone();
-        centeredBounds.min.sub(center);
-        centeredBounds.max.sub(center);
+        const centeredBounds = bounds.clone().translate(center.clone().multiplyScalar(-1));
         const distance = fitCameraToBounds(camera, centeredBounds, cameraDirection);
         camera.position.copy(cameraDirection).multiplyScalar(distance);
         camera.lookAt(0, 0, 0);
@@ -274,39 +235,21 @@ export function BrawlerModelViewer({
         resizeObserver = new ResizeObserver(resize);
         resizeObserver.observe(canvas.parentElement ?? canvas);
         resize();
-        setModelReady(true);
-
         const clock = new THREE.Clock();
+        let renderedOnce = false;
         const render = () => {
           if (cancelled || !renderer || !controls) return;
           const elapsed = clock.getDelta();
           mixer?.update(elapsed);
           controls.update(elapsed);
           renderer.render(scene, camera);
+          if (!renderedOnce) {
+            renderedOnce = true;
+            setModelReady(true);
+          }
           animationFrame = window.requestAnimationFrame(render);
         };
         render();
-
-        if (animationUrl) {
-          void loader.loadAsync(animationUrl).then((animationGltf) => {
-            const idle = idleClip(animationGltf.animations);
-            disposeModelResources(animationGltf.scene);
-            if (cancelled || !model) return;
-            if (!idle) {
-              setIdleAnimationState("failed");
-              reportModelFallback(brawlerId, "idle clip contains no usable tracks; keeping static model");
-              return;
-            }
-
-            mixer = new THREE.AnimationMixer(model);
-            mixer.clipAction(idle).reset().play();
-            setIdleAnimationState("playing");
-          }).catch((error: unknown) => {
-            if (cancelled) return;
-            setIdleAnimationState("failed");
-            reportModelFallback(brawlerId, "idle animation failed; keeping static model", error);
-          });
-        }
 
       } catch (error: unknown) {
         window.cancelAnimationFrame(animationFrame);
@@ -322,6 +265,7 @@ export function BrawlerModelViewer({
         renderer = undefined;
         if (!cancelled) {
           setModelReady(false);
+          setIdleAnimationState("failed");
           reportModelFallback(brawlerId, `${loadingStage} failed; keeping PNG fallback`, error);
         }
       }
@@ -339,7 +283,7 @@ export function BrawlerModelViewer({
       if (model) disposeModelResources(model);
       renderer?.dispose();
     };
-  }, [animationUrl, brawlerId, modelUrl, textureUrl]);
+  }, [brawlerId, modelUrl]);
 
   return (
     <div

@@ -105,9 +105,9 @@ function BrawlerDetailPage() {
       {!loading && !brawler ? <EmptyState title={t("brawler.notFound")} detail={t("brawler.notFoundDetail")} /> : null}
       {brawler ? (
         <>
-          <section className="relative overflow-hidden rounded-xl border border-border bg-card p-6 md:p-8" style={{ background: `radial-gradient(circle at 85% 30%, ${brawler.color}42, transparent 35%), #101926` }}>
-            <div className="grid items-center gap-6 md:grid-cols-[1fr_420px]">
-              <div>
+          <section className="relative overflow-visible rounded-xl border border-border bg-card p-6 md:p-8" style={{ background: `radial-gradient(circle at 85% 30%, ${brawler.color}42, transparent 35%), #101926` }}>
+            <div className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_480px]">
+              <div className="relative z-20">
                 <div className="flex flex-wrap gap-2"><Badge style={{ background: brawler.color, color: "#07101a" }}>{brawler.rarity}</Badge><Badge variant="secondary">{brawler.role}</Badge></div>
                 <h1 className="mt-3 font-display text-5xl md:text-6xl">{brawler.name}</h1>
                 <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">{brawler.description}</p>
@@ -120,7 +120,7 @@ function BrawlerDetailPage() {
                   artworkSrc={heroArtwork.src}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   artworkKind={heroArtwork.kind}
-                  className="relative mx-auto h-[360px] w-full md:h-[420px]"
+                  className="relative z-10 mx-auto -my-8 h-[420px] w-[calc(100%+2rem)] max-w-none -translate-x-4 md:-mr-12 md:h-[520px] md:w-[calc(100%+6rem)] md:translate-x-0"
                 />
               ) : null}
               {heroArtwork?.kind === "feature" ? (
