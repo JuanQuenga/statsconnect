@@ -8,7 +8,7 @@ import {
 } from "./brawler-models.ts";
 
 test("indexes only verified default models from the standard glTF catalog", () => {
-  assert.equal(Object.keys(BRAWLER_MODEL_ASSETS).length, 47);
+  assert.equal(Object.keys(BRAWLER_MODEL_ASSETS).length, 45);
   assert.deepEqual(brawlerModel3dAsset(16000000), {
     modelFilename: "shelly_redux_geo.glb",
     textureFilename: "shelly_redux_tex.ktx",
@@ -25,9 +25,11 @@ test("leaves unsupported and newer brawlers on their official PNG fallback", () 
 test("returns only verified idle animation URLs", () => {
   assert.equal(
     Object.values(BRAWLER_MODEL_ASSETS).filter((asset) => asset.animationFilename).length,
-    39,
+    37,
   );
-  assert.equal(brawlerModelAnimationUrl(16000012), "https://raw.githubusercontent.com/tailsjs/brawl-stars-assets/master/55.243/sc3d/crow_idle.glb");
+  assert.equal(brawlerModelAnimationUrl(16000012), undefined);
+  assert.equal(brawlerModelAnimationUrl(16000053), undefined);
+  assert.equal(brawlerModel3dUrl(16000053), undefined);
   assert.equal(brawlerModelAnimationUrl(16000000), undefined);
 });
 
