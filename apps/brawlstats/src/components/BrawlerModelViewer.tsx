@@ -6,6 +6,7 @@ import { ImageWithFallback } from "@/components/ImageWithFallback";
 import {
   brawlerModel3dAsset,
   brawlerModel3dUrl,
+  brawlerModelAnimationUrl,
 } from "@/lib/brawler-models";
 import { appPath } from "@/lib/paths";
 
@@ -99,6 +100,19 @@ function applyDiffuseAtlas(model: THREE.Object3D, texture: THREE.Texture): numbe
   return meshCount;
 }
 
+function rotationOnlyIdleClip(animations: readonly THREE.AnimationClip[]): THREE.AnimationClip | undefined {
+  for (const animation of animations) {
+    if (animation.duration <= 0) continue;
+    const rotationTracks = animation.tracks.filter(
+      (track): track is THREE.QuaternionKeyframeTrack => track instanceof THREE.QuaternionKeyframeTrack,
+    );
+    if (rotationTracks.length > 0) {
+      return new THREE.AnimationClip(`${animation.name || "idle"}-in-place`, animation.duration, rotationTracks);
+    }
+  }
+  return undefined;
+}
+
 function reportModelFallback(brawlerId: number, reason: string, error?: unknown): void {
   const detail = error instanceof Error && error.message ? ` (${error.message})` : "";
   console.warn(`[BrawlerModelViewer] ${brawlerId}: ${reason}${detail}`);
@@ -113,6 +127,8 @@ type BrawlerModelViewerProps = {
   className?: string;
 };
 
+type IdleAnimationState = "unavailable" | "loading" | "playing" | "failed" | "reduced-motion";
+
 export function BrawlerModelViewer({
   brawlerId,
   alt,
@@ -123,12 +139,15 @@ export function BrawlerModelViewer({
 }: BrawlerModelViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelReady, setModelReady] = useState(false);
+  const [idleAnimationState, setIdleAnimationState] = useState<IdleAnimationState>("unavailable");
   const modelAsset = brawlerModel3dAsset(brawlerId);
   const modelUrl = brawlerModel3dUrl(brawlerId);
+  const animationUrl = brawlerModelAnimationUrl(brawlerId);
   const textureUrl = modelAsset ? appPath(`/assets/brawlers/3d/${brawlerId}.webp`) : undefined;
 
   useEffect(() => {
     setModelReady(false);
+    setIdleAnimationState(animationUrl ? "loading" : "unavailable");
     const canvas = canvasRef.current;
     if (!canvas || !modelUrl || !textureUrl) return;
 
@@ -137,6 +156,7 @@ export function BrawlerModelViewer({
     let renderer: THREE.WebGLRenderer | undefined;
     let controls: OrbitControls | undefined;
     let resizeObserver: ResizeObserver | undefined;
+    let mixer: THREE.AnimationMixer | undefined;
     let model: THREE.Object3D | undefined;
 
     const loadModel = async () => {
@@ -194,6 +214,7 @@ export function BrawlerModelViewer({
         camera.lookAt(0, 0, 0);
 
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (animationUrl && reducedMotion) setIdleAnimationState("reduced-motion");
         controls = new OrbitControls(camera, canvas);
         controls.enableDamping = !reducedMotion;
         controls.enablePan = false;
@@ -208,13 +229,15 @@ export function BrawlerModelViewer({
           if (!renderer) return;
           const width = Math.max(canvas.clientWidth, 1);
           const height = Math.max(canvas.clientHeight, 1);
+          const renderedSize = renderer.getSize(new THREE.Vector2());
+          if (renderedSize.x === width && renderedSize.y === height) return;
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
         };
 
         resizeObserver = new ResizeObserver(resize);
-        resizeObserver.observe(canvas);
+        resizeObserver.observe(canvas.parentElement ?? canvas);
         resize();
         setModelReady(true);
 
@@ -222,16 +245,40 @@ export function BrawlerModelViewer({
         const render = () => {
           if (cancelled || !renderer || !controls) return;
           const elapsed = clock.getDelta();
+          mixer?.update(elapsed);
           controls.update(elapsed);
           renderer.render(scene, camera);
           animationFrame = window.requestAnimationFrame(render);
         };
         render();
 
+        if (animationUrl && !reducedMotion) {
+          void loader.loadAsync(animationUrl).then((animationGltf) => {
+            const idleClip = rotationOnlyIdleClip(animationGltf.animations);
+            disposeModelResources(animationGltf.scene);
+            if (cancelled || !model) return;
+            if (!idleClip) {
+              setIdleAnimationState("failed");
+              reportModelFallback(brawlerId, "idle clip contains no usable bone rotations; keeping static model");
+              return;
+            }
+
+            mixer = new THREE.AnimationMixer(model);
+            mixer.clipAction(idleClip).reset().play();
+            setIdleAnimationState("playing");
+          }).catch((error: unknown) => {
+            if (cancelled) return;
+            setIdleAnimationState("failed");
+            reportModelFallback(brawlerId, "idle animation failed; keeping static model", error);
+          });
+        }
+
       } catch (error: unknown) {
         window.cancelAnimationFrame(animationFrame);
         resizeObserver?.disconnect();
         controls?.dispose();
+        mixer?.stopAllAction();
+        if (mixer && model) mixer.uncacheRoot(model);
         if (model) {
           disposeModelResources(model);
           model = undefined;
@@ -252,13 +299,19 @@ export function BrawlerModelViewer({
       window.cancelAnimationFrame(animationFrame);
       resizeObserver?.disconnect();
       controls?.dispose();
+      mixer?.stopAllAction();
+      if (mixer && model) mixer.uncacheRoot(model);
       if (model) disposeModelResources(model);
       renderer?.dispose();
     };
-  }, [brawlerId, modelUrl, textureUrl]);
+  }, [animationUrl, brawlerId, modelUrl, textureUrl]);
 
   return (
-    <div className={className} data-model-state={modelReady ? "ready" : modelAsset ? "loading" : "unavailable"}>
+    <div
+      className={className}
+      data-idle-state={idleAnimationState}
+      data-model-state={modelReady ? "ready" : modelAsset ? "loading" : "unavailable"}
+    >
       <ImageWithFallback
         src={artworkSrc}
         fallbackSrc={fallbackSrc}
