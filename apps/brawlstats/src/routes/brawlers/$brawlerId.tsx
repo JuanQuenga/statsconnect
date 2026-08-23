@@ -106,7 +106,7 @@ function BrawlerDetailPage() {
       {brawler ? (
         <>
           <section className="relative overflow-hidden rounded-xl border border-border bg-card p-6 md:p-8" style={{ background: `radial-gradient(circle at 85% 30%, ${brawler.color}42, transparent 35%), #101926` }}>
-            <div className="grid items-center gap-6 md:grid-cols-[1fr_340px]">
+            <div className="grid items-center gap-6 md:grid-cols-[1fr_420px]">
               <div>
                 <div className="flex flex-wrap gap-2"><Badge style={{ background: brawler.color, color: "#07101a" }}>{brawler.rarity}</Badge><Badge variant="secondary">{brawler.role}</Badge></div>
                 <h1 className="mt-3 font-display text-5xl md:text-6xl">{brawler.name}</h1>
@@ -120,7 +120,7 @@ function BrawlerDetailPage() {
                   artworkSrc={heroArtwork.src}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   artworkKind={heroArtwork.kind}
-                  className="relative mx-auto h-[288px] w-full"
+                  className="relative mx-auto h-[360px] w-full md:h-[420px]"
                 />
               ) : null}
               {heroArtwork?.kind === "feature" ? (

@@ -166,9 +166,67 @@ function prepareCrowModel(model: THREE.Object3D): THREE.Object3D[] {
   return eyes;
 }
 
+function prepareLolaEyes(model: THREE.Object3D): void {
+  const head = model.getObjectByName("head_s");
+  if (!head) return;
+
+  const scleraMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.FrontSide,
+    depthTest: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+  const pupilMaterial = new THREE.MeshBasicMaterial({
+    color: 0x1a1024,
+    side: THREE.FrontSide,
+    depthTest: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  for (const [name, x] of [
+    ["left", 0.503],
+    ["right", -0.503],
+  ] as const) {
+    const eye = new THREE.Mesh(new THREE.CircleGeometry(0.22, 20), scleraMaterial);
+    eye.scale.y = 0.7;
+    eye.position.set(x, 1.94, 2.47);
+    eye.name = `lolaEye_${name}`;
+    const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.065, 16), pupilMaterial);
+    pupil.scale.y = 1.25;
+    pupil.position.z = 0.01;
+    pupil.name = `${eye.name}_pupil`;
+    eye.add(pupil);
+    head.add(eye);
+  }
+}
+
 function reportModelFallback(brawlerId: number, reason: string, error?: unknown): void {
   const detail = error instanceof Error && error.message ? ` (${error.message})` : "";
   console.warn(`[BrawlerModelViewer] ${brawlerId}: ${reason}${detail}`);
+}
+
+function fitCameraToBounds(camera: THREE.PerspectiveCamera, bounds: THREE.Box3, direction: THREE.Vector3): number {
+  const corners: THREE.Vector3[] = [];
+  for (const x of [bounds.min.x, bounds.max.x]) {
+    for (const y of [bounds.min.y, bounds.max.y]) {
+      for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z));
+    }
+  }
+  camera.position.copy(direction);
+  camera.lookAt(0, 0, 0);
+  camera.updateMatrixWorld(true);
+  const tanVertical = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const tanHorizontal = tanVertical * camera.aspect;
+  const requiredDistance = corners.reduce((required, corner) => {
+    const view = camera.worldToLocal(corner.clone());
+    return Math.max(required, 1 + view.z + Math.abs(view.y) / tanVertical, 1 + view.z + Math.abs(view.x) / tanHorizontal);
+  }, 1);
+  return requiredDistance * 1.07;
 }
 
 type BrawlerModelViewerProps = {
@@ -247,6 +305,7 @@ export function BrawlerModelViewer({
         const meshCount = applyDiffuseAtlas(model, texture);
         if (meshCount === 0) throw new Error("model contains no renderable mesh");
         if (brawlerId === 16000012) crowEyes = prepareCrowModel(model);
+        if (brawlerId === 16000053) prepareLolaEyes(model);
 
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas });
         renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -266,8 +325,12 @@ export function BrawlerModelViewer({
         model.position.sub(center);
         scene.add(model);
         const camera = new THREE.PerspectiveCamera(32, 1, 0.01, largestDimension * 20);
-        const distance = largestDimension / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
-        camera.position.set(distance * 0.18, distance * 0.05, distance * 1.18);
+        const cameraDirection = new THREE.Vector3(0.18, 0.05, 1.18).normalize();
+        const centeredBounds = bounds.clone();
+        centeredBounds.min.sub(center);
+        centeredBounds.max.sub(center);
+        const distance = fitCameraToBounds(camera, centeredBounds, cameraDirection);
+        camera.position.copy(cameraDirection).multiplyScalar(distance);
         camera.lookAt(0, 0, 0);
 
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -289,6 +352,14 @@ export function BrawlerModelViewer({
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
+          const fittedDistance = fitCameraToBounds(camera, centeredBounds, cameraDirection);
+          camera.position.copy(cameraDirection).multiplyScalar(fittedDistance);
+          camera.lookAt(0, 0, 0);
+          if (controls) {
+            controls.minDistance = fittedDistance * 0.72;
+            controls.maxDistance = fittedDistance * 1.85;
+            controls.update();
+          }
         };
 
         resizeObserver = new ResizeObserver(resize);
@@ -310,7 +381,7 @@ export function BrawlerModelViewer({
 
         if (animationUrl) {
           void loader.loadAsync(animationUrl).then((animationGltf) => {
-            const idle = idleClip(animationGltf.animations, brawlerId === 16000012);
+            const idle = idleClip(animationGltf.animations, brawlerId === 16000012 || brawlerId === 16000053);
             disposeModelResources(animationGltf.scene);
             if (cancelled || !model) return;
             if (!idle) {
