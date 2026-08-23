@@ -127,7 +127,7 @@ type BrawlerModelViewerProps = {
   className?: string;
 };
 
-type IdleAnimationState = "unavailable" | "loading" | "playing" | "failed" | "reduced-motion";
+type IdleAnimationState = "unavailable" | "loading" | "playing" | "failed";
 
 export function BrawlerModelViewer({
   brawlerId,
@@ -188,6 +188,8 @@ export function BrawlerModelViewer({
 
         loadingStage = "WebGL renderer";
         texture.colorSpace = THREE.SRGBColorSpace;
+        texture.flipY = false;
+        texture.needsUpdate = true;
         const meshCount = applyDiffuseAtlas(model, texture);
         if (meshCount === 0) throw new Error("model contains no renderable mesh");
 
@@ -214,12 +216,10 @@ export function BrawlerModelViewer({
         camera.lookAt(0, 0, 0);
 
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (animationUrl && reducedMotion) setIdleAnimationState("reduced-motion");
         controls = new OrbitControls(camera, canvas);
         controls.enableDamping = !reducedMotion;
         controls.enablePan = false;
-        controls.autoRotate = !reducedMotion;
-        controls.autoRotateSpeed = 1.15;
+        controls.autoRotate = false;
         controls.minDistance = distance * 0.72;
         controls.maxDistance = distance * 1.85;
         controls.target.set(0, 0, 0);
@@ -252,7 +252,7 @@ export function BrawlerModelViewer({
         };
         render();
 
-        if (animationUrl && !reducedMotion) {
+        if (animationUrl) {
           void loader.loadAsync(animationUrl).then((animationGltf) => {
             const idleClip = rotationOnlyIdleClip(animationGltf.animations);
             disposeModelResources(animationGltf.scene);
