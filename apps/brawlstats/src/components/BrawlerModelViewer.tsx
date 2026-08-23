@@ -1,46 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
-import { brawlerModel3dUrl } from "@/lib/brawler-models";
+import {
+  brawlerModel3dAsset,
+  brawlerModel3dUrl,
+} from "@/lib/brawler-models";
+import { appPath } from "@/lib/paths";
 
-type ModelValidation =
-  | { kind: "valid"; animation: THREE.AnimationClip }
-  | { kind: "invalid"; reason: string };
-
-type MaterialInspection =
-  | { kind: "valid" }
-  | { kind: "invalid"; reason: string };
-
-function materialTextureSlots(material: THREE.Material): readonly (THREE.Texture | null)[] {
-  if (material instanceof THREE.MeshPhysicalMaterial) {
-    return [
-      material.map,
-      material.lightMap,
-      material.aoMap,
-      material.emissiveMap,
-      material.bumpMap,
-      material.normalMap,
-      material.displacementMap,
-      material.roughnessMap,
-      material.metalnessMap,
-      material.alphaMap,
-      material.envMap,
-      material.anisotropyMap,
-      material.clearcoatMap,
-      material.clearcoatRoughnessMap,
-      material.clearcoatNormalMap,
-      material.iridescenceMap,
-      material.iridescenceThicknessMap,
-      material.sheenColorMap,
-      material.sheenRoughnessMap,
-      material.transmissionMap,
-      material.thicknessMap,
-      material.specularIntensityMap,
-      material.specularColorMap,
-    ];
-  }
-
+function materialTextures(material: THREE.Material): readonly (THREE.Texture | null)[] {
   if (material instanceof THREE.MeshStandardMaterial) {
     return [
       material.map,
@@ -64,64 +33,6 @@ function materialTextureSlots(material: THREE.Material): readonly (THREE.Texture
   return [];
 }
 
-function hasImageDimensions(image: unknown): boolean {
-  if (typeof image !== "object" || image === null || !("width" in image) || !("height" in image)) return false;
-  return typeof image.width === "number" && image.width > 0 && typeof image.height === "number" && image.height > 0;
-}
-
-function inspectMaterial(material: THREE.Material): MaterialInspection {
-  if (!(material instanceof THREE.Material) || !material.visible || material.opacity <= 0) {
-    return { kind: "invalid", reason: "model contains an unusable material" };
-  }
-
-  const textureSlots = materialTextureSlots(material);
-  if (textureSlots.some((texture) => texture !== null && !(texture instanceof THREE.Texture))) {
-    return { kind: "invalid", reason: "model contains an invalid texture" };
-  }
-
-  if (textureSlots.some((texture) => texture instanceof THREE.Texture && !hasImageDimensions(texture.image))) {
-    return { kind: "invalid", reason: "model texture did not load" };
-  }
-
-  return { kind: "valid" };
-}
-
-function validateModel(gltf: GLTF): ModelValidation {
-  let meshCount = 0;
-  let materialCount = 0;
-  let invalidMaterialReason: string | undefined;
-
-  gltf.scene.traverse((object) => {
-    if (!(object instanceof THREE.Mesh)) return;
-
-    meshCount += 1;
-    const materials = Array.isArray(object.material) ? object.material : [object.material];
-    if (materials.length === 0) {
-      invalidMaterialReason = "model mesh has no material";
-      return;
-    }
-
-    for (const material of materials) {
-      const inspection = inspectMaterial(material);
-      if (inspection.kind === "invalid") {
-        invalidMaterialReason = inspection.reason;
-        return;
-      }
-      materialCount += 1;
-    }
-  });
-
-  if (meshCount === 0) return { kind: "invalid", reason: "model contains no renderable mesh" };
-  if (invalidMaterialReason) return { kind: "invalid", reason: invalidMaterialReason };
-  if (materialCount === 0) return { kind: "invalid", reason: "model contains no usable material" };
-
-  const playableAnimations = gltf.animations.filter((animation) => animation.duration > 0 && animation.tracks.length > 0);
-  const animation = playableAnimations.find((candidate) => /idle/i.test(candidate.name)) ?? playableAnimations[0];
-  if (!animation) return { kind: "invalid", reason: "model contains no embedded animation" };
-
-  return { kind: "valid", animation };
-}
-
 function disposeModelResources(model: THREE.Object3D): void {
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
@@ -133,10 +44,9 @@ function disposeModelResources(model: THREE.Object3D): void {
     geometries.add(object.geometry);
     const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
     for (const material of meshMaterials) {
-      if (!(material instanceof THREE.Material)) continue;
       materials.add(material);
-      for (const texture of materialTextureSlots(material)) {
-        if (texture instanceof THREE.Texture) textures.add(texture);
+      for (const texture of materialTextures(material)) {
+        if (texture) textures.add(texture);
       }
     }
   });
@@ -144,6 +54,49 @@ function disposeModelResources(model: THREE.Object3D): void {
   geometries.forEach((geometry) => geometry.dispose());
   textures.forEach((texture) => texture.dispose());
   materials.forEach((material) => material.dispose());
+}
+
+function applyDiffuseAtlas(model: THREE.Object3D, texture: THREE.Texture): number {
+  const replacedMaterials = new Set<THREE.Material>();
+  const replacedTextures = new Set<THREE.Texture>();
+  const normalizedGeometries = new Set<THREE.BufferGeometry>();
+  const previewMaterial = new THREE.MeshBasicMaterial({
+    map: texture,
+    side: THREE.DoubleSide,
+  });
+  let meshCount = 0;
+
+  model.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+
+    meshCount += 1;
+    if (!normalizedGeometries.has(object.geometry)) {
+      const uv = object.geometry.getAttribute("uv");
+      if (uv && !uv.normalized) {
+        const normalizedUv = new Float32Array(uv.count * 2);
+        for (let index = 0; index < uv.count; index += 1) {
+          normalizedUv[index * 2] = uv.getX(index) / 4096;
+          normalizedUv[index * 2 + 1] = uv.getY(index) / 4096;
+        }
+        object.geometry.setAttribute("uv", new THREE.BufferAttribute(normalizedUv, 2));
+      }
+      normalizedGeometries.add(object.geometry);
+    }
+    const previousMaterials = Array.isArray(object.material) ? object.material : [object.material];
+    previousMaterials.forEach((material) => {
+      replacedMaterials.add(material);
+      materialTextures(material).forEach((materialTexture) => {
+        if (materialTexture && materialTexture !== texture) replacedTextures.add(materialTexture);
+      });
+    });
+    object.material = Array.isArray(object.material)
+      ? object.material.map(() => previewMaterial)
+      : previewMaterial;
+  });
+
+  replacedTextures.forEach((materialTexture) => materialTexture.dispose());
+  replacedMaterials.forEach((material) => material.dispose());
+  return meshCount;
 }
 
 function reportModelFallback(brawlerId: number, reason: string, error?: unknown): void {
@@ -170,78 +123,93 @@ export function BrawlerModelViewer({
 }: BrawlerModelViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelReady, setModelReady] = useState(false);
+  const modelAsset = brawlerModel3dAsset(brawlerId);
   const modelUrl = brawlerModel3dUrl(brawlerId);
+  const textureUrl = modelAsset ? appPath(`/assets/brawlers/3d/${brawlerId}.webp`) : undefined;
 
   useEffect(() => {
     setModelReady(false);
     const canvas = canvasRef.current;
-    if (!canvas || !modelUrl) return;
+    if (!canvas || !modelUrl || !textureUrl) return;
 
     let cancelled = false;
     let animationFrame = 0;
     let renderer: THREE.WebGLRenderer | undefined;
+    let controls: OrbitControls | undefined;
     let resizeObserver: ResizeObserver | undefined;
-    let mixer: THREE.AnimationMixer | undefined;
     let model: THREE.Object3D | undefined;
 
     const loadModel = async () => {
+      let loadingStage = "geometry";
       try {
-        const gltf = await new GLTFLoader().loadAsync(modelUrl);
-        if (cancelled) {
-          disposeModelResources(gltf.scene);
-          return;
-        }
-
-        const validation = validateModel(gltf);
-        if (validation.kind === "invalid") {
-          disposeModelResources(gltf.scene);
-          reportModelFallback(brawlerId, `${validation.reason}; keeping PNG fallback`);
-          return;
-        }
-
-        const loadedModel = gltf.scene;
-        model = loadedModel;
-        loadedModel.traverse((object) => {
-          if (object instanceof THREE.SkinnedMesh) object.pose();
+        const loadingManager = new THREE.LoadingManager();
+        loadingManager.setURLModifier((url) => {
+          if (/\.pvr(?:$|\?)/i.test(url)) return textureUrl;
+          if (/menu_(?:metal_)?(?:diffuse|specular)_lightmap\.png(?:$|\?)/i.test(url)) return textureUrl;
+          return url;
         });
+        const loader = new GLTFLoader(loadingManager);
+        const modelGltf = await loader.loadAsync(modelUrl);
+        model = modelGltf.scene;
+        if (cancelled) {
+          disposeModelResources(model);
+          model = undefined;
+          return;
+        }
+
+        loadingStage = "diffuse atlas";
+        const texture = await new THREE.TextureLoader().loadAsync(textureUrl);
+        if (cancelled) {
+          texture.dispose();
+          disposeModelResources(model);
+          model = undefined;
+          return;
+        }
+
+        loadingStage = "WebGL renderer";
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const meshCount = applyDiffuseAtlas(model, texture);
+        if (meshCount === 0) throw new Error("model contains no renderable mesh");
 
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas });
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.setClearAlpha(0);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+        texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
 
         const scene = new THREE.Scene();
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x223344, 2.2));
-        const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
-        keyLight.position.set(3, 4, 5);
-        scene.add(keyLight);
-
-        const bounds = new THREE.Box3().setFromObject(loadedModel);
+        const bounds = new THREE.Box3().setFromObject(model);
         const size = bounds.getSize(new THREE.Vector3());
         const center = bounds.getCenter(new THREE.Vector3());
         const largestDimension = Math.max(size.x, size.y, size.z);
         if (!Number.isFinite(largestDimension) || largestDimension <= 0) {
-          disposeModelResources(loadedModel);
-          model = undefined;
-          renderer.dispose();
-          renderer = undefined;
-          reportModelFallback(brawlerId, "model has invalid dimensions; keeping PNG fallback");
-          return;
+          throw new Error("model has invalid dimensions");
         }
 
-        loadedModel.position.sub(center);
-        const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
-        camera.position.set(largestDimension * 0.45, largestDimension * 0.15, largestDimension * 2.2);
+        model.position.sub(center);
+        scene.add(model);
+        const camera = new THREE.PerspectiveCamera(32, 1, 0.01, largestDimension * 20);
+        const distance = largestDimension / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+        camera.position.set(distance * 0.18, distance * 0.05, distance * 1.18);
         camera.lookAt(0, 0, 0);
-        scene.add(loadedModel);
-        mixer = new THREE.AnimationMixer(loadedModel);
-        mixer.clipAction(validation.animation, loadedModel).reset().play();
+
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        controls = new OrbitControls(camera, canvas);
+        controls.enableDamping = !reducedMotion;
+        controls.enablePan = false;
+        controls.autoRotate = !reducedMotion;
+        controls.autoRotateSpeed = 1.15;
+        controls.minDistance = distance * 0.72;
+        controls.maxDistance = distance * 1.85;
+        controls.target.set(0, 0, 0);
+        controls.update();
 
         const resize = () => {
           if (!renderer) return;
-          const width = canvas.clientWidth;
-          const height = canvas.clientHeight;
+          const width = Math.max(canvas.clientWidth, 1);
+          const height = Math.max(canvas.clientHeight, 1);
           renderer.setSize(width, height, false);
-          camera.aspect = width / Math.max(height, 1);
+          camera.aspect = width / height;
           camera.updateProjectionMatrix();
         };
 
@@ -252,27 +220,27 @@ export function BrawlerModelViewer({
 
         const clock = new THREE.Clock();
         const render = () => {
-          if (cancelled || !renderer) return;
-          mixer?.update(clock.getDelta());
-          loadedModel.rotation.y += 0.0035;
+          if (cancelled || !renderer || !controls) return;
+          const elapsed = clock.getDelta();
+          controls.update(elapsed);
           renderer.render(scene, camera);
           animationFrame = window.requestAnimationFrame(render);
         };
         render();
+
       } catch (error: unknown) {
         window.cancelAnimationFrame(animationFrame);
-        mixer?.stopAllAction();
-        if (mixer && model) mixer.uncacheRoot(model);
+        resizeObserver?.disconnect();
+        controls?.dispose();
         if (model) {
           disposeModelResources(model);
           model = undefined;
         }
-        resizeObserver?.disconnect();
         renderer?.dispose();
         renderer = undefined;
         if (!cancelled) {
           setModelReady(false);
-          reportModelFallback(brawlerId, "GLB, texture, or CORS load failed; keeping PNG fallback", error);
+          reportModelFallback(brawlerId, `${loadingStage} failed; keeping PNG fallback`, error);
         }
       }
     };
@@ -283,28 +251,26 @@ export function BrawlerModelViewer({
       cancelled = true;
       window.cancelAnimationFrame(animationFrame);
       resizeObserver?.disconnect();
-      mixer?.stopAllAction();
-      if (mixer && model) mixer.uncacheRoot(model);
+      controls?.dispose();
       if (model) disposeModelResources(model);
       renderer?.dispose();
     };
-  }, [brawlerId, modelUrl]);
+  }, [brawlerId, modelUrl, textureUrl]);
 
   return (
-    <div className={className}>
+    <div className={className} data-model-state={modelReady ? "ready" : modelAsset ? "loading" : "unavailable"}>
       <ImageWithFallback
         src={artworkSrc}
         fallbackSrc={fallbackSrc}
         alt={alt}
         data-art-kind={artworkKind}
-        className="h-full w-full object-contain drop-shadow-2xl"
+        className={`h-full w-full object-contain drop-shadow-2xl transition-opacity duration-300 ${modelReady ? "opacity-0" : "opacity-100"}`}
       />
-      {modelUrl ? (
+      {modelAsset ? (
         <canvas
           ref={canvasRef}
-          aria-label={`${alt} 3D model`}
-          aria-hidden={!modelReady}
-          className={`absolute inset-0 h-full w-full transition-opacity ${modelReady ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          aria-hidden="true"
+          className={`absolute inset-0 h-full w-full touch-none transition-opacity duration-300 ${modelReady ? "cursor-grab opacity-100 active:cursor-grabbing" : "pointer-events-none opacity-0"}`}
         />
       ) : null}
     </div>

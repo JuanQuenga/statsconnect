@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { BrawlerModelViewer } from "@/components/BrawlerModelViewer";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -112,15 +113,23 @@ function BrawlerDetailPage() {
                 <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">{brawler.description}</p>
                 <p className="mt-4 text-xs text-muted-foreground">{t("brawler.catalogRevision", { version: brawler.version || t("brawler.unversioned") })}</p>
               </div>
-              {heroArtwork ? (
+              {heroArtwork && heroArtwork.kind !== "feature" ? (
+                <BrawlerModelViewer
+                  brawlerId={brawler.id}
+                  alt={brawler.name}
+                  artworkSrc={heroArtwork.src}
+                  fallbackSrc={heroArtwork.fallbackSrc}
+                  artworkKind={heroArtwork.kind}
+                  className="relative mx-auto h-[288px] w-full"
+                />
+              ) : null}
+              {heroArtwork?.kind === "feature" ? (
                 <ImageWithFallback
                   src={heroArtwork.src}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   alt={brawler.name}
                   data-art-kind={heroArtwork.kind}
-                  className={heroArtwork.kind === "feature"
-                    ? "mx-auto max-h-72 w-full rounded-xl object-cover drop-shadow-2xl"
-                    : "mx-auto max-h-72 w-full object-contain drop-shadow-2xl"}
+                  className="mx-auto max-h-72 w-full rounded-xl object-cover drop-shadow-2xl"
                 />
               ) : null}
             </div>
