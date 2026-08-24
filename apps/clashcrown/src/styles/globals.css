@@ -5456,11 +5456,9 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   --border: rgba(183, 211, 234, .42);
   --input: rgba(190, 211, 227, .62);
   --ring: #75c5ff;
-  min-height: 700px;
+  min-height: 600px;
   color: #fff;
   background:
-    linear-gradient(180deg, rgba(4, 20, 25, .04) 0%, rgba(10, 24, 28, .1) 25%, rgba(66, 63, 75, .18) 45%, rgba(119, 109, 127, .54) 73%, #b7acbd 100%),
-    linear-gradient(90deg, rgba(4, 21, 25, .82) 0%, rgba(4, 22, 27, .62) 38%, rgba(4, 22, 27, .2) 70%, rgba(4, 20, 24, .4) 100%),
     url("/images/theme/subreddit/forest-hero.png") center top / auto 286px no-repeat,
     url("/images/theme/subreddit/arena-wall-tile.png") center 286px / 226px 226px repeat;
 }
@@ -5478,7 +5476,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .royale-hero-inner {
-  min-height: 700px;
+  min-height: 600px;
 }
 
 .site-frame-home .royale-hero-copy {
@@ -5668,10 +5666,12 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 @media (max-width: 680px) {
   .site-frame-home .royale-hero {
     background:
-      linear-gradient(180deg, rgba(4, 20, 25, .22) 0%, rgba(7, 22, 27, .4) 23%, rgba(65, 62, 74, .25) 45%, rgba(119, 109, 127, .56) 72%, #b7acbd 100%),
-      linear-gradient(90deg, rgba(4, 21, 25, .7), rgba(4, 22, 27, .38)),
       url("/images/theme/subreddit/forest-hero.png") 44% top / auto 286px no-repeat,
       url("/images/theme/subreddit/arena-wall-tile.png") center 286px / 226px 226px repeat;
+  }
+
+  .site-frame-home .royale-hero-showcase.royale-hero-showcase {
+    min-height: 400px;
   }
 
   .site-frame-home .page-band {
