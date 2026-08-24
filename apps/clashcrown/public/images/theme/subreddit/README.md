@@ -5,6 +5,7 @@ These files preserve the artwork used by the classic `r/ClashRoyale` old Reddit 
 | Local file | Original stylesheet asset |
 | --- | --- |
 | `forest-hero.png` | `https://b.thumbs.redditmedia.com/danr-UVP37a9fdVfVEo0gyOxErYshBJw4D9v6NayMjE.png` |
+| `battlement-strip.png` | `https://b.thumbs.redditmedia.com/wY-qk4pFOSVjp0AcuO-szn680Mun8SfGtd6BELUu2jE.png` |
 | `arena-wall-tile.png` | `https://b.thumbs.redditmedia.com/_x0UmFen8YtQENnObFWZIXXim806caAi6boBUXQST_E.png` |
 | `arena-wall.png` | `https://b.thumbs.redditmedia.com/LCnJctndahRXXs2R8bYmXkBRgggyG7OiNG2zOkfWBGU.png` |
 | `footer-lances.png` | `https://b.thumbs.redditmedia.com/NUaRQr2qjXdct3rNDS1r4orMIt93AhSDFpd0Sm3ERaY.png` |
