@@ -5429,3 +5429,262 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   .cr-activity-cell:not(.cr-activity-empty) { transition: none; }
   .cr-activity-loading-column i { animation: none; }
 }
+
+/* Clash Royale homepage: preserve the classic r/ClashRoyale arena artwork.
+   Keep every selector below gated by .site-frame-home so profile, leaderboard,
+   and other routes retain their current visual system. */
+.site-frame-home > main {
+  --home-arena-blue: #1688e8;
+  --home-arena-blue-dark: #07569f;
+  --home-arena-gold: #ffd45c;
+  color: #36363d;
+  background-color: #b7acbd;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .04), rgba(74, 69, 82, .08)),
+    url("/images/theme/subreddit/arena-wall-tile.png");
+  background-repeat: repeat, repeat;
+}
+
+.site-frame-home .site-arena-backdrop {
+  display: none;
+}
+
+.site-frame-home .royale-hero {
+  --primary: var(--home-arena-blue);
+  --primary-foreground: #fff;
+  --accent: var(--home-arena-gold);
+  --border: rgba(183, 211, 234, .42);
+  --input: rgba(190, 211, 227, .62);
+  --ring: #75c5ff;
+  min-height: 700px;
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(4, 20, 25, .04) 0%, rgba(10, 24, 28, .1) 25%, rgba(66, 63, 75, .18) 45%, rgba(119, 109, 127, .54) 73%, #b7acbd 100%),
+    linear-gradient(90deg, rgba(4, 21, 25, .82) 0%, rgba(4, 22, 27, .62) 38%, rgba(4, 22, 27, .2) 70%, rgba(4, 20, 24, .4) 100%),
+    url("/images/theme/subreddit/forest-hero.png") center top / auto 286px no-repeat,
+    url("/images/theme/subreddit/arena-wall.png") center 214px / auto 800px no-repeat;
+}
+
+.site-frame-home .royale-hero-inner {
+  min-height: 700px;
+}
+
+.site-frame-home .royale-hero-copy {
+  text-shadow: 0 3px 4px rgba(0, 0, 0, .74), 0 9px 28px rgba(0, 0, 0, .42);
+}
+
+.site-frame-home .royale-hero-copy h1 .hero-title-accent {
+  color: var(--home-arena-gold);
+  text-shadow: 0 3px 0 rgba(95, 61, 6, .58), 0 9px 26px rgba(0, 0, 0, .46);
+}
+
+.site-frame-home .royale-hero-description {
+  color: #f3f6f1;
+}
+
+.site-frame-home .royale-hero-copy .search-box {
+  border-color: rgba(255, 255, 255, .72);
+  box-shadow: 0 5px 0 rgba(67, 70, 83, .74), 0 16px 36px rgba(0, 0, 0, .34);
+}
+
+.site-frame-home .royale-hero-card,
+.site-frame-home .royale-hero-showcase-state > div {
+  border-color: rgba(142, 199, 239, .58);
+  border-left-color: var(--home-arena-blue);
+  background: linear-gradient(180deg, rgba(8, 54, 98, .97), rgba(6, 35, 66, .98));
+  box-shadow: 0 5px 0 rgba(35, 48, 70, .78), 0 18px 42px rgba(0, 0, 0, .4);
+}
+
+.site-frame-home .royale-hero-selector-card[aria-pressed="true"] {
+  border-color: #75c5ff;
+}
+
+.site-frame-home .page-band {
+  --foreground: #36363d;
+  --card: #f7f7f8;
+  --card-foreground: #36363d;
+  --secondary: #dfe9f2;
+  --secondary-foreground: #2d3b49;
+  --muted-surface: #e5edf2;
+  --muted-foreground: #626a75;
+  --primary: var(--home-arena-blue);
+  --primary-foreground: #fff;
+  --accent: var(--home-arena-gold);
+  --border: #b8bdc7;
+  --input: #aab5c1;
+  --ring: #1688e8;
+  color: var(--foreground);
+  border: 1px solid rgba(255, 255, 255, .92);
+  border-bottom: 5px solid #818393;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(244, 244, 246, .98));
+  box-shadow: 0 1px 20px rgba(26, 24, 31, .28);
+}
+
+.site-frame-home .page-band > .section-title-row > h2,
+.site-frame-home .page-band > header:first-child h2,
+.site-frame-home .page-band > h2:first-child,
+.site-frame-home .home-data-state > div > h2 {
+  width: min(385px, 100%);
+  min-height: 40px;
+  margin-left: -16px;
+  display: grid;
+  place-items: center;
+  padding: 5px 34px 9px;
+  color: #fff;
+  background: url("/images/theme/subreddit/blue-banner.png") center / 100% 100% no-repeat;
+  font-family: var(--font-ui);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: .015em;
+  text-align: center;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, .54);
+}
+
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > header p,
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > header span,
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > div:has(> .pink-button),
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > div:has(> .pink-button) p {
+  color: #5e6873;
+}
+
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > div:has(> .pink-button) {
+  border-color: #9baab7;
+  background: linear-gradient(180deg, #edf4f8, #e3edf3);
+}
+
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > div:has(> .pink-button) strong,
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details summary,
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details section,
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details section h3,
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details section label {
+  color: #36363d;
+}
+
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details {
+  border-top-color: #b8bdc7;
+}
+
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details section {
+  border-color: #aab5c1;
+  background: #edf3f7;
+}
+
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details section p,
+.site-frame-home [aria-labelledby="personal-dashboard-title"] > details section small {
+  color: #68727d;
+}
+
+.site-frame-home .pink-button,
+.site-frame-home .copy-deck {
+  border-color: #0d67b7;
+  color: #fff;
+  background: linear-gradient(180deg, #36a3f4, #0870c9);
+  box-shadow: 0 3px 0 #07569f, 0 9px 22px rgba(12, 95, 165, .24);
+}
+
+.site-frame-home .pink-button:hover,
+.site-frame-home .copy-deck:hover {
+  background: linear-gradient(180deg, #5db8f8, #1688e8);
+}
+
+.site-frame-home .archetype-tabs button.active {
+  border-color: #07569f;
+  color: #fff;
+  background: linear-gradient(180deg, #36a3f4, #0870c9);
+}
+
+.site-frame-home .event-progress i,
+.site-frame-home .progress-track i {
+  background: linear-gradient(90deg, var(--home-arena-blue), var(--home-arena-gold));
+}
+
+.site-frame-home .site-footer {
+  min-height: 570px;
+  margin-top: 0;
+  padding: 88px 24px 126px;
+  border-top: 0;
+  color: #fff;
+  background:
+    url("/images/theme/subreddit/footer-king.png") center 88px / 123px 205px no-repeat,
+    url("/images/theme/subreddit/footer-lances.png") center bottom / max(1161px, 100%) auto no-repeat,
+    url("/images/theme/subreddit/arena-wall.png") center top / auto 570px repeat-x;
+}
+
+.site-frame-home .footer-inner {
+  grid-template-columns: minmax(230px, 1fr) minmax(360px, 1fr);
+  gap: 42px 170px;
+  color: rgba(255, 255, 255, .88);
+  text-shadow: 0 2px 5px rgba(25, 22, 31, .7);
+}
+
+.site-frame-home .statsconnect-game-brand,
+.site-frame-home .footer-link-groups strong {
+  color: #fff;
+}
+
+.site-frame-home .statsconnect-game-brand span,
+.site-frame-home .footer-link-groups a:hover,
+.site-frame-home .footer-legal a {
+  color: #bfe3ff;
+}
+
+.site-frame-home .footer-legal {
+  margin-top: 88px;
+  border-top-color: rgba(255, 255, 255, .3);
+  color: rgba(255, 255, 255, .82);
+}
+
+@media (max-width: 980px) {
+  .site-frame-home .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .site-frame-home .site-footer {
+    min-height: 760px;
+    padding-bottom: 150px;
+    background-position: center 390px, center bottom, center top;
+    background-size: 123px 205px, auto 190px, auto 760px;
+  }
+
+  .site-frame-home .footer-legal {
+    margin-top: 210px;
+  }
+}
+
+@media (max-width: 680px) {
+  .site-frame-home .royale-hero {
+    background:
+      linear-gradient(180deg, rgba(4, 20, 25, .22) 0%, rgba(7, 22, 27, .4) 23%, rgba(65, 62, 74, .25) 45%, rgba(119, 109, 127, .56) 72%, #b7acbd 100%),
+      linear-gradient(90deg, rgba(4, 21, 25, .7), rgba(4, 22, 27, .38)),
+      url("/images/theme/subreddit/forest-hero.png") 44% top / auto 286px no-repeat,
+      url("/images/theme/subreddit/arena-wall.png") center 214px / auto 800px no-repeat;
+  }
+
+  .site-frame-home .page-band {
+    border-radius: 8px;
+  }
+
+  .site-frame-home .page-band > .section-title-row > h2,
+  .site-frame-home .page-band > header:first-child h2,
+  .site-frame-home .page-band > h2:first-child,
+  .site-frame-home .home-data-state > div > h2 {
+    margin-left: -11px;
+    font-size: 16px;
+  }
+
+  .site-frame-home .footer-link-groups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+  }
+
+  .site-frame-home .site-footer {
+    background-position: center 350px, center bottom, center top;
+    background-size: 123px 205px, 650px auto, auto 100%;
+  }
+
+  .site-frame-home .footer-legal {
+    margin-top: 230px;
+  }
+}
