@@ -3,6 +3,7 @@ import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { cardSlug } from "@/lib/clash/cards";
@@ -80,13 +81,15 @@ function CardLibrary() {
         <meta name="description" content="Every Clash Royale card with elixir cost, rarity and Evolution availability." />
       </Head>
       <div className="decks-page">
-        <section className="decks-hero">
-          <h1>Cards</h1>
-          <p>
-            {library.cards.length} cards · {evolutions} with Evolutions · {library.towerTroops.length} Tower
-            Troops
-          </p>
-        </section>
+        <ArenaRouteHero
+          title="Cards"
+          summary={
+            <>
+              {library.cards.length} cards · {evolutions} with Evolutions · {library.towerTroops.length} Tower
+              Troops
+            </>
+          }
+        />
 
         <section className="card-browser profile-section">
           <div className="browser-toolbar">

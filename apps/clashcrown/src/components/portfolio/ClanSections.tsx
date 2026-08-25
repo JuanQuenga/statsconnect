@@ -9,7 +9,8 @@ import { useI18n, type Locale } from "@/lib/i18n";
 export function ClanProfile({ clan }: { clan: Clan }) {
   const { formatNumber, locale, t } = useI18n();
   return (
-    <section className="clan-hero">
+    <section className="clan-hero" data-arena-frame>
+      <span className="arena-hero-frame-art" aria-hidden="true" />
       <Image src={clan.badge} alt="" width={74} height={92} priority />
       <h1>{clan.name}</h1>
       <strong>

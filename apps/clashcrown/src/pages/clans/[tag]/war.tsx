@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, TableShell } from "@/components/portfolio/DataTable";
 import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
@@ -70,11 +71,11 @@ function ClanWar({ tag }: { tag: string }) {
         <title>{`Clan War #${tag} | StatsConnect · Clash Royale statistics`}</title>
       </Head>
       <div className="profile-page">
-        <section className="decks-hero">
-          <Link href={`/clans/${tag}`} className="breadcrumb">← Back to clan</Link>
-          <h1>River Race</h1>
-          <p>{current?.clan?.name ?? `#${tag}`}</p>
-        </section>
+        <ArenaRouteHero
+          title="River Race"
+          eyebrow={current?.clan?.name ?? `#${tag}`}
+          actions={<Link href={`/clans/${tag}`} className="breadcrumb">← Back to clan</Link>}
+        />
 
         {!current && !log ? (
           <p className="empty-results">This clan has no River Race history yet.</p>

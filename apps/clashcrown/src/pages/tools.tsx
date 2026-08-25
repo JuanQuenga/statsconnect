@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Check, Clipboard, ExternalLink, Link2, Search, Tag } from "lucide-react";
 import Head from "@/components/Head";
 import Link from "@/components/Link";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { normalizeTag } from "@/lib/clash/tag";
 import { useI18n } from "@/lib/i18n";
@@ -38,10 +39,7 @@ export default function ToolsPage() {
         <link rel="canonical" href="/tools" />
       </Head>
       <div className="editorial-page tools-page">
-        <section className="editorial-hero">
-          <h1>{t("tools.title")}</h1>
-          <p>{t("tools.description")}</p>
-        </section>
+        <ArenaRouteHero title={t("tools.title")} summary={t("tools.description")} />
 
         <section className="tool-grid">
           <TagCleaner />

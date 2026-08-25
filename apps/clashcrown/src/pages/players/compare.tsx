@@ -4,6 +4,7 @@ import { useRouter } from "@/lib/router";
 import { FormEvent, useEffect, useState } from "react";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import styles from "@/components/PlayerComparison.module.css";
 import { cardSlug } from "@/lib/clash/cards";
@@ -63,11 +64,11 @@ export default function PlayerComparePage() {
         <meta name="description" content="Compare two Clash Royale players side by side." />
       </Head>
       <div className={`profile-page ${styles.workspace}`}>
+        <ArenaRouteHero
+          title="Compare players"
+          summary="Put two profiles side by side and see where each player leads."
+        />
         <section className="profile-section">
-          <div className={styles.intro}>
-            <h1>Compare players</h1>
-            <p>Put two profiles side by side and see where each player leads.</p>
-          </div>
           <form className={styles.form} onSubmit={submit} noValidate>
             <label className={styles.field}>
               First player

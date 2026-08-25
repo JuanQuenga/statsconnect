@@ -2,6 +2,7 @@ import Head from "@/components/Head";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
@@ -61,13 +62,15 @@ function Beta() {
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className="profile-page">
-        <section className="decks-hero">
-          <h1>Pipeline beta</h1>
-          <p>
+        <ArenaRouteHero
+          title="Pipeline beta"
+          summary={
+            <>
             The official API only exposes battles one player at a time, so deck statistics are built by crawling
             battle logs and folding them into daily aggregates. This page shows what the crawler has managed so far.
-          </p>
-        </section>
+            </>
+          }
+        />
 
         <PipelineHealth status={status} />
         <RunLog runs={status?.lastRuns} />

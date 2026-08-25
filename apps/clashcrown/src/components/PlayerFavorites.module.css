@@ -12,7 +12,7 @@
 
 .toggle:hover,
 .toggle[aria-pressed="true"] {
-  border-color: rgba(238, 102, 239, .55);
-  color: #f0a2f2;
-  background: rgba(87, 35, 105, .34);
+  border-color: rgba(31, 147, 255, .55);
+  color: #75c5ff;
+  background: rgba(7, 86, 159, .34);
 }

@@ -2,6 +2,7 @@ import { ArrowRight, BarChart3 } from "lucide-react";
 import Head from "@/components/Head";
 import Image from "@/components/Image";
 import Link from "@/components/Link";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { guideText, strategyGuides } from "@/content/guides";
 import { useI18n } from "@/lib/i18n";
@@ -18,11 +19,11 @@ export default function GuidesPage() {
         <link rel="canonical" href="/guides" />
       </Head>
       <div className="editorial-page">
-        <section className="editorial-hero">
-          <h1>{t("guides.title")}</h1>
-          <p>{t("guides.description")}</p>
-          <Link href="/meta" className="pink-button"><BarChart3 size={15} /> {t("guides.liveMeta")}</Link>
-        </section>
+        <ArenaRouteHero
+          title={t("guides.title")}
+          summary={t("guides.description")}
+          actions={<Link href="/meta" className="pink-button"><BarChart3 size={15} /> {t("guides.liveMeta")}</Link>}
+        />
         <section className="guide-grid">
           {strategyGuides.map((guide) => (
             <article className="guide-card" key={guide.slug}>

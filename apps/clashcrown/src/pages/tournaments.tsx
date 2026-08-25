@@ -3,6 +3,7 @@ import { FormEvent, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { Search } from "lucide-react";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { TableShell } from "@/components/portfolio/DataTable";
@@ -52,10 +53,10 @@ function Tournaments() {
         <meta name="description" content="Live Global Tournaments and open community tournaments in Clash Royale." />
       </Head>
       <div className="profile-page">
-        <section className="decks-hero">
-          <h1>Tournaments</h1>
-          <p>Supercell&rsquo;s Global Tournaments, plus open community tournaments you can search by name.</p>
-        </section>
+        <ArenaRouteHero
+          title="Tournaments"
+          summary="Supercell’s Global Tournaments, plus open community tournaments you can search by name."
+        />
 
         {globalQuery.isLoading ? <LoadingState label="tournaments" /> : null}
         {globalQuery.error ? <ErrorState message={errorMessage(globalQuery.error)} /> : null}

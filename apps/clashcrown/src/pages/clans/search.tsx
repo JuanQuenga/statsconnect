@@ -5,6 +5,7 @@ import { useRouter } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { Search } from "lucide-react";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
@@ -70,10 +71,10 @@ function ClanSearch() {
         <link rel="canonical" href="/clans/search" />
       </Head>
       <div className="profile-page">
-        <section className="decks-hero">
-          <h1>{locale === "es" ? "Buscar un clan" : "Find a Clan"}</h1>
-          <p>{locale === "es" ? "Busca el directorio en vivo por nombre y filtra por tamaño y puntuación." : "Search the live clan directory by name, then filter by size and score."}</p>
-        </section>
+        <ArenaRouteHero
+          title={locale === "es" ? "Buscar un clan" : "Find a Clan"}
+          summary={locale === "es" ? "Busca el directorio en vivo por nombre y filtra por tamaño y puntuación." : "Search the live clan directory by name, then filter by size and score."}
+        />
 
         <section className="profile-section">
           <form className="search-filters" onSubmit={submit}>

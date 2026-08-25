@@ -35,7 +35,8 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
   const currentLeague = player.pathOfLegends?.current;
 
   return (
-    <section className="profile-hero">
+    <section className="profile-hero" data-arena-frame>
+      <span className="arena-hero-frame-art" aria-hidden="true" />
       <div className="profile-hero-glow" aria-hidden="true" />
       <div className="profile-identity-art">
         <div className="profile-showcase-shelf" aria-label={locale === "es" ? "Selección del jugador" : "Player loadout"}>

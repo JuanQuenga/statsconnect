@@ -23,7 +23,7 @@ function metricLabel(metric: Metric) {
 }
 
 function metricColor(metric: Metric) {
-  return metric === "usageRate" ? "#62c9ff" : "#f26df3";
+  return metric === "usageRate" ? "#62c9ff" : "#1f93ff";
 }
 
 function chartDomain(values: number[], metric: Metric): [number, number] {

@@ -192,7 +192,8 @@ function Leaderboards() {
         <meta name="description" content="Live Clash Royale player, clan, and clan-war rankings with searchable results and real historical movement from StatsConnect." />
       </Head>
       <div className={styles.page}>
-        <section className={styles.hero}>
+        <section className={styles.hero} data-arena-frame>
+          <span className="arena-hero-frame-art" aria-hidden="true" />
           <div className={styles.heroCopy}>
             <h1>Leaderboards</h1>
             <p>Find the players and clans setting the pace now, then use StatsConnect’s saved observations to see who is actually climbing.</p>

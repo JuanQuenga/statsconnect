@@ -72,7 +72,7 @@ function ErrorPanel({ copy, error, reference, retry }: ErrorPanelProps) {
   );
 }
 
-export function ClashCrownRouteError({ error }: ErrorComponentProps) {
+export function ClashRoyaleRouteError({ error }: ErrorComponentProps) {
   const { t } = useI18n();
   const copy: ErrorCopy = {
     description: t("error.description"),
@@ -95,7 +95,7 @@ export function ClashCrownRouteError({ error }: ErrorComponentProps) {
   );
 }
 
-export function ClashCrownFatalError({ error, reference }: AppErrorFallbackProps) {
+export function ClashRoyaleFatalError({ error, reference }: AppErrorFallbackProps) {
   return (
     <main className="app-error-fatal">
       <ErrorPanel

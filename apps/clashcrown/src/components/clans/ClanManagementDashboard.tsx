@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, CalendarClock, RefreshCcw, Search, ShieldAlert, Spa
 import { useMemo, useState } from "react";
 import Link from "@/components/Link";
 import { ClanNotifications } from "@/components/clans/ClanNotifications";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import type { ClanAttention, ClanManagementDashboard as DashboardData, ClanManagementMember } from "@/lib/clanManagement";
 
 type SortKey = "attention" | "trophies" | "donations" | "inactivity" | "consistency" | "fameTrend";
@@ -80,13 +81,15 @@ export function ClanManagementDashboard({
 
   return (
     <>
-      <section className="management-overview" aria-labelledby="management-title">
-        <div className="management-overview-copy">
-          <h1 id="management-title">{clanName} management</h1>
-          <p>
+      <ArenaRouteHero
+        title={`${clanName} management`}
+        summary={
+          <>
             Decisions stay with your clan. Signals below only explain changes observed by StatsConnect; they are not official
             Supercell recommendations and cannot see chat, conduct, or leadership context.
-          </p>
+          </>
+        }
+        actions={
           <div className="management-actions">
             <Link href={`/clans/${data.clan.tag}`} className="management-button management-button-muted">Clan profile</Link>
             <Link href={`/clans/${data.clan.tag}/war`} className="management-button management-button-muted">River Race</Link>
@@ -95,15 +98,17 @@ export function ClanManagementDashboard({
               {observing ? "Checking…" : "Check for an observation"}
             </button>
           </div>
-        </div>
-        <div className="management-observation-card">
-          <CalendarClock size={22} aria-hidden="true" />
-          <strong>{data.clan.observationCount.toLocaleString()} observations</strong>
-          <span>Latest: {formatDate(data.clan.lastObservedAt)}</span>
-          <span>Next scheduled check: {formatDate(data.clan.nextObservationAt)}</span>
-          <small>At most once every 6 hours per clan. History is retained for 12 weeks.</small>
-        </div>
-      </section>
+        }
+        aside={
+          <div className="management-observation-card">
+            <CalendarClock size={22} aria-hidden="true" />
+            <strong>{data.clan.observationCount.toLocaleString()} observations</strong>
+            <span>Latest: {formatDate(data.clan.lastObservedAt)}</span>
+            <span>Next scheduled check: {formatDate(data.clan.nextObservationAt)}</span>
+            <small>At most once every 6 hours per clan. History is retained for 12 weeks.</small>
+          </div>
+        }
+      />
 
       {data.clan.lastError ? (
         <div className="management-warning" role="status">

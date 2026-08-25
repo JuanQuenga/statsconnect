@@ -36,7 +36,7 @@ function arenaTransitionFor(pathname: string): string {
   return arenaRouteState.transitionClass;
 }
 
-function ClashCrownLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
+function ClashRoyaleLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const active = href === "/" ? pathname === href : pathname.startsWith(href);
 
@@ -67,7 +67,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
   ];
 
   return (
-    <div className={`site-frame ${variant === "home" ? "site-frame-home" : ""} ${arenaTransitionClass}`}>
+    <div className={`site-frame site-frame-clash ${variant === "home" ? "site-frame-home" : ""} ${arenaTransitionClass}`}>
       <div className="site-arena-backdrop" aria-hidden="true" />
       <a
         href="#maincontent"
@@ -76,7 +76,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         Skip to content
       </a>
       <SiteNavigation
-        accentColor="#d96bf3"
+        accentColor="#1688e8"
         currentSite="clash-royale"
         account={auth.account ? {
           avatarUrl: auth.account.image ?? undefined,
@@ -90,7 +90,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         } : undefined}
         hubOrigin={statsConnectOrigin}
         profiles={auth.profiles}
-        linkAdapter={ClashCrownLink}
+        linkAdapter={ClashRoyaleLink}
         links={navItems}
         language={{
           label: t("locale.label"),
@@ -116,9 +116,8 @@ function SiteFooter() {
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-brand-row">
-          <Link href="/" aria-label="StatsConnect · Clash Royale statistics" className="statsconnect-game-brand">
+          <Link href="/" aria-label="StatsConnect" className="statsconnect-game-brand">
             <strong>StatsConnect</strong>
-            <span>Clash Royale statistics</span>
           </Link>
           <p>Player profiles, live meta insights, deck tools, and clan intelligence for Clash Royale.</p>
         </div>
@@ -149,7 +148,7 @@ function SiteFooter() {
               Fan Content Policy
             </a>.
           </p>
-          <p>© {new Date().getFullYear()} StatsConnect · Clash Royale statistics.</p>
+          <p>© {new Date().getFullYear()} StatsConnect.</p>
         </div>
       </div>
     </footer>
