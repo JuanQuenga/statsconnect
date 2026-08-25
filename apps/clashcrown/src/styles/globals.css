@@ -5610,15 +5610,15 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .site-footer {
-  min-height: 570px;
+  min-height: 500px;
   margin-top: 0;
-  padding: 88px 24px 126px;
+  padding: 56px 24px 120px;
   border-top: 0;
   color: #fff;
   background:
-    url("/images/theme/subreddit/footer-king.png") center 88px / 123px 205px no-repeat,
+    url("/images/theme/subreddit/footer-king.png") center top / 123px 205px no-repeat,
     url("/images/theme/subreddit/footer-lances.png") center bottom / max(1161px, 100%) auto no-repeat,
-    url("/images/theme/subreddit/arena-wall.png") center top / auto 570px repeat-x;
+    url("/images/theme/subreddit/arena-wall.png") center top / auto 500px repeat-x;
 }
 
 .site-frame-home .footer-inner {
@@ -5640,9 +5640,12 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .footer-legal {
-  margin-top: 88px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
   border-top-color: rgba(255, 255, 255, .3);
   color: rgba(255, 255, 255, .82);
+  text-align: center;
 }
 
 @media (max-width: 980px) {
@@ -5652,14 +5655,14 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   }
 
   .site-frame-home .site-footer {
-    min-height: 760px;
-    padding-bottom: 150px;
-    background-position: center 390px, center bottom, center top;
-    background-size: 123px 205px, auto 190px, auto 760px;
+    min-height: 620px;
+    padding-bottom: 96px;
+    background-position: center 220px, center bottom, center top;
+    background-size: 123px 205px, auto 160px, auto 620px;
   }
 
   .site-frame-home .footer-legal {
-    margin-top: 210px;
+    margin-top: 96px;
   }
 }
 
@@ -5692,11 +5695,15 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   }
 
   .site-frame-home .site-footer {
-    background-position: center 350px, center bottom, center top;
+    min-height: 640px;
+    background-position: center 315px, center bottom, center top;
     background-size: 123px 205px, 650px auto, auto 100%;
   }
 
   .site-frame-home .footer-legal {
-    margin-top: 230px;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: 210px;
   }
 }
