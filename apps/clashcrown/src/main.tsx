@@ -20,28 +20,10 @@ import "./styles/globals.css";
 const APP_NAME = "StatsConnect Clash Royale";
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "") || "/";
 
-function isBenignViewTransitionAbort(error: unknown): boolean {
-  if (typeof error !== "object" || error === null || !("name" in error) || !("message" in error)) {
-    return false;
-  }
-
-  const name = error.name;
-  const message = error.message;
-  if (typeof name !== "string" || typeof message !== "string") return false;
-
-  return (
-    (name === "AbortError" || name === "InvalidStateError") &&
-    /transition/i.test(message)
-  );
-}
-
 function createApplicationRouter() {
   const router = createRouter({
     routeTree,
     defaultPreload: "intent",
-    // Keep route changes in the browser's same-document transition pipeline.
-    // Individual navigation adapters opt out for search/hash-only updates.
-    defaultViewTransition: true,
     basepath: basePath,
     defaultErrorComponent: ClashRoyaleRouteError,
     defaultOnCatch: (error, errorInfo) => {
@@ -54,43 +36,7 @@ function createApplicationRouter() {
     },
   });
 
-  // TanStack awaits this promise from its history subscriber. A browser can
-  // reject it when a newer transition supersedes an active one; keep that
-  // expected race from becoming an unhandled rejection while preserving real
-  // route/load failures.
-  const startViewTransition = router.startViewTransition;
-  router.startViewTransition = (fn) => {
-    const transitionRequested = router.shouldViewTransition ?? true;
-    const nativeSupported = typeof document !== "undefined" &&
-      typeof document.startViewTransition === "function";
-
-    try {
-      return startViewTransition(fn).catch((error: unknown) => {
-        if (nativeSupported && transitionRequested && isBenignViewTransitionAbort(error)) {
-          return;
-        }
-        throw error;
-      });
-    } catch (error: unknown) {
-      if (nativeSupported && transitionRequested && isBenignViewTransitionAbort(error)) {
-        // A synchronous native failure happens before the update callback is
-        // invoked. Continue the route update without the transition, and let
-        // callback/load errors remain rejected instead of masking them.
-        return Promise.resolve().then(fn);
-      }
-      throw error;
-    }
-  };
-
   return router;
-}
-
-function navigationPath(href: string): string {
-  return href.split(/[?#]/, 1)[0] || "/";
-}
-
-function prefersReducedMotion(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 type ClashRoyaleRouter = ReturnType<typeof createApplicationRouter>;
@@ -166,10 +112,7 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
   return {
     navigate: (href) => {
       const local = localHref(href);
-      void router.navigate({
-        href: local,
-        viewTransition: !prefersReducedMotion() && navigationPath(local) !== router.state.location.pathname,
-      });
+      void router.navigate({ href: local });
     },
     unmount: () => {
       root.unmount();

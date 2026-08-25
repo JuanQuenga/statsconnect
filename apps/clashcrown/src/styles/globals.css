@@ -3933,6 +3933,12 @@ a:hover .entity-cell strong { color: #75c5ff; }
   box-shadow: none;
 }
 
+/* During a route handoff, reveal the incoming hero only as the battlement
+ * moves. The wall pseudo-element is inside the frame, so it remains visible. */
+.site-frame-clash .arena-hero-frame[data-arena-height-transition="active"] {
+  overflow: clip;
+}
+
 .site-frame-clash .arena-hero-frame-art {
   position: absolute;
   z-index: 0;
@@ -3964,35 +3970,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .site-frame-clash .arena-hero-frame > :not(.arena-hero-frame-art) {
   position: relative;
   z-index: 1;
-}
-
-/* Same-document route transitions let the shared frame keep its identity while
- * its intrinsic height changes. The browser then interpolates the frame's box,
- * including the battlement pseudo-element anchored to its bottom edge. */
-@supports (view-transition-name: none) {
-  .site-frame-clash .arena-hero-frame {
-    view-transition-name: arena-hero-frame;
-  }
-
-  ::view-transition-group(arena-hero-frame) {
-    animation-duration: 560ms;
-    animation-timing-function: cubic-bezier(.22, 1, .36, 1);
-  }
-
-  ::view-transition-old(arena-hero-frame),
-  ::view-transition-new(arena-hero-frame) {
-    animation-duration: 560ms;
-    animation-timing-function: cubic-bezier(.22, 1, .36, 1);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    ::view-transition-group(arena-hero-frame),
-    ::view-transition-old(arena-hero-frame),
-    ::view-transition-new(arena-hero-frame) {
-      animation-duration: .01ms !important;
-      animation-iteration-count: 1 !important;
-    }
-  }
 }
 
 .site-frame-clash > main .arena-route-hero {
@@ -4387,53 +4364,32 @@ a:hover .entity-cell strong { color: #75c5ff; }
   display: grid;
   align-content: center;
   justify-items: center;
+  gap: 16px;
   min-width: 0;
   max-width: 100%;
-  min-height: 540px;
-  padding: 28px 0 18px;
+  min-height: 560px;
+  padding: 36px 0 72px;
 }
 
 .player-tag-guide-heading {
-  width: min(480px, 100%);
+  width: min(400px, 100%);
   max-width: 100%;
-  margin-left: auto;
-  text-align: left;
 }
 
 .player-tag-guide-heading h2 {
-  margin: 0 0 7px;
-  color: #fff;
-  font: 800 clamp(24px, 2.2vw, 31px)/1.08 var(--font-ui);
-  letter-spacing: -.025em;
-}
-
-.player-tag-guide-heading p {
   margin: 0;
-  color: rgba(239, 248, 255, .8);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.player-tag-guide-stage {
-  display: grid;
-  grid-template-columns: minmax(0, 285px) minmax(0, 1fr);
-  align-items: center;
-  gap: 16px;
-  width: min(480px, 100%);
-  max-width: 100%;
-  margin-top: 16px;
+  color: #fff;
+  font: 800 clamp(22px, 2vw, 28px)/1.15 var(--font-ui);
+  letter-spacing: -.02em;
 }
 
 .player-tag-guide-screen {
-  position: relative;
-  width: 100%;
+  width: min(400px, 100%);
   aspect-ratio: 1;
   overflow: hidden;
-  border: 1px solid rgba(211, 234, 250, .48);
+  border: 1px solid rgba(211, 234, 250, .45);
   border-radius: 10px;
   background: #2a1644;
-  box-shadow: 0 12px 24px rgba(3, 22, 43, .28);
-  animation: player-tag-guide-in .42s ease both;
 }
 
 .player-tag-guide-screen > picture,
@@ -4445,79 +4401,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 .player-tag-guide-screen > picture > img {
   object-fit: cover;
-}
-
-.player-tag-guide-callout {
-  width: 100%;
-  padding: 14px 15px 15px;
-  border: 1px solid rgba(154, 214, 255, .38);
-  border-radius: 7px;
-  background: rgba(5, 39, 73, .94);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
-}
-
-.player-tag-guide-callout div { display: grid; gap: 4px; }
-.player-tag-guide-callout strong { color: #fff; font: 800 17px/1.2 var(--font-ui); }
-.player-tag-guide-callout p { margin: 0; color: rgba(239, 248, 255, .76); font-size: 12px; line-height: 1.45; }
-
-.player-tag-guide-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.player-tag-guide-arrow,
-.player-tag-guide-dot {
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  color: #eaf7ff;
-  background: transparent;
-  cursor: pointer;
-}
-
-.player-tag-guide-arrow {
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
-}
-
-.player-tag-guide-dots { display: flex; align-items: center; gap: 8px; }
-.player-tag-guide-dot {
-  width: 25px;
-  height: 25px;
-  padding: 0;
-  border-radius: 2px;
-  opacity: .62;
-  font: 750 10px/1 var(--font-ui);
-  transition: opacity .2s ease, border-color .2s ease;
-}
-
-.player-tag-guide-arrow:hover,
-.player-tag-guide-dot:hover,
-.player-tag-guide-arrow:focus-visible,
-.player-tag-guide-dot:focus-visible {
-  border-bottom-color: #ffe064;
-  outline: 2px solid rgba(255, 224, 100, .48);
-  outline-offset: 2px;
-}
-
-.player-tag-guide-dot[aria-current="step"] {
-  border-bottom-color: #ffe064;
-  color: #ffe064;
-  opacity: 1;
-}
-
-@keyframes player-tag-guide-in {
-  from { opacity: 0; transform: translate3d(6px, 4px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .player-tag-guide-screen { animation: none; }
-  .player-tag-guide-dot { transition: none; }
 }
 
 .home-data-state {
@@ -4565,19 +4448,14 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .royale-hero-character-card { place-items: start center; }
   .royale-hero-character-card > img { width: min(230px, 58%); height: 58%; object-position: center top; }
   .royale-hero-showcase-state { min-height: 390px; padding: 34px 0 80px; }
-  .player-tag-guide { min-height: 390px; padding: 18px 0 12px; }
+  .player-tag-guide { min-height: 390px; padding: 18px 0 42px; }
   .player-tag-guide-heading { text-align: center; }
-  .player-tag-guide-heading h2 { font-size: 25px; }
+  .player-tag-guide-heading h2 { font-size: 23px; }
   .royale-hero-inner { min-width: 0; max-width: calc(100% - 32px); }
   .royale-hero-copy,
   .player-tag-guide { width: 100%; max-width: 100%; min-width: 0; }
   .hero-title-line { white-space: normal; overflow-wrap: break-word; }
-  .player-tag-guide-stage { grid-template-columns: minmax(0, .95fr) minmax(0, 1fr); gap: 10px; margin-top: 10px; width: 100%; }
-  .player-tag-guide-screen { width: 100%; border-radius: 8px; }
-  .player-tag-guide-callout { width: 100%; padding: 11px; }
-  .player-tag-guide-callout strong { font-size: 15px; }
-  .player-tag-guide-callout p { font-size: 10px; }
-  .player-tag-guide-controls { margin-top: 8px; }
+  .player-tag-guide-screen { width: min(340px, 100%); }
   .home-data-state { grid-template-columns: 1fr; }
   .home-data-state .pink-button { justify-self: start; }
   .meta-metric { min-height: 96px; }

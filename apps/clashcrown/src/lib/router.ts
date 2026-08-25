@@ -1,6 +1,5 @@
 import {
   useParams,
-  useRouterState,
   useSearch,
   useRouter as useTanStackRouter,
 } from "@tanstack/react-router";
@@ -22,14 +21,6 @@ function toHref(target: LegacyUrl): string {
   return `${target.pathname}${suffix}`;
 }
 
-function navigationPath(href: string): string {
-  return href.split(/[?#]/, 1)[0] || "/";
-}
-
-function prefersReducedMotion(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 /**
  * Next-style facade over TanStack Router. Path parameters come from the active
  * route match (`useParams`) rather than re-parsing the URL with regexes, so
@@ -38,7 +29,6 @@ function prefersReducedMotion(): boolean {
  */
 export function useRouter() {
   const router = useTanStackRouter();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const params = useParams({ strict: false });
   // The generated route tree only knows params/search for routes registered in
   // it; pages consume arbitrary keys, so widen to the legacy record shape.
@@ -48,15 +38,9 @@ export function useRouter() {
   const navigate = useCallback(
     (target: LegacyUrl, replace = false) => {
       const href = toHref(target);
-      return router.navigate({
-        href,
-        replace,
-        // Legacy query-driven controls (for example leaderboard tabs) should
-        // keep their in-place update instead of animating the shared hero.
-        viewTransition: !prefersReducedMotion() && navigationPath(href) !== pathname,
-      });
+      return router.navigate({ href, replace });
     },
-    [pathname, router],
+    [router],
   );
 
   return {

@@ -1,8 +1,8 @@
 import Image from "@/components/Image";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
-import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Copy, Hash, MousePointer2, UserRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
@@ -26,12 +26,12 @@ export default function HomePage() {
         <div className="royale-hero-inner">
           <div className="royale-hero-copy">
             <h1>
-              <span className="hero-title-line">Search any tag.</span>
-              <span className="hero-title-line hero-title-accent">See every battle.</span>
+              <span className="hero-title-line">Look up a player.</span>
+              <span className="hero-title-line hero-title-accent">Review recent battles.</span>
             </h1>
             <p className="royale-hero-description">
-              Search any player or clan to explore battle history, chest cycles,
-              deck performance, live rankings, and the cards shaping the meta.
+              Search by player name or tag to check available battle history,
+              chest cycles, and deck performance. You can also switch the search to clans.
             </p>
             <ProfileSearch />
             <div className="royale-hero-actions">
@@ -71,125 +71,27 @@ export default function HomePage() {
   );
 }
 
-type PlayerTagGuideStep = {
-  kind: "profile" | "tag" | "copy";
-  eyebrow: string;
-  title: string;
-  copy: string;
-};
-
-const PLAYER_TAG_GUIDE_STEPS = [
-  {
-    kind: "profile",
-    eyebrow: "Step 1 · Start in Clash Royale",
-    title: "Open your profile",
-    copy: "Tap your player name or avatar from the home screen."
-  },
-  {
-    kind: "tag",
-    eyebrow: "Step 2 · Find your identifier",
-    title: "Select your player tag",
-    copy: "Your tag sits beneath your name on the profile screen."
-  },
-  {
-    kind: "copy",
-    eyebrow: "Step 3 · Bring it to StatsConnect",
-    title: "Copy the tag",
-    copy: "Copy the tag, then paste it into the search box to begin."
-  }
-] satisfies readonly [PlayerTagGuideStep, PlayerTagGuideStep, PlayerTagGuideStep];
-
 function PlayerTagGuide() {
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const step = PLAYER_TAG_GUIDE_STEPS[active];
-
-  useEffect(() => {
-    if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setTimeout(() => {
-      setActive((current) => (current + 1) % PLAYER_TAG_GUIDE_STEPS.length);
-    }, 5600);
-    return () => window.clearTimeout(timer);
-  }, [active, paused]);
-
-  function setStep(index: number) {
-    setActive(index);
-  }
-
   return (
-    <div
-      className="royale-hero-showcase player-tag-guide"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={(event) => {
-        if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setPaused(false);
-      }}
-      aria-label="How to find your player tag"
-    >
+    <aside className="royale-hero-showcase player-tag-guide" aria-labelledby="player-tag-guide-title">
       <div className="player-tag-guide-heading">
-        <span className="player-tag-guide-kicker">Quick start</span>
-        <h2>How to find your player tag</h2>
-        <p>Three taps, then your full battle history is ready to explore.</p>
+        <h2 id="player-tag-guide-title">How to get your player tag</h2>
       </div>
 
-      <div className="player-tag-guide-stage" aria-live="polite">
-        <div className="player-tag-guide-screen" key={step.kind}>
-          <picture>
-            <source media="(prefers-reduced-motion: reduce)" srcSet={`${import.meta.env.BASE_URL}images/animated/hashtag-static.png`} />
-            <Image src="/images/animated/hashtag.gif" alt="Clash Royale profile screen" width={720} height={720} priority />
-          </picture>
-          <GuideStepGraphic kind={step.kind} />
-        </div>
-        <div className="player-tag-guide-callout">
-          <span className="player-tag-guide-number">0{active + 1}</span>
-          <div>
-            <span>{step.eyebrow}</span>
-            <strong>{step.title}</strong>
-            <p>{step.copy}</p>
-          </div>
-        </div>
+      <div className="player-tag-guide-screen">
+        <picture>
+          <source media="(prefers-reduced-motion: reduce)" srcSet={`${import.meta.env.BASE_URL}images/animated/hashtag-static.png`} />
+          <Image
+            src="/images/animated/hashtag.gif"
+            alt="Animation showing where to open a Clash Royale profile and copy its player tag"
+            width={720}
+            height={720}
+            priority
+          />
+        </picture>
       </div>
-
-      <div className="player-tag-guide-controls" aria-label="Player tag guide steps">
-        <button type="button" className="player-tag-guide-arrow" aria-label="Previous step" onClick={() => setStep((active + PLAYER_TAG_GUIDE_STEPS.length - 1) % PLAYER_TAG_GUIDE_STEPS.length)}>
-          <ChevronLeft size={18} />
-        </button>
-        <div className="player-tag-guide-dots">
-          {PLAYER_TAG_GUIDE_STEPS.map((guideStep, index) => (
-            <button
-              key={guideStep.kind}
-              type="button"
-              className="player-tag-guide-dot"
-              aria-label={`Show step ${index + 1}: ${guideStep.title}`}
-              aria-current={active === index ? "step" : undefined}
-              onClick={() => setStep(index)}
-            >
-              <span>{index + 1}</span>
-            </button>
-          ))}
-        </div>
-        <button type="button" className="player-tag-guide-arrow" aria-label="Next step" onClick={() => setStep((active + 1) % PLAYER_TAG_GUIDE_STEPS.length)}>
-          <ChevronRight size={18} />
-        </button>
-      </div>
-    </div>
+    </aside>
   );
-}
-
-function GuideStepGraphic({ kind }: { kind: PlayerTagGuideStep["kind"] }) {
-  switch (kind) {
-    case "profile":
-      return <span className="player-tag-guide-target player-tag-guide-target-profile"><UserRound size={17} /><b>Player name</b><MousePointer2 size={22} /></span>;
-    case "tag":
-      return <span className="player-tag-guide-target player-tag-guide-target-tag"><Hash size={17} /><b>#P0LY8TAG</b><MousePointer2 size={22} /></span>;
-    case "copy":
-      return <span className="player-tag-guide-target player-tag-guide-target-copy"><Copy size={17} /><b>Copy tag</b><MousePointer2 size={22} /></span>;
-    default: {
-      const exhaustive: never = kind;
-      return exhaustive;
-    }
-  }
 }
 
 // --- Live meta sections ---------------------------------------------------

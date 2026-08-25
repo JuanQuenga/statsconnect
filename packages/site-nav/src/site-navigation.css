@@ -621,6 +621,23 @@
   .sc-nav__mobile-heading button { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border: 1px solid var(--sc-nav-border); border-radius: 10px; color: var(--sc-nav-text); background: rgba(255, 255, 255, .05); }
   .sc-nav__mobile-heading svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
   .sc-nav__mobile-search { position: relative; z-index: 2; padding: 16px 0 10px; }
+  .sc-nav__mobile-tools { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
+  .sc-nav__mobile-tools .sc-nav__games { display: block; }
+  .sc-nav__mobile-tools .sc-nav__games summary { height: 36px; }
+  .sc-nav__mobile-tools .sc-nav__games { position: relative; }
+  .sc-nav__mobile-tools .sc-nav__game-menu {
+    top: calc(100% + 8px);
+    /* The popup is anchored to the Games summary, but the sheet's right edge
+       is the useful alignment boundary on narrow screens. */
+    right: calc(258px - 100vw);
+    left: auto;
+    width: min(250px, calc(100vw - 68px));
+    max-width: calc(100vw - 68px);
+  }
+  .sc-nav__mobile-tools .sc-nav__account { max-width: 190px; width: auto; height: 36px; padding: 3px 8px 3px 3px; }
+  .sc-nav__mobile-tools .sc-nav__account-copy { display: block; }
+  .sc-nav__mobile-tools .sc-nav__sign-in { width: auto; height: 36px; padding: 0 12px; overflow: visible; font-size: 12px; }
+  .sc-nav__mobile-tools .sc-nav__sign-in::before { content: none; }
   .sc-nav__mobile-links { min-height: 0; display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 6px; padding: 6px; overflow-y: auto; border: 1px solid rgba(230, 226, 244, .1); border-radius: 14px; background: rgba(255, 255, 255, .025); }
   .sc-nav__mobile-link { min-height: 48px; padding: 13px 14px; display: flex; align-items: center; border-radius: 9px; color: #c2ccdc; background: transparent; font-size: 15px; font-weight: 650; }
   .sc-nav__mobile-link:hover,
@@ -654,6 +671,42 @@
   .sc-nav__brand { max-width: 132px; }
   .sc-nav__brand img { max-width: 128px; max-height: 38px; }
   .sc-nav__menu-button { width: 42px; height: 42px; }
+
+  /* Clash keeps the network brand and one obvious menu control in a single
+     compact row. The language, game switcher, and auth controls remain
+     available inside the accessible sheet opened by the menu button. */
+  .sc-nav[data-site="clash-royale"] {
+    --sc-nav-network-height: 56px;
+    --sc-nav-site-height: 0px;
+  }
+  .sc-nav[data-site="clash-royale"] .sc-nav__network-inner {
+    width: calc(100% - 24px);
+  }
+  .sc-nav[data-site="clash-royale"] .sc-nav__network-actions {
+    display: none;
+  }
+  .sc-nav[data-site="clash-royale"] .sc-nav__site {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    left: 12px;
+    height: var(--sc-nav-network-height);
+    border-bottom: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+  .sc-nav[data-site="clash-royale"] .sc-nav__inner {
+    width: 100%;
+    min-height: var(--sc-nav-network-height);
+    justify-content: flex-end;
+  }
+  .sc-nav[data-site="clash-royale"] .sc-nav__menu-button {
+    width: 40px;
+    height: 40px;
+    pointer-events: auto;
+    border-color: rgba(130, 211, 255, .28);
+    background: rgba(5, 28, 55, .88);
+  }
 }
 
 @media (min-width: 641px) {

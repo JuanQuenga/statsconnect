@@ -479,7 +479,7 @@ export function SiteNavigation({
     const focusables = () =>
       sheet
         ? Array.from(
-            sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+            sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), summary:not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
           )
         : [];
     mobileCloseRef.current?.focus();
@@ -570,6 +570,14 @@ export function SiteNavigation({
               <button ref={mobileCloseRef} type="button" aria-label="Close navigation menu" onClick={close}><MenuIcon open /></button>
             </header>
             {renderSearch ? <div className="sc-nav__mobile-search">{renderSearch(close)}</div> : null}
+            {currentSite === "clash-royale" ? (
+              <div className="sc-nav__mobile-tools" aria-label="Site preferences">
+                {language ? <LanguageSelector language={language} /> : null}
+                <GamesMenu currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
+                {account ? <AccountChip account={account} /> : null}
+                {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
+              </div>
+            ) : null}
             <nav className="sc-nav__mobile-links" aria-label="Mobile primary navigation">
               {links.map((link) => (
                 <LinkAdapter key={link.href} href={link.href} className="sc-nav__mobile-link" onNavigate={close}>
