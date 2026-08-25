@@ -344,7 +344,7 @@ function CurrentDeckStyles() {
     .current-deck-heading > [aria-label] { flex: none; }
     .current-deck-cluster { margin: 8px auto 0; padding: 14px 0; }
     .current-deck-card { min-width: 0; display: grid; place-items: center; border-radius: 13px; transition: background .18s ease, transform .18s ease; }
-    .current-deck-card:hover { background: rgba(217, 107, 243, .08); transform: translateY(-3px); }
+    .current-deck-card:hover { background: rgba(31, 147, 255, .08); transform: translateY(-3px); }
     .current-deck-support { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
     .current-deck-support h3 { margin: 4px 0 0; font-size: 16px; }
     .current-deck-support-cards { display: flex; gap: 8px; }
@@ -442,7 +442,7 @@ function DeckAnalyticsStyles() {
       .personal-deck-header { min-height: 66px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-block: 14px; border-bottom: 1px solid var(--border); }
       .personal-deck-header > div { min-width: 0; display: flex; align-items: center; gap: 10px; }
       .personal-deck-header [data-slot="card-title"] { overflow: hidden; font: 700 14px/1.2 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
-      .personal-deck-index { width: 28px; height: 28px; display: grid; flex: none; place-items: center; border-radius: 9px; color: var(--primary); background: rgba(217, 107, 243, .1); font: 800 10px var(--font-ui); }
+      .personal-deck-index { width: 28px; height: 28px; display: grid; flex: none; place-items: center; border-radius: 9px; color: var(--primary); background: rgba(31, 147, 255, .1); font: 800 10px var(--font-ui); }
       .personal-deck-header [data-slot="badge"] { height: 26px; border-color: var(--border); color: var(--muted-foreground); background: var(--secondary); }
       .personal-deck-content { display: grid; gap: 16px; padding-block: 18px; }
       .personal-deck-cards { margin-inline: auto; }

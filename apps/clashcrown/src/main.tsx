@@ -10,8 +10,8 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  ClashCrownFatalError,
-  ClashCrownRouteError,
+  ClashRoyaleFatalError,
+  ClashRoyaleRouteError,
 } from "@/components/AppErrorPage";
 import { PersonalizationProvider } from "@/components/personalization/PersonalizationProvider";
 import { routeTree } from "./routeTree.gen";
@@ -25,7 +25,7 @@ function createApplicationRouter() {
     routeTree,
     defaultPreload: "intent",
     basepath: basePath,
-    defaultErrorComponent: ClashCrownRouteError,
+    defaultErrorComponent: ClashRoyaleRouteError,
     defaultOnCatch: (error, errorInfo) => {
       reportClientError({
         app: APP_NAME,
@@ -37,11 +37,11 @@ function createApplicationRouter() {
   });
 }
 
-type ClashCrownRouter = ReturnType<typeof createApplicationRouter>;
+type ClashRoyaleRouter = ReturnType<typeof createApplicationRouter>;
 
 declare module "@tanstack/react-router" {
   interface Register {
-    router: ClashCrownRouter;
+    router: ClashRoyaleRouter;
   }
 }
 
@@ -99,7 +99,7 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
 
   root.render(
     <StrictMode>
-      <AppErrorBoundary app={APP_NAME} fallback={ClashCrownFatalError}>
+      <AppErrorBoundary app={APP_NAME} fallback={ClashRoyaleFatalError}>
         <Providers queryClient={queryClient}>
           <RouterProvider router={router} />
         </Providers>

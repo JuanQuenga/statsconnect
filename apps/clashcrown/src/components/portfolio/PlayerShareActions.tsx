@@ -74,8 +74,8 @@ export function PlayerShareActions({ player, compact = false }: { player: Player
       </div>
       <style>{`
         .player-share-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin-top: 17px; }
-        .player-share-actions button { min-height: 39px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 15px; border: 1px solid rgba(238, 102, 239, .42); border-radius: 7px; color: white; background: rgba(61, 29, 89, .78); font: 700 11px var(--font-ui); }
-        .player-share-actions button:hover { border-color: rgba(238, 102, 239, .82); background: rgba(117, 34, 139, .72); }
+        .player-share-actions button { min-height: 39px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 15px; border: 1px solid rgba(31, 147, 255, .42); border-radius: 7px; color: white; background: rgba(7, 86, 159, .78); font: 700 11px var(--font-ui); }
+        .player-share-actions button:hover { border-color: rgba(31, 147, 255, .82); background: rgba(7, 86, 159, .72); }
         .player-share-actions-compact { margin: 0; }
         .player-share-actions-compact button { min-height: 36px; padding: 0 12px; background: rgba(20, 61, 112, .9); }
         .player-share-message { flex-basis: 100%; color: #9aacca; font: 10px/1.4 var(--font-ui); text-align: center; }

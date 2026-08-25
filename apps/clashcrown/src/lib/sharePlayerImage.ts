@@ -144,17 +144,17 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
   const background = context.createLinearGradient(0, 0, WIDTH, HEIGHT);
   background.addColorStop(0, "#061b31");
   background.addColorStop(0.58, "#102a4d");
-  background.addColorStop(1, "#4f1c68");
+  background.addColorStop(1, "#07569f");
   context.fillStyle = background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
   const glow = context.createRadialGradient(980, 70, 10, 980, 70, 500);
-  glow.addColorStop(0, "rgba(238, 102, 239, .34)");
-  glow.addColorStop(1, "rgba(238, 102, 239, 0)");
+  glow.addColorStop(0, "rgba(31, 147, 255, .34)");
+  glow.addColorStop(1, "rgba(31, 147, 255, 0)");
   context.fillStyle = glow;
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
-  context.fillStyle = "#ee66ef";
+  context.fillStyle = "#75c5ff";
   context.font = "700 18px ProximaNova, Inter, sans-serif";
   context.fillText("STATSCONNECT · CLASH ROYALE COLLECTION SNAPSHOT", 70, 62);
   context.fillStyle = "#ffffff";

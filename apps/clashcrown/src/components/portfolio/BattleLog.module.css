@@ -98,7 +98,7 @@
   white-space: nowrap;
 }
 
-.identity a:hover strong { color: #f19af1; }
+.identity a:hover strong { color: #75c5ff; }
 
 .details {
   display: grid;

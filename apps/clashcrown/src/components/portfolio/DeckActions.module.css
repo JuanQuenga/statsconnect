@@ -26,8 +26,8 @@
 
 .actions button:hover:not(:disabled),
 .actions a:hover {
-  border-color: rgba(238, 102, 239, .72);
-  background: rgba(111, 35, 123, .7);
+  border-color: rgba(31, 147, 255, .72);
+  background: rgba(7, 86, 159, .7);
 }
 
 .actions button:focus-visible,

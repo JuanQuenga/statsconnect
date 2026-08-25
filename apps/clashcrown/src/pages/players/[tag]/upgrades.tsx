@@ -246,11 +246,11 @@ function UpgradeStyles() {
     .rarity-group-heading span { color: #8ea2c4; font: 11px var(--font-ui); }
     .rarity-group-heading > strong { color: #cbd8ef; font-size: 14px; }
     .upgrade-progress-track { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: rgba(47, 76, 113, .48); }
-    .upgrade-progress-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1b8cff, #bb4fd0); }
+    .upgrade-progress-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1f93ff, #75c5ff); }
     .rarity-group > .upgrade-progress-track { margin-bottom: 12px; }
     .upgrade-card-list { display: grid; gap: 7px; }
     .upgrade-card-row { display: grid; grid-template-columns: 52px minmax(120px, 1fr) 72px minmax(190px, 2fr) 60px; align-items: center; gap: 14px; min-height: 78px; padding: 8px 14px; border: 1px solid rgba(62, 88, 128, .18); border-radius: 7px; background: rgba(8, 24, 44, .72); color: white; }
-    .upgrade-card-row:hover { border-color: rgba(238, 102, 239, .55); background: rgba(87, 35, 105, .25); }
+    .upgrade-card-row:hover { border-color: rgba(31, 147, 255, .55); background: rgba(7, 86, 159, .25); }
     .upgrade-card-row img { width: 52px; height: 64px; object-fit: contain; }
     .upgrade-card-name, .upgrade-progress { display: grid; gap: 6px; min-width: 0; }
     .upgrade-card-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
