@@ -5439,9 +5439,9 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   --home-arena-gold: #ffd45c;
   color: #36363d;
   background-color: #b7acbd;
-  background-image: url("/images/theme/subreddit/arena-wall-content-v3.png");
+  background-image: url("/images/theme/subreddit/arena-wall-tile-upscaled.png");
   background-repeat: repeat;
-  background-size: 512px 512px;
+  background-size: 226px 226px;
 }
 
 .site-frame-home .site-arena-backdrop {
@@ -5474,7 +5474,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   left: 0;
   height: 94px;
   pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip-v4.png") center bottom / 950px 94px repeat-x;
+  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
 }
 
 .site-frame-home .royale-hero-inner {
@@ -5621,8 +5621,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   background:
     url("/images/theme/subreddit/footer-king.png") center 34px / 123px 205px no-repeat,
     url("/images/theme/subreddit/footer-lances.png") center bottom / clamp(1161px, 100%, 1710px) auto no-repeat,
-    url("/images/theme/subreddit/arena-wall-v2.png") center top / auto 400px repeat-x,
-    url("/images/theme/subreddit/arena-wall-body-v2.png") center / 512px 512px repeat;
+    url("/images/theme/subreddit/arena-wall-cap-upscaled.png") center top / auto 40px repeat-x,
+    url("/images/theme/subreddit/arena-wall-tile-upscaled.png") center top / 226px 226px repeat;
 }
 
 .site-frame-home .footer-inner {
@@ -5663,8 +5663,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   .site-frame-home .site-footer {
     min-height: 620px;
     padding-bottom: 96px;
-    background-position: center 305px, center bottom, center top, center;
-    background-size: 123px 205px, 1161px auto, auto 400px, 512px 512px;
+    background-position: center 305px, center bottom, center top, center top;
+    background-size: 123px 205px, 1161px auto, auto 40px, 226px 226px;
   }
 
   .site-frame-home .footer-legal {
@@ -5701,8 +5701,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   .site-frame-home .site-footer {
     min-height: 680px;
     padding-bottom: 68px;
-    background-position: center 315px, center bottom, center top, center;
-    background-size: 123px 205px, 650px auto, auto 400px, 512px 512px;
+    background-position: center 315px, center bottom, center top, center top;
+    background-size: 123px 205px, 650px auto, auto 40px, 226px 226px;
   }
 
   .site-frame-home .footer-legal {
