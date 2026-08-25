@@ -5617,9 +5617,10 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   color: #fff;
   align-items: start;
   background:
-    url("/images/theme/subreddit/footer-king.png") center top / 123px 205px no-repeat,
-    url("/images/theme/subreddit/footer-lances.png") center bottom / max(1161px, 100%) auto no-repeat,
-    url("/images/theme/subreddit/arena-wall.png") center top / contain repeat-x;
+    url("/images/theme/subreddit/footer-king.png") center 34px / 123px 205px no-repeat,
+    url("/images/theme/subreddit/footer-lances.png") center bottom / clamp(1161px, 100%, 1710px) auto no-repeat,
+    url("/images/theme/subreddit/arena-wall-v2.png") center top / auto 400px repeat-x,
+    url("/images/theme/subreddit/arena-wall-body-v2.png") center / 512px 512px repeat;
 }
 
 .site-frame-home .footer-inner {
@@ -5660,12 +5661,12 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   .site-frame-home .site-footer {
     min-height: 620px;
     padding-bottom: 96px;
-    background-position: center 220px, center bottom, center top;
-    background-size: 123px 205px, auto 160px, auto 620px;
+    background-position: center 305px, center bottom, center top, center;
+    background-size: 123px 205px, 1161px auto, auto 400px, 512px 512px;
   }
 
   .site-frame-home .footer-legal {
-    margin-top: 96px;
+    margin-top: 200px;
   }
 }
 
@@ -5700,8 +5701,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   .site-frame-home .site-footer {
     min-height: 680px;
     padding-bottom: 68px;
-    background-position: center 315px, center bottom, center top;
-    background-size: 123px 205px, 650px auto, auto 100%;
+    background-position: center 315px, center bottom, center top, center;
+    background-size: 123px 205px, 650px auto, auto 400px, 512px 512px;
   }
 
   .site-frame-home .footer-legal {
