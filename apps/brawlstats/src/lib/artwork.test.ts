@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-// @ts-expect-error Node's type-stripping test runner requires the explicit TypeScript extension.
 import { brawlerHeroArtwork } from "./artwork.ts";
 
 test("brawler detail heroes prefer full model art over catalog icons", () => {

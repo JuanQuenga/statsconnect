@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Inbox, Info, LoaderCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, LoaderCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,43 +48,6 @@ export function PageStatus({
         aria-hidden
       />
       <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
-
-export function EmptyState({
-  title,
-  detail,
-  action,
-  className,
-}: {
-  title: string;
-  detail?: string;
-  action?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "bevel bevel-lg flex flex-col items-center border border-dashed border-border/70 bg-card/35 px-6 py-12 text-center sm:px-8 sm:py-16",
-        className,
-      )}
-    >
-      <div
-        className="bevel bevel-sm mb-5 flex size-12 items-center justify-center border border-border/70 bg-white/[0.04] text-muted-foreground"
-        aria-hidden
-      >
-        <Inbox className="size-5" />
-      </div>
-      <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-        {title}
-      </h2>
-      {detail ? (
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-          {detail}
-        </p>
-      ) : null}
-      {action ? <div className="mt-6">{action}</div> : null}
     </div>
   );
 }

@@ -140,6 +140,85 @@ test("browser changes from another app synchronize through the account Adapter",
   profiles.dispose();
 });
 
+test("external empty wipe does not mass-delete when local pending additions exist", async () => {
+  const browser = browserAdapter();
+  const account = accountAdapter();
+  const profiles = createConnectedProfilesModule({
+    account: account.adapter,
+    browser: browser.adapter,
+    now: () => 42,
+  });
+  await profiles.reconcileAccount({ userId: "user-1", profiles: [] });
+
+  const tracking = profiles.save({ game: "brawl-stars", tag: "ABC", name: "Harmiox" });
+  await Promise.resolve();
+
+  browser.externalReplace([]);
+  await Promise.resolve();
+  await tracking;
+
+  assert.deepEqual(account.saved, [{ game: "brawl-stars", tag: "ABC", name: "Harmiox" }]);
+  assert.deepEqual(account.removed, []);
+  assert.deepEqual(profiles.getSnapshot().profiles, [
+    { game: "brawl-stars", tag: "ABC", name: "Harmiox" },
+  ]);
+  assert.deepEqual(browser.read(), [
+    { game: "brawl-stars", tag: "ABC", name: "Harmiox", updatedAt: 42 },
+  ]);
+  profiles.dispose();
+});
+
+test("external empty wipe is never trusted for account deletions", async () => {
+  const browser = browserAdapter([
+    { game: "clash-royale", tag: "P0Y", name: "Juan", updatedAt: 10 },
+  ]);
+  const account = accountAdapter();
+  const profiles = createConnectedProfilesModule({ account: account.adapter, browser: browser.adapter });
+  await profiles.reconcileAccount({
+    userId: "user-1",
+    profiles: [{ game: "clash-royale", tag: "P0Y", name: "Juan", updatedAt: 10 }],
+  });
+
+  browser.externalReplace([]);
+  await Promise.resolve();
+
+  assert.deepEqual(account.removed, []);
+  assert.deepEqual(profiles.getSnapshot().profiles, [
+    { game: "clash-royale", tag: "P0Y", name: "Juan" },
+  ]);
+  assert.equal(profiles.getSnapshot().error, null);
+  assert.deepEqual(browser.read(), [
+    { game: "clash-royale", tag: "P0Y", name: "Juan", updatedAt: 10 },
+  ]);
+  profiles.dispose();
+});
+
+test("external shrink keeps locally saved profiles and syncs only new ones", async () => {
+  const browser = browserAdapter();
+  const account = accountAdapter();
+  const profiles = createConnectedProfilesModule({
+    account: account.adapter,
+    browser: browser.adapter,
+    now: () => 50,
+  });
+  await profiles.reconcileAccount({ userId: "user-1", profiles: [] });
+
+  await profiles.save({ game: "brawl-stars", tag: "ABC", name: "Harmiox" });
+
+  browser.externalReplace([
+    { game: "clash-royale", tag: "P0Y", name: "Juan", updatedAt: 90 },
+  ]);
+  await Promise.resolve();
+
+  assert.deepEqual(account.removed, []);
+  assert.deepEqual(account.saved.slice(1), [{ game: "clash-royale", tag: "P0Y", name: "Juan" }]);
+  assert.deepEqual(profiles.getSnapshot().profiles, [
+    { game: "clash-royale", tag: "P0Y", name: "Juan" },
+    { game: "brawl-stars", tag: "ABC", name: "Harmiox" },
+  ]);
+  profiles.dispose();
+});
+
 test("sign-out clears account profiles from browser and returns to guest state", async () => {
   const browser = browserAdapter();
   const account = accountAdapter();

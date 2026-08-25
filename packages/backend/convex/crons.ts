@@ -9,6 +9,11 @@ crons.interval(
   internal.hub.cacheAccess.refreshExpiredConnected,
 );
 crons.interval(
+  "hub: poll due watch targets",
+  { minutes: 15 },
+  internal.hub.cacheAccess.refreshDueWatchTargets,
+);
+crons.interval(
   "hub: register legacy connected refresh targets",
   { hours: 1 },
   internal.hub.internal.watchTargets.backfillConnectedProfiles,

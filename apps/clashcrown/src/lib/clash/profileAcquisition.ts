@@ -49,8 +49,10 @@ export function usePlayerAcquisition(tag: string, options: { enabled?: boolean }
   });
   const refresh = useMutation({
     mutationFn: async (request: ResolvedProfileIdentity) => {
+      // Read-through revalidate rather than force: forced refreshes bypass the
+      // TTL cache, spend upstream budget, and are reserved for the admin key.
       if (request.error) throw request.error;
-      return mapPlayerBundle(await getPlayer({ tag: request.identity.tag, force: true }));
+      return mapPlayerBundle(await getPlayer({ tag: request.identity.tag }));
     },
     onSuccess: (player, request) => queryClient.setQueryData(request.identity.cacheKey, player),
   });
@@ -83,8 +85,10 @@ export function useClanAcquisition(tag: string, options: { enabled?: boolean } =
   });
   const refresh = useMutation({
     mutationFn: async (request: ResolvedProfileIdentity) => {
+      // Read-through revalidate rather than force: forced refreshes bypass the
+      // TTL cache, spend upstream budget, and are reserved for the admin key.
       if (request.error) throw request.error;
-      return mapClanBundle(await getClan({ tag: request.identity.tag, force: true }));
+      return mapClanBundle(await getClan({ tag: request.identity.tag }));
     },
     onSuccess: (clan, request) => queryClient.setQueryData(request.identity.cacheKey, clan),
   });

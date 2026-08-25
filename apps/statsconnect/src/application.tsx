@@ -36,6 +36,10 @@ function createApplicationRouter(queryClient: QueryClient) {
 
 type StatsConnectRouter = ReturnType<typeof createApplicationRouter>;
 
+// The shell hands us arbitrary same-origin hrefs (e.g. /bs/players?tag=…) that
+// may target another Game Site's history entry, so the router accepts a local
+// URL string. Only this shell boundary is untyped; route-level navigation
+// elsewhere stays fully typed.
 declare module "@tanstack/react-router" {
   interface Register {
     router: StatsConnectRouter;
@@ -94,7 +98,7 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
   );
 
   return {
-    navigate: (href) => void router.navigate({ to: localHref(href) as never }),
+    navigate: (href) => void router.navigate({ href: localHref(href), replace: false }),
     unmount: () => {
       root.unmount();
       removeGlobalErrorHandlers();

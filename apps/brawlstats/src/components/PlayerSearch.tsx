@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useId, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { SiteSearch } from "@statsconnect/site-nav";
@@ -6,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { normalizeTag, trophies } from "@/lib/format";
-import { appPath } from "@/lib/paths";
 import { rememberRecentProfile } from "@/lib/preferences";
 import type { PlayerDirectoryResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ export function PlayerSearch({
   onNavigate,
 }: PlayerSearchProps) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const suggestionsId = useId();
   const [value, setValue] = useState(initialValue);
   const [debounced, setDebounced] = useState(initialValue.trim());
@@ -66,9 +67,7 @@ export function PlayerSearch({
       trophies: match?.trophies,
     });
     onNavigate?.();
-    window.location.assign(
-      appPath(`/players?tag=${encodeURIComponent(`#${tag.replace(/^#/, "")}`)}`),
-    );
+    void navigate({ to: "/players", search: { tag: `#${tag.replace(/^#/, "")}` } });
   }
 
   function submit(event: FormEvent) {
@@ -80,7 +79,7 @@ export function PlayerSearch({
       if (tag) return navigateToPlayer(tag);
     }
     onNavigate?.();
-    window.location.assign(appPath(`/players?q=${encodeURIComponent(raw)}`));
+    void navigate({ to: "/players", search: { q: raw } });
   }
 
   function choose(index: number) {

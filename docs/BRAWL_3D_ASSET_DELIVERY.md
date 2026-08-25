@@ -143,7 +143,12 @@ extensions, and applies content-addressed caching: model, animation, texture,
 and face files default to one-year immutable caching, while `catalog.json` and
 `catalog/*.json` shards are always `no-cache, must-revalidate` so regeneration
 is visible. An unconfigured or invalid origin fails closed with `503`; it does
-not fall back to an external URL or fabricate an asset entry.
+not fall back to an external URL or fabricate an asset entry. This is an
+intentional readiness state: until the storage origin is provisioned, the
+viewer keeps its tracked legacy GLBs or official PNG fallback. It does not
+attempt to load the ignored `.generated/brawl-3d` directory in production.
+Configure the server-only variable before treating the generated catalog as
+production-ready.
 
 This keeps the approximately 2.6 GiB / 16k-file catalog out of the git
 repository and frontend deployment bundle while preserving one browser-visible

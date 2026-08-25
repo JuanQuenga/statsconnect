@@ -453,6 +453,7 @@ export const getMetaTrends = internalQuery({
     trophyBucket: v.optional(trophyBucketValidator),
     window: trendWindowValidator,
     brawlerId: v.optional(v.number()),
+    now: v.optional(v.number()),
   },
   returns: v.object({
     window: trendWindowValidator,
@@ -471,7 +472,8 @@ export const getMetaTrends = internalQuery({
   }),
   handler: async (ctx, args) => {
     const trophyBucket = args.trophyBucket || "all";
-    const today = utcDayStart(Date.now());
+    // Caller-supplied time keeps the query deterministic for caching.
+    const today = utcDayStart(Math.min(args.now ?? Date.now(), Date.now()));
     const windowDays = args.window === "all" ? null : Number(args.window);
     const rowLimit = args.brawlerId ? DAILY_BRAWLER_ROW_LIMIT : DAILY_META_ROW_LIMIT;
     const firstRow = args.brawlerId

@@ -449,6 +449,7 @@ export const analytics = query({
     tag: v.string(),
     limit: v.optional(v.number()),
     before: v.optional(v.number()),
+    now: v.optional(v.number()),
   },
   returns: v.object({
     battles: v.array(playerBattleResult),
@@ -465,7 +466,8 @@ export const analytics = query({
     const tag = cleanTag(args.tag);
     if (!tag) return { battles: [], hasMore: false, capped: false, summaries: [], streaks: { current: 0, currentResult: "unknown" as const, longestWin: 0 }, activity: [], modes: [], brawlers: [] };
     const limit = Math.min(Math.max(Math.floor(args.limit ?? 50), 1), 100);
-    const cutoff = Date.now() - 90 * 86_400_000;
+    // Caller-supplied time keeps the query deterministic for caching.
+    const cutoff = Math.min(args.now ?? Date.now(), Date.now()) - 90 * 86_400_000;
     const [page, recentProbe] = await Promise.all([
       ctx.db.query("playerBattles").withIndex("by_player_and_battle_time", (q) =>
         args.before ? q.eq("playerTag", tag).lt("battleTimestamp", args.before) : q.eq("playerTag", tag),

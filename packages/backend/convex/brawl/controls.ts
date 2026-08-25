@@ -1,6 +1,18 @@
 export const HOUR_MS = 60 * 60 * 1_000;
 export const TELEMETRY_BUCKET_MS = 5 * 60 * 1_000;
 
+export function envSeconds(
+  environment: Record<string, string | undefined>,
+  names: readonly string[],
+  fallback: number,
+): number {
+  for (const name of names) {
+    const configured = Number(environment[name]);
+    if (Number.isFinite(configured) && configured > 0) return configured;
+  }
+  return fallback;
+}
+
 export function envEnabled(value: string | undefined, fallback = true): boolean {
   if (value === undefined) return fallback;
   return !["0", "false", "off", "no"].includes(value.trim().toLowerCase());

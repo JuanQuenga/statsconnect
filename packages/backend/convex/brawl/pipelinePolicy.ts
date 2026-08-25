@@ -33,7 +33,20 @@ export type TargetSettlement =
   | { status: "stale_lease"; target: CrawlTargetState }
   | { status: "accepted"; target: CrawlTargetState; backoffMs?: number };
 
-export type RetentionCategory = "battles" | "fetchLogs" | "runs" | "snapshots";
+export type RetentionCategory =
+  | "battles"
+  | "fetchLogs"
+  | "runs"
+  | "snapshots"
+  | "playerBattles"
+  | "dailyBrawlerStats"
+  | "dailyMatchups"
+  | "clubSnapshots"
+  | "clubMemberSnapshots"
+  | "clubActivityEvents"
+  | "playerCache"
+  | "apiBudgets"
+  | "apiTelemetry";
 
 export type RetentionAvailability = Record<RetentionCategory, number>;
 
@@ -48,6 +61,15 @@ const retentionCategories: readonly RetentionCategory[] = [
   "fetchLogs",
   "runs",
   "snapshots",
+  "playerBattles",
+  "dailyBrawlerStats",
+  "dailyMatchups",
+  "clubSnapshots",
+  "clubMemberSnapshots",
+  "clubActivityEvents",
+  "playerCache",
+  "apiBudgets",
+  "apiTelemetry",
 ];
 
 function positiveInteger(value: number, maximum: number): number {
@@ -150,12 +172,20 @@ export function retentionCutoffs(now: number): {
   battleCutoff: number;
   telemetryCutoff: number;
   snapshotCutoff: number;
+  playerBattleCutoff: number;
+  dailyStatsCutoff: number;
+  clubHistoryCutoff: number;
 } {
   const dayMs = 24 * 60 * 60 * 1_000;
   return {
     battleCutoff: now - 30 * dayMs,
     telemetryCutoff: now - 7 * dayMs,
     snapshotCutoff: now - 365 * dayMs,
+    // Per-player battle history keeps a year; aggregates and club history age
+    // out faster because their value decays once rollups absorb them.
+    playerBattleCutoff: now - 365 * dayMs,
+    dailyStatsCutoff: now - 90 * dayMs,
+    clubHistoryCutoff: now - 90 * dayMs,
   };
 }
 
@@ -164,17 +194,24 @@ export function planRetentionBatch(
   requestedLimit: number,
 ): RetentionPlan {
   const limit = positiveInteger(requestedLimit, MAX_RETENTION_BATCH_SIZE);
-  const remaining: RetentionAvailability = {
-    battles: Math.max(Math.floor(availability.battles), 0),
-    fetchLogs: Math.max(Math.floor(availability.fetchLogs), 0),
-    runs: Math.max(Math.floor(availability.runs), 0),
-    snapshots: Math.max(Math.floor(availability.snapshots), 0),
-  };
+  const remaining: RetentionAvailability = { ...availability };
+  for (const category of retentionCategories) {
+    remaining[category] = Math.max(Math.floor(remaining[category]), 0);
+  }
   const deletion: RetentionAvailability = {
     battles: 0,
     fetchLogs: 0,
     runs: 0,
     snapshots: 0,
+    playerBattles: 0,
+    dailyBrawlerStats: 0,
+    dailyMatchups: 0,
+    clubSnapshots: 0,
+    clubMemberSnapshots: 0,
+    clubActivityEvents: 0,
+    playerCache: 0,
+    apiBudgets: 0,
+    apiTelemetry: 0,
   };
 
   let deleted = 0;

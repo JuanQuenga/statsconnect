@@ -12,6 +12,7 @@ import {
 } from "./clashFetch";
 import { normalizeTag } from "./lib/tag";
 import { playerBattleObservation } from "./lib/battles";
+import { requireForceAuthorization } from "./forceAuthorization";
 import type {
   ApiBattle,
   ApiCardList,
@@ -240,8 +241,13 @@ async function saveCache(
 }
 
 export const getPlayerBundle = actionGeneric({
-  args: { tag: v.string(), force: v.optional(v.boolean()) },
+  args: {
+    tag: v.string(),
+    force: v.optional(v.boolean()),
+    adminKey: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<PlayerBundlePayload> => {
+    requireForceAuthorization(args);
     const upstream = clashUpstream(ctx);
     const tag = normalizeActionTag(args.tag);
     const keys = {
@@ -331,8 +337,13 @@ export const getPlayerBundle = actionGeneric({
 });
 
 export const getClanBundle = actionGeneric({
-  args: { tag: v.string(), force: v.optional(v.boolean()) },
+  args: {
+    tag: v.string(),
+    force: v.optional(v.boolean()),
+    adminKey: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<ClanBundlePayload> => {
+    requireForceAuthorization(args);
     const upstream = clashUpstream(ctx);
     const tag = normalizeActionTag(args.tag);
     const key = `clan:${tag}`;
@@ -370,8 +381,9 @@ export const getClanBundle = actionGeneric({
 });
 
 export const getCards = actionGeneric({
-  args: { force: v.optional(v.boolean()) },
+  args: { force: v.optional(v.boolean()), adminKey: v.optional(v.string()) },
   handler: async (ctx, args): Promise<CardsPayload> => {
+    requireForceAuthorization(args);
     const upstream = clashUpstream(ctx);
     const key = "cards:global";
     const cached = (await ctx.runQuery(cacheApi.get, { key })) as CacheDocument | null;
@@ -433,8 +445,13 @@ async function cachedFetch<T>(
 
 /** Clan Wars 2. Both endpoints 404 for clans that have never entered a river race. */
 export const getClanWar = actionGeneric({
-  args: { tag: v.string(), force: v.optional(v.boolean()) },
+  args: {
+    tag: v.string(),
+    force: v.optional(v.boolean()),
+    adminKey: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<ClanWarPayload> => {
+    requireForceAuthorization(args);
     const tag = normalizeActionTag(args.tag);
     // A clan with no war history is a normal state, not an error, so each half
     // degrades to null independently rather than failing the whole page.
@@ -464,16 +481,19 @@ export const getClanWar = actionGeneric({
 
 /** Countries and regions used to scope every ranking. Changes rarely, so cache for a day. */
 export const getLocations = actionGeneric({
-  args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<LocationsPayload> => ({
-    locations: await cachedFetch<ApiPaged<ApiLocation>>(ctx, {
-      key: "locations:all",
-      kind: "locations",
-      request: (upstream) => upstream.locations(300),
-      force: args.force,
-      ttlMs: 24 * 60 * 60 * 1000
-    })
-  })
+  args: { force: v.optional(v.boolean()), adminKey: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<LocationsPayload> => {
+    requireForceAuthorization(args);
+    return {
+      locations: await cachedFetch<ApiPaged<ApiLocation>>(ctx, {
+        key: "locations:all",
+        kind: "locations",
+        request: (upstream) => upstream.locations(300),
+        force: args.force,
+        ttlMs: 24 * 60 * 60 * 1000
+      })
+    };
+  }
 });
 
 const rankingKind = v.union(v.literal("players"), v.literal("clans"), v.literal("clanwars"));
@@ -484,9 +504,11 @@ export const getRankings = actionGeneric({
     kind: rankingKind,
     locationId: v.optional(v.number()),
     limit: v.optional(v.number()),
-    force: v.optional(v.boolean())
+    force: v.optional(v.boolean()),
+    adminKey: v.optional(v.string())
   },
   handler: async (ctx, args): Promise<RankingsPayload> => {
+    requireForceAuthorization(args);
     const locationId = args.locationId ?? GLOBAL_LOCATION_ID;
     const limit = Math.min(Math.max(args.limit ?? 100, 1), 1000);
     const kind = args.kind as RankingKind;
@@ -518,21 +540,30 @@ export const getRankings = actionGeneric({
 
 /** Path of Legends seasons. Each entry's id feeds getLeaderboard below. */
 export const getLeaderboards = actionGeneric({
-  args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<LeaderboardListPayload> => ({
-    leaderboards: await cachedFetch<ApiPaged<ApiLeaderboard>>(ctx, {
-      key: "leaderboards:all",
-      kind: "leaderboards",
-      request: (upstream) => upstream.leaderboards(),
-      force: args.force,
-      ttlMs: 6 * 60 * 60 * 1000
-    })
-  })
+  args: { force: v.optional(v.boolean()), adminKey: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<LeaderboardListPayload> => {
+    requireForceAuthorization(args);
+    return {
+      leaderboards: await cachedFetch<ApiPaged<ApiLeaderboard>>(ctx, {
+        key: "leaderboards:all",
+        kind: "leaderboards",
+        request: (upstream) => upstream.leaderboards(),
+        force: args.force,
+        ttlMs: 6 * 60 * 60 * 1000
+      })
+    };
+  }
 });
 
 export const getLeaderboard = actionGeneric({
-  args: { leaderboardId: v.number(), limit: v.optional(v.number()), force: v.optional(v.boolean()) },
+  args: {
+    leaderboardId: v.number(),
+    limit: v.optional(v.number()),
+    force: v.optional(v.boolean()),
+    adminKey: v.optional(v.string())
+  },
   handler: async (ctx, args): Promise<LeaderboardPayload> => {
+    requireForceAuthorization(args);
     const limit = Math.min(Math.max(args.limit ?? 100, 1), 1000);
     const boardsCache = (await ctx.runQuery(cacheApi.get, { key: "leaderboards:all" })) as CacheDocument | null;
     const boards = boardsCache ? (JSON.parse(boardsCache.payload) as ApiPaged<ApiLeaderboard>).items ?? [] : [];
@@ -572,9 +603,11 @@ export const searchClans = actionGeneric({
     maxMembers: v.optional(v.number()),
     minScore: v.optional(v.number()),
     limit: v.optional(v.number()),
-    force: v.optional(v.boolean())
+    force: v.optional(v.boolean()),
+    adminKey: v.optional(v.string())
   },
   handler: async (ctx, args): Promise<ClanSearchPayload> => {
+    requireForceAuthorization(args);
     const name = args.name?.trim() ?? "";
     if (name.length > 0 && name.length < 3) {
       throw new ConvexError({ code: "SEARCH_TOO_SHORT", message: "Enter at least three characters to search clans." });
@@ -610,22 +643,31 @@ export const searchClans = actionGeneric({
 
 /** Supercell-run Global Tournaments (roughly two per month). */
 export const getGlobalTournaments = actionGeneric({
-  args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<TournamentsPayload> => ({
-    tournaments: await cachedFetch<ApiPaged<ApiTournament>>(ctx, {
-      key: "tournaments:global",
-      kind: "tournaments",
-      request: (upstream) => upstream.globalTournaments(),
-      force: args.force,
-      ttlMs: 30 * 60 * 1000
-    })
-  })
+  args: { force: v.optional(v.boolean()), adminKey: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<TournamentsPayload> => {
+    requireForceAuthorization(args);
+    return {
+      tournaments: await cachedFetch<ApiPaged<ApiTournament>>(ctx, {
+        key: "tournaments:global",
+        kind: "tournaments",
+        request: (upstream) => upstream.globalTournaments(),
+        force: args.force,
+        ttlMs: 30 * 60 * 1000
+      })
+    };
+  }
 });
 
 /** Open community tournaments, searched by name. */
 export const searchTournaments = actionGeneric({
-  args: { name: v.string(), limit: v.optional(v.number()), force: v.optional(v.boolean()) },
+  args: {
+    name: v.string(),
+    limit: v.optional(v.number()),
+    force: v.optional(v.boolean()),
+    adminKey: v.optional(v.string())
+  },
   handler: async (ctx, args): Promise<TournamentsPayload> => {
+    requireForceAuthorization(args);
     const name = args.name.trim();
     if (name.length < 3) {
       throw new ConvexError({

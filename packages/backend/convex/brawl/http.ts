@@ -3,6 +3,7 @@ import { api, internal } from "../_generated/api";
 import { httpAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import { MIN_META_PICKS } from "./stats";
+import { envEnabled, envSeconds } from "./controls";
 import {
   createBrawlUpstreamIntake,
   normalizeBrawlTag,
@@ -83,28 +84,132 @@ function boundedLimit(value: string | null, fallback: number, maximum: number): 
   return Number.isFinite(requested) ? Math.min(maximum, Math.max(1, Math.trunc(requested))) : fallback;
 }
 
+declare const process: { env: Record<string, string | undefined> };
+
+function boundedInteger(
+  envValue: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number
+): number {
+  const configured = Number(envValue);
+  if (!Number.isFinite(configured)) return fallback;
+  return Math.min(Math.max(Math.floor(configured), minimum), maximum);
+}
+
+function parseJson<T>(text: string | undefined | null): T | null {
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 const player = httpAction(async (ctx, request) => {
   const tag = normalizeBrawlTag(new URL(request.url).searchParams.get("tag"));
   if (!tag) return json({ error: "INVALID_TAG", message: "Enter a valid Brawl Stars player tag." }, 400);
 
   const upstream = interactiveIntake(ctx);
-  const [profileResult, battleLogResult] = await Promise.all([
-    upstream.official.player(tag),
-    upstream.official.battleLog(tag),
-  ]);
-  if (!profileResult.ok) return upstreamResponse(profileResult);
+  const claim = await ctx.runMutation(internal.brawl.players.claimPlayerCache, {
+    tag,
+    profileTtlMs:
+      envSeconds(
+        process.env,
+        ["BRAWL_PLAYER_PROFILE_CACHE_SECONDS", "BRAWL_PROFILE_CACHE_TTL_SECONDS"],
+        15 * 60,
+      ) * 1_000,
+    battleLogTtlMs:
+      envSeconds(
+        process.env,
+        ["BRAWL_PLAYER_BATTLE_CACHE_SECONDS", "BRAWL_BATTLE_LOG_CACHE_TTL_SECONDS"],
+        2 * 60,
+      ) * 1_000,
+    leaseMs: 60_000,
+    budgetLimit: boundedInteger(process.env.BRAWL_PUBLIC_MAX_CALLS_PER_HOUR, 1_000, 0, 20_000),
+    upstreamEnabled:
+      envEnabled(process.env.BRAWL_PUBLIC_API_ENABLED) && upstream.official.isConfigured(),
+  });
 
-  await ctx.runMutation(internal.brawl.players.recordProfile, profileResult.value);
-  if (battleLogResult.ok && battleLogResult.value.items.length > 0) {
-    await ctx.scheduler.runAfter(0, internal.brawl.ingest.ingestBattleLogItems, {
-      items: battleLogResult.value.items,
-      focusTag: tag,
-    });
+  let profileError: { status: number; message: string } | null = null;
+  let profileRawText: string | undefined;
+  let battleRawItems: unknown[] | null = null;
+
+  if (claim.fetchProfile || claim.fetchBattleLog) {
+    const [profileResult, battleLogResult] = await Promise.all([
+      claim.fetchProfile ? upstream.official.player(tag) : Promise.resolve(null),
+      claim.fetchBattleLog ? upstream.official.battleLog(tag) : Promise.resolve(null),
+    ]);
+
+    if (profileResult) {
+      if (profileResult.ok) {
+        profileRawText = JSON.stringify(profileResult.rawPayload);
+        try {
+          await ctx.runMutation(internal.brawl.players.recordProfile, profileResult.value);
+        } catch (error) {
+          console.warn("Brawl profile record failed", tag, error);
+        }
+      } else if (profileResult.error.code !== "not_found") {
+        profileError = { status: profileResult.status || 502, message: profileResult.error.message };
+      } else {
+        profileError = { status: 404, message: "That player tag could not be found." };
+      }
+    }
+
+    if (battleLogResult?.ok && battleLogResult.value.items.length > 0) {
+      battleRawItems = battleLogResult.value.items;
+      await ctx.scheduler.runAfter(0, internal.brawl.ingest.ingestBattleLogItems, {
+        items: battleLogResult.value.items,
+        focusTag: tag,
+      });
+    }
+  }
+
+  await ctx.runMutation(internal.brawl.players.completePlayerCache, {
+    tag,
+    profileAttempted: claim.fetchProfile,
+    battleLogAttempted: claim.fetchBattleLog,
+    ...(profileRawText !== undefined ? { profileJson: profileRawText } : {}),
+    ...(battleRawItems !== null ? { battleLogJson: JSON.stringify(battleRawItems) } : {}),
+  });
+
+  const cachedProfileText = claim.profileJson;
+  const effectiveProfileText = profileRawText ?? cachedProfileText ?? null;
+  const effectiveBattleItems: unknown[] =
+    battleRawItems ?? parseJson<unknown[]>(claim.battleLogJson) ?? [];
+
+  // A fresh not-found is authoritative; every other failure falls back to the
+  // last known-good cache before giving up.
+  if (effectiveProfileText === null) {
+    if (profileError && claim.fetchProfile) {
+      if (profileError.status === 404) {
+        return json({ error: "PLAYER_NOT_FOUND", message: profileError.message }, 404);
+      }
+      if (profileError.status === 503) {
+        return json(
+          {
+            error: "API_NOT_CONFIGURED",
+            message: "Set BRAWL_STARS_API_TOKEN in the Convex deployment environment.",
+          },
+          503,
+        );
+      }
+      return json({ error: "UPSTREAM_UNAVAILABLE", message: profileError.message }, profileError.status);
+    }
+    return json(
+      {
+        error: claim.limited ? "RATE_LIMITED" : "UPSTREAM_UNAVAILABLE",
+        message: claim.limited
+          ? "Too many player lookups right now. Please try again shortly."
+          : "The Brawl Stars API could not be reached. Please try again shortly.",
+      },
+      claim.limited ? 429 : 502,
+    );
   }
 
   return json({
-    battleLog: battleLogResult.ok ? battleLogResult.rawPayload : { items: [] },
-    player: profileResult.rawPayload,
+    battleLog: { items: effectiveBattleItems },
+    player: parseJson<unknown>(effectiveProfileText),
   });
 });
 
@@ -269,6 +374,7 @@ const metaTrends = httpAction(async (ctx, request) => {
     trophyBucket: selectedTrophyBucket,
     window: selectedWindow,
     brawlerId,
+    now: Date.now(),
   }));
 });
 

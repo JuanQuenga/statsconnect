@@ -28,6 +28,9 @@ test("shared auth storage migrates a legacy local value into a parent-domain coo
   assert.equal(storage.getItem("better-auth_cookie"), "session-json");
   assert.match(writes[0] ?? "", /^better-auth_cookie=session-json;/);
   assert.match(writes[0] ?? "", /Domain=\.juanquenga\.com/);
+  assert.match(writes[0] ?? "", /Max-Age=2592000;/);
+  assert.doesNotMatch(writes[0] ?? "", /Max-Age=31536000/);
+  assert.match(writes[0] ?? "", /SameSite=Lax/);
   assert.match(writes[0] ?? "", /; Secure$/);
 });
 

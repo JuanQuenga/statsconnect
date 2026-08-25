@@ -182,6 +182,8 @@ Add `--prod` only when deliberately changing production.
 | `BRAWL_CRAWL_REVISIT_MINUTES` | `30` | Delay before a target is eligible again; max 1,440 |
 | `BRAWLSTATS_SERVICE_URL` | none | Brawl Stars HTTP service used by the Hub adapter; legacy variable name retained |
 | `BRAWLSTATS_CACHE_TTL_SECONDS` | `300` | Hub-side Brawl profile cache TTL |
+| `BRAWL_PLAYER_PROFILE_CACHE_SECONDS` | `900` | Brawl HTTP player-profile cache TTL; legacy `BRAWL_PROFILE_CACHE_TTL_SECONDS` is accepted |
+| `BRAWL_PLAYER_BATTLE_CACHE_SECONDS` | `120` | Brawl HTTP battle-log cache TTL; legacy `BRAWL_BATTLE_LOG_CACHE_TTL_SECONDS` is accepted |
 | `CLASH_ROYALE_API_TOKEN` | none | Official Clash Royale API credential |
 | `CLASH_ROYALE_API_BASE_URL` | `https://api.clashroyale.com/v1` | Official API or fixed-egress proxy |
 | `CLASH_ROYALE_CACHE_TTL_SECONDS` | `900` | Hub/Clash response cache TTL |

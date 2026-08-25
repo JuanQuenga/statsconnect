@@ -18,10 +18,11 @@ const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
 type VercelConfiguration = {
   buildCommand: string;
-  headers: Array<{ source: string }>;
+  headers: Array<{ headers: Array<{ key: string; value: string }>; source: string }>;
   outputDirectory: string;
   redirects: Array<{ destination: string; permanent: boolean; source: string }>;
   rewrites: Array<{ destination: string; source: string }>;
+  trailingSlash: boolean;
 };
 
 type RootPackage = {
@@ -119,10 +120,24 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     ...expectedGameRewrites,
     { source: "/:path*", destination: "/index.html" },
   ]);
-  assert.deepEqual(
-    vercel.headers.map((header) => header.source),
-    deliveryApps.slice(1).map((app) => `${app.routePrefix}/beta`),
-  );
+  assert.deepEqual(vercel.headers.map((header) => header.source), [
+    "/index.html",
+    "/application-shell-manifest.json",
+    ...deliveryApps.slice(1).map((app) => `${app.routePrefix}/beta`),
+  ]);
+});
+
+test("the root Vercel Adapter never caches the shell document or application manifest", async () => {
+  const vercel = await readJson<VercelConfiguration>("vercel.json");
+  assert.equal(vercel.trailingSlash, false);
+
+  const noCacheSources = ["/index.html", "/application-shell-manifest.json"];
+  for (const source of noCacheSources) {
+    assert.deepEqual(vercel.headers.find((header) => header.source === source), {
+      headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }],
+      source,
+    });
+  }
 });
 
 test("the unified build owns a generated application-shell manifest", () => {

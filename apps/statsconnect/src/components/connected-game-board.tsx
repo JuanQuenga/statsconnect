@@ -5,6 +5,7 @@ import { Play, Plus } from "lucide-react";
 import { useStageLight } from "@/components/lobby/ambient";
 import { TileNav } from "@/components/lobby/TileNav";
 import { buttonVariants } from "@/components/ui/button";
+import { handleGameDestinationClick } from "@/lib/application-navigation";
 import { gameName, games } from "@/lib/contracts";
 
 export function ConnectedGameBoard({
@@ -78,6 +79,7 @@ function ProfileTile({ profile }: { profile: ConnectedProfile }) {
       data-game={profile.game}
       href={gameDestinationPath(profile.game, profile.tag)}
       className="tile bevel bevel-lg relative flex min-h-[210px] flex-col justify-between overflow-hidden border border-border/60 bg-card/70 p-7 backdrop-blur-sm"
+      onClick={(event) => handleGameDestinationClick(event, gameDestinationPath(profile.game, profile.tag))}
       {...stageLight}
     >
       <img

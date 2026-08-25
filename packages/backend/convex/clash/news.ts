@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
+import { requireForceAuthorization } from "./forceAuthorization";
 type OfficialNewsArticle = { title: string; url: string; publishedAt: string; imageUrl: string | null; category: string };
 type OfficialNewsPayload = { articles: OfficialNewsArticle[]; fetchedAt: number; stale: boolean; locale: "en" | "es"; sourceUrl: string };
 
@@ -113,9 +114,10 @@ function readCached(document: Doc<"apiCache">, locale: "en" | "es", stale: boole
 }
 
 export const getOfficialNews = action({
-  args: { locale: localeValidator, force: v.optional(v.boolean()) },
+  args: { locale: localeValidator, force: v.optional(v.boolean()), adminKey: v.optional(v.string()) },
   returns: payloadValidator,
   handler: async (ctx, args): Promise<OfficialNewsPayload> => {
+    requireForceAuthorization(args);
     const key = `news:official:${args.locale}`;
     const cached = await ctx.runQuery(internal.clash.cache.get, { key });
     const cachedPayload = cached ? readCached(cached, args.locale, false) : null;

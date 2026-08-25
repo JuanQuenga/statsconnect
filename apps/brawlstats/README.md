@@ -123,7 +123,8 @@ pnpm --dir packages/backend exec convex env set BRAWL_CRAWL_REVISIT_MINUTES 30
 Set `BRAWL_CRAWLER_ENABLED=false` for the crawler kill switch or `BRAWL_PUBLIC_API_ENABLED=false`
 to stop new public upstream lookups while continuing to serve cached player responses. Public profile and battle-log
 cache TTLs default to 900 and 120 seconds and can be changed with `BRAWL_PLAYER_PROFILE_CACHE_SECONDS` and
-`BRAWL_PLAYER_BATTLE_CACHE_SECONDS`.
+`BRAWL_PLAYER_BATTLE_CACHE_SECONDS`. The older `BRAWL_PROFILE_CACHE_TTL_SECONDS` and
+`BRAWL_BATTLE_LOG_CACHE_TTL_SECONDS` names remain supported as fallback aliases.
 
 Map detail UI hides tier lists until a brawler has enough picks (default 25).
 

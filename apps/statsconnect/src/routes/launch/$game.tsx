@@ -3,6 +3,7 @@ import { useStatsConnectAuth } from "@statsconnect/auth";
 import { gameDestinationPath } from "@statsconnect/site-nav";
 import { useEffect } from "react";
 import { ErrorState, LoadingState } from "@/components/ui-helpers";
+import { navigateToApplication } from "@/lib/application-navigation";
 import { gameName, isGameId } from "@/lib/contracts";
 import { profileForLaunch } from "@/lib/launch-profiles";
 
@@ -30,7 +31,9 @@ function LaunchGamePage() {
   useEffect(() => {
     if (!profilesReady || !profile || !isGameId(game)) return;
 
-    window.location.replace(gameDestinationPath(game, profile.tag));
+    // Same-origin Game Destinations swap through the application shell when it
+    // is running; the document-level fallback keeps standalone launches working.
+    navigateToApplication(gameDestinationPath(game, profile.tag));
   }, [game, profile, profilesReady]);
 
   if (!isGameId(game)) return <Navigate to="/connect" replace />;

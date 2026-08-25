@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n, type Translator } from "@/lib/i18n";
 import { aggregateMeta, type AggregatedMetaRow, type TrophyBucket } from "@/lib/meta";
-import { appPath } from "@/lib/paths";
 import type { MetaDailyPoint, MetaTrendWindow } from "@/lib/types";
 
 type Metric = "win" | "use" | "picks" | "star";
@@ -125,9 +124,13 @@ function MetaResearchPage() {
 }
 
 function GroupLabel({ row, grouping }: { row: AggregatedMetaRow; grouping: Grouping }) {
-  const href = grouping === "brawler" && row.brawlerId ? `/brawlers/${row.brawlerId}` : grouping === "map" && row.mapId ? `/maps/${row.mapId}` : null;
+  const to = grouping === "brawler" && row.brawlerId
+    ? { to: "/brawlers/$brawlerId" as const, params: { brawlerId: String(row.brawlerId) } }
+    : grouping === "map" && row.mapId
+      ? { to: "/maps/$mapId" as const, params: { mapId: String(row.mapId) } }
+      : null;
   const body = <span className="flex items-center gap-3">{grouping === "brawler" && row.brawlerId ? <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-9 rounded-lg" /> : null}<strong>{row.label}</strong></span>;
-  return href ? <a href={appPath(href)} className="hover:text-primary">{body}</a> : body;
+  return to ? <Link {...to} className="hover:text-primary">{body}</Link> : body;
 }
 function TrendChart({ points }: { points: MetaDailyPoint[] }) {
   const { t, date } = useI18n();

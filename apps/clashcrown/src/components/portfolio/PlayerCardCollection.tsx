@@ -155,7 +155,6 @@ export function PlayerCardCollection({
         {filtered.map((card) => <CollectionTile card={card} key={cardKey(card)} />)}
       </div>
       {!filtered.length ? <p className="empty-results">No cards match those collection filters.</p> : null}
-      <CollectionStyles />
     </section>
   );
 }
@@ -195,33 +194,4 @@ function CollectionTile({ card }: { card: CollectionCard }) {
       </small>
     </Link>
   );
-}
-
-function CollectionStyles() {
-  return <style>{`
-    .collection-heading { grid-template-columns: 150px 1fr minmax(220px, 310px); }
-    .collection-heading .player-share-actions { justify-self: end; }
-    .collection-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: -12px 0 18px; }
-    .collection-summary > span { display: flex; align-items: baseline; justify-content: center; gap: 7px; padding: 10px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 7px; color: #8ea2c4; background: rgba(8, 24, 44, .5); font: 10px var(--font-ui); }
-    .collection-summary strong { color: white; font-size: 17px; }
-    .collection-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; padding: 12px; border: 1px solid rgba(62, 88, 128, .2); border-radius: 9px; background: rgba(8, 24, 44, .52); }
-    .collection-search { flex: 1 1 210px; min-width: 0; }
-    .collection-select { flex: 1 1 145px; min-width: 130px; }
-    .collection-toolbar .toolbar-toggle { flex: 0 1 auto; }
-    .collection-catalog-note { margin: -8px 0 20px; color: #8ea2c4; font: 11px/1.5 var(--font-ui); text-align: center; }
-    .collection-catalog-error { color: #ffb5c5; }
-    .collection-card-missing .game-card-art { filter: grayscale(1); opacity: .38; }
-    .collection-card-missing:hover .game-card-art { opacity: .58; }
-    .collection-card-missing { border-style: dashed; background: rgba(8, 24, 44, .42); }
-    .collection-status { min-height: 14px; color: #6f86aa !important; font-weight: 700 !important; letter-spacing: .03em; text-transform: uppercase; }
-    .collection-status-ready { color: #55d895 !important; }
-    @media (max-width: 980px) {
-      .collection-heading { grid-template-columns: 1fr; }
-      .collection-heading .player-share-actions { justify-self: center; }
-    }
-    @media (max-width: 620px) {
-      .collection-summary { grid-template-columns: repeat(2, 1fr); }
-      .collection-toolbar .toolbar-toggle { flex: 1 1 calc(50% - 10px); padding: 0 10px; }
-    }
-  `}</style>;
 }

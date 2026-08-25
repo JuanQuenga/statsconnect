@@ -22,7 +22,9 @@ function LiveNews() {
   const [refreshKey, setRefreshKey] = useState(0);
   const query = useQuery({
     queryKey: ["official-news", locale, refreshKey],
-    queryFn: () => getOfficialNews({ locale, force: refreshKey > 0 }),
+    // The public page may re-run the cached request, but cannot bypass the
+    // server cache reserved for the protected admin path.
+    queryFn: () => getOfficialNews({ locale }),
     retry: false,
   });
 

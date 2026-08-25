@@ -165,9 +165,24 @@ export function createConnectedProfilesModule({
     if (!accountUserId) return;
     const previousByKey = new Map(previous.map((profile) => [keyOf(profile), profile]));
     const nextByKey = new Map(next.map((profile) => [keyOf(profile), profile]));
+    const removedKeys = [...previousByKey.keys()].filter((key) => !nextByKey.has(key));
+    // External snapshots carry no revision marker, so a shrunken list cannot
+    // prove it is newer than local state. Refuse to relay deletions while
+    // unsynced local additions are queued, and treat a fully emptied snapshot
+    // as unverifiable: legitimate empties arrive through sign-out and account
+    // reconciliation instead. Preserved profiles are republished to browser
+    // storage and the next trusted account snapshot repairs any drift.
+    const distrustRemovals = removedKeys.length > 0
+      && (pendingSaves.size > 0 || next.length === 0);
+    const effectiveNext = distrustRemovals
+      ? mergeConnectedProfiles(next, previous, [...pendingSaves.values()])
+      : next;
+    if (distrustRemovals) replaceBrowser(effectiveNext);
+
+    const effectiveByKey = new Map(effectiveNext.map((profile) => [keyOf(profile), profile]));
     const work: Promise<void>[] = [];
 
-    for (const [key, profile] of nextByKey) {
+    for (const [key, profile] of effectiveByKey) {
       const before = previousByKey.get(key);
       if (before?.name === profile.name) continue;
       pendingRemovals.delete(key);
@@ -175,7 +190,7 @@ export function createConnectedProfilesModule({
       work.push(account.save(publicProfile(profile)));
     }
     for (const [key, profile] of previousByKey) {
-      if (nextByKey.has(key)) continue;
+      if (effectiveByKey.has(key)) continue;
       pendingSaves.delete(key);
       pendingRemovals.add(key);
       work.push(account.remove(profile.game, profile.tag));

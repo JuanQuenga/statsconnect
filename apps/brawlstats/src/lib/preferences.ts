@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { removeConnectedProfile, saveConnectedProfile } from "@statsconnect/auth";
+import { safeGet, safeSet } from "@statsconnect/site-format";
 
 export const supportedLocales = ["en", "es", "de", "fr", "pt", "ja", "ko"] as const;
 export type Locale = (typeof supportedLocales)[number];
@@ -13,6 +14,8 @@ export type SavedProfile = {
 };
 
 export type Preferences = {
+  /** Persisted shape version; absent on read means v1. */
+  version: 1;
   locale: Locale;
   alertsEnabled: boolean;
   savedProfiles: SavedProfile[];
@@ -20,7 +23,9 @@ export type Preferences = {
 };
 
 const STORAGE_KEY = "brawlstats.preferences.v1";
+const PREFERENCES_VERSION = 1 as const;
 const fallbackPreferences: Preferences = {
+  version: PREFERENCES_VERSION,
   locale: "en",
   alertsEnabled: false,
   savedProfiles: [],
@@ -57,8 +62,9 @@ function readPreferences(): Preferences {
   if (cache) return cache;
   if (typeof window === "undefined") return fallbackPreferences;
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}") as Record<string, unknown>;
+    const parsed = JSON.parse(safeGet(STORAGE_KEY) || "{}") as Record<string, unknown>;
     cache = {
+      version: PREFERENCES_VERSION,
       locale: isLocale(parsed.locale) ? parsed.locale : fallbackPreferences.locale,
       alertsEnabled: parsed.alertsEnabled === true,
       savedProfiles: profileList(parsed.savedProfiles),
@@ -72,9 +78,7 @@ function readPreferences(): Preferences {
 
 function writePreferences(next: Preferences) {
   cache = next;
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }
+  safeSet(STORAGE_KEY, JSON.stringify(next));
   listeners.forEach((listener) => listener());
 }
 
@@ -150,7 +154,9 @@ export function exportPreferences(): string {
 export function importPreferences(value: string): boolean {
   try {
     const parsed = JSON.parse(value) as Record<string, unknown>;
+    if (parsed.version !== undefined && parsed.version !== PREFERENCES_VERSION) return false;
     writePreferences({
+      version: PREFERENCES_VERSION,
       locale: isLocale(parsed.locale) ? parsed.locale : "en",
       alertsEnabled: parsed.alertsEnabled === true,
       savedProfiles: profileList(parsed.savedProfiles),

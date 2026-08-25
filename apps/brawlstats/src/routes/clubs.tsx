@@ -206,33 +206,48 @@ function ClubsPage() {
 
   const club = clubQuery.data;
   const liveMembers = club?.members || [];
-  const history = historyQuery.data;
-  const trackedByTag = new Map((history?.roster || []).map((member) => [member.tag, member]));
+  const historyData = historyQuery.data;
+  const historyRoster = historyData?.roster;
+  const historyEvents = historyData?.events;
+  const trackedByTag = useMemo(
+    () => new Map((historyRoster || []).map((member) => [member.tag, member])),
+    [historyRoster],
+  );
   const trophyChangeByTag = useMemo(() => {
     const changes = new Map<string, number>();
-    for (const event of history?.events || []) {
+    for (const event of historyEvents || []) {
       changes.set(event.playerTag, (changes.get(event.playerTag) || 0) + (event.trophyDelta || 0));
     }
     return changes;
-  }, [history?.events]);
-  const roles = [...new Set(liveMembers.map((member) => member.role || "member"))].sort();
-  const members = liveMembers
-    .filter((member) => {
-      const query = rosterSearch.trim().toLowerCase();
-      return (!query || member.name.toLowerCase().includes(query) || member.tag.toLowerCase().includes(query))
-        && (roleFilter === "all" || (member.role || "member") === roleFilter);
-    })
-    .sort((a, b) => {
-      if (rosterSort === "name") return a.name.localeCompare(b.name);
-      if (rosterSort === "role") return (a.role || "member").localeCompare(b.role || "member");
-      if (rosterSort === "activity") return (trackedByTag.get(b.tag)?.lastProfileAt || 0) - (trackedByTag.get(a.tag)?.lastProfileAt || 0);
-      if (rosterSort === "change") return (trophyChangeByTag.get(b.tag) || 0) - (trophyChangeByTag.get(a.tag) || 0);
-      return b.trophies - a.trophies;
-    });
+  }, [historyEvents]);
+  const roles = useMemo(
+    () => [...new Set(liveMembers.map((member) => member.role || "member"))].sort(),
+    [liveMembers],
+  );
+  const members = useMemo(
+    () => liveMembers
+      .filter((member) => {
+        const query = rosterSearch.trim().toLowerCase();
+        return (!query || member.name.toLowerCase().includes(query) || member.tag.toLowerCase().includes(query))
+          && (roleFilter === "all" || (member.role || "member") === roleFilter);
+      })
+      .sort((a, b) => {
+        if (rosterSort === "name") return a.name.localeCompare(b.name);
+        if (rosterSort === "role") return (a.role || "member").localeCompare(b.role || "member");
+        if (rosterSort === "activity") return (trackedByTag.get(b.tag)?.lastProfileAt || 0) - (trackedByTag.get(a.tag)?.lastProfileAt || 0);
+        if (rosterSort === "change") return (trophyChangeByTag.get(b.tag) || 0) - (trophyChangeByTag.get(a.tag) || 0);
+        return b.trophies - a.trophies;
+      }),
+    [liveMembers, roleFilter, rosterSearch, rosterSort, trophyChangeByTag, trackedByTag],
+  );
+  const history = historyData;
   const average = liveMembers.length
     ? Math.round(liveMembers.reduce((total, member) => total + member.trophies, 0) / liveMembers.length)
     : 0;
-  const filteredEvents = (history?.events || []).filter((event) => eventFilter === "all" || event.type === eventFilter);
+  const filteredEvents = useMemo(
+    () => (historyEvents || []).filter((event) => eventFilter === "all" || event.type === eventFilter),
+    [eventFilter, historyEvents],
+  );
 
   function exportRoster() {
     downloadCsv(`${(club?.name || "club").replaceAll(" ", "-")}-roster.csv`, [

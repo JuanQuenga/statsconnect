@@ -108,7 +108,7 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
   );
 
   return {
-    navigate: (href) => void router.navigate({ to: localHref(href) as never }),
+    navigate: (href) => void router.navigate({ href: localHref(href) }),
     unmount: () => {
       root.unmount();
       removeGlobalErrorHandlers();

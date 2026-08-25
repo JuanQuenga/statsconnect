@@ -93,6 +93,19 @@ test("the Edge proxy streams a synthetic asset larger than Vercel's buffered lim
   }
 });
 
+test("the Edge proxy fails closed when production storage is not configured", async () => {
+  const previousOrigin = process.env.BRAWL_3D_ASSET_STORAGE_ORIGIN;
+  delete process.env.BRAWL_3D_ASSET_STORAGE_ORIGIN;
+  try {
+    const response = await handler(new Request("https://stats.example/api/brawlers-3d/catalog.json"));
+    assert.equal(response.status, 503);
+    assert.match(await response.text(), /BRAWL_3D_ASSET_STORAGE_ORIGIN is not configured/);
+  } finally {
+    if (previousOrigin === undefined) delete process.env.BRAWL_3D_ASSET_STORAGE_ORIGIN;
+    else process.env.BRAWL_3D_ASSET_STORAGE_ORIGIN = previousOrigin;
+  }
+});
+
 test("the Edge proxy never makes mutable catalog metadata immutable", async () => {
   const previousOrigin = process.env.BRAWL_3D_ASSET_STORAGE_ORIGIN;
   const previousFetch = globalThis.fetch;
@@ -117,5 +130,6 @@ test("the project delivery boundary documents fail-closed provisioning", async (
   assert.match(documentation, /BRAWL_3D_ASSET_DIR/);
   assert.match(documentation, /BRAWL_3D_ASSET_STORAGE_ORIGIN/);
   assert.match(documentation, /503/);
+  assert.match(documentation, /tracked legacy GLBs or official PNG fallback/);
   assert.match(documentation, /2\.6 GiB/);
 });

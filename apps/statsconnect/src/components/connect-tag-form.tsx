@@ -4,6 +4,7 @@ import { gameDestinationPath } from "@statsconnect/site-nav";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
+import { navigateToApplication } from "@/lib/application-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
       return preview.data.playerTag;
     },
     onSuccess: (playerTag) => {
-      window.location.assign(gameDestinationPath(game, playerTag));
+      navigateToApplication(gameDestinationPath(game, playerTag));
     },
   });
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type AnchorHTMLAttributes, type ComponentType, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type AnchorHTMLAttributes, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { handleApplicationNavigation } from "./application-navigation";
 import { gameSwitcherHref } from "./navigation-targets";
 import "./site-navigation.css";
@@ -119,6 +119,57 @@ function writeSharedLanguage(value: string) {
   window.dispatchEvent(new CustomEvent(LANGUAGE_EVENT, { detail: value }));
 }
 
+/**
+ * Shared behavior for the `<details>` disclosure menus (Game Switcher menu and
+ * account popover): close on Escape (returning focus to the summary), close on
+ * any pointer press outside, and close when a link inside is activated.
+ */
+function useDisclosureMenu() {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const details = detailsRef.current;
+    if (!open || !details) return;
+
+    const close = () => {
+      details.open = false;
+      setOpen(false);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const summary = details.querySelector("summary");
+      close();
+      if (summary instanceof HTMLElement) summary.focus();
+    };
+
+    const onPointerDown = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!details.contains(target)) close();
+    };
+
+    const onClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("a")) close();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("click", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("click", onClick);
+    };
+  }, [open]);
+
+  const syncOpen = useCallback((next: boolean) => setOpen(next), []);
+
+  return { detailsRef, open, syncOpen };
+}
+
 function MenuIcon({ open }: { open: boolean }) {
   return open ? (
     <svg viewBox="0 0 24 24" aria-hidden><path d="m6 6 12 12M18 6 6 18" /></svg>
@@ -235,8 +286,10 @@ function GamesMenu({
   hubOrigin?: string;
   profiles: readonly SiteNavigationProfile[];
 }) {
+  const { detailsRef, syncOpen } = useDisclosureMenu();
+
   return (
-    <details className="sc-nav__games">
+    <details ref={detailsRef} onToggle={(event) => syncOpen(event.currentTarget.open)} className="sc-nav__games">
       <summary>
         <GamepadIcon />
         <span>Games</span>
@@ -275,6 +328,7 @@ function GamesMenu({
 
 function AccountChip({ account }: { account: SiteNavigationAccount }) {
   const initials = account.displayName.trim().slice(0, 1).toUpperCase() || "G";
+  const { detailsRef, syncOpen } = useDisclosureMenu();
   const content = (
     <>
       {account.avatarUrl ? <img src={account.avatarUrl} alt="" referrerPolicy="no-referrer" /> : <span aria-hidden>{initials}</span>}
@@ -290,7 +344,7 @@ function AccountChip({ account }: { account: SiteNavigationAccount }) {
       : <div className="sc-nav__account" aria-label={`Google account: ${account.displayName}`}>{content}</div>;
   }
   return (
-    <details className="sc-nav__account-menu">
+    <details ref={detailsRef} onToggle={(event) => syncOpen(event.currentTarget.open)} className="sc-nav__account-menu">
       <summary className="sc-nav__account" aria-label={`Google account: ${account.displayName}`}>{content}</summary>
       <div className="sc-nav__account-popover">
         <strong>{account.displayName}</strong>
@@ -313,6 +367,7 @@ function LanguageIcon() {
 function LanguageSelector({ language }: { language?: SiteNavigationLanguage }) {
   const options = language?.options ?? siteNavigationLanguages;
   const controlledValue = language?.value;
+  const onChange = language?.onChange;
   const previousControlledValue = useRef(controlledValue);
   const [value, setValue] = useState(() => {
     const shared = readSharedLanguage();
@@ -321,12 +376,14 @@ function LanguageSelector({ language }: { language?: SiteNavigationLanguage }) {
     return options[0]?.value ?? "en";
   });
 
+  const optionsKey = options.map((option) => option.value).join(",");
+
   useEffect(() => {
     const shared = readSharedLanguage();
     if (shared && options.some((option) => option.value === shared)) {
       setValue(shared);
       document.documentElement.lang = shared;
-      if (controlledValue !== undefined && controlledValue !== shared) language?.onChange(shared);
+      if (controlledValue !== undefined && controlledValue !== shared) onChange?.(shared);
     } else if (shared) {
       // Preserve a network-wide preference that this site does not translate yet.
       if (controlledValue) setValue(controlledValue);
@@ -334,6 +391,8 @@ function LanguageSelector({ language }: { language?: SiteNavigationLanguage }) {
       setValue(controlledValue);
       writeSharedLanguage(controlledValue);
     }
+    // Runs once per mount; the option list and callbacks are stable in practice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -350,7 +409,7 @@ function LanguageSelector({ language }: { language?: SiteNavigationLanguage }) {
         : readSharedLanguage();
       if (!next || !options.some((option) => option.value === next)) return;
       setValue(next);
-      if (controlledValue !== undefined && controlledValue !== next) language?.onChange(next);
+      if (controlledValue !== undefined && controlledValue !== next) onChange?.(next);
     };
     window.addEventListener("storage", sync);
     window.addEventListener(LANGUAGE_EVENT, sync);
@@ -358,7 +417,9 @@ function LanguageSelector({ language }: { language?: SiteNavigationLanguage }) {
       window.removeEventListener("storage", sync);
       window.removeEventListener(LANGUAGE_EVENT, sync);
     };
-  }, [controlledValue, language, options]);
+    // Re-subscribe only when the supported locales change or the controlled
+    // value/callback identity changes, not on every parent render.
+  }, [optionsKey, controlledValue, onChange]);
 
   const selectedValue = controlledValue ?? value;
   const selected = options.find((option) => option.value === selectedValue) ?? options[0];
@@ -375,7 +436,7 @@ function LanguageSelector({ language }: { language?: SiteNavigationLanguage }) {
           const next = event.target.value;
           setValue(next);
           writeSharedLanguage(next);
-          language?.onChange(next);
+          onChange?.(next);
         }}
       >
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -401,6 +462,7 @@ export function SiteNavigation({
 }: SiteNavigationProps) {
   const [open, setOpen] = useState(false);
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const close = () => setOpen(false);
   const style: NavigationStyle = { "--sc-nav-accent": accentColor };
   const applicationOrigin = typeof window !== "undefined" && window.__statsConnectApplicationShell
@@ -409,16 +471,46 @@ export function SiteNavigation({
 
   useEffect(() => {
     if (!open) return;
+    const sheet = sheetRef.current;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
+
+    const focusables = () =>
+      sheet
+        ? Array.from(
+            sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+          )
+        : [];
     mobileCloseRef.current?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !sheet) return;
+
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !(active instanceof Node) || !sheet.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.documentElement.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
+      document.documentElement.style.overflow = previousOverflow;
+      opener?.focus();
     };
   }, [open]);
 
@@ -462,7 +554,15 @@ export function SiteNavigation({
       </div>
 
       {open ? <button type="button" className="sc-nav__mobile-backdrop" aria-label="Close navigation menu" onClick={close} /> : null}
-      <div className={`sc-nav__mobile${open ? " is-open" : ""}`} role={open ? "dialog" : undefined} aria-modal={open ? true : undefined} aria-label={open ? "Site navigation" : undefined}>
+      {/* The mobile sheet is a dialog: focus enters it on open, Tab cycles inside
+          it while open, and focus returns to the hamburger button on close. */}
+      <div
+        ref={sheetRef}
+        className={`sc-nav__mobile${open ? " is-open" : ""}`}
+        role={open ? "dialog" : undefined}
+        aria-modal={open ? true : undefined}
+        aria-label={open ? "Site navigation" : undefined}
+      >
         {open ? (
           <div className="sc-nav__mobile-panel">
             <header className="sc-nav__mobile-heading">

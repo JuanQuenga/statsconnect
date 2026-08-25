@@ -2,6 +2,10 @@
 .DS_Store
 node_modules
 dist
+coverage
+*.tsbuildinfo
+__pycache__/
+*.pyc
 .generated/brawl-3d/
 .env
 .env.local

@@ -16,6 +16,8 @@ The shared Better Auth configuration continues to trust those two legacy origins
 
 Vercel runs `pnpm build:vercel`. Production builds deploy the canonical Convex functions and inject the resulting `VITE_CONVEX_URL` while building all three frontends. Preview and development builds only build the frontends; they require a preview-scoped `VITE_CONVEX_URL` and never receive `CONVEX_DEPLOY_KEY`.
 
+The Hub document (`/index.html`) and `application-shell-manifest.json` are served with `Cache-Control: no-cache, must-revalidate` so releases reach returning browsers immediately; hashed Vite assets keep their immutable caching. `trailingSlash: false` canonicalizes URLs without trailing slashes with a 308 redirect, keeping one URL per route across the Hub shell and both Game Sites.
+
 The GitHub Actions backend workflow is manual recovery-only. Vercel owns normal production releases so one commit cannot race two Convex deployments.
 
 ## Convex backend
@@ -68,6 +70,8 @@ The unified deployment needs these environment variable names copied from the ex
 - `GOOGLE_CLIENT_SECRET`
 
 For Better Auth, set `SITE_URL=https://stats.juanquenga.com`. Register the production Convex HTTP Actions callback URL with Google as `https://<production-deployment>.convex.site/api/auth/callback/google`. Google credentials and the Better Auth secret belong only in the Convex production environment.
+
+The Brawl HTTP cache defaults are 900 seconds for player profiles and 120 seconds for battle logs. Existing deployments may keep `BRAWL_PROFILE_CACHE_TTL_SECONDS` and `BRAWL_BATTLE_LOG_CACHE_TTL_SECONDS`; both are accepted as lower-priority aliases while the documented names above are preferred.
 
 Backups do not contain deployment code, environment variables, or scheduled functions. Copy and verify them before switching traffic.
 

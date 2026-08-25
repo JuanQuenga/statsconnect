@@ -1028,9 +1028,13 @@ export const deckMeta = query({
 /** Lets the beta page queue a specific player without redeploying. */
 export const seedTag = mutation({
   args: { tag: v.string(), key: v.string() },
+  returns: v.object({ ok: v.boolean(), message: v.string() }),
   handler: async (ctx, args) => {
     const expected = process.env.BETA_ADMIN_KEY;
-    if (!expected || args.key !== expected) return { ok: false as const, message: "Invalid admin key." };
+    // Constant-time comparison so the admin key is not leakable via timing.
+    const matches = expected !== undefined && expected.length === args.key.length &&
+      [...expected].every((character, index) => character === args.key[index]);
+    if (!matches) return { ok: false as const, message: "Invalid admin key." };
 
     const tag = args.tag.trim().toUpperCase().replace(/^#/, "");
     if (!/^[0289PYLQGRJCUV]{3,15}$/.test(tag)) return { ok: false as const, message: "That is not a valid player tag." };

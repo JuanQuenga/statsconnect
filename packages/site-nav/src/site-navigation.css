@@ -17,6 +17,8 @@
   width: 100%;
   position: sticky;
   top: 0;
+  /* Stacking baseline for the shared Site Navigation: Hub dialogs (z-[80]) and
+     dropdown menus (z-[90]) must layer above this bar. */
   z-index: 70;
   color: var(--sc-nav-text);
   box-shadow: 0 12px 36px rgba(0, 0, 0, .2);

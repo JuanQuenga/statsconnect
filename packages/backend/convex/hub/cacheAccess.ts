@@ -113,6 +113,66 @@ async function refreshResource(
   });
 }
 
+const WATCH_POLL_BATCH = 20;
+const WATCH_DAILY_LIMIT = 500;
+
+/**
+ * Polls due premium/connected watch targets. claimDuePlayerTargets leases the
+ * batch and advances the shared daily budget; every attempt is settled through
+ * recordPoll so cadence and failure counters stay accurate.
+ */
+export const refreshDueWatchTargets = internalAction({
+  args: {},
+  returns: v.object({
+    attemptedTargets: v.number(),
+    refreshedTargets: v.number(),
+    failedTargets: v.number(),
+  }),
+  handler: async (ctx): Promise<{
+    attemptedTargets: number;
+    refreshedTargets: number;
+    failedTargets: number;
+  }> => {
+    const now = Date.now();
+    const targets = await ctx.runMutation(internal.hub.internal.watchTargets.claimDuePlayerTargets, {
+      now,
+      limit: WATCH_POLL_BATCH,
+      dailyLimit: WATCH_DAILY_LIMIT,
+    });
+    let refreshedTargets = 0;
+    let failedTargets = 0;
+
+    for (const target of targets) {
+      let succeeded = false;
+      try {
+        const refreshed = await refreshResource(ctx, { game: target.game, playerTag: target.playerTag });
+        succeeded = refreshed.synced || refreshed.result.cache.state === "hit";
+        if (refreshed.synced) refreshedTargets += 1;
+        else failedTargets += 1;
+      } catch (error) {
+        failedTargets += 1;
+        console.warn("Watch target refresh failed", {
+          game: target.game,
+          playerTag: target.playerTag,
+          error,
+        });
+      } finally {
+        await ctx.runMutation(internal.hub.internal.watchTargets.recordPoll, {
+          targetKey: target.targetKey,
+          attemptedAt: Date.now(),
+          succeeded,
+        });
+      }
+    }
+
+    return {
+      attemptedTargets: targets.length,
+      refreshedTargets,
+      failedTargets,
+    };
+  },
+});
+
 export const refreshExpiredConnected = internalAction({
   args: {},
   returns: v.object({
@@ -161,16 +221,19 @@ export const pruneExpired = internalAction({
   returns: v.object({
     profileCacheRows: v.number(),
     connectThrottleRows: v.number(),
+    refreshBudgetRows: v.number(),
     failedBranches: v.number(),
   }),
   handler: async (ctx): Promise<{
     profileCacheRows: number;
     connectThrottleRows: number;
+    refreshBudgetRows: number;
     failedBranches: number;
   }> => {
     const now = Date.now();
     let profileCacheRows = 0;
     let connectThrottleRows = 0;
+    let refreshBudgetRows = 0;
     let failedBranches = 0;
 
     try {
@@ -193,6 +256,16 @@ export const pruneExpired = internalAction({
       console.warn("Background connect throttle pruning failed", { error });
     }
 
-    return { profileCacheRows, connectThrottleRows, failedBranches };
+    try {
+      refreshBudgetRows = await ctx.runMutation(internal.hub.internal.watchTargets.pruneRefreshBudgets, {
+        now,
+        limit: 32,
+      });
+    } catch (error) {
+      failedBranches += 1;
+      console.warn("Background refresh budget pruning failed", { error });
+    }
+
+    return { profileCacheRows, connectThrottleRows, refreshBudgetRows, failedBranches };
   },
 });

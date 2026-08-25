@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { brawlData } from "@/lib/game-data";
 import { useI18n } from "@/lib/i18n";
 import { usePreferences } from "@/lib/preferences";
+import { safeGet, safeSet } from "@statsconnect/site-format";
 
 const ROTATION_KEY = "brawlstats.rotation.v1";
 
@@ -23,8 +24,8 @@ function useRotationAlerts() {
       .map((item) => `${item.event?.id || ""}:${item.event?.mode || ""}:${item.event?.map || ""}`)
       .sort()
       .join("|");
-    const previous = window.localStorage.getItem(ROTATION_KEY);
-    window.localStorage.setItem(ROTATION_KEY, signature);
+    const previous = safeGet(ROTATION_KEY);
+    safeSet(ROTATION_KEY, signature);
     if (!previous || previous === signature || !("Notification" in window) || Notification.permission !== "granted") return;
     const first = eventsQuery.data[0];
     const title = t("alerts.changed");

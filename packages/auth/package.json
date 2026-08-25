@@ -14,8 +14,8 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "convex": "^1.42.2",
-    "react": "^19.2.0"
+    "convex": "^1.43.0",
+    "react": "^19.2.8"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

@@ -1,5 +1,7 @@
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import {
+  MAX_RECENTS,
+  normalizeTag as normalizeProfileTag,
   readLocalPersonalization,
   replaceLocalDevice,
   writeLocalPersonalization,
@@ -11,7 +13,6 @@ import {
 } from "./recentProfiles.ts";
 import type { clashBackend } from "./platformBackend.ts";
 
-const MAX_RECENTS = 12;
 const SYNC_UNAVAILABLE_MESSAGE = "Sync requires a configured Convex deployment.";
 const SYNC_ERROR_MESSAGE = "Sync failed. The local copy is still available.";
 
@@ -120,10 +121,6 @@ const ignoredSharedProfiles: SharedProfilePersistence = {
   save: () => undefined,
   remove: () => undefined,
 };
-
-export function normalizeProfileTag(tag: string): string {
-  return tag.replace(/^#/, "").trim().toUpperCase();
-}
 
 function profileKey(profile: Pick<ProfileInput, "kind" | "tag">): string {
   return `${profile.kind}:${normalizeProfileTag(profile.tag)}`;

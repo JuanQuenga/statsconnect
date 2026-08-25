@@ -358,7 +358,7 @@ export const history = query({
 });
 
 export const communityActivity = query({
-  args: { limit: v.optional(v.number()) },
+  args: { limit: v.optional(v.number()), now: v.optional(v.number()) },
   returns: v.object({
     clubs: v.array(v.object({
       tag: v.string(),
@@ -374,7 +374,8 @@ export const communityActivity = query({
   }),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(Math.floor(args.limit ?? 20), 1), 50);
-    const cutoff = Date.now() - 7 * 86_400_000;
+    // Caller-supplied time keeps the query deterministic for caching.
+    const cutoff = Math.min(args.now ?? Date.now(), Date.now()) - 7 * 86_400_000;
     const directories = await ctx.db
       .query("brawlClubDirectory")
       .withIndex("by_last_seen_at")

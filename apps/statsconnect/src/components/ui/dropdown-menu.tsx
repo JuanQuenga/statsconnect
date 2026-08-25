@@ -192,6 +192,7 @@ export function DropdownMenuContent({
   if (!open) return null;
 
   return (
+    // z-90 keeps the open menu above the sticky Site Navigation, which stacks at z-index 70.
     <div
       {...props}
       ref={contentRef}
@@ -199,7 +200,7 @@ export function DropdownMenuContent({
       role="menu"
       aria-labelledby={triggerId}
       className={cn(
-        "bevel absolute left-0 top-full z-50 mt-2 min-w-64 max-w-[min(100vw-2rem,22rem)] border border-border/60 bg-popover p-2 shadow-2xl sm:min-w-80",
+        "bevel absolute left-0 top-full z-90 mt-2 min-w-64 max-w-[min(100vw-2rem,22rem)] border border-border/60 bg-popover p-2 shadow-2xl sm:min-w-80",
         className,
       )}
       onClick={(event: ReactMouseEvent<HTMLDivElement>) => {

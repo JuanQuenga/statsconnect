@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { action, internalAction, internalMutation } from "../_generated/server";
+import { internalAction, internalMutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import { recordPlayerSightings, type PlayerSighting } from "./players";
 import { optionalBattleText } from "./ingestPolicy";
@@ -69,6 +69,56 @@ function personalResult(battle: BattleLogItem["battle"]): "victory" | "defeat" |
   return "unknown";
 }
 
+type StatDelta = {
+  picks: number;
+  wins: number;
+  losses: number;
+  starPlayer: number;
+  firstBattleAt?: number;
+  lastBattleAt?: number;
+};
+
+type TeamStatDelta = StatDelta & {
+  brawlerIds: number[];
+};
+
+function newDelta(won: boolean | null, isStar: boolean, observedAt?: number): StatDelta {
+  return {
+    picks: 1,
+    wins: won === true ? 1 : 0,
+    losses: won === false ? 1 : 0,
+    starPlayer: isStar ? 1 : 0,
+    ...(observedAt !== undefined
+      ? { firstBattleAt: observedAt, lastBattleAt: observedAt }
+      : {}),
+  };
+}
+
+function newTeamDelta(won: boolean | null, brawlerIds: number[]): TeamStatDelta {
+  return {
+    ...newDelta(won, false),
+    brawlerIds: [...brawlerIds],
+  };
+}
+
+function foldDelta<T extends StatDelta>(map: Map<string, T>, key: string, delta: T): void {
+  const existing = map.get(key);
+  if (!existing) {
+    map.set(key, delta);
+    return;
+  }
+  existing.picks += delta.picks;
+  existing.wins += delta.wins;
+  existing.losses += delta.losses;
+  existing.starPlayer += delta.starPlayer;
+  if (delta.firstBattleAt !== undefined) {
+    existing.firstBattleAt = Math.min(existing.firstBattleAt ?? delta.firstBattleAt, delta.firstBattleAt);
+  }
+  if (delta.lastBattleAt !== undefined) {
+    existing.lastBattleAt = Math.max(existing.lastBattleAt ?? delta.lastBattleAt, delta.lastBattleAt);
+  }
+}
+
 export const ingestBattleLogItems = internalMutation({
   args: {
     items: v.array(v.any()),
@@ -79,6 +129,11 @@ export const ingestBattleLogItems = internalMutation({
     let inserted = 0;
     const focus = normalizedTag(args.focusTag || null);
     const sightings: PlayerSighting[] = [];
+    const brawlerDeltas = new Map<string, StatDelta>();
+    const dailyBrawlerDeltas = new Map<string, StatDelta>();
+    const teamDeltas = new Map<string, TeamStatDelta>();
+    const matchupDeltas = new Map<string, StatDelta>();
+    const dailyMatchupDeltas = new Map<string, StatDelta>();
 
     for (const raw of args.items as BattleLogItem[]) {
       if (focus) {
@@ -190,23 +245,17 @@ export const ingestBattleLogItems = internalMutation({
         const isStar = starBrawlerId === brawlerId;
 
         for (const trophyBucket of ["all", personBucket] as const) {
-          await bumpBrawlerStat(ctx, {
-            mapId,
-            brawlerId,
-            trophyBucket,
-            won,
-            isStar,
-          });
+          foldDelta(
+            brawlerDeltas,
+            `${mapId}|${brawlerId}|${trophyBucket}`,
+            newDelta(won, isStar, trendDay !== null && observedAt !== null ? observedAt : undefined),
+          );
           if (trendDay !== null && observedAt !== null) {
-            await bumpDailyBrawlerStat(ctx, {
-              day: trendDay,
-              observedAt,
-              mapId,
-              brawlerId,
-              trophyBucket,
-              won,
-              isStar,
-            });
+            foldDelta(
+              dailyBrawlerDeltas,
+              `${mapId}|${brawlerId}|${trophyBucket}|${trendDay}`,
+              newDelta(won, isStar, observedAt),
+            );
           }
         }
       }
@@ -225,13 +274,7 @@ export const ingestBattleLogItems = internalMutation({
             (team || []).reduce((sum, p) => sum + Number(p.brawler?.trophies || 0), 0) / Math.max(1, team?.length || 1);
           const personBucket = trophyBucketFromTrophies(avgTrophies);
           for (const trophyBucket of ["all", personBucket] as const) {
-            await bumpTeamStat(ctx, {
-              mapId,
-              teamHash: hash,
-              brawlerIds: ids,
-              trophyBucket,
-              won: teamWon,
-            });
+            foldDelta(teamDeltas, `${mapId}|${trophyBucket}|${hash}`, newTeamDelta(teamWon, ids));
           }
         }
       }
@@ -252,23 +295,17 @@ export const ingestBattleLogItems = internalMutation({
             const personBucket = trophyBucketFromTrophies(Number(person.brawler?.trophies || 0));
             for (const opponentBrawlerId of opponents) {
               for (const trophyBucket of ["all", personBucket] as const) {
-                await bumpMatchupStat(ctx, {
-                  mapId,
-                  trophyBucket,
-                  brawlerId,
-                  opponentBrawlerId,
-                  won: teamWon,
-                });
+                foldDelta(
+                  matchupDeltas,
+                  `${mapId}|${trophyBucket}|${brawlerId}|${opponentBrawlerId}`,
+                  newDelta(teamWon, false),
+                );
                 if (trendDay !== null && observedAt !== null) {
-                  await bumpDailyMatchupStat(ctx, {
-                    day: trendDay,
-                    observedAt,
-                    mapId,
-                    trophyBucket,
-                    brawlerId,
-                    opponentBrawlerId,
-                    won: teamWon,
-                  });
+                  foldDelta(
+                    dailyMatchupDeltas,
+                    `${mapId}|${trophyBucket}|${brawlerId}|${opponentBrawlerId}|${trendDay}`,
+                    newDelta(teamWon, false, observedAt),
+                  );
                 }
               }
             }
@@ -277,209 +314,200 @@ export const ingestBattleLogItems = internalMutation({
       }
     }
 
+    await flushMapBrawlerStats(ctx, brawlerDeltas);
+    await flushDailyBrawlerStats(ctx, dailyBrawlerDeltas);
+    await flushTeamStats(ctx, teamDeltas);
+    await flushMatchupStats(ctx, matchupDeltas);
+    await flushDailyMatchupStats(ctx, dailyMatchupDeltas);
+
     await recordPlayerSightings(ctx, sightings);
 
     return { inserted };
   },
 });
 
-async function bumpBrawlerStat(
-  ctx: MutationCtx,
-  args: {
-    mapId: number;
-    brawlerId: number;
-    trophyBucket: string;
-    won: boolean | null;
-    isStar: boolean;
-  },
-) {
-  const existing = await ctx.db
-    .query("mapBrawlerStats")
-    .withIndex("by_map_brawler_bucket", (q) =>
-      q.eq("mapId", args.mapId).eq("brawlerId", args.brawlerId).eq("trophyBucket", args.trophyBucket),
-    )
-    .unique();
-
-  const patch = {
-    picks: (existing?.picks || 0) + 1,
-    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
-    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
-    starPlayer: (existing?.starPlayer || 0) + (args.isStar ? 1 : 0),
-  };
-
-  if (existing) {
-    await ctx.db.patch(existing._id, patch);
-    return;
+/**
+ * Applies folded per-key deltas with one read + one write per distinct key
+ * instead of one round-trip per battle statistic, keeping ingest transactions
+ * well inside Convex limits for full battle logs.
+ */
+async function flushMapBrawlerStats(ctx: MutationCtx, deltas: Map<string, StatDelta>): Promise<void> {
+  for (const [key, delta] of deltas) {
+    const [rawMapId, rawBrawlerId, trophyBucket] = key.split("|");
+    const mapId = Number(rawMapId);
+    const brawlerId = Number(rawBrawlerId);
+    const existing = await ctx.db
+      .query("mapBrawlerStats")
+      .withIndex("by_map_brawler_bucket", (q) =>
+        q.eq("mapId", mapId).eq("brawlerId", brawlerId).eq("trophyBucket", trophyBucket),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        picks: existing.picks + delta.picks,
+        wins: existing.wins + delta.wins,
+        losses: existing.losses + delta.losses,
+        starPlayer: existing.starPlayer + delta.starPlayer,
+      });
+      continue;
+    }
+    await ctx.db.insert("mapBrawlerStats", {
+      mapId,
+      brawlerId,
+      trophyBucket,
+      picks: delta.picks,
+      wins: delta.wins,
+      losses: delta.losses,
+      starPlayer: delta.starPlayer,
+    });
   }
-
-  await ctx.db.insert("mapBrawlerStats", {
-    mapId: args.mapId,
-    brawlerId: args.brawlerId,
-    trophyBucket: args.trophyBucket,
-    ...patch,
-  });
 }
 
-async function bumpDailyBrawlerStat(
-  ctx: MutationCtx,
-  args: {
-    day: number;
-    observedAt: number;
-    mapId: number;
-    brawlerId: number;
-    trophyBucket: string;
-    won: boolean | null;
-    isStar: boolean;
-  },
-) {
-  const existing = await ctx.db
-    .query("dailyMapBrawlerStats")
-    .withIndex("by_map_brawler_bucket_and_day", (q) =>
-      q
-        .eq("mapId", args.mapId)
-        .eq("brawlerId", args.brawlerId)
-        .eq("trophyBucket", args.trophyBucket)
-        .eq("day", args.day),
-    )
-    .unique();
-  const values = {
-    picks: (existing?.picks || 0) + 1,
-    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
-    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
-    starPlayer: (existing?.starPlayer || 0) + (args.isStar ? 1 : 0),
-    firstBattleAt: Math.min(existing?.firstBattleAt ?? args.observedAt, args.observedAt),
-    lastBattleAt: Math.max(existing?.lastBattleAt ?? args.observedAt, args.observedAt),
-  };
-  if (existing) {
-    await ctx.db.patch(existing._id, values);
-    return;
+async function flushDailyBrawlerStats(ctx: MutationCtx, deltas: Map<string, StatDelta>): Promise<void> {
+  for (const [key, delta] of deltas) {
+    const [rawMapId, rawBrawlerId, trophyBucket, rawDay] = key.split("|");
+    const mapId = Number(rawMapId);
+    const brawlerId = Number(rawBrawlerId);
+    const day = Number(rawDay);
+    const existing = await ctx.db
+      .query("dailyMapBrawlerStats")
+      .withIndex("by_map_brawler_bucket_and_day", (q) =>
+        q.eq("mapId", mapId).eq("brawlerId", brawlerId).eq("trophyBucket", trophyBucket).eq("day", day),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        picks: existing.picks + delta.picks,
+        wins: existing.wins + delta.wins,
+        losses: existing.losses + delta.losses,
+        starPlayer: existing.starPlayer + delta.starPlayer,
+        firstBattleAt: Math.min(existing.firstBattleAt, delta.firstBattleAt ?? existing.firstBattleAt),
+        lastBattleAt: Math.max(existing.lastBattleAt, delta.lastBattleAt ?? existing.lastBattleAt),
+      });
+      continue;
+    }
+    await ctx.db.insert("dailyMapBrawlerStats", {
+      day,
+      mapId,
+      brawlerId,
+      trophyBucket,
+      picks: delta.picks,
+      wins: delta.wins,
+      losses: delta.losses,
+      starPlayer: delta.starPlayer,
+      firstBattleAt: delta.firstBattleAt ?? 0,
+      lastBattleAt: delta.lastBattleAt ?? 0,
+    });
   }
-  await ctx.db.insert("dailyMapBrawlerStats", {
-    day: args.day,
-    mapId: args.mapId,
-    brawlerId: args.brawlerId,
-    trophyBucket: args.trophyBucket,
-    ...values,
-  });
 }
 
-async function bumpTeamStat(
-  ctx: MutationCtx,
-  args: {
-    mapId: number;
-    teamHash: string;
-    brawlerIds: number[];
-    trophyBucket: string;
-    won: boolean | null;
-  },
-) {
-  const existing = await ctx.db
-    .query("mapTeamStats")
-    .withIndex("by_map_bucket_hash", (q) =>
-      q.eq("mapId", args.mapId).eq("trophyBucket", args.trophyBucket).eq("teamHash", args.teamHash),
-    )
-    .unique();
-
-  const patch = {
-    picks: (existing?.picks || 0) + 1,
-    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
-    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
-  };
-
-  if (existing) {
-    await ctx.db.patch(existing._id, patch);
-    return;
+async function flushTeamStats(ctx: MutationCtx, deltas: Map<string, TeamStatDelta>): Promise<void> {
+  for (const [key, delta] of deltas) {
+    const [rawMapId, trophyBucket, teamHash] = key.split("|");
+    const mapId = Number(rawMapId);
+    const existing = await ctx.db
+      .query("mapTeamStats")
+      .withIndex("by_map_bucket_hash", (q) =>
+        q.eq("mapId", mapId).eq("trophyBucket", trophyBucket).eq("teamHash", teamHash),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        picks: existing.picks + delta.picks,
+        wins: existing.wins + delta.wins,
+        losses: existing.losses + delta.losses,
+      });
+      continue;
+    }
+    await ctx.db.insert("mapTeamStats", {
+      mapId,
+      teamHash,
+      brawlerIds: delta.brawlerIds,
+      trophyBucket,
+      picks: delta.picks,
+      wins: delta.wins,
+      losses: delta.losses,
+    });
   }
-
-  await ctx.db.insert("mapTeamStats", {
-    mapId: args.mapId,
-    teamHash: args.teamHash,
-    brawlerIds: args.brawlerIds,
-    trophyBucket: args.trophyBucket,
-    ...patch,
-  });
 }
 
-async function bumpMatchupStat(
-  ctx: MutationCtx,
-  args: {
-    mapId: number;
-    trophyBucket: string;
-    brawlerId: number;
-    opponentBrawlerId: number;
-    won: boolean | null;
-  },
-) {
-  const existing = await ctx.db
-    .query("mapBrawlerMatchups")
-    .withIndex("by_map_bucket_brawler_opponent", (q) =>
-      q
-        .eq("mapId", args.mapId)
-        .eq("trophyBucket", args.trophyBucket)
-        .eq("brawlerId", args.brawlerId)
-        .eq("opponentBrawlerId", args.opponentBrawlerId),
-    )
-    .unique();
-  const patch = {
-    picks: (existing?.picks || 0) + 1,
-    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
-    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
-  };
-  if (existing) {
-    await ctx.db.patch(existing._id, patch);
-    return;
+async function flushMatchupStats(ctx: MutationCtx, deltas: Map<string, StatDelta>): Promise<void> {
+  for (const [key, delta] of deltas) {
+    const [rawMapId, trophyBucket, rawBrawlerId, rawOpponentId] = key.split("|");
+    const mapId = Number(rawMapId);
+    const brawlerId = Number(rawBrawlerId);
+    const opponentBrawlerId = Number(rawOpponentId);
+    const existing = await ctx.db
+      .query("mapBrawlerMatchups")
+      .withIndex("by_map_bucket_brawler_opponent", (q) =>
+        q
+          .eq("mapId", mapId)
+          .eq("trophyBucket", trophyBucket)
+          .eq("brawlerId", brawlerId)
+          .eq("opponentBrawlerId", opponentBrawlerId),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        picks: existing.picks + delta.picks,
+        wins: existing.wins + delta.wins,
+        losses: existing.losses + delta.losses,
+      });
+      continue;
+    }
+    await ctx.db.insert("mapBrawlerMatchups", {
+      mapId,
+      trophyBucket,
+      brawlerId,
+      opponentBrawlerId,
+      picks: delta.picks,
+      wins: delta.wins,
+      losses: delta.losses,
+    });
   }
-  await ctx.db.insert("mapBrawlerMatchups", {
-    mapId: args.mapId,
-    trophyBucket: args.trophyBucket,
-    brawlerId: args.brawlerId,
-    opponentBrawlerId: args.opponentBrawlerId,
-    ...patch,
-  });
 }
 
-async function bumpDailyMatchupStat(
-  ctx: MutationCtx,
-  args: {
-    day: number;
-    observedAt: number;
-    mapId: number;
-    trophyBucket: string;
-    brawlerId: number;
-    opponentBrawlerId: number;
-    won: boolean | null;
-  },
-) {
-  const existing = await ctx.db
-    .query("dailyBrawlerMatchups")
-    .withIndex("by_map_bucket_brawler_opponent_and_day", (q) =>
-      q
-        .eq("mapId", args.mapId)
-        .eq("trophyBucket", args.trophyBucket)
-        .eq("brawlerId", args.brawlerId)
-        .eq("opponentBrawlerId", args.opponentBrawlerId)
-        .eq("day", args.day),
-    )
-    .unique();
-  const values = {
-    picks: (existing?.picks || 0) + 1,
-    wins: (existing?.wins || 0) + (args.won === true ? 1 : 0),
-    losses: (existing?.losses || 0) + (args.won === false ? 1 : 0),
-    firstBattleAt: Math.min(existing?.firstBattleAt ?? args.observedAt, args.observedAt),
-    lastBattleAt: Math.max(existing?.lastBattleAt ?? args.observedAt, args.observedAt),
-  };
-  if (existing) {
-    await ctx.db.patch(existing._id, values);
-    return;
+async function flushDailyMatchupStats(ctx: MutationCtx, deltas: Map<string, StatDelta>): Promise<void> {
+  for (const [key, delta] of deltas) {
+    const [rawMapId, trophyBucket, rawBrawlerId, rawOpponentId, rawDay] = key.split("|");
+    const mapId = Number(rawMapId);
+    const brawlerId = Number(rawBrawlerId);
+    const opponentBrawlerId = Number(rawOpponentId);
+    const day = Number(rawDay);
+    const existing = await ctx.db
+      .query("dailyBrawlerMatchups")
+      .withIndex("by_map_bucket_brawler_opponent_and_day", (q) =>
+        q
+          .eq("mapId", mapId)
+          .eq("trophyBucket", trophyBucket)
+          .eq("brawlerId", brawlerId)
+          .eq("opponentBrawlerId", opponentBrawlerId)
+          .eq("day", day),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        picks: existing.picks + delta.picks,
+        wins: existing.wins + delta.wins,
+        losses: existing.losses + delta.losses,
+        firstBattleAt: Math.min(existing.firstBattleAt, delta.firstBattleAt ?? existing.firstBattleAt),
+        lastBattleAt: Math.max(existing.lastBattleAt, delta.lastBattleAt ?? existing.lastBattleAt),
+      });
+      continue;
+    }
+    await ctx.db.insert("dailyBrawlerMatchups", {
+      day,
+      mapId,
+      trophyBucket,
+      brawlerId,
+      opponentBrawlerId,
+      picks: delta.picks,
+      wins: delta.wins,
+      losses: delta.losses,
+      firstBattleAt: delta.firstBattleAt ?? 0,
+      lastBattleAt: delta.lastBattleAt ?? 0,
+    });
   }
-  await ctx.db.insert("dailyBrawlerMatchups", {
-    day: args.day,
-    mapId: args.mapId,
-    trophyBucket: args.trophyBucket,
-    brawlerId: args.brawlerId,
-    opponentBrawlerId: args.opponentBrawlerId,
-    ...values,
-  });
 }
 
 export const ingestFromPlayerTag = internalAction({
@@ -542,7 +570,7 @@ export const seedFromRankings = internalAction({
   },
 });
 
-export const ingestBattleLog = action({
+export const ingestBattleLog = internalAction({
   args: {
     items: v.array(v.any()),
     focusTag: v.optional(v.string()),

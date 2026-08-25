@@ -1,4 +1,4 @@
-import { useRouter as useTanStackRouter, useRouterState } from "@tanstack/react-router";
+import { useParams, useSearch, useRouter as useTanStackRouter } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 
 type QueryValue = string | string[] | undefined;
@@ -6,34 +6,6 @@ type LegacyUrl = string | {
   pathname: string;
   query?: Record<string, string | number | boolean | null | undefined>;
 };
-
-const parameterRoutes = [
-  { pattern: /^\/players\/([^/]+)\/upgrades\/?$/, key: "tag" },
-  { pattern: /^\/players\/([^/]+)\/?$/, key: "tag" },
-  { pattern: /^\/clans\/([^/]+)\/war\/?$/, key: "tag" },
-  { pattern: /^\/clans\/([^/]+)\/?$/, key: "tag" },
-  { pattern: /^\/cards\/([^/]+)\/?$/, key: "slug" },
-] as const;
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-function withoutBasePath(pathname: string): string {
-  if (!basePath || basePath === "/") return pathname;
-  return pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname;
-}
-
-function routeQuery(href: string): Record<string, QueryValue> {
-  const url = new URL(href, window.location.origin);
-  const query: Record<string, QueryValue> = {};
-
-  for (const [key, value] of url.searchParams) query[key] = value;
-  for (const route of parameterRoutes) {
-    const match = withoutBasePath(url.pathname).match(route.pattern);
-    if (match?.[1]) query[route.key] = decodeURIComponent(match[1]);
-  }
-
-  return query;
-}
 
 function toHref(target: LegacyUrl): string {
   if (typeof target === "string") return target;
@@ -45,13 +17,22 @@ function toHref(target: LegacyUrl): string {
   return `${target.pathname}${suffix}`;
 }
 
+/**
+ * Next-style facade over TanStack Router. Path parameters come from the active
+ * route match (`useParams`) rather than re-parsing the URL with regexes, so
+ * they cannot drift from the route definitions; search parameters come from
+ * `useSearch`. Path parameters win on key collision, matching the old parser.
+ */
 export function useRouter() {
   const router = useTanStackRouter();
-  const href = useRouterState({ select: (state) => state.location.href });
-  const query = useMemo(() => routeQuery(href), [href]);
+  const params = useParams({ strict: false });
+  // The generated route tree only knows params/search for routes registered in
+  // it; pages consume arbitrary keys, so widen to the legacy record shape.
+  const search = useSearch({ strict: false }) as unknown as Record<string, QueryValue>;
+  const query = useMemo(() => ({ ...search, ...params }), [search, params]) as Record<string, QueryValue>;
 
   const navigate = useCallback(
-    (target: LegacyUrl, replace = false) => router.navigate({ to: toHref(target) as never, replace }),
+    (target: LegacyUrl, replace = false) => router.navigate({ href: toHref(target), replace }),
     [router],
   );
 

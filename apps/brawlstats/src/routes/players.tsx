@@ -11,7 +11,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useMemo, type CSSProperties } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -71,20 +71,38 @@ function PlayersPage() {
 
   const player = playerQuery.data?.player;
   const battles = playerQuery.data?.battles || [];
-  const history = [...(historyQuery.data || [])].sort((a, b) => a.day - b.day);
-  const catalog = new Map((catalogQuery.data || []).map((item) => [item.id, item]));
-  const analytics = analyticsQuery.data?.pages[0];
-  const trackedBattles = analyticsQuery.data?.pages.flatMap((page) => page.battles) || [];
+  const historyData = historyQuery.data;
+  const catalogData = catalogQuery.data;
+  const analyticsPages = analyticsQuery.data?.pages;
+  const history = useMemo(
+    () => [...(historyData || [])].sort((a, b) => a.day - b.day),
+    [historyData],
+  );
+  const catalog = useMemo(
+    () => new Map((catalogData || []).map((item) => [item.id, item])),
+    [catalogData],
+  );
+  const analytics = analyticsPages?.[0];
+  const trackedBattles = useMemo(
+    () => analyticsPages?.flatMap((page) => page.battles) || [],
+    [analyticsPages],
+  );
 
+  // Depend on stable primitives: the player object identity changes on every
+  // background refetch, which would otherwise rewrite localStorage each poll.
+  const playerTag = player?.tag;
+  const playerName = player?.name;
+  const playerIconId = player?.icon?.id;
+  const playerTrophies = player?.trophies;
   useEffect(() => {
-    if (!player) return;
+    if (!playerTag) return;
     rememberRecentProfile({
-      tag: player.tag,
-      name: player.name,
-      iconId: player.icon?.id,
-      trophies: player.trophies,
+      tag: playerTag,
+      name: playerName,
+      iconId: playerIconId,
+      trophies: playerTrophies,
     });
-  }, [player]);
+  }, [playerTag, playerName, playerIconId, playerTrophies]);
 
   if (player) {
     return (

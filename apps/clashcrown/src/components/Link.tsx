@@ -32,7 +32,7 @@ export default function Link({ href, onClick, target, ...props }: LinkProps) {
         }
 
         event.preventDefault();
-        void router.navigate({ to: href as never });
+        void router.navigate({ href });
       }}
     />
   );

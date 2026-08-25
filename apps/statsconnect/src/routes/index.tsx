@@ -14,6 +14,7 @@ import { ConnectedGameBoard } from "@/components/connected-game-board";
 import { GameChannelTile } from "@/components/lobby/GameChannelTile";
 import { TileNav } from "@/components/lobby/TileNav";
 import { buttonVariants } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui-helpers";
 import { games, type StatsConnectPlusOffer } from "@/lib/contracts";
 
 export const Route = createFileRoute("/")({
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const auth = useStatsConnectAuth();
+
+  if (auth.isLoading) return <LoadingState className="mx-auto max-w-4xl" label="Loading StatsConnect" />;
 
   if (auth.profiles.length) {
     return <ConnectedGameBoard profiles={auth.profiles} />;

@@ -28,7 +28,9 @@ function LiveDeckExperience() {
   const [builderSeed, setBuilderSeed] = useState<{ cards: Card[]; key: string }>({ cards: [], key: "" });
   const query = useQuery({
     queryKey: ["cards", refreshKey],
-    queryFn: async () => mapCardsPayload(await getCards({ force: refreshKey > 0 })),
+    // Browser refreshes re-run the read-through request. Force refreshes are
+    // reserved for the protected admin path and must never be sent here.
+    queryFn: async () => mapCardsPayload(await getCards({})),
     placeholderData: (previous) => previous,
     retry: false
   });

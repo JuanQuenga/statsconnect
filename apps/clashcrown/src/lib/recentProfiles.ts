@@ -1,11 +1,21 @@
 /** Local cache and migration layer for ClashCrown personalization. */
 
-const STORAGE_KEY = "clash-crown:personalization:v2";
+import { readVersioned, safeGet, safeRemove, safeSet, writeVersioned } from "@statsconnect/site-storage";
+
+/** Single source of truth for profile-tag normalization across personalization code. */
+export function normalizeTag(tag: string): string {
+  return tag.replace(/^#/, "").trim().toUpperCase();
+}
+
+const STORAGE_KEY = "clash-crown:personalization";
+const STORAGE_VERSION = 2;
+const LEGACY_FLAT_KEY = "clash-crown:personalization:v2";
 const LEGACY_RECENTS_KEY = "clash-crown:recent-profiles";
 const LEGACY_FAVORITES_KEY = "clash-crown:favorite-profiles";
-const MAX_RECENTS = 12;
 
 export type ProfileKind = "players" | "clans";
+
+export const MAX_RECENTS = 12;
 
 export type RecentProfile = {
   kind: ProfileKind;
@@ -40,7 +50,6 @@ export type AlertPreferences = {
 };
 
 export type LocalPersonalizationState = {
-  version: 2;
   deviceSecret: string;
   migratedToSync: boolean;
   profiles: TrackedProfile[];
@@ -53,10 +62,6 @@ export const defaultAlertPreferences: AlertPreferences = {
   progressionAlerts: false,
   warAlerts: false,
 };
-
-function normalizeTag(tag: string) {
-  return tag.replace(/^#/, "").trim().toUpperCase();
-}
 
 function profileKey(profile: Pick<RecentProfile, "kind" | "tag">) {
   return `${profile.kind}:${normalizeTag(profile.tag)}`;
@@ -104,13 +109,41 @@ function randomSecret() {
 }
 
 function parseArray(key: string): unknown[] {
+  const raw = safeGet(key);
+  if (raw === null) return [];
   try {
-    const raw = window.localStorage.getItem(key);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
+}
+
+/** Accepts the pre-envelope flat v2 payload so existing users migrate in place. */
+function parseFlatV2(value: unknown): LocalPersonalizationState | undefined {
+  if (!isObject(value) || typeof value.deviceSecret !== "string" || value.deviceSecret.length < 40) {
+    return undefined;
+  }
+  const preferences = isObject(value.preferences) ? value.preferences : {};
+  return {
+    deviceSecret: value.deviceSecret,
+    migratedToSync: value.migratedToSync === true,
+    profiles: Array.isArray(value.profiles) ? value.profiles.filter(isTracked) : [],
+    recents: Array.isArray(value.recents) ? value.recents.filter(isRecent).slice(0, MAX_RECENTS) : [],
+    preferences: {
+      chestAlerts: preferences.chestAlerts === true,
+      progressionAlerts: preferences.progressionAlerts === true,
+      warAlerts: preferences.warAlerts === true,
+    },
+  };
+}
+
+function parseEnvelope(value: unknown): LocalPersonalizationState | undefined {
+  if (!isObject(value)) return undefined;
+  const flat = parseFlatV2(value);
+  if (!flat) return undefined;
+  // The old flat shape carried `version` alongside the data; ignore it.
+  return flat;
 }
 
 function migrateLegacy(deviceSecret: string): LocalPersonalizationState {
@@ -125,7 +158,6 @@ function migrateLegacy(deviceSecret: string): LocalPersonalizationState {
     .filter((profile, index) => merged.findIndex((candidate) => profileKey(candidate) === profileKey(profile)) === index)
     .map((profile) => ({ ...profile, tag: normalizeTag(profile.tag), isDefault: false, createdAt: now, updatedAt: now }));
   return {
-    version: 2,
     deviceSecret,
     migratedToSync: false,
     profiles,
@@ -137,53 +169,44 @@ function migrateLegacy(deviceSecret: string): LocalPersonalizationState {
   };
 }
 
+export function emptyLocalPersonalizationState(): LocalPersonalizationState {
+  return { deviceSecret: "", migratedToSync: false, profiles: [], recents: [], preferences: defaultAlertPreferences };
+}
+
 export function readLocalPersonalization(): LocalPersonalizationState {
-  if (typeof window === "undefined") {
-    return { version: 2, deviceSecret: "", migratedToSync: false, profiles: [], recents: [], preferences: defaultAlertPreferences };
-  }
+  if (typeof window === "undefined") return emptyLocalPersonalizationState();
+
+  const enveloped = readVersioned(safeGet(STORAGE_KEY), STORAGE_VERSION, parseEnvelope);
+  if (enveloped) return enveloped;
+
+  // One-time re-wrap of the pre-envelope flat v2 payload.
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    if (isObject(parsed) && parsed.version === 2 && typeof parsed.deviceSecret === "string" && parsed.deviceSecret.length >= 40) {
-      const preferences = isObject(parsed.preferences) ? parsed.preferences : {};
-      return {
-        version: 2,
-        deviceSecret: parsed.deviceSecret,
-        migratedToSync: parsed.migratedToSync === true,
-        profiles: Array.isArray(parsed.profiles) ? parsed.profiles.filter(isTracked) : [],
-        recents: Array.isArray(parsed.recents) ? parsed.recents.filter(isRecent).slice(0, MAX_RECENTS) : [],
-        preferences: {
-          chestAlerts: preferences.chestAlerts === true,
-          progressionAlerts: preferences.progressionAlerts === true,
-          warAlerts: preferences.warAlerts === true,
-        },
-      };
+    const raw = window.localStorage.getItem(LEGACY_FLAT_KEY);
+    if (raw !== null) {
+      const legacyState = parseFlatV2(JSON.parse(raw));
+      if (legacyState) {
+        writeLocalPersonalization(legacyState);
+        safeRemove(LEGACY_FLAT_KEY);
+        return legacyState;
+      }
     }
   } catch {
-    // A corrupt or unavailable cache should not prevent the app from working.
+    // Fall through to legacy-key migration below.
   }
+
   const migrated = migrateLegacy(randomSecret());
   writeLocalPersonalization(migrated);
   return migrated;
 }
 
 export function writeLocalPersonalization(state: LocalPersonalizationState) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // The in-memory provider remains usable when storage is unavailable.
-  }
+  safeSet(STORAGE_KEY, writeVersioned(STORAGE_VERSION, state));
 }
 
 export function replaceLocalDevice(): LocalPersonalizationState {
   const state: LocalPersonalizationState = {
-    version: 2,
+    ...emptyLocalPersonalizationState(),
     deviceSecret: randomSecret(),
-    migratedToSync: false,
-    profiles: [],
-    recents: [],
-    preferences: defaultAlertPreferences,
   };
   writeLocalPersonalization(state);
   return state;

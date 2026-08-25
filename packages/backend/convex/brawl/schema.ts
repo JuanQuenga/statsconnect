@@ -96,7 +96,6 @@ export const brawlTables = {
   })
     .index("by_map_bucket_hash", ["mapId", "trophyBucket", "teamHash"])
     .index("by_trophy_bucket", ["trophyBucket"]),
-
   mapBrawlerMatchups: defineTable({
     mapId: v.number(),
     trophyBucket: v.string(),
@@ -126,7 +125,8 @@ export const brawlTables = {
   })
     .index("by_map_brawler_bucket_and_day", ["mapId", "brawlerId", "trophyBucket", "day"])
     .index("by_bucket_and_day", ["trophyBucket", "day"])
-    .index("by_brawler_bucket_and_day", ["brawlerId", "trophyBucket", "day"]),
+    .index("by_brawler_bucket_and_day", ["brawlerId", "trophyBucket", "day"])
+    .index("by_last_battle_at", ["lastBattleAt"]),
 
   dailyBrawlerMatchups: defineTable({
     day: v.number(),
@@ -147,7 +147,8 @@ export const brawlTables = {
       "opponentBrawlerId",
       "day",
     ])
-    .index("by_brawler_bucket_and_day", ["brawlerId", "trophyBucket", "day"]),
+    .index("by_brawler_bucket_and_day", ["brawlerId", "trophyBucket", "day"])
+    .index("by_last_battle_at", ["lastBattleAt"]),
 
   brawlPlayerDirectory: defineTable({
     tag: v.string(),
@@ -282,6 +283,7 @@ export const brawlTables = {
     present: v.boolean(),
   })
     .index("by_dedupe_key", ["dedupeKey"])
+    .index("by_recorded_at", ["recordedAt"])
     .index("by_club_tag_and_recorded_at", ["clubTag", "recordedAt"])
     .index("by_player_tag_and_recorded_at", ["playerTag", "recordedAt"]),
 
@@ -299,6 +301,7 @@ export const brawlTables = {
     trophyDelta: v.optional(v.number()),
   })
     .index("by_dedupe_key", ["dedupeKey"])
+    .index("by_recorded_at", ["recordedAt"])
     .index("by_club_tag_and_recorded_at", ["clubTag", "recordedAt"])
     .index("by_player_tag_and_recorded_at", ["playerTag", "recordedAt"])
     .index("by_type_and_recorded_at", ["type", "recordedAt"]),

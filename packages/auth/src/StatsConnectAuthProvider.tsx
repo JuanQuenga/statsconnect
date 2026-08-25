@@ -15,6 +15,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -156,6 +157,51 @@ function useProfilesModule(
   return { module, snapshot };
 }
 
+function useConvexClients(
+  configuredUrl: string,
+  configuredSiteUrl: string,
+): { convex: ConvexReactClient; auth: AuthClient } | null {
+  const pendingCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clientsRef = useRef<{
+    url: string;
+    siteUrl: string;
+    clients: { convex: ConvexReactClient; auth: AuthClient };
+  } | null>(null);
+
+  if (configuredUrl && configuredSiteUrl && !clientsRef.current) {
+    const authStorage = browserAuthStorage();
+    clientsRef.current = {
+      url: configuredUrl,
+      siteUrl: configuredSiteUrl,
+      clients: {
+        convex: new ConvexReactClient(configuredUrl),
+        auth: createAuthClient({
+          baseURL: configuredSiteUrl,
+          plugins: [convexClient(), crossDomainClient(authStorage ? { storage: authStorage } : {})],
+        }) as unknown as AuthClient,
+      },
+    };
+  }
+
+  const clients = clientsRef.current;
+  useEffect(() => {
+    if (!clients) return;
+    if (pendingCloseRef.current) {
+      clearTimeout(pendingCloseRef.current);
+      pendingCloseRef.current = null;
+    }
+    return () => {
+      pendingCloseRef.current = setTimeout(() => {
+        clients.clients.convex.close();
+        if (clientsRef.current === clients) clientsRef.current = null;
+        pendingCloseRef.current = null;
+      }, 0);
+    };
+  }, [clients]);
+
+  return clients?.clients ?? null;
+}
+
 export function StatsConnectAuthProvider({
   children,
   convexSiteUrl,
@@ -167,24 +213,13 @@ export function StatsConnectAuthProvider({
 }) {
   const configuredUrl = convexUrl?.trim();
   const configuredSiteUrl = convexSiteUrl?.trim() || (configuredUrl ? siteUrlFromCloudUrl(configuredUrl) : "");
-  const clients = useMemo(() => {
-    if (!configuredUrl || !configuredSiteUrl) return null;
-    const authStorage = browserAuthStorage();
-    return {
-      convex: new ConvexReactClient(configuredUrl),
-      auth: createAuthClient({
-        baseURL: configuredSiteUrl,
-        plugins: [convexClient(), crossDomainClient(authStorage ? { storage: authStorage } : {})],
-      }),
-    };
-  }, [configuredSiteUrl, configuredUrl]);
+  const clients = useConvexClients(configuredUrl ?? "", configuredSiteUrl);
 
   if (!clients) return <GuestProfiles>{children}</GuestProfiles>;
-  const authClient = clients.auth as unknown as AuthClient;
 
   return (
-    <ConvexBetterAuthProvider client={clients.convex} authClient={authClient}>
-      <ConfiguredAuth authClient={authClient}>{children}</ConfiguredAuth>
+    <ConvexBetterAuthProvider client={clients.convex} authClient={clients.auth}>
+      <ConfiguredAuth authClient={clients.auth}>{children}</ConfiguredAuth>
     </ConvexBetterAuthProvider>
   );
 }
@@ -230,7 +265,7 @@ function ConfiguredAuth({
 }) {
   const { isAuthenticated, isLoading: isConvexAuthLoading } = useConvexAuth();
   const [accessNow] = useState(() => Date.now());
-  const access = useQuery(accessRef, { now: accessNow });
+  const access = useQuery(accessRef, isAuthenticated ? { now: accessNow } : "skip");
   const accountState = useQuery(accountStateRef, isAuthenticated ? {} : "skip");
   const mergeProfiles = useMutation(mergeProfilesRef);
   const saveProfile = useMutation(saveProfileRef);

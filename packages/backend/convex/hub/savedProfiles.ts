@@ -78,6 +78,7 @@ export const mergeBrowserProfiles = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
+    if (!user) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to sync profiles." });
     const now = Date.now();
     for (const profile of args.profiles.slice(0, 16)) {
       const playerTag = normalizeTag(profile.tag);
@@ -124,6 +125,7 @@ export const save = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
+    if (!user) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to save profiles." });
     const playerTag = normalizeTag(args.tag);
     const name = normalizeName(args.name);
     const now = Date.now();
@@ -166,6 +168,7 @@ export const remove = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
+    if (!user) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to manage profiles." });
     const profile = await ctx.db
       .query("savedProfiles")
       .withIndex("by_owner_game_and_tag", (index) => index

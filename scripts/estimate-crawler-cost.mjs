@@ -111,13 +111,19 @@ function setConfigValue(config, expression) {
 
 function parseArgs(argv) {
   const options = { configPath: defaultConfigPath, filters: {}, sets: [], json: false };
-  for (let index = 0; index < argv.length; index += 1) {
+  let index = 0;
+  const nextValue = (flag) => {
+    index += 1;
+    if (index >= argv.length) throw new Error(`Missing value for ${flag}. Example: ${flag} <value>.`);
+    return argv[index];
+  };
+  for (; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument === "--config") options.configPath = path.resolve(argv[++index]);
-    else if (argument === "--days") options.days = positiveNumber(argv[++index], "--days");
-    else if (argument === "--game") options.filters.game = argv[++index];
-    else if (argument === "--job") options.filters.job = argv[++index];
-    else if (argument === "--set") options.sets.push(argv[++index]);
+    if (argument === "--config") options.configPath = path.resolve(nextValue(argument));
+    else if (argument === "--days") options.days = positiveNumber(nextValue(argument), "--days");
+    else if (argument === "--game") options.filters.game = nextValue(argument);
+    else if (argument === "--job") options.filters.job = nextValue(argument);
+    else if (argument === "--set") options.sets.push(nextValue(argument));
     else if (argument === "--json") options.json = true;
     else if (argument === "--help" || argument === "-h") options.help = true;
     else throw new Error(`Unknown argument: ${argument}`);

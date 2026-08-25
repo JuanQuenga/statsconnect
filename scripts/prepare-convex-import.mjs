@@ -20,14 +20,19 @@ const tableRenames = {
   },
 };
 
-function usage() {
-  throw new Error(
+const [source, snapshotDirectory, outputDirectory] = process.argv.slice(2);
+if (!source || !snapshotDirectory || !outputDirectory || !(source in tableRenames)) {
+  console.error(
     "Usage: node scripts/prepare-convex-import.mjs <brawl|clash> <snapshot-directory> <output-directory>",
   );
+  process.exit(1);
 }
-
-const [source, snapshotDirectory, outputDirectory] = process.argv.slice(2);
-if (!source || !snapshotDirectory || !outputDirectory || !(source in tableRenames)) usage();
+if (path.resolve(outputDirectory) === path.resolve(snapshotDirectory)) {
+  console.error(
+    "The output directory must differ from the snapshot directory so the original snapshot stays untouched.",
+  );
+  process.exit(1);
+}
 
 const sourceKey = /** @type {keyof typeof tableRenames} */ (source);
 const renames = tableRenames[sourceKey];

@@ -11,7 +11,7 @@ type SharedAuthStorageOptions = {
   legacyStorage: AuthStorage;
 };
 
-const COOKIE_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
+const COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 function usesSharedAuthCookie(hostname: string): boolean {
   return hostname === "juanquenga.com" || hostname.endsWith(".juanquenga.com");

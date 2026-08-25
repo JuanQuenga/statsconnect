@@ -1,10 +1,10 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   SiteNavigation,
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 import { useStatsConnectAuth } from "@statsconnect/auth";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Mark, Wordmark } from "@/components/brand/Mark";
 
 const links = [
@@ -15,14 +15,20 @@ const links = [
 
 function StatsConnectLink({ children, className, href, onNavigate }: SiteNavigationLinkAdapterProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const navigate = useNavigate();
   const active = href === "/" ? pathname === href : pathname.startsWith(href);
 
   return (
     <Link
-      to={href as never}
+      to={href}
       className={className}
       aria-current={active ? "page" : undefined}
-      onClick={onNavigate}
+      onClick={(event) => {
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        void navigate({ href });
+        onNavigate();
+      }}
     >
       {children}
     </Link>
@@ -60,16 +66,16 @@ export function SiteNav() {
   );
 }
 
+// Formatted once per mount; the status marker is decorative and does not need a
+// timer to refresh its tooltip.
 function LiveDataStatus() {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const updatedAt = useMemo(
+    () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    [],
+  );
 
   return (
-    <span className="hub-nav-status" title={`Updated ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}>
+    <span className="hub-nav-status" title={`Updated ${updatedAt}`}>
       <i aria-hidden /> Live data
     </span>
   );

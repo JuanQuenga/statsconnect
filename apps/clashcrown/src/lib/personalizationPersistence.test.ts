@@ -20,7 +20,6 @@ const ACCOUNT_ID = "test-personal-account" as Id<"clashPersonalAccounts">;
 
 function emptyState(deviceSecret = INITIAL_SECRET): LocalPersonalizationState {
   return {
-    version: 2,
     deviceSecret,
     migratedToSync: false,
     profiles: [],

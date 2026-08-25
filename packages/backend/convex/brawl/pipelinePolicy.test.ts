@@ -133,22 +133,77 @@ function runFailureScenario(): void {
 
 function retentionBatchScenario(): void {
   const plan = planRetentionBatch(
-    { battles: 10, fetchLogs: 10, runs: 10, snapshots: 10 },
+    {
+      battles: 10,
+      fetchLogs: 10,
+      runs: 10,
+      snapshots: 10,
+      playerBattles: 10,
+      dailyBrawlerStats: 10,
+      dailyMatchups: 10,
+      clubSnapshots: 10,
+      clubMemberSnapshots: 10,
+      clubActivityEvents: 10,
+      playerCache: 10,
+      apiBudgets: 10,
+      apiTelemetry: 10,
+    },
     5,
   );
   equal(plan.deleted, 5, "retention never exceeds the transaction write budget");
-  equal(plan.delete.battles, 2, "the extra deletion returns to the first category");
+  equal(plan.delete.battles, 1, "each live category receives a fair share first");
   equal(plan.delete.fetchLogs, 1, "the batch deletes one fetch log");
   equal(plan.delete.runs, 1, "the batch deletes one old run");
   equal(plan.delete.snapshots, 1, "the batch deletes one snapshot");
+  equal(plan.delete.playerBattles, 1, "newer retention categories are not starved");
   equal(plan.more, true, "remaining rows require another batch");
 
   const finalPlan = planRetentionBatch(
-    { battles: 1, fetchLogs: 0, runs: 1, snapshots: 0 },
+    {
+      battles: 1,
+      fetchLogs: 0,
+      runs: 1,
+      snapshots: 0,
+      playerBattles: 0,
+      dailyBrawlerStats: 0,
+      dailyMatchups: 0,
+      clubSnapshots: 0,
+      clubMemberSnapshots: 0,
+      clubActivityEvents: 0,
+      playerCache: 3,
+      apiBudgets: 0,
+      apiTelemetry: 0,
+    },
     5,
   );
-  equal(finalPlan.deleted, 2, "the final batch deletes only available rows");
+  equal(finalPlan.deleted, 5, "the final batch deletes only available rows");
+  equal(finalPlan.delete.battles, 1, "the original categories still delete");
+  equal(finalPlan.delete.runs, 1, "runs still delete");
+  equal(finalPlan.delete.playerCache, 3, "player cache rows join the shared budget");
   equal(finalPlan.more, false, "the final batch stops retention scheduling");
+
+  const clubPlan = planRetentionBatch(
+    {
+      battles: 0,
+      fetchLogs: 0,
+      runs: 0,
+      snapshots: 0,
+      playerBattles: 0,
+      dailyBrawlerStats: 0,
+      dailyMatchups: 0,
+      clubSnapshots: 0,
+      clubMemberSnapshots: 2,
+      clubActivityEvents: 4,
+      playerCache: 0,
+      apiBudgets: 0,
+      apiTelemetry: 0,
+    },
+    3,
+  );
+  equal(clubPlan.deleted, 3, "club cleanup counts each concrete table once");
+  equal(clubPlan.delete.clubMemberSnapshots, 2, "member snapshots are planned for deletion");
+  equal(clubPlan.delete.clubActivityEvents, 1, "activity events are planned for deletion");
+  equal(clubPlan.more, true, "remaining activity events keep pagination alive");
 }
 
 console.log("TAP version 13");

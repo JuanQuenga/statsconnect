@@ -25,6 +25,39 @@ const STORAGE_KEY = "statsconnect.connected-profiles.v2";
 const LEGACY_COOKIE_KEY = "statsconnect_profiles";
 const LEGACY_STORAGE_KEY = "statsconnect.profiles.v1";
 const COOKIE_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
+const COOKIE_BUDGET_CHARS = 3500;
+
+type SharedCookieProfile = {
+  game: ConnectedProfile["game"];
+  tag: string;
+  name: string;
+};
+
+function sharedCookiePayload(
+  profiles: readonly PersistedConnectedProfile[],
+): string {
+  const minimal: SharedCookieProfile[] = profiles.map((profile) => ({
+    game: profile.game,
+    tag: profile.tag,
+    // Names only decorate the other Game Sites' pickers; cap them hard.
+    name: profile.name.slice(0, 24),
+  }));
+  let encoded = encodeURIComponent(JSON.stringify(minimal));
+  while (encoded.length > COOKIE_BUDGET_CHARS && minimal.length > 0) {
+    // Drop the oldest profile (list is newest-first after merge) until it fits.
+    minimal.splice(-1, 1);
+    encoded = encodeURIComponent(JSON.stringify(minimal));
+  }
+  return encoded;
+}
+
+function isSharedCookieProfile(value: unknown): value is SharedCookieProfile {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return isGame(record.game)
+    && typeof record.tag === "string"
+    && typeof record.name === "string";
+}
 
 function cookieValue(cookie: string, key: string): string | null {
   const prefix = `${key}=`;
@@ -90,7 +123,7 @@ export function createBrowserConnectedProfilesAdapter(
     try {
       const secure = options.protocol === "https:" ? "; Secure" : "";
       options.writeCookie(
-        `${COOKIE_KEY}=${encodeURIComponent(value)}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secure}${sharedCookieDomain(options.hostname)}`,
+        `${COOKIE_KEY}=${sharedCookiePayload(normalized)}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secure}${sharedCookieDomain(options.hostname)}`,
       );
     } catch {
       // In-memory state still updates when browser persistence is unavailable.

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { PageStatus } from "@/components/ui-helpers";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { handleGameDestinationClick } from "@/lib/application-navigation";
 import { gameName, games } from "@/lib/contracts";
 
 export const Route = createFileRoute("/settings/connections")({
@@ -70,6 +71,7 @@ function ConnectionsPage() {
                       <a
                         href={gameDestinationPath(game.id, profile.tag)}
                         className={buttonVariants({ variant: "outline", size: "sm" })}
+                        onClick={(event) => handleGameDestinationClick(event, gameDestinationPath(game.id, profile.tag))}
                       >
                         <ArrowRight className="size-3.5" />
                         Open

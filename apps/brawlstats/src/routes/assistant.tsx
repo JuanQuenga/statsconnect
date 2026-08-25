@@ -237,7 +237,7 @@ function DraftAssistant({
   });
   const owned = useMemo(() => new Map((player?.brawlers || []).map((brawler) => [brawler.id, brawler])), [player]);
   const catalogMap = useMemo(() => new Map(catalog.map((brawler) => [brawler.id, brawler])), [catalog]);
-  const occupied = new Set([...allies, ...enemies, ...bans]);
+  const occupied = useMemo(() => new Set([...allies, ...enemies, ...bans]), [allies, bans, enemies]);
 
   const recommendations = useMemo(() => {
     const detail = detailQuery.data;
@@ -273,10 +273,13 @@ function DraftAssistant({
     setter(current.includes(id) ? current.filter((value) => value !== id) : [...current, id].slice(-max));
   }
 
-  const visibleCatalog = catalog
-    .filter((brawler) => !filter || brawler.name.toLowerCase().includes(filter.toLowerCase()))
-    .filter((brawler) => !ownedOnly || owned.has(brawler.id))
-    .slice(0, 60);
+  const visibleCatalog = useMemo(
+    () => catalog
+      .filter((brawler) => !filter || brawler.name.toLowerCase().includes(filter.toLowerCase()))
+      .filter((brawler) => !ownedOnly || owned.has(brawler.id))
+      .slice(0, 60),
+    [catalog, filter, owned, ownedOnly],
+  );
 
   return (
     <div className="space-y-5">

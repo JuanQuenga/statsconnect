@@ -327,7 +327,6 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
           </div>
         </div>
       ) : null}
-      <CurrentDeckStyles />
     </section>
   );
 }
@@ -335,28 +334,6 @@ export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supp
 function DeckCardLink({ card }: { card: Card }) {
   const label = card.variant ? `${card.name} (${card.variant})` : card.name;
   return <Link href={`/cards/${cardSlug(card.name)}`} className="current-deck-card" title={label}><GameCardArt card={card} size="deck" /></Link>;
-}
-
-function CurrentDeckStyles() {
-  return <style>{`
-    .current-deck-heading > div:first-child { display: grid; gap: 5px; }
-    .deck-cost-summary { margin: 0; color: var(--muted-foreground); font: 11px var(--font-ui); }
-    .current-deck-heading > [aria-label] { flex: none; }
-    .current-deck-cluster { margin: 8px auto 0; padding: 14px 0; }
-    .current-deck-card { min-width: 0; display: grid; place-items: center; border-radius: 13px; transition: background .18s ease, transform .18s ease; }
-    .current-deck-card:hover { background: rgba(217, 107, 243, .08); transform: translateY(-3px); }
-    .current-deck-support { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
-    .current-deck-support h3 { margin: 4px 0 0; font-size: 16px; }
-    .current-deck-support-cards { display: flex; gap: 8px; }
-    .current-deck-support-cards .current-deck-card { width: 112px; }
-    .current-deck-support-cards .game-card-art { width: 112px; --game-card-cost-size: 26px; --game-card-cost-font: 16px; --game-card-level-font: 13px; }
-    @media (max-width: 680px) {
-      .current-deck-heading { align-items: flex-start; }
-      .current-deck-heading > [aria-label] { width: 100%; }
-      .current-deck-cluster { padding-inline: 0; }
-      .current-deck-support { align-items: flex-start; }
-    }
-  `}</style>;
 }
 
 export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
@@ -399,7 +376,6 @@ export function DeckAnalyticsSection({ battles }: { battles: Battle[] }) {
         ))}
       </div>
       <p className="table-note">Sorted by usage across the last {battles.length} battles. Evolution and Hero slots are treated as distinct lineups.</p>
-      <DeckAnalyticsStyles />
     </section>
   );
 }
@@ -429,50 +405,6 @@ function battleModeLabel(mode: string) {
     .replace(/\bNew Arena\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function DeckAnalyticsStyles() {
-  return (
-    <style>{`
-      .deck-analytics-heading { align-items: end; }
-      .deck-analytics-heading p { max-width: 620px; margin: 2px 0 0; color: var(--muted-foreground); font: 12px/1.5 var(--font-ui); }
-      .personal-deck-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-      .personal-deck-card { min-width: 0; gap: 0; padding: 0; border-radius: 16px; background: color-mix(in srgb, var(--card) 94%, #142a47); box-shadow: none; transition: border-color .18s ease, transform .18s ease; }
-      .personal-deck-card:hover { border-color: color-mix(in srgb, var(--primary) 38%, var(--border)); transform: translateY(-2px); }
-      .personal-deck-header { min-height: 66px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-block: 14px; border-bottom: 1px solid var(--border); }
-      .personal-deck-header > div { min-width: 0; display: flex; align-items: center; gap: 10px; }
-      .personal-deck-header [data-slot="card-title"] { overflow: hidden; font: 700 14px/1.2 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
-      .personal-deck-index { width: 28px; height: 28px; display: grid; flex: none; place-items: center; border-radius: 9px; color: var(--primary); background: rgba(217, 107, 243, .1); font: 800 10px var(--font-ui); }
-      .personal-deck-header [data-slot="badge"] { height: 26px; border-color: var(--border); color: var(--muted-foreground); background: var(--secondary); }
-      .personal-deck-content { display: grid; gap: 16px; padding-block: 18px; }
-      .personal-deck-cards { margin-inline: auto; }
-      .personal-deck-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--border); }
-      .personal-deck-metric { min-width: 0; display: grid; align-content: center; gap: 3px; padding: 13px 10px; }
-      .personal-deck-metric + .personal-deck-metric { border-left: 1px solid var(--border); }
-      .personal-deck-metric small, .personal-deck-metric span { overflow: hidden; color: var(--muted-foreground); font: 9px/1.25 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
-      .personal-deck-metric strong { color: var(--foreground); font: 750 20px/1.1 var(--font-ui); }
-      .personal-deck-metric strong.positive { color: #63d99b; }
-      .personal-deck-metric strong.negative { color: #ff7e99; }
-      .personal-deck-modes { min-height: 26px; display: flex; flex-wrap: wrap; gap: 6px; }
-      .personal-deck-modes [data-slot="badge"] { max-width: 100%; overflow: hidden; color: #c4d1e5; text-overflow: ellipsis; }
-      .personal-deck-footer { min-height: 54px; justify-content: flex-end; padding-block: 10px; background: color-mix(in srgb, var(--secondary) 24%, transparent); }
-      .personal-deck-footer > div { width: 100%; }
-      @media (max-width: 980px) {
-        .personal-deck-grid { grid-template-columns: 1fr; }
-        .personal-deck-cards { --deck-grid-max-width: 472px; }
-      }
-      @media (max-width: 680px) {
-        .deck-analytics-heading h2 { max-width: 100%; font-size: clamp(23px, 7vw, 28px); line-height: 1.05; text-wrap: balance; }
-        .personal-deck-grid { gap: 10px; }
-        .personal-deck-card { border-radius: 14px; }
-        .personal-deck-header { padding-inline: 12px; }
-        .personal-deck-cards { width: 100%; }
-        .personal-deck-metric { padding-inline: 8px; }
-        .personal-deck-metric strong { font-size: 17px; }
-        .personal-deck-metric span { display: none; }
-      }
-    `}</style>
-  );
 }
 
 export function CardCollection({

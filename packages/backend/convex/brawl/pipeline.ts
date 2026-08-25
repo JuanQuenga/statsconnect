@@ -485,7 +485,21 @@ export const retainPipelineData = internalMutation({
     );
     const cutoffs = retentionCutoffs(now);
     const probeSize = limit + 1;
-    const [battles, fetchLogs, runs, snapshots] = await Promise.all([
+    const [
+      battles,
+      fetchLogs,
+      runs,
+      snapshots,
+      playerBattles,
+      dailyBrawlerStats,
+      dailyMatchups,
+      clubSnapshots,
+      clubMemberSnapshots,
+      clubEvents,
+      playerCacheRows,
+      staleBudgets,
+      staleTelemetry,
+    ] = await Promise.all([
       ctx.db
         .query("brawlSeenBattles")
         .withIndex("by_ingested_at", (q) => q.lt("ingestedAt", cutoffs.battleCutoff))
@@ -502,6 +516,42 @@ export const retainPipelineData = internalMutation({
         .query("playerSnapshots")
         .withIndex("by_recorded_at", (q) => q.lt("recordedAt", cutoffs.snapshotCutoff))
         .take(probeSize),
+      ctx.db
+        .query("playerBattles")
+        .withIndex("by_ingested_at", (q) => q.lt("ingestedAt", cutoffs.playerBattleCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("dailyMapBrawlerStats")
+        .withIndex("by_last_battle_at", (q) => q.lt("lastBattleAt", cutoffs.dailyStatsCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("dailyBrawlerMatchups")
+        .withIndex("by_last_battle_at", (q) => q.lt("lastBattleAt", cutoffs.dailyStatsCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("brawlClubSnapshots")
+        .withIndex("by_recorded_at", (q) => q.lt("recordedAt", cutoffs.clubHistoryCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("brawlClubMemberSnapshots")
+        .withIndex("by_recorded_at", (q) => q.lt("recordedAt", cutoffs.clubHistoryCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("brawlClubActivityEvents")
+        .withIndex("by_recorded_at", (q) => q.lt("recordedAt", cutoffs.clubHistoryCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("brawlPlayerCache")
+        .withIndex("by_updated_at", (q) => q.lt("updatedAt", cutoffs.telemetryCutoff))
+        .take(probeSize),
+      ctx.db
+        .query("brawlApiBudgets")
+        .withIndex("by_bucket_started_at", (q) => q.lt("bucketStartedAt", now - 2 * 60 * 60 * 1_000))
+        .take(probeSize),
+      ctx.db
+        .query("brawlApiTelemetryBuckets")
+        .withIndex("by_bucket_started_at", (q) => q.lt("bucketStartedAt", cutoffs.telemetryCutoff))
+        .take(probeSize),
     ]);
     const plan = planRetentionBatch(
       {
@@ -509,6 +559,15 @@ export const retainPipelineData = internalMutation({
         fetchLogs: fetchLogs.length,
         runs: runs.length,
         snapshots: snapshots.length,
+        playerBattles: playerBattles.length,
+        dailyBrawlerStats: dailyBrawlerStats.length,
+        dailyMatchups: dailyMatchups.length,
+        clubSnapshots: clubSnapshots.length,
+        clubMemberSnapshots: clubMemberSnapshots.length,
+        clubActivityEvents: clubEvents.length,
+        playerCache: playerCacheRows.length,
+        apiBudgets: staleBudgets.length,
+        apiTelemetry: staleTelemetry.length,
       },
       limit,
     );
@@ -518,6 +577,15 @@ export const retainPipelineData = internalMutation({
       ...fetchLogs.slice(0, plan.delete.fetchLogs).map((row) => ctx.db.delete(row._id)),
       ...runs.slice(0, plan.delete.runs).map((row) => ctx.db.delete(row._id)),
       ...snapshots.slice(0, plan.delete.snapshots).map((row) => ctx.db.delete(row._id)),
+      ...playerBattles.slice(0, plan.delete.playerBattles).map((row) => ctx.db.delete(row._id)),
+      ...dailyBrawlerStats.slice(0, plan.delete.dailyBrawlerStats).map((row) => ctx.db.delete(row._id)),
+      ...dailyMatchups.slice(0, plan.delete.dailyMatchups).map((row) => ctx.db.delete(row._id)),
+      ...clubSnapshots.slice(0, plan.delete.clubSnapshots).map((row) => ctx.db.delete(row._id)),
+      ...clubMemberSnapshots.slice(0, plan.delete.clubMemberSnapshots).map((row) => ctx.db.delete(row._id)),
+      ...clubEvents.slice(0, plan.delete.clubActivityEvents).map((row) => ctx.db.delete(row._id)),
+      ...playerCacheRows.slice(0, plan.delete.playerCache).map((row) => ctx.db.delete(row._id)),
+      ...staleBudgets.slice(0, plan.delete.apiBudgets).map((row) => ctx.db.delete(row._id)),
+      ...staleTelemetry.slice(0, plan.delete.apiTelemetry).map((row) => ctx.db.delete(row._id)),
     ]);
     await ctx.db.patch(args.runId, { updatedAt: now });
     await incrementCounter(ctx, "retention_rows_deleted", plan.deleted, now);

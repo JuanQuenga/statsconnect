@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
+import { formatNumber } from "@statsconnect/site-format";
 
 export const supportedLocales = ["en", "es"] as const;
 export type Locale = (typeof supportedLocales)[number];
@@ -269,7 +270,7 @@ export function useI18n() {
     setLocale,
     t: (key: MessageKey) => translate(locale, key),
     formatNumber: (value: number, options?: Intl.NumberFormatOptions) =>
-      new Intl.NumberFormat(locale, options).format(value),
+      formatNumber(value, locale, options),
     formatDate: (value: string | number | Date, options: Intl.DateTimeFormatOptions = { dateStyle: "medium" }) =>
       new Intl.DateTimeFormat(locale, options).format(new Date(value)),
   }), [locale]);

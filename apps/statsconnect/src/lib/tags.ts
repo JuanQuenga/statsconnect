@@ -23,7 +23,3 @@ export function tagError(input: string): string | null {
     return error instanceof Error ? error.message : "Enter a valid player tag.";
   }
 }
-
-export function displayTag(input: string): string {
-  return `#${normalizeTag(input)}`;
-}
