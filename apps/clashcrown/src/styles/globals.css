@@ -5439,10 +5439,9 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   --home-arena-gold: #ffd45c;
   color: #36363d;
   background-color: #b7acbd;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, .04), rgba(74, 69, 82, .08)),
-    url("/images/theme/subreddit/arena-wall-tile.png");
-  background-repeat: repeat, repeat;
+  background-image: url("/images/theme/subreddit/arena-wall-content-v2.png");
+  background-repeat: repeat;
+  background-size: 512px 512px;
 }
 
 .site-frame-home .site-arena-backdrop {
@@ -5456,27 +5455,30 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   --border: rgba(183, 211, 234, .42);
   --input: rgba(190, 211, 227, .62);
   --ring: #75c5ff;
-  min-height: 600px;
+  min-height: 660px;
   color: #fff;
-  background:
-    url("/images/theme/subreddit/forest-hero.png") center top / auto 286px no-repeat,
-    url("/images/theme/subreddit/arena-wall-tile.png") center 286px / 226px 226px repeat;
+  background-color: #8eb6cc;
+  background-image: url("/images/theme/subreddit/home-hero-v2.png");
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .site-frame-home .royale-hero::before {
   content: "";
   position: absolute;
   z-index: 0;
-  top: 214px;
+  top: auto;
   right: 0;
+  bottom: 0;
   left: 0;
   height: 94px;
   pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip.png") center top / 950px 94px repeat-x;
+  background: url("/images/theme/subreddit/battlement-strip-v2.png") center bottom / 950px 94px repeat-x;
 }
 
 .site-frame-home .royale-hero-inner {
-  min-height: 600px;
+  min-height: 660px;
 }
 
 .site-frame-home .royale-hero-copy {
@@ -5672,9 +5674,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 
 @media (max-width: 680px) {
   .site-frame-home .royale-hero {
-    background:
-      url("/images/theme/subreddit/forest-hero.png") 44% top / auto 286px no-repeat,
-      url("/images/theme/subreddit/arena-wall-tile.png") center 286px / 226px 226px repeat;
+    background-position: 58% center;
   }
 
   .site-frame-home .royale-hero-showcase.royale-hero-showcase {
