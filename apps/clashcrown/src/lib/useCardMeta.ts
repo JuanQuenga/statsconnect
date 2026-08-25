@@ -1,14 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
-import { topCardsQuery } from "@/lib/convex";
+import { cardReportQuery } from "@/lib/analytics";
+import { topCardsQuery, topTowerTroopsQuery } from "@/lib/convex";
 import type { MetaMode } from "@/lib/clash/battles";
+import { buildCardMetaRecords, type CardMetaRecord } from "@/lib/cardMetaSelectors";
 
-export type CardMeta = {
-  rank: number;
-  uses: number;
-  winRate: number;
-  usageRate: number;
-};
+export type CardMeta = CardMetaRecord;
 
 /** The mode the card library reports on: the deepest sample the crawler has. */
 export const DEFAULT_META_MODE: MetaMode = "pathOfLegends";
@@ -24,19 +21,50 @@ export const DEFAULT_META_WINDOW = 7;
  */
 export function useCardMeta(mode: MetaMode = DEFAULT_META_MODE, windowDays = DEFAULT_META_WINDOW) {
   const payload = useQuery(topCardsQuery, { mode, windowDays, limit: 200 });
+  const report = useQuery(cardReportQuery, { mode, windowDays });
+  const towerPayload = useQuery(topTowerTroopsQuery, { mode, windowDays, limit: 200 });
 
   return useMemo(() => {
-    const byId = new Map<number, CardMeta>();
-    for (const [index, row] of (payload?.cards ?? []).entries()) {
-      byId.set(row.cardId, { rank: index + 1, uses: row.uses, winRate: row.winRate, usageRate: row.usageRate });
+    const byId = buildCardMetaRecords({ cards: payload?.cards ?? [], report });
+    const towerById = new Map<number, CardMeta>();
+    for (const [index, row] of (towerPayload?.towerTroops ?? []).entries()) {
+      towerById.set(row.towerCardId, {
+        cardId: row.towerCardId,
+        rank: index + 1,
+        uses: row.uses,
+        wins: row.wins,
+        winRate: row.winRate,
+        usageRate: row.usageRate,
+        tier: null,
+        score: null,
+        movement: null,
+        status: { kind: "observed" }
+      });
     }
     return {
       byId,
+      towerById,
       decksObserved: payload?.decksObserved ?? 0,
+      towerDecksObserved: towerPayload?.decksObserved ?? 0,
       ranked: payload?.cards.length ?? 0,
-      loading: payload === undefined,
+      report,
+      towerPayload,
+      loading: payload === undefined || report === undefined,
+      towerLoading: towerPayload === undefined,
       mode,
       windowDays
+    } satisfies {
+      byId: Map<number, CardMeta>;
+      towerById: Map<number, CardMeta>;
+      decksObserved: number;
+      towerDecksObserved: number;
+      ranked: number;
+      report: typeof report;
+      towerPayload: typeof towerPayload;
+      loading: boolean;
+      towerLoading: boolean;
+      mode: MetaMode;
+      windowDays: number;
     };
-  }, [payload, mode, windowDays]);
+  }, [payload, report, towerPayload, mode, windowDays]);
 }

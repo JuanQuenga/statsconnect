@@ -3,6 +3,7 @@ import Head from "@/components/Head";
 import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { Layout } from "@/components/portfolio/Layout";
+import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { findGuide, guideText } from "@/content/guides";
 import { useI18n } from "@/lib/i18n";
 
@@ -34,8 +35,7 @@ export default function GuidePage({ slug }: { slug: string }) {
         <link rel="canonical" href={`/guides/${guide.slug}`} />
       </Head>
       <article className="editorial-page guide-detail">
-        <header className="guide-detail-hero" data-arena-frame>
-          <span className="arena-hero-frame-art" aria-hidden="true" />
+        <ArenaHeroFrame className="guide-detail-hero">
           <div>
             <Link href="/guides" className="breadcrumb"><ArrowLeft size={14} /> {t("guides.title")}</Link>
             <h1>{title}</h1>
@@ -46,7 +46,7 @@ export default function GuidePage({ slug }: { slug: string }) {
             </div>
           </div>
           <Image src={guide.heroCard.image} alt={guide.heroCard.name} width={190} height={230} priority />
-        </header>
+        </ArenaHeroFrame>
 
         <section className="guide-section">
           <h2>{locale === "es" ? "Principios del arquetipo" : "Archetype principles"}</h2>

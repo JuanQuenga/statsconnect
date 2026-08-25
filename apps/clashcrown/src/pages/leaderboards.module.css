@@ -4,52 +4,32 @@
   padding: 10px 0 72px;
 }
 
+.pageWithHero { padding-top: 0; }
+
 .hero {
   position: relative;
   min-height: 390px;
   display: block;
   overflow: hidden;
-  border: 1px solid rgba(118, 148, 190, .22);
-  border-radius: 26px;
-  background: #07111f;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, .28);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.hero::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 3;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 212, 92, .7), transparent);
+.heroCopy {
+  --leaderboard-page-gutter: max(24px, calc((100vw - 1340px) / 2));
+  position: relative;
+  z-index: 2;
+  width: min(calc(760px + var(--leaderboard-page-gutter) + var(--leaderboard-page-gutter)), 100%);
+  padding: 54px calc(var(--leaderboard-page-gutter) + 24px) 112px calc(var(--leaderboard-page-gutter) + 58px);
 }
-
-.heroCopy { position: relative; z-index: 2; width: min(62%, 760px); padding: 54px 24px 50px 58px; }
 .heroCopy h1 { max-width: 720px; margin: 0; font-size: clamp(38px, 5vw, 70px); line-height: .98; letter-spacing: -.05em; text-wrap: balance; }
 .heroCopy p { max-width: 670px; margin: 22px 0 30px; color: #c2cee0; font-size: 17px; line-height: 1.55; }
 .heroFacts { display: flex; flex-wrap: wrap; gap: 0; }
 .heroFacts span { min-width: 132px; padding: 2px 22px; border-left: 1px solid rgba(166, 184, 213, .2); color: #95a7c1; font-size: 12px; }
 .heroFacts span:first-child { padding-left: 0; border-left: 0; }
 .heroFacts strong { display: block; margin-bottom: 4px; color: #fff; font-family: var(--font-display); font-size: 17px; font-weight: 400; }
-
-.heroArt { position: absolute; inset: 0; z-index: 0; }
-.heroArt::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(7, 17, 31, .96) 0%, rgba(7, 17, 31, .8) 38%, rgba(7, 17, 31, .24) 68%, rgba(7, 17, 31, .05) 100%),
-    linear-gradient(0deg, rgba(7, 17, 31, .42), transparent 42%);
-}
-.heroArt > img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  filter: saturate(1.05) contrast(1.02);
-}
 
 .modeSwitch {
   position: relative;
@@ -198,7 +178,7 @@
 @media (max-width: 760px) {
   .page { width: min(100% - 28px, 1340px); padding-top: 0; }
   .hero { min-height: 520px; }
-  .heroCopy { z-index: 3; width: 100%; padding: 250px 22px 58px; background: linear-gradient(transparent, rgba(7, 17, 31, .96) 45%); }
+  .heroCopy { z-index: 3; width: 100%; padding: 168px 22px 94px; background: linear-gradient(transparent, rgba(7, 17, 31, .96) 45%); }
   .heroCopy h1 { font-size: clamp(34px, 10vw, 44px); }
   .heroCopy p { margin: 16px 0 22px; font-size: 14px; }
   .heroFacts { display: grid; grid-template-columns: repeat(3, 1fr); }

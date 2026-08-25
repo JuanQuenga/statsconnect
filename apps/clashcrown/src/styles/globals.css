@@ -3893,46 +3893,76 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 .site-frame main:focus { outline: none; }
 
-/* Shared frame art for bespoke route heroes. The art is a real first child so
- * this contract never competes with a hero's existing ::before/::after rules. */
-.site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) {
-  position: relative;
-  isolation: isolate;
-  padding-bottom: 112px;
+/* Shared seasonal scene for every Clash Royale hero. The frame is full-bleed
+ * and attached to the navigation; route components only supply their content. */
+.site-frame-clash > main:has(.arena-hero-frame) {
+  padding-top: 0;
 }
 
-.site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) > .arena-hero-frame-art:first-child {
+/* The legacy mobile shell adds an 18px breathing room to every profile page.
+ * A seasonal hero is the page's top edge now, so keep it flush with the nav. */
+.site-frame-clash:not(.site-frame-home) > main:has(.arena-hero-frame) {
+  padding-top: 0;
+}
+
+.site-frame-clash > main:has(.arena-hero-frame) > .profile-page,
+.site-frame-clash > main:has(.arena-hero-frame) > .decks-page,
+.site-frame-clash > main:has(.arena-hero-frame) > .editorial-page,
+.site-frame-clash > main:has(.arena-hero-frame) > .page {
+  padding-top: 0;
+}
+
+.site-frame-clash > main:has(.arena-hero-frame) > .editorial-page.guide-detail {
+  padding-top: 0;
+}
+
+.site-frame-clash .arena-hero-frame {
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  width: 100dvw;
+  max-width: none;
+  min-height: 336px;
+  margin-inline: calc(50% - 50vw);
+  margin-inline: calc(50% - 50dvw);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  background: #8eb6cc;
+  box-shadow: none;
+}
+
+.site-frame-clash .arena-hero-frame-art {
   position: absolute;
   z-index: 0;
   inset: 0;
   display: block;
-  min-height: 100%;
   pointer-events: none;
-  background-color: #17301f;
+  background-color: #8eb6cc;
   background-image:
-    url("/images/theme/subreddit/battlement-strip-upscaled.png"),
-    url("/images/theme/subreddit/forest-hero.png");
-  background-position: center bottom, center top;
-  background-size: 950px 94px, auto 286px;
-  background-repeat: repeat-x, no-repeat;
+    linear-gradient(180deg, rgba(4, 16, 32, .58), rgba(4, 16, 32, .3) 45%, rgba(4, 16, 32, .78) 100%),
+    url("/images/theme/subreddit/home-hero-v2.png");
+  background-position: center 44%;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
-.site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) > .arena-hero-frame-art:first-child ~ * {
+.site-frame-clash .arena-hero-frame::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 94px;
+  pointer-events: none;
+  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
+}
+
+.site-frame-clash .arena-hero-frame > :not(.arena-hero-frame-art) {
   position: relative;
   z-index: 1;
-}
-
-@media (max-width: 680px) {
-  .site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) > .arena-hero-frame-art:first-child {
-    background-position: center bottom, 62% top;
-  }
-}
-
-/* Compact route surface: the shared Clash Royale scene fills the viewport,
- * while the battlement remains a repeatable bottom rail. Keeping the content
- * above the rail prevents route copy and actions from being covered. */
-.site-frame-clash > main:has(.arena-route-hero) {
-  padding-top: 0;
 }
 
 .site-frame-clash > main .arena-route-hero {
@@ -3944,30 +3974,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 }
 
 .site-frame-clash .arena-route-hero {
-  position: relative;
-  isolation: isolate;
   min-height: 336px;
-  overflow: visible;
-  color: #fff;
-  background-color: #8eb6cc;
-  background-image:
-    linear-gradient(180deg, rgba(4, 16, 32, .58), rgba(4, 16, 32, .3) 45%, rgba(4, 16, 32, .78) 100%),
-    url("/images/theme/subreddit/home-hero-v2.png");
-  background-position: center 44%;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-
-.site-frame-clash .arena-route-hero::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 94px;
-  pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
 }
 
 .site-frame-clash .arena-route-hero-inner {
@@ -4066,8 +4073,9 @@ a:hover .entity-cell strong { color: #75c5ff; }
 @media (max-width: 680px) {
   .site-frame-clash .arena-route-hero {
     min-height: 360px;
-    background-position: 58% center;
   }
+
+  .site-frame-clash .arena-hero-frame-art { background-position: 58% center; }
 
   .site-frame-clash .arena-route-hero-inner {
     width: calc(100% - 32px);
@@ -4089,17 +4097,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
   .site-frame-clash .arena-route-hero-aside {
     max-width: none;
-  }
-}
-
-@media (max-width: 680px) {
-  .site-frame-clash:not(.site-frame-home) > main:has(.arena-route-hero),
-  .site-frame-clash:not(.site-frame-home) > main:has([data-arena-frame]) {
-    padding-top: 18px;
-  }
-
-  .site-frame-clash:not(.site-frame-home) > main:has(.arena-route-hero) {
-    padding-top: 0;
   }
 }
 
@@ -5868,23 +5865,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
   min-height: 660px;
   color: #fff;
   background-color: #8eb6cc;
-  background-image: url("/images/theme/subreddit/home-hero-v2.png");
-  background-position: center center;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-
-.site-frame-home .royale-hero::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: auto;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 94px;
-  pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
 }
 
 .site-frame-home .royale-hero-inner {
@@ -6120,5 +6100,89 @@ a:hover .entity-cell strong { color: #75c5ff; }
     align-items: center;
     gap: 6px;
     margin-top: 210px;
+  }
+}
+
+/* Route-specific content remains intact inside the shared seasonal frame. */
+.site-frame-home .arena-hero-frame.royale-hero {
+  background: #8eb6cc;
+}
+
+.site-frame-home .arena-hero-frame.royale-hero .arena-hero-frame-art {
+  background-position: center center;
+}
+
+.site-frame-home .arena-hero-frame.royale-hero::before {
+  z-index: 2;
+}
+
+.site-frame-clash .profile-page .profile-hero,
+.site-frame-clash .card-detail-hero,
+.site-frame-clash .guide-detail-hero {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.site-frame-clash .profile-page .profile-hero {
+  padding-inline: max(24px, calc((100vw - var(--page-width)) / 2 + 24px));
+}
+
+.site-frame-clash .profile-page .profile-hero-glow {
+  z-index: -1;
+}
+
+.site-frame-clash .clan-hero {
+  min-height: 235px;
+  padding: 34px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) 112px;
+}
+
+.site-frame-clash .card-detail-hero {
+  min-height: 336px;
+  padding: 34px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) 112px;
+}
+
+.site-frame-clash .guide-detail-hero {
+  min-height: 350px;
+  padding: 38px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) 112px;
+}
+
+@media (max-width: 760px) {
+  .site-frame-clash .profile-page .profile-hero {
+    padding: 30px 22px 112px;
+  }
+
+  .site-frame-clash .guide-detail-hero {
+    grid-template-columns: 1fr;
+    padding: 26px 22px 112px;
+    text-align: center;
+  }
+
+  .site-frame-clash .guide-detail-hero > img {
+    grid-row: 1;
+    width: 140px;
+    height: 170px;
+    margin: 0 auto;
+  }
+
+  .site-frame-clash .guide-detail-hero .editorial-actions {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 680px) {
+  .site-frame-clash .card-detail-hero {
+    grid-template-columns: 1fr;
+    padding: 26px 22px 112px;
+    text-align: center;
+  }
+
+  .site-frame-clash .card-detail-hero > img {
+    margin-inline: auto;
+  }
+
+  .site-frame-clash .card-detail-hero > div {
+    justify-items: center;
   }
 }

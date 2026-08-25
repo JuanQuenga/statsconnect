@@ -17,11 +17,12 @@ import type { Card } from "@/lib/clash/domain";
 import type { ApiTournament, RankedCard } from "@/lib/clash/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 
 export default function HomePage() {
   return (
     <Layout variant="home">
-      <section className="royale-hero">
+      <ArenaHeroFrame className="royale-hero">
         <div className="royale-hero-inner">
           <div className="royale-hero-copy">
             <h1>
@@ -45,7 +46,7 @@ export default function HomePage() {
 
           {isConvexConfigured ? <LiveHeroSpotlight /> : <UnavailableHeroSpotlight />}
         </div>
-      </section>
+      </ArenaHeroFrame>
 
       <PersonalDashboard />
 

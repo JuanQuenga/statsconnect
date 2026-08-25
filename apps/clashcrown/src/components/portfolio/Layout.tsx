@@ -76,7 +76,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         Skip to content
       </a>
       <SiteNavigation
-        accentColor="#1688e8"
+        accentColor="#4fc8ff"
         currentSite="clash-royale"
         account={auth.account ? {
           avatarUrl: auth.account.image ?? undefined,
@@ -131,7 +131,7 @@ function SiteFooter() {
           <div>
             <strong>Build</strong>
             <Link href="/cards">Card Library</Link>
-            <Link href="/decks">Deck Discovery</Link>
+            <Link href="/decks">Decks</Link>
             <Link href="/tools">{t("nav.tools")}</Link>
           </div>
           <div>

@@ -515,7 +515,7 @@ export function SiteNavigation({
   }, [open]);
 
   return (
-    <header className="sc-nav" style={style}>
+    <header className="sc-nav" data-site={currentSite} style={style}>
       <div className="sc-nav__network">
         <div className="sc-nav__network-inner">
           <NetworkBrand currentSite={currentSite} hubOrigin={applicationOrigin} />

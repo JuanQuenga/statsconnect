@@ -2,6 +2,7 @@ import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { RefreshCcw, Settings2, Swords, User } from "lucide-react";
 import { RankCell } from "@/components/portfolio/DataTable";
+import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { relativeTime } from "@/lib/clash/format";
 import type { Clan } from "@/lib/clash/domain";
 import { useI18n, type Locale } from "@/lib/i18n";
@@ -9,8 +10,7 @@ import { useI18n, type Locale } from "@/lib/i18n";
 export function ClanProfile({ clan }: { clan: Clan }) {
   const { formatNumber, locale, t } = useI18n();
   return (
-    <section className="clan-hero" data-arena-frame>
-      <span className="arena-hero-frame-art" aria-hidden="true" />
+    <ArenaHeroFrame className="clan-hero">
       <Image src={clan.badge} alt="" width={74} height={92} priority />
       <h1>{clan.name}</h1>
       <strong>
@@ -34,7 +34,7 @@ export function ClanProfile({ clan }: { clan: Clan }) {
           </Link>
         ) : null}
       </div>
-    </section>
+    </ArenaHeroFrame>
   );
 }
 

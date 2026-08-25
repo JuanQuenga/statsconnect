@@ -3,6 +3,7 @@ import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { stripSupercellColorTags } from "@/lib/clash/format";
@@ -191,9 +192,8 @@ function Leaderboards() {
         <title>Leaderboards | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content="Live Clash Royale player, clan, and clan-war rankings with searchable results and real historical movement from StatsConnect." />
       </Head>
-      <div className={styles.page}>
-        <section className={styles.hero} data-arena-frame>
-          <span className="arena-hero-frame-art" aria-hidden="true" />
+      <div className={`${styles.page} ${styles.pageWithHero}`}>
+        <ArenaHeroFrame className={styles.hero}>
           <div className={styles.heroCopy}>
             <h1>Leaderboards</h1>
             <p>Find the players and clans setting the pace now, then use StatsConnect’s saved observations to see who is actually climbing.</p>
@@ -203,10 +203,7 @@ function Leaderboards() {
               <span><strong>{formatRelativeTime(historyQuery.data?.snapshot.lastObservedAt)}</strong> checked</span>
             </div>
           </div>
-          <div className={styles.heroArt} aria-hidden="true">
-            <Image src="/images/art/leaderboards-hero-banner-2026-no-character.png" alt="" width={2172} height={724} priority />
-          </div>
-        </section>
+        </ArenaHeroFrame>
 
         <nav className={styles.modeSwitch} aria-label="Leaderboard type">
           {TABS.map((tab) => {

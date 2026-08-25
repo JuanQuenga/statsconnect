@@ -8,6 +8,7 @@ import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { DeckActions } from "@/components/portfolio/DeckActions";
 import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
@@ -35,8 +36,7 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
   const currentLeague = player.pathOfLegends?.current;
 
   return (
-    <section className="profile-hero" data-arena-frame>
-      <span className="arena-hero-frame-art" aria-hidden="true" />
+    <ArenaHeroFrame className="profile-hero">
       <div className="profile-hero-glow" aria-hidden="true" />
       <div className="profile-identity-art">
         <div className="profile-showcase-shelf" aria-label={locale === "es" ? "Selección del jugador" : "Player loadout"}>
@@ -114,7 +114,7 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
         <HeroMetric icon={<Swords />} label="Wins" value={wins ?? "—"} />
         <HeroMetric icon={<Shield />} label="Battles" value={battles ?? "—"} />
       </div>
-    </section>
+    </ArenaHeroFrame>
   );
 }
 
