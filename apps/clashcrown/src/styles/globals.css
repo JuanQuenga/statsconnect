@@ -5610,15 +5610,16 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .site-footer {
-  min-height: 500px;
+  min-height: 450px;
   margin-top: 0;
-  padding: 56px 24px 120px;
+  padding: 56px 24px 80px;
   border-top: 0;
   color: #fff;
+  align-items: start;
   background:
     url("/images/theme/subreddit/footer-king.png") center top / 123px 205px no-repeat,
     url("/images/theme/subreddit/footer-lances.png") center bottom / max(1161px, 100%) auto no-repeat,
-    url("/images/theme/subreddit/arena-wall.png") center top / auto 500px repeat-x;
+    url("/images/theme/subreddit/arena-wall.png") center top / auto 450px repeat-x;
 }
 
 .site-frame-home .footer-inner {
@@ -5640,9 +5641,11 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .footer-legal {
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 20px;
+  gap: 6px;
+  margin-top: 70px;
   border-top-color: rgba(255, 255, 255, .3);
   color: rgba(255, 255, 255, .82);
   text-align: center;
@@ -5695,7 +5698,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   }
 
   .site-frame-home .site-footer {
-    min-height: 640px;
+    min-height: 680px;
+    padding-bottom: 68px;
     background-position: center 315px, center bottom, center top;
     background-size: 123px 205px, 650px auto, auto 100%;
   }
