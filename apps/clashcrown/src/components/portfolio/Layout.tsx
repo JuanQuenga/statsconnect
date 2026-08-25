@@ -57,12 +57,10 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
     { href: "/", label: t("nav.home") },
     { href: "/meta", label: t("nav.meta") },
     { href: "/leaderboards", label: t("nav.leaderboards") },
-    { href: "/history", label: "History" },
     { href: "/cards", label: t("nav.cards") },
     { href: "/decks", label: t("nav.decks") },
     { href: "/clans/search", label: t("nav.clans") },
     { href: "/news", label: t("nav.news") },
-    { href: "/guides", label: t("nav.guides") },
     { href: "/tools", label: t("nav.tools") },
   ];
 
@@ -138,7 +136,6 @@ function SiteFooter() {
             <strong>Discover</strong>
             <Link href="/clans/search">Clan Search</Link>
             <Link href="/news">{t("nav.news")}</Link>
-            <Link href="/guides">{t("nav.guides")}</Link>
           </div>
         </div>
         <div className="footer-legal">

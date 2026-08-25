@@ -1,7 +1,7 @@
 import Image from "@/components/Image";
 import { CardArt } from "@/components/portfolio/CardArt";
 import Link from "@/components/Link";
-import { ArrowRight, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Copy, Hash, MousePointer2, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
@@ -14,7 +14,7 @@ import { averageElixir, copyDeckLink, highestAvailableCardArt } from "@/lib/clas
 import { useCardLibrary } from "@/lib/useCardCatalog";
 import { errorMessage, globalTournamentsAction, isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
 import type { Card } from "@/lib/clash/domain";
-import type { ApiTournament, RankedCard } from "@/lib/clash/types";
+import type { ApiTournament } from "@/lib/clash/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
@@ -44,7 +44,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {isConvexConfigured ? <LiveHeroSpotlight /> : <UnavailableHeroSpotlight />}
+          <PlayerTagGuide />
         </div>
       </ArenaHeroFrame>
 
@@ -71,133 +71,125 @@ export default function HomePage() {
   );
 }
 
-type LiveSpotlight = {
-  card: Card;
-  stats: RankedCard;
-  rank: number;
+type PlayerTagGuideStep = {
+  kind: "profile" | "tag" | "copy";
+  eyebrow: string;
+  title: string;
+  copy: string;
 };
 
-function LiveHeroSpotlight() {
-  const library = useCardLibrary();
-  const payload = useConvexQuery(topCardsQuery, {
-    mode: "pathOfLegends",
-    windowDays: HOME_WINDOW_DAYS,
-    limit: 3
-  });
+const PLAYER_TAG_GUIDE_STEPS = [
+  {
+    kind: "profile",
+    eyebrow: "Step 1 · Start in Clash Royale",
+    title: "Open your profile",
+    copy: "Tap your player name or avatar from the home screen."
+  },
+  {
+    kind: "tag",
+    eyebrow: "Step 2 · Find your identifier",
+    title: "Select your player tag",
+    copy: "Your tag sits beneath your name on the profile screen."
+  },
+  {
+    kind: "copy",
+    eyebrow: "Step 3 · Bring it to StatsConnect",
+    title: "Copy the tag",
+    copy: "Copy the tag, then paste it into the search box to begin."
+  }
+] satisfies readonly [PlayerTagGuideStep, PlayerTagGuideStep, PlayerTagGuideStep];
+
+function PlayerTagGuide() {
   const [active, setActive] = useState(0);
-  const spotlights = useMemo(
-    () => (payload?.cards ?? []).flatMap((stats, index) => {
-      const card = library.byId.get(stats.cardId);
-      return card ? [{ card, stats, rank: index + 1 }] : [];
-    }),
-    [library.byId, payload?.cards]
-  );
+  const [paused, setPaused] = useState(false);
+  const step = PLAYER_TAG_GUIDE_STEPS[active];
 
   useEffect(() => {
-    if (spotlights.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setActive((index) => (index + 1) % spotlights.length), 5200);
-    return () => window.clearInterval(timer);
-  }, [spotlights.length]);
+    if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setTimeout(() => {
+      setActive((current) => (current + 1) % PLAYER_TAG_GUIDE_STEPS.length);
+    }, 5600);
+    return () => window.clearTimeout(timer);
+  }, [active, paused]);
 
-  if (payload === undefined || library.isLoading) {
-    return <HeroSpotlightState title="Loading popular cards…" copy="Reading the latest Path of Legends card sample." />;
+  function setStep(index: number) {
+    setActive(index);
   }
-  if (library.error) {
-    return <HeroSpotlightState title="Card data is unavailable" copy={errorMessage(library.error)} />;
-  }
-  if (!spotlights.length) {
-    return (
-      <HeroSpotlightState
-        title="No ranked cards yet"
-        copy={`No Path of Legends card observations are available for the last ${HOME_WINDOW_DAYS} days.`}
-      />
-    );
-  }
-
-  const selectedIndex = active % spotlights.length;
-  const current = spotlights[selectedIndex];
-  const href = `/cards/${cardSlug(current.card.name)}`;
 
   return (
-    <div className="royale-hero-showcase">
-      <div className="royale-hero-art">
-        <Link href={href} className="royale-hero-character royale-hero-character-card" key={current.card.name}>
-          <div className="royale-hero-glow" />
-          <CardArt
-            src={highestAvailableCardArt(current.card)}
-            alt={current.card.name}
-            width={360}
-            height={440}
-            priority
-          />
-        </Link>
-        <HeroMetaCard spotlight={current} decksObserved={payload.decksObserved} />
+    <div
+      className="royale-hero-showcase player-tag-guide"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(event) => {
+        if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setPaused(false);
+      }}
+      aria-label="How to find your player tag"
+    >
+      <div className="player-tag-guide-heading">
+        <span className="player-tag-guide-kicker">Quick start</span>
+        <h2>How to find your player tag</h2>
+        <p>Three taps, then your full battle history is ready to explore.</p>
       </div>
-      <div className="royale-hero-selector" aria-label="Choose a popular card">
-        {spotlights.map((spotlight, index) => (
-          <button
-            key={spotlight.card.id ?? spotlight.card.name}
-            type="button"
-            className="royale-hero-selector-card"
-            aria-label={`Show ${spotlight.card.name}`}
-            aria-pressed={selectedIndex === index}
-            onClick={() => setActive(index)}
-          >
-            <CardArt src={highestAvailableCardArt(spotlight.card)} alt="" width={62} height={74} />
-          </button>
-        ))}
+
+      <div className="player-tag-guide-stage" aria-live="polite">
+        <div className="player-tag-guide-screen" key={step.kind}>
+          <picture>
+            <source media="(prefers-reduced-motion: reduce)" srcSet={`${import.meta.env.BASE_URL}images/animated/hashtag-static.png`} />
+            <Image src="/images/animated/hashtag.gif" alt="Clash Royale profile screen" width={720} height={720} priority />
+          </picture>
+          <GuideStepGraphic kind={step.kind} />
+        </div>
+        <div className="player-tag-guide-callout">
+          <span className="player-tag-guide-number">0{active + 1}</span>
+          <div>
+            <span>{step.eyebrow}</span>
+            <strong>{step.title}</strong>
+            <p>{step.copy}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="player-tag-guide-controls" aria-label="Player tag guide steps">
+        <button type="button" className="player-tag-guide-arrow" aria-label="Previous step" onClick={() => setStep((active + PLAYER_TAG_GUIDE_STEPS.length - 1) % PLAYER_TAG_GUIDE_STEPS.length)}>
+          <ChevronLeft size={18} />
+        </button>
+        <div className="player-tag-guide-dots">
+          {PLAYER_TAG_GUIDE_STEPS.map((guideStep, index) => (
+            <button
+              key={guideStep.kind}
+              type="button"
+              className="player-tag-guide-dot"
+              aria-label={`Show step ${index + 1}: ${guideStep.title}`}
+              aria-current={active === index ? "step" : undefined}
+              onClick={() => setStep(index)}
+            >
+              <span>{index + 1}</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="player-tag-guide-arrow" aria-label="Next step" onClick={() => setStep((active + 1) % PLAYER_TAG_GUIDE_STEPS.length)}>
+          <ChevronRight size={18} />
+        </button>
       </div>
     </div>
   );
 }
 
-function HeroMetaCard({
-  spotlight,
-  decksObserved
-}: {
-  spotlight: LiveSpotlight;
-  decksObserved: number;
-}) {
-  const { card, rank, stats } = spotlight;
-
-  return (
-    <div className="royale-hero-card">
-      <div className="hero-meta-header">
-        <span className="is-live"><i />Live meta</span>
-        <small>Path of Legends · {HOME_WINDOW_DAYS} days</small>
-      </div>
-      <span className="hero-meta-kind">#{rank} by appearances</span>
-      <h2><Link href={`/cards/${cardSlug(card.name)}`}>{card.name}</Link></h2>
-      <p>Ranked from {Math.round(decksObserved).toLocaleString()} observed decks.</p>
-      <div className="hero-meta-stats">
-        <div><span>Win rate</span><strong>{(stats.winRate * 100).toFixed(1)}%</strong></div>
-        <div><span>Usage</span><strong>{(stats.usageRate * 100).toFixed(1)}%</strong></div>
-        <div><span>Games</span><strong>{stats.uses.toLocaleString()}</strong></div>
-      </div>
-    </div>
-  );
-}
-
-function UnavailableHeroSpotlight() {
-  return (
-    <HeroSpotlightState
-      title="Live card rankings are unavailable"
-      copy="Connect the StatsConnect Clash Royale data service to load current Path of Legends card performance."
-    />
-  );
-}
-
-function HeroSpotlightState({ title, copy }: { title: string; copy: string }) {
-  return (
-    <div className="royale-hero-showcase royale-hero-showcase-state" role="status">
-      <div>
-        <span>Path of Legends · {HOME_WINDOW_DAYS} days</span>
-        <strong>{title}</strong>
-        <p>{copy}</p>
-        <Link href="/meta">Open the meta report</Link>
-      </div>
-    </div>
-  );
+function GuideStepGraphic({ kind }: { kind: PlayerTagGuideStep["kind"] }) {
+  switch (kind) {
+    case "profile":
+      return <span className="player-tag-guide-target player-tag-guide-target-profile"><UserRound size={17} /><b>Player name</b><MousePointer2 size={22} /></span>;
+    case "tag":
+      return <span className="player-tag-guide-target player-tag-guide-target-tag"><Hash size={17} /><b>#P0LY8TAG</b><MousePointer2 size={22} /></span>;
+    case "copy":
+      return <span className="player-tag-guide-target player-tag-guide-target-copy"><Copy size={17} /><b>Copy tag</b><MousePointer2 size={22} /></span>;
+    default: {
+      const exhaustive: never = kind;
+      return exhaustive;
+    }
+  }
 }
 
 // --- Live meta sections ---------------------------------------------------

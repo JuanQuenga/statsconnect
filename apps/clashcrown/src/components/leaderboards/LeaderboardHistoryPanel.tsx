@@ -1,10 +1,6 @@
-import Head from "@/components/Head";
 import Link from "@/components/Link";
-import { LoadingState, SetupState } from "@/components/portfolio/AsyncState";
+import { LoadingState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
-import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
-import { Layout } from "@/components/portfolio/Layout";
-import { isConvexConfigured } from "@/lib/convex";
 import {
   leaderboardBoardsQuery,
   leaderboardSnapshotQuery,
@@ -12,7 +8,6 @@ import {
   type HistoricalLeaderboard,
   type HistoricalLeaderboardDetail,
   type HistoricalLeaderboardSnapshot,
-  type HistoricalLeaderboardSnapshotId
 } from "@/lib/history";
 import { useQuery } from "@tanstack/react-query";
 import { useConvex } from "convex/react";
@@ -21,12 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 
 const dateTime = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
-export default function HistoryPage() {
-  if (!isConvexConfigured) return <Layout><SetupState feature="historical leaderboards" /></Layout>;
-  return <LeaderboardHistory />;
-}
-
-function LeaderboardHistory() {
+export function LeaderboardHistoryPanel() {
   const convex = useConvex();
   const [chosenBoard, setChosenBoard] = useState<string>();
   const [chosenSnapshot, setChosenSnapshot] = useState<string>();
@@ -34,16 +24,18 @@ function LeaderboardHistory() {
   const boardsQuery = useQuery({
     queryKey: ["historical-leaderboards"],
     queryFn: () => convex.query(leaderboardBoardsQuery, { limit: 120 }),
-    retry: false
+    retry: false,
   });
   const boards = boardsQuery.data ?? [];
   const boardKey = chosenBoard ?? boards[0]?.key;
   const activeBoard = boards.find((board) => board.key === boardKey);
   const snapshotsQuery = useQuery({
     queryKey: ["leaderboard-snapshots", boardKey],
-    queryFn: () => convex.query(leaderboardSnapshotsQuery, { boardKey: boardKey!, limit: 80 }),
+    queryFn: () => boardKey
+      ? convex.query(leaderboardSnapshotsQuery, { boardKey, limit: 80 })
+      : Promise.resolve([]),
     enabled: Boolean(boardKey),
-    retry: false
+    retry: false,
   });
   const snapshots = snapshotsQuery.data ?? [];
 
@@ -53,63 +45,54 @@ function LeaderboardHistory() {
   }, [boardKey]);
 
   const snapshotId = chosenSnapshot ?? snapshots[0]?.id;
+  const selectedSnapshot = snapshots.find((snapshot) => snapshot.id === snapshotId);
   const defaultComparison = useMemo(
-    () => snapshots.find((snapshot) => snapshot.id !== snapshotId)?.id,
-    [snapshotId, snapshots]
+    () => snapshots.find((snapshot) => snapshot.id !== snapshotId),
+    [snapshotId, snapshots],
   );
-  const comparisonId = chosenComparison === "none" ? undefined : chosenComparison ?? defaultComparison;
+  const comparisonSelection = chosenComparison === "none" ? undefined : chosenComparison ?? defaultComparison?.id;
+  const selectedComparison = snapshots.find((snapshot) => snapshot.id === comparisonSelection);
   const detailQuery = useQuery({
-    queryKey: ["leaderboard-history-detail", snapshotId, comparisonId],
-    queryFn: () => convex.query(leaderboardSnapshotQuery, {
-      snapshotId: snapshotId as HistoricalLeaderboardSnapshotId,
-      ...(comparisonId ? { compareToId: comparisonId as HistoricalLeaderboardSnapshotId } : {}),
-      limit: 100
-    }),
-    enabled: Boolean(snapshotId),
-    retry: false
+    queryKey: ["leaderboard-history-detail", selectedSnapshot?.id, selectedComparison?.id],
+    queryFn: () => selectedSnapshot
+      ? convex.query(leaderboardSnapshotQuery, {
+          snapshotId: selectedSnapshot.id,
+          ...(selectedComparison ? { compareToId: selectedComparison.id } : {}),
+          limit: 100,
+        })
+      : Promise.resolve(null),
+    enabled: Boolean(selectedSnapshot),
+    retry: false,
   });
 
-  if (boardsQuery.isLoading) return <Layout><LoadingState label="historical leaderboards" /></Layout>;
+  if (boardsQuery.isLoading) return <LoadingState label="historical leaderboards" />;
 
   return (
-    <Layout>
-      <Head>
-        <title>History | StatsConnect · Clash Royale statistics</title>
-        <meta name="description" content="Timestamped StatsConnect Clash Royale leaderboard observations and historical rank comparisons." />
-      </Head>
-      <div className="profile-page history-page">
-        <ArenaRouteHero
-          align="start"
-          title="Leaderboard History"
-          summary="Browse API boards StatsConnect has actually captured and compare two observations. No ranks are reconstructed between timestamps."
-          actions={<Link className="history-back-link" href="/leaderboards">View live leaderboards</Link>}
-        />
-
-        {boardsQuery.error ? <HistoryError message="The historical board catalog could not be loaded." /> : null}
-        {!boardsQuery.error && !boards.length ? <EmptyArchive /> : null}
-        {boards.length ? (
-          <>
-            <HistoryControls
-              boards={boards}
-              snapshots={snapshots}
-              boardKey={boardKey ?? ""}
-              snapshotId={snapshotId}
-              comparisonId={comparisonId}
-              onBoard={setChosenBoard}
-              onSnapshot={setChosenSnapshot}
-              onComparison={setChosenComparison}
-            />
-            <Coverage activeBoard={activeBoard} snapshots={snapshots} />
-            {snapshotsQuery.isLoading || detailQuery.isLoading ? <LoadingState label="leaderboard snapshots" /> : null}
-            {snapshotsQuery.error || detailQuery.error ? <HistoryError message="Those snapshots could not be compared right now." /> : null}
-            {detailQuery.data ? <HistoryTable detail={detailQuery.data} /> : null}
-            {!snapshotsQuery.isLoading && !snapshots.length ? (
-              <section className="history-empty"><Archive size={32} /><h2>No saved rows for this board</h2><p>The board is known, but a ranked result has not been captured yet.</p></section>
-            ) : null}
-          </>
-        ) : null}
-      </div>
-    </Layout>
+    <div className="leaderboard-history-panel">
+      {boardsQuery.error ? <HistoryError message="The historical board catalog could not be loaded." /> : null}
+      {!boardsQuery.error && !boards.length ? <EmptyArchive /> : null}
+      {boards.length ? (
+        <>
+          <HistoryControls
+            boards={boards}
+            snapshots={snapshots}
+            boardKey={boardKey ?? ""}
+            snapshotId={snapshotId}
+            comparisonId={selectedComparison?.id}
+            onBoard={setChosenBoard}
+            onSnapshot={setChosenSnapshot}
+            onComparison={setChosenComparison}
+          />
+          <Coverage activeBoard={activeBoard} snapshots={snapshots} />
+          {snapshotsQuery.isLoading || detailQuery.isLoading ? <LoadingState label="leaderboard snapshots" /> : null}
+          {snapshotsQuery.error || detailQuery.error ? <HistoryError message="Those snapshots could not be compared right now." /> : null}
+          {detailQuery.data ? <HistoryTable detail={detailQuery.data} /> : null}
+          {!snapshotsQuery.isLoading && !snapshots.length ? (
+            <section className="history-empty"><Archive size={32} /><h2>No saved rows for this board</h2><p>The board is known, but a ranked result has not been captured yet.</p></section>
+          ) : null}
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -121,7 +104,7 @@ function HistoryControls({
   comparisonId,
   onBoard,
   onSnapshot,
-  onComparison
+  onComparison,
 }: {
   boards: HistoricalLeaderboard[];
   snapshots: HistoricalLeaderboardSnapshot[];

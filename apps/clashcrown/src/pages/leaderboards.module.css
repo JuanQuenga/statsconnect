@@ -7,52 +7,27 @@
 .pageWithHero { padding-top: 0; }
 
 .hero {
-  position: relative;
   min-height: 390px;
-  display: block;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
 }
-
-.heroCopy {
-  --leaderboard-page-gutter: max(24px, calc((100vw - 1340px) / 2));
-  position: relative;
-  z-index: 2;
-  width: min(calc(760px + var(--leaderboard-page-gutter) + var(--leaderboard-page-gutter)), 100%);
-  padding: 54px calc(var(--leaderboard-page-gutter) + 24px) 112px calc(var(--leaderboard-page-gutter) + 58px);
-}
-.heroCopy h1 { max-width: 720px; margin: 0; font-size: clamp(38px, 5vw, 70px); line-height: .98; letter-spacing: -.05em; text-wrap: balance; }
-.heroCopy p { max-width: 670px; margin: 22px 0 30px; color: #c2cee0; font-size: 17px; line-height: 1.55; }
-.heroFacts { display: flex; flex-wrap: wrap; gap: 0; }
-.heroFacts span { min-width: 132px; padding: 2px 22px; border-left: 1px solid rgba(166, 184, 213, .2); color: #95a7c1; font-size: 12px; }
-.heroFacts span:first-child { padding-left: 0; border-left: 0; }
-.heroFacts strong { display: block; margin-bottom: 4px; color: #fff; font-family: var(--font-display); font-size: 17px; font-weight: 400; }
 
 .modeSwitch {
-  position: relative;
-  z-index: 3;
-  width: calc(100% - 64px);
+  width: min(720px, 100%);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: -35px auto 32px;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: rgba(9, 22, 39, .96);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .28);
-  backdrop-filter: blur(18px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid rgba(120, 188, 239, .28);
+  border-radius: 14px;
+  background: rgba(4, 22, 43, .84);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .3);
+  backdrop-filter: blur(14px);
 }
 
-.modeSwitch button { min-width: 0; min-height: 78px; display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 13px; padding: 13px 16px; border: 1px solid transparent; border-radius: 12px; color: #9eb0c9; background: transparent; text-align: left; transition: color .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease; }
+.modeSwitch button { min-width: 0; min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 10px 14px; border: 1px solid transparent; border-radius: 10px; color: #b8c9df; background: transparent; text-align: center; transition: color .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease; }
 .modeSwitch button:hover { color: #fff; background: rgba(255, 255, 255, .035); transform: translateY(-1px); }
-.modeSwitch button > svg { width: 25px; height: 25px; justify-self: center; }
-.modeSwitch button span { min-width: 0; }
-.modeSwitch button strong { display: block; color: inherit; font-size: 15px; }
-.modeSwitch button small { display: block; overflow: hidden; margin-top: 4px; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.modeSwitch button:focus-visible { outline: 3px solid rgba(79, 200, 255, .72); outline-offset: 2px; }
+.modeSwitch button > svg { width: 21px; height: 21px; flex: 0 0 auto; }
+.modeSwitch button strong { min-width: 0; overflow: hidden; color: inherit; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .modeSwitch .activeMode { border-color: rgba(31, 147, 255, .4); color: #fff; background: linear-gradient(120deg, rgba(31, 147, 255, .18), rgba(31, 147, 255, .1)); }
 .modeSwitch .activeMode > svg { color: var(--primary); filter: drop-shadow(0 0 14px rgba(31, 147, 255, .45)); }
 
@@ -169,33 +144,15 @@
 .emptyState p { max-width: 520px; margin: 0; font-size: 13px; line-height: 1.5; }
 
 @media (max-width: 1080px) {
-  .heroCopy { width: min(66%, 680px); padding-left: 40px; }
-  .modeSwitch button small { display: none; }
   .contentGrid { grid-template-columns: 1fr; }
   .insights { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 760px) {
   .page { width: min(100% - 28px, 1340px); padding-top: 0; }
-  .hero { min-height: 520px; }
-  .heroCopy { z-index: 3; width: 100%; padding: 168px 22px 94px; background: linear-gradient(transparent, rgba(7, 17, 31, .96) 45%); }
-  .heroCopy h1 { font-size: clamp(34px, 10vw, 44px); }
-  .heroCopy p { margin: 16px 0 22px; font-size: 14px; }
-  .heroFacts { display: grid; grid-template-columns: repeat(3, 1fr); }
-  .heroFacts span { min-width: 0; padding: 0 10px; font-size: 9px; }
-  .heroFacts strong { font-size: 12px; }
-  .heroArt::after { background: linear-gradient(180deg, rgba(7, 17, 31, .04), rgba(7, 17, 31, .18) 48%, rgba(7, 17, 31, .92) 78%, #07111f 100%); }
-  .heroArt > img {
-    inset: 0 0 auto;
-    width: 100%;
-    height: 340px;
-    object-position: 82% center;
-    opacity: .92;
-    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
-    mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
-  }
-  .modeSwitch { width: calc(100% - 24px); gap: 4px; margin-top: -34px; }
-  .modeSwitch button { min-height: 67px; grid-template-columns: 1fr; justify-items: center; gap: 5px; padding: 9px 5px; text-align: center; }
+  .hero { min-height: 390px; }
+  .modeSwitch { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 5px; }
+  .modeSwitch button { min-height: 56px; gap: 7px; padding: 7px 8px; }
   .modeSwitch button > svg { width: 21px; height: 21px; }
   .modeSwitch button strong { font-size: 11px; }
   .controls { grid-template-columns: 1fr; gap: 14px; margin-bottom: 34px; padding: 16px 4px 22px; }
@@ -231,11 +188,6 @@
 
 @media (max-width: 430px) {
   .page { width: min(100% - 20px, 1340px); }
-  .hero { border-radius: 20px; }
-  .heroCopy { padding-inline: 18px; }
-  .heroCopy h1 { font-size: clamp(30px, 8.2vw, 34px); letter-spacing: -.04em; }
-  .heroFacts span { padding-inline: 7px; }
-  .modeSwitch { width: calc(100% - 14px); }
   .modeSwitch button strong { font-size: 10px; }
   .podiumCard > small { display: none; }
   .panelHeading { padding-inline: 18px; }
