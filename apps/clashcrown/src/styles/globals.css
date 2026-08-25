@@ -3928,19 +3928,33 @@ a:hover .entity-cell strong { color: #75c5ff; }
   }
 }
 
-/* Compact route surface: the original forest strip stays at a fixed native
- * height, while the battlement remains a repeatable bottom rail. Keeping the
- * content above the rail prevents route copy and actions from being covered. */
+/* Compact route surface: the shared Clash Royale scene fills the viewport,
+ * while the battlement remains a repeatable bottom rail. Keeping the content
+ * above the rail prevents route copy and actions from being covered. */
+.site-frame-clash > main:has(.arena-route-hero) {
+  padding-top: 0;
+}
+
+.site-frame-clash > main .arena-route-hero {
+  width: 100vw;
+  width: 100dvw;
+  max-width: none;
+  margin-inline: calc(50% - 50vw);
+  margin-inline: calc(50% - 50dvw);
+}
+
 .site-frame-clash .arena-route-hero {
   position: relative;
   isolation: isolate;
   min-height: 336px;
   overflow: visible;
   color: #fff;
-  background-color: #17301f;
-  background-image: url("/images/theme/subreddit/forest-hero.png");
-  background-position: center top;
-  background-size: auto 286px;
+  background-color: #8eb6cc;
+  background-image:
+    linear-gradient(180deg, rgba(4, 16, 32, .58), rgba(4, 16, 32, .3) 45%, rgba(4, 16, 32, .78) 100%),
+    url("/images/theme/subreddit/home-hero-v2.png");
+  background-position: center 44%;
+  background-size: cover;
   background-repeat: no-repeat;
 }
 
@@ -4052,7 +4066,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 @media (max-width: 680px) {
   .site-frame-clash .arena-route-hero {
     min-height: 360px;
-    background-position: 62% top;
+    background-position: 58% center;
   }
 
   .site-frame-clash .arena-route-hero-inner {
@@ -4082,6 +4096,10 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .site-frame-clash:not(.site-frame-home) > main:has(.arena-route-hero),
   .site-frame-clash:not(.site-frame-home) > main:has([data-arena-frame]) {
     padding-top: 18px;
+  }
+
+  .site-frame-clash:not(.site-frame-home) > main:has(.arena-route-hero) {
+    padding-top: 0;
   }
 }
 
