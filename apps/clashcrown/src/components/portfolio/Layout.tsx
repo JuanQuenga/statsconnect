@@ -116,9 +116,8 @@ function SiteFooter() {
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-brand-row">
-          <Link href="/" aria-label="StatsConnect · Clash Royale statistics" className="statsconnect-game-brand">
+          <Link href="/" aria-label="StatsConnect" className="statsconnect-game-brand">
             <strong>StatsConnect</strong>
-            <span>Clash Royale statistics</span>
           </Link>
           <p>Player profiles, live meta insights, deck tools, and clan intelligence for Clash Royale.</p>
         </div>
@@ -149,7 +148,7 @@ function SiteFooter() {
               Fan Content Policy
             </a>.
           </p>
-          <p>© {new Date().getFullYear()} StatsConnect · Clash Royale statistics.</p>
+          <p>© {new Date().getFullYear()} StatsConnect.</p>
         </div>
       </div>
     </footer>

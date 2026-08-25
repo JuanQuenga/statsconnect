@@ -5610,16 +5610,16 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
 }
 
 .site-frame-home .site-footer {
-  min-height: 450px;
+  min-height: 435px;
   margin-top: 0;
-  padding: 56px 24px 80px;
+  padding: 72px 24px 56px;
   border-top: 0;
   color: #fff;
   align-items: start;
   background:
     url("/images/theme/subreddit/footer-king.png") center top / 123px 205px no-repeat,
     url("/images/theme/subreddit/footer-lances.png") center bottom / max(1161px, 100%) auto no-repeat,
-    url("/images/theme/subreddit/arena-wall.png") center top / auto 450px repeat-x;
+    url("/images/theme/subreddit/arena-wall.png") center top / contain repeat-x;
 }
 
 .site-frame-home .footer-inner {
@@ -5645,7 +5645,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 70px;
+  margin-top: 40px;
   border-top-color: rgba(255, 255, 255, .3);
   color: rgba(255, 255, 255, .82);
   text-align: center;
