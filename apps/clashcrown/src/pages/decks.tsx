@@ -5,6 +5,7 @@ import { useAction } from "convex/react";
 import Head from "@/components/Head";
 import { DeckBuilder } from "@/components/decks/DeckBuilder";
 import { DeckDiscovery } from "@/components/decks/DeckDiscovery";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { mapCardsPayload } from "@/lib/clash/mappers";
 import { cardsAction, errorMessage, isConvexConfigured } from "@/lib/convex";
@@ -88,15 +89,17 @@ function DeckExperienceShell({ surface, setSurface, children }: { surface: DeckS
     <Layout>
       <Head><title>{locale === "es" ? "Descubrimiento y creador de mazos" : "Deck Discovery & Builder"} | StatsConnect · Clash Royale statistics</title><meta name="description" content={locale === "es" ? "Encuentra mazos observados, personaliza recomendaciones y crea conjuntos de guerra." : "Find observed Clash Royale decks, personalize recommendations from a player tag, build war sets, and copy decks into the game."} /><link rel="canonical" href="/decks" /></Head>
       <div className="decks-page discovery-page">
-        <section className="decks-hero discovery-hero">
-          <h1>{locale === "es" ? "Encuentra un mazo que encaje" : "Find a deck that fits"}</h1>
-          <p>{locale === "es" ? "Busca mazos observados, considera tu colección, arma un conjunto de guerra válido o crea libremente." : "Search real observed decks, account for your collection, assemble a valid four-deck war set, or build freely from the card catalog."}</p>
-          <div className="deck-surface-tabs" role="tablist" aria-label={t("deck.title")}>
-            <button type="button" role="tab" aria-selected={surface === "discover"} className={surface === "discover" ? "active" : ""} onClick={() => setSurface("discover")}><Search size={17} />{locale === "es" ? "Descubrir" : "Discover"}</button>
-            <button type="button" role="tab" aria-selected={surface === "war"} className={surface === "war" ? "active" : ""} onClick={() => setSurface("war")}><ShieldCheck size={17} />{locale === "es" ? "Guerra" : "War set"}</button>
-            <button type="button" role="tab" aria-selected={surface === "builder"} className={surface === "builder" ? "active" : ""} onClick={() => setSurface("builder")}><Hammer size={17} />{t("deck.title")}</button>
-          </div>
-        </section>
+        <ArenaRouteHero
+          title={locale === "es" ? "Encuentra un mazo que encaje" : "Find a deck that fits"}
+          summary={locale === "es" ? "Busca mazos observados, considera tu colección, arma un conjunto de guerra válido o crea libremente." : "Search real observed decks, account for your collection, assemble a valid four-deck war set, or build freely from the card catalog."}
+          actions={
+            <div className="deck-surface-tabs" role="tablist" aria-label={t("deck.title")}>
+              <button type="button" role="tab" aria-selected={surface === "discover"} className={surface === "discover" ? "active" : ""} onClick={() => setSurface("discover")}><Search size={17} />{locale === "es" ? "Descubrir" : "Discover"}</button>
+              <button type="button" role="tab" aria-selected={surface === "war"} className={surface === "war" ? "active" : ""} onClick={() => setSurface("war")}><ShieldCheck size={17} />{locale === "es" ? "Guerra" : "War set"}</button>
+              <button type="button" role="tab" aria-selected={surface === "builder"} className={surface === "builder" ? "active" : ""} onClick={() => setSurface("builder")}><Hammer size={17} />{t("deck.title")}</button>
+            </div>
+          }
+        />
         <div role="tabpanel">{children}</div>
       </div>
     </Layout>

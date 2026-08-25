@@ -80,7 +80,8 @@ function CardDetail({ slug }: { slug: string }) {
         <meta name="description" content={`${card.name} — ${card.rarity} card costing ${card.elixir} elixir.`} />
       </Head>
       <div className="profile-page">
-        <section className="card-detail-hero">
+        <section className="card-detail-hero" data-arena-frame>
+          <span className="arena-hero-frame-art" aria-hidden="true" />
           <CardArt src={highestAvailableCardArt(card)} alt={card.name} width={180} height={220} priority />
           <div>
             <Link href="/cards" className="breadcrumb">← All cards</Link>

@@ -4,6 +4,7 @@ import { useAction } from "convex/react";
 import { ExternalLink, Newspaper, RefreshCcw } from "lucide-react";
 import Head from "@/components/Head";
 import Image from "@/components/Image";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { datedOfficialNews, officialArchiveUrl, type OfficialNewsArticle, type OfficialNewsPayload } from "@/lib/clash/news";
 import { errorMessage, isConvexConfigured } from "@/lib/convex";
@@ -85,21 +86,23 @@ function NewsLayout({
         <link rel="canonical" href="/news" />
       </Head>
       <div className="editorial-page news-page">
-        <section className="editorial-hero">
-          <h1>{t("news.title")}</h1>
-          <p>{t("news.description")} StatsConnect stores only headline metadata and always sends you to the original article.</p>
-          <div className="editorial-actions">
-            <a className="pink-button" href={sourceUrl} target="_blank" rel="noopener noreferrer">
-              {t("common.source")} <ExternalLink size={15} />
-            </a>
-            {onRefresh ? (
-              <button type="button" className="secondary-button" onClick={onRefresh} disabled={refreshing}>
-                <RefreshCcw className={refreshing ? "spin" : ""} size={15} />
-                {refreshing ? t("common.refreshing") : t("common.refresh")}
-              </button>
-            ) : null}
-          </div>
-        </section>
+        <ArenaRouteHero
+          title={t("news.title")}
+          summary={<>{t("news.description")} StatsConnect stores only headline metadata and always sends you to the original article.</>}
+          actions={
+            <div className="editorial-actions">
+              <a className="pink-button" href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                {t("common.source")} <ExternalLink size={15} />
+              </a>
+              {onRefresh ? (
+                <button type="button" className="secondary-button" onClick={onRefresh} disabled={refreshing}>
+                  <RefreshCcw className={refreshing ? "spin" : ""} size={15} />
+                  {refreshing ? t("common.refreshing") : t("common.refresh")}
+                </button>
+              ) : null}
+            </div>
+          }
+        />
 
         {disclosure ? <p className="source-disclosure" role="status">{disclosure}</p> : null}
         {payload ? (

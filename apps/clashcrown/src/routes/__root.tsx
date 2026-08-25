@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute, useLocation } from "@tanstack/react-router";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { Layout } from "@/components/portfolio/Layout";
@@ -32,15 +33,17 @@ function NotFoundPage() {
         <title>Page not found | StatsConnect · Clash Royale statistics</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <section className="data-state not-found-state" aria-labelledby="not-found-title">
-        <p className="not-found-code" aria-hidden>404</p>
-        <h1 id="not-found-title">This page does not exist</h1>
-        <p>The link may be outdated, or the page may have moved.</p>
-        <div className="app-error-actions">
-          <Link href="/" className="pink-button">Back to StatsConnect Clash Royale</Link>
-          <Link href="/players" className="app-error-home">Find a player</Link>
-        </div>
-      </section>
+      <ArenaRouteHero
+        eyebrow="404"
+        title="This page does not exist"
+        summary="The link may be outdated, or the page may have moved."
+        actions={
+          <div className="app-error-actions">
+            <Link href="/" className="pink-button">Back to StatsConnect Clash Royale</Link>
+            <Link href="/players" className="app-error-home">Find a player</Link>
+          </div>
+        }
+      />
     </Layout>
   );
 }

@@ -1,6 +1,7 @@
 import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { isConvexConfigured } from "@/lib/convex";
 import { playerHistoryQuery, type PathSnapshot, type PlayerHistorySnapshot } from "@/lib/history";
@@ -42,13 +43,11 @@ function PlayerHistory({ tag }: { tag: string }) {
         <meta name="description" content="Timestamped StatsConnect Clash Royale player observations and API-provided Path of Legends snapshots." />
       </Head>
       <div className="profile-page history-page">
-        <section className="decks-hero history-hero">
-          <h1>{latest?.name ?? `#${tag}`}</h1>
-          <p>
-            A timeline of this player&rsquo;s observed trophy, collection, deck, and clan changes. It begins when StatsConnect first sees a change.
-          </p>
-          <Link className="history-back-link" href={`/players/${tag}`}><ArrowLeft size={16} /> Back to profile</Link>
-        </section>
+        <ArenaRouteHero
+          title={latest?.name ?? `#${tag}`}
+          summary="A timeline of this player’s observed trophy, collection, deck, and clan changes. It begins when StatsConnect first sees a change."
+          actions={<Link className="history-back-link" href={`/players/${tag}`}><ArrowLeft size={16} /> Back to profile</Link>}
+        />
 
         {!snapshots.length ? (
           <section className="history-empty" aria-live="polite">

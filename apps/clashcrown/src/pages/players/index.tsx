@@ -4,6 +4,7 @@ import { useRouter } from "@/lib/router";
 import { Star } from "lucide-react";
 import { useQuery } from "convex/react";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { SetupState } from "@/components/portfolio/AsyncState";
@@ -53,14 +54,18 @@ export default function PlayerSearchPage() {
         <meta name="description" content="Find a Clash Royale player by name or by tag." />
       </Head>
       <div className="profile-page">
-        <section className="decks-hero">
-          <h1>Find a player</h1>
-          <p>Search by name, or paste a player tag. Both land on the same profile.</p>
-          <ProfileSearch />
-          <Link href="/players/compare" className="pink-button">
-            Compare two players
-          </Link>
-        </section>
+        <ArenaRouteHero
+          title="Find a player"
+          summary="Search by name, or paste a player tag. Both land on the same profile."
+          actions={
+            <>
+              <ProfileSearch />
+              <Link href="/players/compare" className="pink-button">
+                Compare two players
+              </Link>
+            </>
+          }
+        />
         <FavoritesSection favorites={favorites} onToggle={onFavoriteToggle} />
         <Results term={term} favorites={favorites} onToggle={onFavoriteToggle} />
       </div>

@@ -3,6 +3,7 @@ import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/portfolio/Layout";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { cardSlug } from "@/lib/clash/cards";
@@ -81,10 +82,10 @@ function UpgradePlanner({ player }: { player: Player }) {
         <meta name="description" content={`Plan ${player.name}'s Clash Royale card upgrades and track the path to a maxed collection.`} />
       </Head>
       <div className="profile-page upgrade-page">
-        <section className="decks-hero upgrade-hero">
-          <h1>{player.name}&rsquo;s Upgrade Planner</h1>
-          <p>See what can be upgraded today and how many card copies and gold remain before the collection reaches level {MAX_CARD_LEVEL}.</p>
-        </section>
+        <ArenaRouteHero
+          title={<>{player.name}&rsquo;s Upgrade Planner</>}
+          summary={`See what can be upgraded today and how many card copies and gold remain before the collection reaches level ${MAX_CARD_LEVEL}.`}
+        />
 
         {!plans.length ? <EmptyUpgradeState /> : null}
         {plans.length ? (

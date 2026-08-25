@@ -4,6 +4,7 @@ import Link from "@/components/Link";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Copy } from "lucide-react";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { DeckMatchupPanel } from "@/components/MetaMatchups";
 import { MetaAnalytics } from "@/components/MetaAnalytics";
@@ -65,14 +66,16 @@ function MetaReport() {
         <link rel="canonical" href="/meta" />
       </Head>
       <div className="profile-page">
-        <section className="decks-hero">
-          <h1>{t("meta.title")}</h1>
-          <p>
+        <ArenaRouteHero
+          title={t("meta.title")}
+          summary={
+            <>
             {locale === "es" ? "La API de Clash Royale publica batallas jugador por jugador, pero no estadísticas agregadas. StatsConnect cuenta lo que se jugó y muestra siempre la muestra: " : "The Clash Royale API publishes battles one player at a time, but no aggregate statistics. StatsConnect counts what was actually played and always shows the sample: "}
             <strong>{formatNumber(Math.round(sample))}</strong> {locale === "es" ? "mazos observados" : "decks observed"} · {modeLabel(mode)} ·{" "}
             {windowDays === 1 ? (locale === "es" ? "24 horas" : "24 hours") : `${windowDays} ${locale === "es" ? "días" : "days"}`}.
-          </p>
-        </section>
+            </>
+          }
+        />
 
         <div className="meta-controls">
           <div className="beta-tabs" role="group" aria-label="Battle mode">

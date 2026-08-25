@@ -34,7 +34,8 @@ export default function GuidePage({ slug }: { slug: string }) {
         <link rel="canonical" href={`/guides/${guide.slug}`} />
       </Head>
       <article className="editorial-page guide-detail">
-        <header className="guide-detail-hero">
+        <header className="guide-detail-hero" data-arena-frame>
+          <span className="arena-hero-frame-art" aria-hidden="true" />
           <div>
             <Link href="/guides" className="breadcrumb"><ArrowLeft size={14} /> {t("guides.title")}</Link>
             <h1>{title}</h1>

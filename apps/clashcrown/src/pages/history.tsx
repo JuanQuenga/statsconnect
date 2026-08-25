@@ -2,6 +2,7 @@ import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { isConvexConfigured } from "@/lib/convex";
 import {
@@ -77,11 +78,12 @@ function LeaderboardHistory() {
         <meta name="description" content="Timestamped StatsConnect Clash Royale leaderboard observations and historical rank comparisons." />
       </Head>
       <div className="profile-page history-page">
-        <section className="decks-hero history-hero">
-          <h1>Leaderboard History</h1>
-          <p>Browse API boards StatsConnect has actually captured and compare two observations. No ranks are reconstructed between timestamps.</p>
-          <Link className="history-back-link" href="/leaderboards">View live leaderboards</Link>
-        </section>
+        <ArenaRouteHero
+          align="start"
+          title="Leaderboard History"
+          summary="Browse API boards StatsConnect has actually captured and compare two observations. No ranks are reconstructed between timestamps."
+          actions={<Link className="history-back-link" href="/leaderboards">View live leaderboards</Link>}
+        />
 
         {boardsQuery.error ? <HistoryError message="The historical board catalog could not be loaded." /> : null}
         {!boardsQuery.error && !boards.length ? <EmptyArchive /> : null}
