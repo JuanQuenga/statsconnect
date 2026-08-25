@@ -80,7 +80,8 @@
 
 html,
 body,
-#__next { min-height: 100%; }
+#__next,
+#root { min-height: 100%; }
 
 body {
   margin: 0;
@@ -88,6 +89,14 @@ body {
   background: var(--background);
   font-family: var(--font-ui);
   letter-spacing: 0;
+}
+
+body:has(.site-frame-home) {
+  background-color: #7d747e;
+  background-image: url("/images/theme/subreddit/arena-wall-footer-body-upscaled.png");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  overscroll-behavior-y: none;
 }
 
 ::selection {
@@ -5621,8 +5630,8 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
   background:
     url("/images/theme/subreddit/footer-king.png") center 34px / 123px 205px no-repeat,
     url("/images/theme/subreddit/footer-lances.png") center bottom / clamp(1161px, 100%, 1710px) auto no-repeat,
-    url("/images/theme/subreddit/arena-wall-cap-upscaled.png") center top / auto 40px repeat-x,
-    url("/images/theme/subreddit/arena-wall-tile-upscaled.png") center top / 226px 226px repeat;
+    url("/images/theme/subreddit/arena-wall-upscaled.png") center top / auto 400px repeat-x,
+    url("/images/theme/subreddit/arena-wall-footer-body-upscaled.png") center top / 256px 256px repeat;
 }
 
 .site-frame-home .footer-inner {
@@ -5664,7 +5673,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
     min-height: 620px;
     padding-bottom: 96px;
     background-position: center 305px, center bottom, center top, center top;
-    background-size: 123px 205px, 1161px auto, auto 40px, 226px 226px;
+    background-size: 123px 205px, 1161px auto, auto 400px, 256px 256px;
   }
 
   .site-frame-home .footer-legal {
@@ -5702,7 +5711,7 @@ a:hover .entity-cell strong { color: var(--pink-bright); }
     min-height: 680px;
     padding-bottom: 68px;
     background-position: center 315px, center bottom, center top, center top;
-    background-size: 123px 205px, 650px auto, auto 40px, 226px 226px;
+    background-size: 123px 205px, 650px auto, auto 400px, 256px 256px;
   }
 
   .site-frame-home .footer-legal {
