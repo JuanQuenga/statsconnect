@@ -69,16 +69,16 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
       </div>
       <div className="profile-identity-copy">
         <h1>{player.name}</h1>
-        {player.level !== undefined ? (
-          <span className="profile-player-level" aria-label={`${locale === "es" ? "Nivel del rey" : "King level"} ${player.level}`}>
-            <span className="profile-level-badge">{player.level}</span>
-            <span>
-              <small>{locale === "es" ? "Nivel del rey" : "King level"}</small>
-              <strong>{player.level}</strong>
-            </span>
-          </span>
-        ) : null}
         <div className="profile-identity-meta">
+          {player.level !== undefined ? (
+            <span className="profile-player-level" aria-label={`${locale === "es" ? "Nivel del rey" : "King level"} ${player.level}`}>
+              <span className="profile-level-badge">{player.level}</span>
+              <span>
+                <small>{locale === "es" ? "Nivel del rey" : "King level"}</small>
+                <strong>{player.level}</strong>
+              </span>
+            </span>
+          ) : null}
           <strong>#{player.tag}</strong>
           <span aria-hidden="true">•</span>
           {player.clanTag ? (
@@ -103,8 +103,8 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
             {player.clanTag ? <Link className="status-chip" href={`/clans/${player.clanTag.replace(/^#/, "")}/war`}>{t("clan.war")}</Link> : null}
           </div>
         ) : null}
-        <div className="profile-hero-actions">
-          {actions}
+        <div className="profile-hero-actions" aria-label={locale === "es" ? "Acciones del perfil" : "Profile actions"}>
+          {actions ? <div className="profile-primary-actions">{actions}</div> : null}
           <PlayerShareActions player={player} compact />
         </div>
       </div>

@@ -10,6 +10,8 @@
   min-height: 390px;
 }
 
+.demoBadge { display: inline-flex; align-items: center; width: fit-content; padding: 6px 10px; border: 1px solid rgba(113, 230, 173, .35); border-radius: 999px; color: #9bf0c2; background: rgba(31, 104, 70, .22); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+
 .modeSwitch {
   width: min(720px, 100%);
   display: grid;
@@ -142,6 +144,11 @@
 .emptyState > svg { color: var(--primary); }
 .emptyState h2 { margin: 4px 0 0; color: var(--foreground); font-size: 23px; }
 .emptyState p { max-width: 520px; margin: 0; font-size: 13px; line-height: 1.5; }
+
+.demoHistory { min-height: 330px; display: grid; place-content: center; justify-items: center; gap: 12px; margin-top: 24px; padding: 32px; border: 1px dashed var(--border); border-radius: 20px; color: var(--muted-foreground); text-align: center; }
+.demoHistory > svg { color: var(--primary); }
+.demoHistory h2 { margin: 4px 0 0; color: var(--foreground); font-size: 23px; }
+.demoHistory p { max-width: 560px; margin: 0; font-size: 13px; line-height: 1.5; }
 
 @media (max-width: 1080px) {
   .contentGrid { grid-template-columns: 1fr; }

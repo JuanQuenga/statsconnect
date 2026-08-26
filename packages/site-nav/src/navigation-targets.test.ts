@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { gameSwitcherHref } from "./navigation-targets.ts";
+import { gameAssetHref, gameSwitcherHref } from "./navigation-targets.ts";
 
 test("the Game Switcher sends game selections straight to same-origin game routes", () => {
   assert.equal(
@@ -42,5 +42,34 @@ test("the Game Switcher uses the production Hub when no origin is configured", (
   assert.equal(
     gameSwitcherHref("brawl-stars"),
     "https://stats.juanquenga.com/bs/",
+  );
+});
+
+test("game assets stay local for standalone root and /cr deployments", () => {
+  assert.equal(
+    gameAssetHref("clash-royale", {
+      currentPathname: "/news",
+      currentSite: "clash-royale",
+    }) + "apple-touch-icon-blue.png",
+    "/apple-touch-icon-blue.png",
+  );
+  assert.equal(
+    gameAssetHref("clash-royale", {
+      currentPathname: "/cr/news",
+      currentSite: "clash-royale",
+    }) + "apple-touch-icon-blue.png",
+    "/cr/apple-touch-icon-blue.png",
+  );
+});
+
+test("game assets use the unified application origin when the shell mounts a game", () => {
+  assert.equal(
+    gameAssetHref("clash-royale", {
+      applicationOrigin: "https://stats.example.test",
+      applicationShell: true,
+      currentPathname: "/cr/news",
+      currentSite: "clash-royale",
+    }) + "apple-touch-icon-blue.png",
+    "https://stats.example.test/cr/apple-touch-icon-blue.png",
   );
 });

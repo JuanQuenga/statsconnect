@@ -9,9 +9,11 @@ import { Layout } from "@/components/portfolio/Layout";
 import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { stripSupercellColorTags } from "@/lib/clash/format";
 import type { ApiClanRanking, ApiLeaderboard, ApiLocation, ApiPlayerRanking, RankingKind } from "@/lib/clash/types";
+import { demoClanWarRankings, demoClans, demoClansForLocation, demoLeaderboards, demoLocations, demoPlayersForBoard, demoRankingHref } from "@/lib/leaderboardDemoData";
 import {
   GLOBAL_LOCATION_ID,
   errorMessage,
+  isClashDemoDataMode,
   isConvexConfigured,
   leaderboardAction,
   leaderboardsAction,
@@ -28,10 +30,11 @@ import { useRouter } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { useAction, useConvex } from "convex/react";
 import { ArrowUpRight, ChevronRight, Crown, Globe2, History, Search, Swords, TrendingUp, Trophy, Users } from "lucide-react";
-import { useDeferredValue, useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
 import styles from "./leaderboards.module.css";
 
 type LeaderboardView = RankingKind | "history";
+type RankingDataMode = "live" | "demo";
 
 const TABS: Array<{
   view: LeaderboardView;
@@ -65,8 +68,139 @@ type DisplayRanking = {
 };
 
 export default function LeaderboardsPage() {
+  if (isClashDemoDataMode) return <DemoLeaderboards />;
   if (!isConvexConfigured) return <Layout><SetupState feature="leaderboards" /></Layout>;
   return <Leaderboards />;
+}
+
+function LeaderboardHero({ view, onSelectView, mode = "live" }: { view: LeaderboardView; onSelectView: (view: LeaderboardView) => void; mode?: RankingDataMode }) {
+  return <ArenaRouteHero
+    className={styles.hero}
+    eyebrow={mode === "demo" ? <span className={styles.demoBadge}>Demo data · local only</span> : undefined}
+    title="Leaderboards"
+    summary={mode === "demo"
+      ? "Review the rankings interface with deterministic local data. No Convex requests are made in this mode."
+      : "Compare live player, clan, and Clan War rankings—and see who is moving."}
+    actions={
+      <nav className={styles.modeSwitch} aria-label="Leaderboard type">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return <button key={tab.view} type="button" className={view === tab.view ? styles.activeMode : undefined} aria-pressed={view === tab.view} onClick={() => onSelectView(tab.view)}>
+            <Icon aria-hidden="true" />
+            <strong>{tab.shortLabel}</strong>
+          </button>;
+        })}
+      </nav>
+    }
+  />;
+}
+
+function LeaderboardControls({ kind, scopeName, boardPicker, search, onSearch }: { kind: RankingKind; scopeName: string; boardPicker: ReactNode; search: string; onSearch: (value: string) => void }) {
+  const activeTab = TABS.find((tab) => tab.view === kind) ?? TABS[0];
+  return <section className={styles.controls} aria-label="Ranking controls">
+    <div className={styles.scopeSummary}>
+      <span className={styles.scopeIcon}>{kind === "players" ? <Trophy /> : <Globe2 />}</span>
+      <div><small>{activeTab.label}</small><strong>{scopeName}</strong></div>
+    </div>
+    {boardPicker}
+    <label className={styles.searchField}>
+      <span className="sr-only">Search this ranking</span>
+      <Search aria-hidden="true" />
+      <input type="search" value={search} onChange={(event) => onSearch(event.target.value)} placeholder={kind === "players" ? "Search player, tag, or clan" : "Search clan, tag, or region"} />
+    </label>
+  </section>;
+}
+
+function DemoLeaderboards() {
+  const router = useRouter();
+  const [view, setView] = useState<LeaderboardView>(() => parseLeaderboardView(router.query.view));
+  const kind = view === "history" ? "players" : view;
+  const isHistory = view === "history";
+  const [locationId, setLocationId] = useState(GLOBAL_LOCATION_ID);
+  const [boardId, setBoardId] = useState(demoLeaderboards[0].id);
+  const [search, setSearch] = useState("");
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(25);
+  const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase());
+
+  const activeBoard = demoLeaderboards.find((board) => board.id === boardId) ?? demoLeaderboards[0];
+  const activeLocation = demoLocations.find((location) => location.id === locationId) ?? demoLocations[0];
+  const rows = useMemo(() => {
+    if (kind === "players") return normalisePlayers(demoPlayersForBoard(activeBoard.id));
+    const source = kind === "clanwars" ? demoClanWarRankings : demoClans;
+    return normaliseClans(demoClansForLocation(source, locationId), kind);
+  }, [activeBoard.id, kind, locationId]);
+  const scopeName = kind === "players" ? activeBoard.name ?? "Demo season" : activeLocation.name;
+  const filteredRows = useMemo(() => {
+    if (!deferredSearch) return rows;
+    return rows.filter((row) => [row.name, row.tag, row.clanName, row.clanTag, row.location]
+      .some((value) => value?.toLocaleLowerCase().includes(deferredSearch)));
+  }, [deferredSearch, rows]);
+  const visibleRows = filteredRows.slice(0, pageSize);
+  const podium = rows.slice(0, 3);
+
+  useEffect(() => {
+    setView(parseLeaderboardView(router.query.view));
+  }, [router.query.view]);
+
+  useEffect(() => {
+    setSearch("");
+    setPageSize(25);
+  }, [boardId, kind, locationId]);
+
+  function selectView(nextView: LeaderboardView) {
+    setView(nextView);
+    void router.replace(
+      { pathname: "/leaderboards", query: nextView === "players" ? {} : { view: nextView } },
+      undefined,
+      { shallow: true },
+    );
+  }
+
+  const boardPicker = kind === "players" ? (
+    <label className={styles.scopePicker}>
+      <span>Board</span>
+      <select value={activeBoard.id} onChange={(event) => setBoardId(Number(event.target.value))}>
+        {demoLeaderboards.map((board) => <option key={board.id} value={board.id}>{board.name}</option>)}
+      </select>
+    </label>
+  ) : (
+    <label className={styles.scopePicker}>
+      <span>Region</span>
+      <select value={locationId} onChange={(event) => setLocationId(Number(event.target.value))}>
+        {demoLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+      </select>
+    </label>
+  );
+
+  return (
+    <Layout>
+      <Head>
+        <title>Leaderboards preview | StatsConnect · Clash Royale statistics</title>
+        <meta name="description" content="Local-only demo data for reviewing the Clash Royale rankings interface." />
+      </Head>
+      <div className={`${styles.page} ${styles.pageWithHero}`}>
+        <LeaderboardHero view={view} onSelectView={selectView} mode="demo" />
+
+        {isHistory ? <DemoHistoryPanel /> : <>
+          <LeaderboardControls kind={kind} scopeName={scopeName} boardPicker={boardPicker} search={search} onSearch={setSearch} />
+
+          <Podium rows={podium} kind={kind} archived={false} mode="demo" />
+          <div className={styles.contentGrid}>
+            <RankingList rows={visibleRows} total={filteredRows.length} sourceTotal={rows.length} kind={kind} query={search} pageSize={pageSize} setPageSize={setPageSize} archived={false} mode="demo" />
+            <Insights detail={undefined} loading={false} kind={kind} mode="demo" />
+          </div>
+        </>}
+      </div>
+    </Layout>
+  );
+}
+
+function DemoHistoryPanel() {
+  return <section className={styles.demoHistory} aria-label="Demo history notice">
+    <History aria-hidden="true" />
+    <h2>History requires Convex captures</h2>
+    <p>The local preview includes current ranking rows so you can review layout, search, tabs, and responsive behavior. Historical comparisons are unavailable without real Convex captures.</p>
+  </section>;
 }
 
 function Leaderboards() {
@@ -148,7 +282,6 @@ function Leaderboards() {
   });
 
   const { global, countries } = useMemo(() => splitLocations(locationsQuery.data ?? []), [locationsQuery.data]);
-  const activeTab = TABS.find((tab) => tab.view === kind) ?? TABS[0];
   const activeBoardName = boardsQuery.data?.find((board) => board.id === activeBoard)?.name;
   const activeLocationName = [...global, ...countries].find((location) => location.id === locationId)?.name ?? "Global";
   const scopeName = kind === "players" ? activeBoardName ?? "Current event" : activeLocationName;
@@ -212,36 +345,10 @@ function Leaderboards() {
         <meta name="description" content="Live Clash Royale player, clan, and clan-war rankings with searchable results and real historical movement from StatsConnect." />
       </Head>
       <div className={`${styles.page} ${styles.pageWithHero}`}>
-        <ArenaRouteHero
-          className={styles.hero}
-          title="Leaderboards"
-          summary="Compare live player, clan, and Clan War rankings—and see who is moving."
-          actions={
-            <nav className={styles.modeSwitch} aria-label="Leaderboard type">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                return <button key={tab.view} type="button" className={view === tab.view ? styles.activeMode : undefined} aria-pressed={view === tab.view} onClick={() => selectView(tab.view)}>
-                  <Icon aria-hidden="true" />
-                  <strong>{tab.shortLabel}</strong>
-                </button>;
-              })}
-            </nav>
-          }
-        />
+        <LeaderboardHero view={view} onSelectView={selectView} mode="live" />
 
         {isHistory ? <LeaderboardHistoryPanel /> : <>
-        <section className={styles.controls} aria-label="Ranking controls">
-          <div className={styles.scopeSummary}>
-            <span className={styles.scopeIcon}>{kind === "players" ? <Trophy /> : <Globe2 />}</span>
-            <div><small>{activeTab.label}</small><strong>{scopeName}</strong></div>
-          </div>
-          {boardPicker}
-          <label className={styles.searchField}>
-            <span className="sr-only">Search this ranking</span>
-            <Search aria-hidden="true" />
-            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={kind === "players" ? "Search player, tag, or clan" : "Search clan, tag, or region"} />
-          </label>
-        </section>
+        <LeaderboardControls kind={kind} scopeName={scopeName} boardPicker={boardPicker} search={search} onSearch={setSearch} />
 
         {activeQuery.isLoading && !rows.length ? <LoadingState label="rankings" /> : null}
         {activeQuery.error && !rows.length ? <ErrorState message={errorMessage(activeQuery.error)} /> : null}
@@ -249,7 +356,7 @@ function Leaderboards() {
           <Podium rows={podium} kind={kind} archived={isArchiveFallback} />
           <div className={styles.contentGrid}>
             <RankingList rows={visibleRows} total={filteredRows.length} sourceTotal={rows.length} kind={kind} query={search} pageSize={pageSize} setPageSize={setPageSize} archived={isArchiveFallback} liveError={activeQuery.error ? errorMessage(activeQuery.error) : undefined} />
-            <Insights detail={historyQuery.data} loading={snapshotsQuery.isLoading || historyQuery.isLoading} kind={kind} />
+            <Insights detail={historyQuery.data} loading={snapshotsQuery.isLoading || historyQuery.isLoading} kind={kind} mode="live" />
           </div>
         </> : !activeQuery.isLoading && !activeQuery.error ? <section className={styles.emptyState}><Trophy /><h2>No ranked entries yet</h2><p>This board is active but has not published meaningful scores. Try another board or region.</p></section> : null}
         </>}
@@ -258,13 +365,17 @@ function Leaderboards() {
   );
 }
 
-function Podium({ rows, kind, archived }: { rows: DisplayRanking[]; kind: RankingKind; archived: boolean }) {
+function Podium({ rows, kind, archived, mode = "live" }: { rows: DisplayRanking[]; kind: RankingKind; archived: boolean; mode?: RankingDataMode }) {
   if (rows.length < 3) return null;
   const ordered = [rows[1], rows[0], rows[2]];
+  const orderLabel = archived ? "Saved order" : mode === "demo" ? "Demo order" : "Live order";
+  const orderDescription = archived
+    ? "The top three in the newest saved capture."
+    : mode === "demo" ? "The deterministic top three in this local preview." : "The current top three on this board.";
   return <section className={styles.podiumSection} aria-label={`Top three ${kind === "players" ? "players" : "clans"}`}>
-    <div className={styles.sectionIntro}><div><h2>The podium</h2><p>{archived ? "The top three in the newest saved capture." : "The current top three on this board."}</p></div><span><Crown /> {archived ? "Saved order" : "Live order"}</span></div>
+    <div className={styles.sectionIntro}><div><h2>The podium</h2><p>{orderDescription}</p></div><span><Crown /> {orderLabel}</span></div>
     <div className={styles.podium}>{ordered.map((row) => {
-      const href = rankingHref(row, kind);
+      const href = rankingHref(row, kind, mode);
       const card = <>
         <div className={styles.podiumBadge}>{row.badge ? <CardArt src={row.badge} fallback={NO_CLAN_BADGE_IMAGE} alt="" width={72} height={86} /> : <span>{row.rank}</span>}</div>
         <strong>{stripSupercellColorTags(row.name)}</strong>
@@ -276,7 +387,7 @@ function Podium({ rows, kind, archived }: { rows: DisplayRanking[]; kind: Rankin
   </section>;
 }
 
-function RankingList({ rows, total, sourceTotal, kind, query, pageSize, setPageSize, archived, liveError }: {
+function RankingList({ rows, total, sourceTotal, kind, query, pageSize, setPageSize, archived, liveError, mode = "live" }: {
   rows: DisplayRanking[];
   total: number;
   sourceTotal: number;
@@ -286,22 +397,26 @@ function RankingList({ rows, total, sourceTotal, kind, query, pageSize, setPageS
   setPageSize: (value: (typeof PAGE_SIZES)[number]) => void;
   archived: boolean;
   liveError?: string;
+  mode?: RankingDataMode;
 }) {
+  const summary = archived
+    ? "Showing the latest saved production capture while the live board is unavailable."
+    : mode === "demo" ? `${sourceTotal} demo entries, ranked in preview order.` : `${sourceTotal} live entries, ranked in official order.`;
   return <section className={styles.rankingPanel}>
     <div className={styles.panelHeading}>
-      <div><h2>Full ranking</h2><p>{archived ? "Showing the latest saved production capture while the live board is unavailable." : `${sourceTotal} live entries, ranked in official order.`}</p></div>
+      <div><h2>Full ranking</h2><p>{summary}</p></div>
       <div className={styles.pageSizes} aria-label="Rows shown">{PAGE_SIZES.map((size) => <button key={size} type="button" className={pageSize === size ? styles.activePageSize : undefined} onClick={() => setPageSize(size)}>{size}</button>)}</div>
     </div>
     {liveError && archived ? <p className={styles.archiveNotice}>Live refresh failed: {liveError} The saved capture below is still available.</p> : null}
     <div className={styles.columnLabels} aria-hidden="true"><span>Rank</span><span>Player / clan</span><span>Movement</span><span>Score</span><span /></div>
-    <div className={styles.rankingRows}>{rows.map((row) => <RankingRow key={row.tag} row={row} kind={kind} />)}</div>
+    <div className={styles.rankingRows}>{rows.map((row) => <RankingRow key={row.tag} row={row} kind={kind} mode={mode} />)}</div>
     {!rows.length ? <div className={styles.noMatches}><Search /><strong>No matches for “{query}”</strong><span>Try a shorter name, clan, or tag.</span></div> : null}
     {total > rows.length ? <p className={styles.listFoot}>Showing {rows.length} of {total} matching entries. Choose a larger row count to see more.</p> : null}
   </section>;
 }
 
-function RankingRow({ row, kind }: { row: DisplayRanking; kind: RankingKind }) {
-  const href = rankingHref(row, kind);
+function RankingRow({ row, kind, mode = "live" }: { row: DisplayRanking; kind: RankingKind; mode?: RankingDataMode }) {
+  const href = rankingHref(row, kind, mode);
   const rankChange = row.previousRank ? row.previousRank - row.rank : undefined;
   return <Link href={href} className={styles.rankingRow}>
     <div className={styles.rankNumber} data-rank={row.rank}>{row.rank}</div>
@@ -324,27 +439,31 @@ function Movement({ rankChange, scoreChange }: { rankChange?: number; scoreChang
   </span>;
 }
 
-function Insights({ detail, loading, kind }: { detail: HistoricalLeaderboardDetail | null | undefined; loading: boolean; kind: RankingKind }) {
+function Insights({ detail, loading, kind, mode = "live" }: { detail: HistoricalLeaderboardDetail | null | undefined; loading: boolean; kind: RankingKind; mode?: RankingDataMode }) {
   const movers = useMemo(() => detail?.entries.filter((entry) => typeof entry.rankChange === "number" && entry.rankChange > 0).sort((a, b) => (b.rankChange ?? 0) - (a.rankChange ?? 0)).slice(0, 5) ?? [], [detail]);
+  const movementDescription = mode === "demo" ? "Movement is not calculated for local fixture rows." : "Changes between real StatsConnect captures.";
+  const movementEmpty = mode === "demo" ? "Movement is unavailable in this fixture preview; real Convex captures are required." : "This board needs two changed captures before movement analysis appears.";
+  const archiveDescription = mode === "demo" ? "The local preview does not include saved history." : "What StatsConnect has observed in production.";
+  const archiveEmpty = mode === "demo" ? "History requires Convex captures and is unavailable in this local preview." : "The live board works now. Saved comparisons will appear after the crawler records it.";
   return <aside className={styles.insights}>
     <section className={styles.movementPanel}>
-      <div className={styles.insightHeading}><span><TrendingUp /></span><div><h2>Biggest movers</h2><p>Changes between real StatsConnect captures.</p></div></div>
+      <div className={styles.insightHeading}><span><TrendingUp /></span><div><h2>Biggest movers</h2><p>{movementDescription}</p></div></div>
       {loading ? <div className={styles.insightLoading}>Comparing saved observations…</div> : null}
       {!loading && movers.length ? <ol className={styles.moverList}>{movers.map((entry) => {
         const href = kind === "players" ? `/players/${entry.tag}` : `/clans/${entry.tag}`;
         return <li key={entry.tag}><Link href={href}><span><strong>{stripSupercellColorTags(entry.name)}</strong><small>Now #{entry.rank}</small></span><b>+{entry.rankChange}</b></Link></li>;
       })}</ol> : null}
       {!loading && detail && !movers.length ? <p className={styles.insightEmpty}>No upward rank changes in the two newest saved captures.</p> : null}
-      {!loading && !detail ? <p className={styles.insightEmpty}>This board needs two changed captures before movement analysis appears.</p> : null}
+      {!loading && !detail ? <p className={styles.insightEmpty}>{movementEmpty}</p> : null}
     </section>
     <section className={styles.archivePanel}>
-      <div className={styles.insightHeading}><span><History /></span><div><h2>Saved history</h2><p>What StatsConnect has observed in production.</p></div></div>
+      <div className={styles.insightHeading}><span><History /></span><div><h2>Saved history</h2><p>{archiveDescription}</p></div></div>
       {detail ? <div className={styles.archiveStats}>
         <div><span>Changed captures</span><strong>{detail.board.snapshotCount.toLocaleString()}</strong></div>
         <div><span>First observed</span><strong>{dateTime.format(detail.board.firstObservedAt)}</strong></div>
         <div><span>Latest check</span><strong>{dateTime.format(detail.snapshot.lastObservedAt)}</strong></div>
         <div><span>Compared with</span><strong>{detail.comparedAt ? dateTime.format(detail.comparedAt) : "Waiting for a change"}</strong></div>
-      </div> : <p className={styles.insightEmpty}>The live board works now. Saved comparisons will appear after the crawler records it.</p>}
+      </div> : <p className={styles.insightEmpty}>{archiveEmpty}</p>}
       <Link className={styles.historyLink} href="/leaderboards?view=history">Explore every captured board <ArrowUpRight /></Link>
     </section>
   </aside>;
@@ -383,7 +502,8 @@ function parseLeaderboardView(value: string | string[] | undefined): Leaderboard
   return "players";
 }
 
-function rankingHref(row: DisplayRanking, kind: RankingKind) {
+function rankingHref(row: DisplayRanking, kind: RankingKind, mode: RankingDataMode = "live") {
+  if (mode === "demo") return demoRankingHref(kind);
   const tag = row.tag.replace(/^#/, "");
   return kind === "players" ? `/players/${tag}` : `/clans/${tag}`;
 }

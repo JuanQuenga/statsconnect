@@ -41,6 +41,22 @@ Run setup commands from the repository root:
 
 4. Run the Vite development workflow with `pnpm dev:clashcrown`.
 
+### Reviewing the rankings UI without Convex
+
+Leaderboards are live-only by default. For local UI work, set this explicit
+dev-only flag in `apps/clashcrown/.env.local`:
+
+```bash
+VITE_CLASHCROWN_DATA_MODE=demo
+```
+
+Restart Vite after changing the flag, then open `/leaderboards`. The page shows
+a `Demo data · local only` label and uses deterministic fixture rows; it makes
+no Convex requests. Player and clan `CCDEMO` profile routes remain separate
+demo fixtures. Remove the flag (or set `VITE_CLASHCROWN_DATA_MODE=live`) when
+testing the real Convex path. The demo mode is guarded by Vite's development
+flag and cannot activate in a production build.
+
 Clash Royale API keys only accept individual source IPs, while Convex uses a regional egress range. The fixed-egress proxy keeps the token server-side and forwards requests to the official `/v1` API from the allowlisted IP.
 
 ## Checks

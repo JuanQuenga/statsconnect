@@ -5,6 +5,7 @@ import {
   expireDetachedArenaHeroFrameIfCurrent,
   planArenaHeroHeightTransition,
   startArenaHeroHeightAnimation,
+  shouldObserveArenaHeroResize,
   shouldAnimateArenaHeroHeight,
   type ArenaHeroTransitionCandidate,
   type ArenaHeroTransitionEnvironment,
@@ -46,6 +47,12 @@ test("leaves reduced motion in control", () => {
     shouldAnimateArenaHeroHeight(previous, current({ reducedMotion: true })),
     false,
   );
+});
+
+test("observes resize only after a frame settles", () => {
+  assert.equal(shouldObserveArenaHeroResize("stable"), true);
+  assert.equal(shouldObserveArenaHeroResize("pending"), false);
+  assert.equal(shouldObserveArenaHeroResize("animating"), false);
 });
 
 test("does not animate equal heights or a stale detached frame", () => {

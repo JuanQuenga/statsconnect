@@ -9,6 +9,7 @@ import {
   expireDetachedArenaHeroFrameIfCurrent,
   planArenaHeroHeightTransition,
   startArenaHeroHeightAnimation,
+  shouldObserveArenaHeroResize,
   type ArenaHeroFrameState,
   type ArenaHeroTransitionCandidate,
 } from "@/lib/arenaHeroTransition";
@@ -66,6 +67,7 @@ export function ArenaHeroFrame({ children, className, ariaLabelledBy }: ArenaHer
     });
     let heightAnimation: Animation | null = null;
     let resizeObserver: ResizeObserver | null = null;
+    let disposed = false;
 
     const rememberFrame = (frame: ArenaHeroFrameState, animation: Animation | null) => {
       mountedArenaFrame = {
@@ -73,6 +75,21 @@ export function ArenaHeroFrame({ children, className, ariaLabelledBy }: ArenaHer
         element,
         animation,
       };
+    };
+
+    const disconnectResizeObserver = () => {
+      resizeObserver?.disconnect();
+    };
+
+    const observeResizeObserver = () => {
+      if (
+        !disposed &&
+        resizeObserver &&
+        mountedArenaFrame?.element === element &&
+        shouldObserveArenaHeroResize(mountedArenaFrame.phase)
+      ) {
+        resizeObserver.observe(element);
+      }
     };
 
     const animateHeight = (
@@ -83,6 +100,12 @@ export function ArenaHeroFrame({ children, className, ariaLabelledBy }: ArenaHer
       replaySource?: ArenaHeroTransitionCandidate,
     ) => {
       if (replaySource) strictModeReplaySources.set(element, replaySource);
+
+      // Height is intentionally a true flow animation so the battlement stays
+      // attached to the document edge. Do not also sample that changing box
+      // through ResizeObserver on every animation frame; observe only after
+      // the animation settles so genuine content resizes remain covered.
+      disconnectResizeObserver();
 
       // Hold the outgoing box and start WAAPI in the same layout commit. Waiting
       // for requestAnimationFrame can strand the new route at the old height in
@@ -101,8 +124,12 @@ export function ArenaHeroFrame({ children, className, ariaLabelledBy }: ArenaHer
       element.style.removeProperty("min-height");
       rememberFrame({ ...frame, phase: "animating" }, animation);
 
-      animation.addEventListener("finish", () => {
-        if (mountedArenaFrame?.element === element) {
+      let animationFinalized = false;
+      const finalizeAnimation = () => {
+        if (animationFinalized) return;
+        animationFinalized = true;
+
+        if (!disposed && mountedArenaFrame?.element === element) {
           const settledHeight = frameHeight(element);
           rememberFrame({
             pathname: transitionPathname,
@@ -111,11 +138,18 @@ export function ArenaHeroFrame({ children, className, ariaLabelledBy }: ArenaHer
             detachedAt: null,
             phase: "stable",
           }, null);
+          observeResizeObserver();
         }
-        delete element.dataset.arenaHeightTransition;
-        animation.cancel();
+        if (!disposed) delete element.dataset.arenaHeightTransition;
         if (heightAnimation === animation) heightAnimation = null;
+      };
+
+      animation.addEventListener("finish", () => {
+        finalizeAnimation();
+        animation.cancel();
       }, { once: true });
+
+      animation.addEventListener("cancel", finalizeAnimation, { once: true });
 
       if (replaySource) {
         // React StrictMode immediately cleans up and replays layout effects in
@@ -147,7 +181,7 @@ export function ArenaHeroFrame({ children, className, ariaLabelledBy }: ArenaHer
       resizeObserver = new ResizeObserver(() => {
         if (
           mountedArenaFrame?.element === element &&
-          mountedArenaFrame.phase === "stable"
+          shouldObserveArenaHeroResize(mountedArenaFrame.phase)
         ) {
           const resizedHeight = frameHeight(element);
           const resizedPathname = arenaPathname();
@@ -170,17 +204,20 @@ export function ArenaHeroFrame({ children, className, ariaLabelledBy }: ArenaHer
           }
         }
       });
-      resizeObserver.observe(element);
+      if (shouldObserveArenaHeroResize(plan.frame.phase)) {
+        observeResizeObserver();
+      }
     }
 
     return () => {
+      disposed = true;
       const currentFrame = mountedArenaFrame?.element === element
         ? mountedArenaFrame
         : null;
       const outgoingHeight = currentFrame?.phase === "animating"
         ? frameHeight(element)
         : currentFrame?.height ?? frameHeight(element);
-      resizeObserver?.disconnect();
+      disconnectResizeObserver();
       heightAnimation?.cancel();
       element.style.removeProperty("height");
       element.style.removeProperty("min-height");

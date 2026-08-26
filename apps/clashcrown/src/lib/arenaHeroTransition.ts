@@ -106,3 +106,9 @@ export function planArenaHeroHeightTransition(
     },
   };
 }
+
+export function shouldObserveArenaHeroResize(
+  phase: ArenaHeroFrameState["phase"],
+): boolean {
+  return phase === "stable";
+}
