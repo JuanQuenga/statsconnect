@@ -6352,6 +6352,10 @@ a:hover .entity-cell strong { color: #75c5ff; }
 }
 
 @media (max-width: 760px) {
+  .profile-page .profile-hero {
+    gap: 6px;
+  }
+
   .profile-page .profile-hero-actions {
     width: 100%;
     display: grid;
@@ -6405,6 +6409,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
   }
 
   .profile-page .profile-hero-actions .player-share-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
