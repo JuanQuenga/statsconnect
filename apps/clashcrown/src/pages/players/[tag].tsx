@@ -97,7 +97,7 @@ function PlayerDashboard({
         <PlayerTabs active={activeTab} onChange={setActiveTab} />
         {activeTab === "Statistics" ? (
           <div className="profile-story">
-            <PlayerStats player={player} onRefresh={onRefresh} isRefreshing={isRefreshing} />
+            <PlayerStats player={player} catalogCards={catalogCards} onRefresh={onRefresh} isRefreshing={isRefreshing} />
             <PlayerActivity player={player} isDemo={isDemo} />
             <PerformanceSection battles={player.battles} />
             <PlayerProfileDetails player={player} />

@@ -145,46 +145,160 @@ export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: 
   );
 }
 
-export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Player; onRefresh: () => void; isRefreshing: boolean }) {
+type ProfileStat = {
+  label: string;
+  value: string;
+  icon: string;
+  note?: string;
+};
+
+type ProfileStatGroup = {
+  title: string;
+  icon: string;
+  stats: ProfileStat[];
+};
+
+export function PlayerStats({
+  player,
+  catalogCards = [],
+  onRefresh,
+  isRefreshing
+}: {
+  player: Player;
+  catalogCards?: Card[];
+  onRefresh: () => void;
+  isRefreshing: boolean;
+}) {
   const { formatNumber, locale, t } = useI18n();
-  const rows: Array<[string, string]> = Object.entries(player.stats).filter(([label]) => label !== "Arena");
-  if (player.bestTrophies !== undefined) {
-    rows.unshift([locale === "es" ? "Máximo de trofeos" : "Highest trophies", formatNumber(player.bestTrophies)]);
-  }
-  const [lead, ...careerRows] = rows;
+  const groups = profileStatGroups(player, catalogCards, formatNumber, locale);
 
   return (
-    <section className="profile-section career-section">
+    <section className="profile-section profile-stats-section">
       <header className="profile-editorial-heading profile-editorial-heading-tools">
-        <div><h2>Career snapshot</h2></div>
+        <div>
+          <span>{locale === "es" ? "Perfil del jugador" : "Player profile"}</span>
+          <h2>{locale === "es" ? "Estadísticas" : "Statistics"}</h2>
+        </div>
         <div className="update-tools"><span>{updatedLabel(player.fetchedAt, locale)}</span><button type="button" onClick={onRefresh} disabled={isRefreshing}><RefreshCcw className={isRefreshing ? "spin" : ""} size={16} />{isRefreshing ? t("common.refreshing") : t("common.refresh")}</button></div>
       </header>
-      {rows.length ? (
-        <div className="career-ledger">
-          <div className="career-lead">
-            <Image src="/images/icons/trophy.png" alt="" width={76} height={76} />
-            <div>
-              <span>{lead[0]}</span>
-              <strong>{lead[1]}</strong>
-              <small>{locale === "es" ? "Mejor marca de la carrera" : "Career high-water mark"}</small>
-            </div>
-          </div>
-          <dl className="career-rows">
-            {careerRows.map(([label, value]) => (
-              <div key={label} className="career-row">
-                <dt>
-                  <Image src={statIcon(label)} alt="" width={26} height={26} />
-                  <span>{label}</span>
-                </dt>
-                <dd>{value}</dd>
-              </div>
-            ))}
-          </dl>
+      {groups.length ? (
+        <div className="profile-stat-groups">
+          {groups.map((group) => (
+            <section className="profile-stat-group" key={group.title} aria-labelledby={`profile-stat-${group.title.toLowerCase().replaceAll(" ", "-")}`}>
+              <header className="profile-stat-group-heading">
+                <Image src={group.icon} alt="" width={34} height={34} />
+                <h3 id={`profile-stat-${group.title.toLowerCase().replaceAll(" ", "-")}`}>{group.title}</h3>
+              </header>
+              <dl className="profile-stat-grid">
+                {group.stats.map((stat) => (
+                  <div className="profile-stat-card" key={stat.label}>
+                    <Image src={stat.icon} alt="" width={30} height={30} />
+                    <div>
+                      <dt>{stat.label}</dt>
+                      <dd>{stat.value}</dd>
+                      {stat.note ? <small>{stat.note}</small> : null}
+                    </div>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
         </div>
-      ) : <p className="empty-results">No career statistics are available for this profile.</p>}
-      <p className="table-note">Career totals show long-term experience. Use recent performance below for a better read on current form.</p>
+      ) : <p className="empty-results">{locale === "es" ? "No hay estadísticas disponibles para este perfil." : "No player statistics are available for this profile."}</p>}
+      <p className="table-note">{locale === "es" ? "Estos valores son los totales que informa el perfil del juego." : "These values are the totals reported by the in-game player profile."}</p>
     </section>
   );
+}
+
+function profileStatGroups(
+  player: Player,
+  catalogCards: Card[],
+  formatNumber: (value: number) => string,
+  locale: Locale
+): ProfileStatGroup[] {
+  const spanish = locale === "es";
+  const numberStat = (label: string, value: number | undefined, icon: string, note?: string): ProfileStat | undefined => (
+    value === undefined ? undefined : { label, value: formatNumber(value), icon, note }
+  );
+  const stringStat = (label: string, value: string | undefined, icon: string, note?: string): ProfileStat | undefined => (
+    value ? { label, value, icon, note } : undefined
+  );
+  const stat = (label: string) => readPlayerStat(player.stats, label);
+  const streak = currentStreak(player, formatNumber, spanish);
+  const cardsFound = player.cardCollectionAvailable === false
+    ? undefined
+    : stringStat(
+        spanish ? "Cartas encontradas" : "Cards found",
+        catalogCards.length ? `${formatNumber(player.cards.length)} / ${formatNumber(catalogCards.length)}` : formatNumber(player.cards.length),
+        "/images/icons/cardsq.png",
+        catalogCards.length
+          ? (spanish ? "Cartas propias / catálogo" : "Owned / catalog")
+          : (spanish ? "Total del catálogo no disponible" : "Catalog total unavailable")
+      );
+
+  const core = [
+    numberStat(spanish ? "Máximo de trofeos" : "Highest trophies", player.bestTrophies, "/images/icons/trophy.png"),
+    numberStat(spanish ? "Victorias" : "Wins", stat("Wins"), "/images/icons/sword.png"),
+    numberStat(spanish ? "Derrotas" : "Losses", stat("Losses"), "/images/icons/sword.png"),
+    numberStat(spanish ? "Victorias de 3 coronas" : "Three-crown wins", stat("3 crown wins"), "/images/icons/crown-gold.png"),
+    numberStat(spanish ? "Batallas" : "Battles", stat("Battles"), "/images/icons/sword.png"),
+    numberStat(spanish ? "Donaciones totales" : "Total donations", stat("Total donations"), "/images/icons/crown-2d.png"),
+    streak ? { label: spanish ? "Racha actual" : "Current streak", value: streak.value, icon: "/images/icons/crown-gold.png", note: streak.note } : undefined,
+    cardsFound,
+    stringStat(spanish ? "Carta favorita" : "Favorite card", player.favoriteCard?.name, "/images/icons/cardsq.png")
+  ].filter((value): value is ProfileStat => value !== undefined);
+
+  const groups: ProfileStatGroup[] = [
+    { title: spanish ? "Estadísticas principales" : "Core stats", icon: "/images/icons/trophy.png", stats: core },
+    {
+      title: spanish ? "Guerras de clanes" : "Clan Wars",
+      icon: "/images/icons/clans.png",
+      stats: [
+        numberStat(spanish ? "Victorias del día de guerra" : "War day wins", stat("War day wins"), "/images/icons/sword.png"),
+        numberStat(spanish ? "Cartas de clan recolectadas" : "Clan cards collected", player.clanCardsCollected, "/images/icons/cardsq.png")
+      ].filter((value): value is ProfileStat => value !== undefined)
+    },
+    {
+      title: spanish ? "Desafíos" : "Challenges",
+      icon: "/images/icons/battle.png",
+      stats: [
+        numberStat(spanish ? "Máximo de victorias" : "Max wins", stat("Challenge max wins"), "/images/icons/trophy.png"),
+        numberStat(spanish ? "Cartas ganadas" : "Cards won", stat("Challenge cards won"), "/images/icons/cardsq.png")
+      ].filter((value): value is ProfileStat => value !== undefined)
+    },
+    {
+      title: spanish ? "Torneos" : "Tournaments",
+      icon: "/images/icons/battle-tournament.png",
+      stats: [
+        numberStat(spanish ? "Batallas de torneo" : "Tournament battles", player.tournamentBattleCount, "/images/icons/sword.png"),
+        numberStat(spanish ? "Cartas ganadas en torneos" : "Tournament cards won", stat("Tourney cards won"), "/images/icons/cardsq.png")
+      ].filter((value): value is ProfileStat => value !== undefined)
+    }
+  ];
+
+  return groups.filter((group) => group.stats.length);
+}
+
+function readPlayerStat(stats: Record<string, string>, label: string) {
+  const raw = stats[label];
+  if (raw === undefined) return undefined;
+  const value = Number(raw.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function currentStreak(player: Player, formatNumber: (value: number) => string, spanish: boolean): { value: string; note: string } | undefined {
+  const verified = player.currentWinLoseStreak;
+  if (typeof verified === "number" && Number.isFinite(verified)) {
+    if (verified === 0) return { value: "0", note: spanish ? "Sin racha" : "No active streak" };
+    const count = Math.abs(verified);
+    const kind = verified > 0 ? (spanish ? "victorias" : "wins") : (spanish ? "derrotas" : "losses");
+    return { value: `${verified > 0 ? "+" : "−"}${formatNumber(count)}`, note: `${formatNumber(count)} ${kind}` };
+  }
+
+  const fallback = analyzePlayerBattles(player.battles).currentWinStreak;
+  return fallback > 0
+    ? { value: `+${formatNumber(fallback)}`, note: spanish ? "Victorias seguidas del registro de batallas" : "Consecutive wins in battle log" }
+    : undefined;
 }
 
 export function PerformanceSection({ battles }: { battles: Battle[] }) {
@@ -257,14 +371,6 @@ function PerformanceStat({ icon, value, label }: { icon: string; value: string; 
       <div><strong>{value}</strong><span>{label}</span></div>
     </div>
   );
-}
-
-function statIcon(label: string) {
-  if (label.includes("card")) return "/images/icons/cardsq.png";
-  if (label.includes("3 crown")) return "/images/icons/crown-gold.png";
-  if (label.includes("donation")) return "/images/icons/crown-2d.png";
-  if (label.includes("win") || label === "Losses" || label === "Battles") return "/images/icons/sword.png";
-  return "/images/icons/trophy.png";
 }
 
 /**

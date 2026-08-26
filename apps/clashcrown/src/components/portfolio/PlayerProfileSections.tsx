@@ -23,8 +23,6 @@ function profileDetails(player: Player): Detail[] {
     numberDetail("Experience points", player.experiencePoints, "Current level progress"),
     numberDetail("Lifetime experience", player.totalExperiencePoints),
     numberDetail("Legacy trophy high", player.legacyTrophyRoadHighScore, "Retired Trophy Road record"),
-    numberDetail("Tournament battles", player.tournamentBattleCount),
-    numberDetail("Clan cards collected", player.clanCardsCollected),
     numberDetail("Donations received", player.donationsReceived)
   ].filter((detail): detail is Detail => detail !== undefined);
 }

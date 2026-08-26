@@ -50,6 +50,7 @@ export type ApiPlayer = {
   expLevel?: number;
   trophies?: number;
   bestTrophies?: number;
+  currentWinLoseStreak?: number;
   wins?: number;
   losses?: number;
   battleCount?: number;

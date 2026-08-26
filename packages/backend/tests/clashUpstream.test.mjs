@@ -17,7 +17,7 @@ test("a named operation applies configuration and records a successful request",
     transport: async (url, init) => {
       requestedUrl = url;
       authorization = new Headers(init.headers).get("Authorization") ?? "";
-      return Response.json({ tag: "#2PP", name: "Ada" });
+      return Response.json({ tag: "#2PP", name: "Ada", currentWinLoseStreak: -3 });
     },
     observe: async (observation) => {
       observations.push(observation);
@@ -30,6 +30,7 @@ test("a named operation applies configuration and records a successful request",
   assert.equal(result.ok, true);
   assert.equal(requestedUrl, "https://example.test/v1/players/%232PP");
   assert.equal(authorization, "Bearer test-token");
+  assert.equal(result.ok ? result.data.currentWinLoseStreak : undefined, -3);
   assert.deepEqual(observations, [{
     operation: "player",
     endpoint: "/players/{tag}",

@@ -215,6 +215,7 @@ export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
     level: optionalNumber(source.expLevel),
     trophies: optionalNumber(source.trophies),
     bestTrophies: optionalNumber(source.bestTrophies),
+    currentWinLoseStreak: optionalNumber(source.currentWinLoseStreak),
     arena: source.arena?.name ?? "Unknown Arena",
     arenaImage: arenaImage(source.arena),
     clan: source.clan?.name ? stripSupercellColorTags(source.clan.name) : "No clan",

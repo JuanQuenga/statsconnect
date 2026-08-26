@@ -180,6 +180,7 @@ function decodePlayer(value: unknown): ApiPlayer {
   requiredString(item, "tag", "player");
   requiredString(item, "name", "player");
   optionalNumber(item, "trophies", "player");
+  optionalNumber(item, "currentWinLoseStreak", "player");
   optionalArray(item, "currentDeck", "player", validateCard);
   optionalArray(item, "currentDeckSupportCards", "player", validateCard);
   optionalArray(item, "cards", "player", validateCard);

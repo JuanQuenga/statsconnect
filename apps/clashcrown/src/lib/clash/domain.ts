@@ -76,6 +76,7 @@ export type Player = {
   level?: number;
   trophies?: number;
   bestTrophies?: number;
+  currentWinLoseStreak?: number;
   arena: string;
   arenaImage: string;
   clan: string;
