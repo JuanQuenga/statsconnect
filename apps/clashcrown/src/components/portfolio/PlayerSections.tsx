@@ -10,7 +10,7 @@ import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
 import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
-import { DeckActions } from "@/components/portfolio/DeckActions";
+import { DeckActions, deckLinkForCards } from "@/components/portfolio/DeckActions";
 import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollection";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
@@ -38,6 +38,7 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
   const averageElixir = deck.length
     ? deck.reduce((total, card) => total + card.elixir, 0) / deck.length
     : undefined;
+  const deckHasActions = deckLinkForCards(deck) !== undefined;
   const leagueLabel = currentLeague?.leagueNumber === undefined
     ? locale === "es" ? "Clasificatoria" : "Ranked"
     : `${locale === "es" ? "Liga" : "League"} ${currentLeague.leagueNumber}`;
@@ -116,7 +117,7 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
             <div><small>{locale === "es" ? "Mazo actual" : "Current deck"}</small><strong>{deck.length === 8 ? `${deck.length} ${locale === "es" ? "cartas" : "cards"}` : locale === "es" ? "No disponible" : "Unavailable"}</strong></div>
             <div className="profile-hero-deck-tools">
               {averageElixir !== undefined ? <span><Image src="/images/ui-icons/elixir.png" alt="" width={16} height={19} />{averageElixir.toFixed(1)}</span> : null}
-              <DeckActions cards={deck} label={locale === "es" ? "mazo actual" : "current deck"} compact />
+              {deckHasActions ? <DeckActions cards={deck} label={locale === "es" ? "mazo actual" : "current deck"} compact /> : null}
             </div>
           </header>
           {deck.length ? (
