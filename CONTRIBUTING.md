@@ -126,6 +126,20 @@ pnpm dev:clashcrown
 
 The root `pnpm dev` runs the canonical backend and Hub together. It does not run both Game Sites.
 
+For mobile browser work across the Hub and both Game Sites, run:
+
+```sh
+pnpm dev:mobile
+```
+
+This starts one HTTPS gateway on port 5173, proxies `/bs/*` and `/cr/*` to their own Vite servers, starts the shared Convex backend, and prints a QR code plus a clickable `.local` URL. It uses `mkcert`, writes ignored certificates and a QR image to `.dev-certs/`, and sets the Convex development deployment's `SITE_URL` to the stable mobile origin so Better Auth accepts the Google callback.
+
+Mobile mode uses standalone Vite documents behind that one origin, so switching between the Hub and Game Sites performs a full-page navigation. The production build keeps the persistent application shell and in-place switching.
+
+Google login also requires `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` on the Convex development deployment. The command reports any missing names without reading or printing their values.
+
+The iPhone must trust the same mkcert root CA. AirDrop the `rootCA.pem` path printed by the command, install the profile under **Settings > General > VPN & Device Management**, then enable it under **Settings > General > About > Certificate Trust Settings**. The Mac and iPhone must be on the same local network.
+
 ### Development without upstream credentials
 
 Set this in your personal Convex deployment to use deterministic Hub adapters:
