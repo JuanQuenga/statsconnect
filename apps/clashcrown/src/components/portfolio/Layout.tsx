@@ -1,4 +1,5 @@
 import Link from "@/components/Link";
+import Image from "@/components/Image";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { supportedLocales, useI18n, type Locale } from "@/lib/i18n";
 import { useRouterState } from "@tanstack/react-router";
@@ -54,15 +55,16 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
   const arenaTransitionClass = arenaTransitionFor(pathname);
 
   const navItems = [
-    { href: "/", label: t("nav.home") },
+    { href: "/", label: t("nav.home"), icon: <Image src="/images/icons/blue.png" alt="" width={27} height={27} /> },
     { href: "/meta", label: t("nav.meta") },
-    { href: "/leaderboards", label: t("nav.leaderboards") },
-    { href: "/cards", label: t("nav.cards") },
-    { href: "/decks", label: t("nav.decks") },
+    { href: "/leaderboards", label: t("nav.leaderboards"), mobileLabel: locale === "es" ? "Clasif." : "Ranks", icon: <Image src="/images/icons/trophy.png" alt="" width={27} height={27} /> },
+    { href: "/cards", label: t("nav.cards"), icon: <Image src="/images/icons/book-cards.png" alt="" width={27} height={27} /> },
+    { href: "/decks", label: t("nav.decks"), icon: <Image src="/images/icons/cardsq.png" alt="" width={27} height={27} /> },
     { href: "/clans/search", label: t("nav.clans") },
     { href: "/news", label: t("nav.news") },
     { href: "/tools", label: t("nav.tools") },
   ];
+  const mobileNavItems = navItems.filter((item) => ["/", "/leaderboards", "/cards", "/decks"].includes(item.href));
 
   return (
     <div className={`site-frame site-frame-clash ${variant === "home" ? "site-frame-home" : ""} ${arenaTransitionClass}`}>
@@ -90,6 +92,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         profiles={auth.profiles}
         linkAdapter={ClashRoyaleLink}
         links={navItems}
+        mobileLinks={mobileNavItems}
         language={{
           label: t("locale.label"),
           value: locale,

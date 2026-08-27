@@ -7,7 +7,9 @@ export type SiteId = "statsconnect" | "brawl-stars" | "clash-royale";
 
 export type SiteNavigationLink = {
   href: string;
+  icon?: ReactNode;
   label: string;
+  mobileLabel?: string;
 };
 
 export type SiteNavigationLinkAdapterProps = {
@@ -61,6 +63,7 @@ export type SiteNavigationProps = {
   currentSite: SiteId;
   endContent?: ReactNode;
   links: readonly SiteNavigationLink[];
+  mobileLinks?: readonly SiteNavigationLink[];
   linkAdapter: SiteNavigationLinkAdapter;
   language?: SiteNavigationLanguage;
   account?: SiteNavigationAccount;
@@ -487,6 +490,7 @@ export function SiteNavigation({
   language,
   links,
   linkAdapter: LinkAdapter,
+  mobileLinks,
   profiles = [],
   renderSearch,
 }: SiteNavigationProps) {
@@ -498,6 +502,7 @@ export function SiteNavigation({
   const applicationShell = typeof window !== "undefined" && Boolean(window.__statsConnectApplicationShell);
   const applicationOrigin = applicationShell && typeof window !== "undefined" ? window.location.origin : hubOrigin;
   const currentPathname = typeof window !== "undefined" ? window.location.pathname : undefined;
+  const dockLinks = (mobileLinks ?? links).slice(0, 4);
 
   useEffect(() => {
     if (!open) return;
@@ -618,6 +623,27 @@ export function SiteNavigation({
           </div>
         ) : null}
       </div>
+
+      {currentSite === "clash-royale" ? (
+        <nav className="sc-nav__mobile-dock" aria-label="Primary mobile navigation">
+          {dockLinks.map((link) => (
+            <LinkAdapter key={link.href} href={link.href} className="sc-nav__mobile-dock-link" onNavigate={close}>
+              <span className="sc-nav__mobile-dock-icon" aria-hidden>{link.icon}</span>
+              <span>{link.mobileLabel ?? link.label}</span>
+            </LinkAdapter>
+          ))}
+          <button
+            type="button"
+            className="sc-nav__mobile-dock-link sc-nav__mobile-dock-more"
+            aria-label="More navigation options"
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <span className="sc-nav__mobile-dock-icon" aria-hidden><MenuIcon open={open} /></span>
+            <span>More</span>
+          </button>
+        </nav>
+      ) : null}
     </header>
   );
 }
