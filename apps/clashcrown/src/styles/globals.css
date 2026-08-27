@@ -99,6 +99,13 @@ body:has(.site-frame-clash) {
   overscroll-behavior-y: none;
 }
 
+@media (max-width: 680px) {
+  html,
+  body:has(.site-frame-clash) {
+    background: #031020;
+  }
+}
+
 ::selection {
   color: var(--foreground);
   background: color-mix(in srgb, var(--primary) 35%, transparent);
