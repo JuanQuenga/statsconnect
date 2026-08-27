@@ -6413,3 +6413,227 @@ a:hover .entity-cell strong { color: #75c5ff; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Player hero proposal: competitive status, current form, and deck before
+ * career totals. Keep this block last so it replaces the earlier dossier
+ * layout without changing the shared arena frame or profile tabs. */
+.site-frame-clash .profile-page .profile-hero {
+  min-height: 0;
+  display: block;
+  padding: 32px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) calc(var(--profile-wall-height) + 22px) !important;
+  text-align: left;
+}
+
+.profile-hero-proposal {
+  width: min(100%, var(--page-width));
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(330px, .9fr);
+  gap: 14px;
+  margin-inline: auto;
+  font-family: var(--font-ui);
+}
+
+.profile-hero-identity {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.profile-hero-nameplate { min-width: 0; }
+.profile-hero-nameplate h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 850 clamp(34px, 4.2vw, 58px)/.96 var(--font-ui);
+  letter-spacing: -.045em;
+}
+.profile-hero-nameplate p {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 9px 0 0;
+  color: #a9bbd2;
+  font: 650 12px/1.3 var(--font-ui);
+}
+.profile-hero-nameplate p > strong { color: #eef5ff; letter-spacing: .07em; }
+.profile-hero-nameplate p a,
+.profile-hero-nameplate p > span:last-child { display: inline-flex; align-items: center; gap: 5px; color: inherit; }
+.profile-hero-nameplate p a:hover { color: #fff; }
+.profile-hero-nameplate p img { width: 18px; height: 20px; object-fit: contain; }
+
+.profile-hero-freshness {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: #8da4c2;
+  font: 650 10px/1.2 var(--font-ui);
+}
+.profile-hero-freshness strong { color: #f3f7ff; font-size: 12px; }
+
+.profile-competitive-status,
+.profile-recent-form,
+.profile-hero-deck {
+  min-width: 0;
+  border: 1px solid rgba(139, 177, 226, .2);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(13, 33, 59, .82), rgba(5, 17, 32, .9));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .045);
+  backdrop-filter: blur(14px);
+}
+
+.profile-competitive-status { padding: 14px; }
+.profile-ranked-lead {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.profile-ranked-lead > img { width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .42)); }
+.profile-ranked-lead > svg { width: 42px; height: 42px; margin-inline: 10px; color: #f8c348; }
+.profile-ranked-lead > div { min-width: 0; display: grid; gap: 3px; }
+.profile-ranked-lead small,
+.profile-trophy-road small,
+.profile-recent-form small,
+.profile-hero-deck small {
+  color: #86a0c3;
+  font: 750 9px/1.1 var(--font-ui);
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.profile-ranked-lead strong { overflow: hidden; font: 820 21px/1.05 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+.profile-ranked-lead span { color: #b9c9dd; font: 650 11px/1.25 var(--font-ui); }
+
+.profile-trophy-road {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, .72fr)) minmax(130px, 1fr);
+  gap: 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(132, 161, 201, .17);
+}
+.profile-trophy-road .profile-hero-metric {
+  min-height: 42px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 7px;
+  padding: 0 10px 0 0;
+  border: 0;
+}
+.profile-trophy-road .profile-hero-metric + .profile-hero-metric { padding-left: 10px; border-top: 0; border-left: 1px solid rgba(132, 161, 201, .15); }
+.profile-trophy-road .profile-hero-metric > span { width: 22px; height: 22px; color: #f5bd40; background: none; }
+.profile-trophy-road .profile-hero-metric svg { width: 17px; height: 17px; }
+.profile-trophy-road .profile-hero-metric div { gap: 2px; }
+.profile-trophy-road .profile-hero-metric strong { font-size: 16px; }
+.profile-arena-context {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 11px;
+  border-left: 1px solid rgba(132, 161, 201, .15);
+}
+.profile-arena-context > img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 7px 8px rgba(0, 0, 0, .42)); }
+.profile-arena-context > span { min-width: 0; display: grid; gap: 3px; }
+.profile-arena-context strong { overflow: hidden; font: 750 12px/1.1 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+
+.profile-recent-form { display: grid; align-content: center; gap: 10px; padding: 14px; }
+.profile-recent-form > header { display: grid; grid-template-columns: 1.2fr repeat(2, .8fr); }
+.profile-recent-form > header > div { min-width: 0; display: grid; gap: 4px; padding: 0 12px; border-left: 1px solid rgba(132, 161, 201, .16); }
+.profile-recent-form > header > div:first-child { padding-left: 0; border-left: 0; }
+.profile-recent-form > header strong { font: 820 20px/1 var(--font-ui); }
+.profile-form-pips { display: grid; grid-template-columns: repeat(10, minmax(14px, 1fr)); gap: 4px; }
+.profile-form-pips > span {
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  color: #fff;
+  background: #65758b;
+  font: 800 9px/1 var(--font-ui);
+}
+.profile-form-pips > span.win { background: #208e5f; }
+.profile-form-pips > span.loss { background: #b6425e; }
+.profile-recent-form > p { margin: 0; color: #8398b5; font: 600 9px/1.3 var(--font-ui); }
+
+.profile-hero-deck { grid-column: 1 / -1; padding: 12px 14px 10px; }
+.profile-hero-deck > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.profile-hero-deck > header > div { display: flex; align-items: baseline; gap: 8px; }
+.profile-hero-deck > header > div strong { font: 750 11px/1 var(--font-ui); }
+.profile-hero-deck-tools { align-items: center !important; }
+.profile-hero-deck-tools > span { display: inline-flex; align-items: center; gap: 5px; color: #e9f2ff; font: 800 12px/1 var(--font-ui); }
+.profile-hero-deck-tools > span img { width: 14px; height: 17px; object-fit: contain; }
+.profile-hero-deck > p { margin: 12px 0; color: #9eb0c8; font: 650 11px/1.4 var(--font-ui); }
+.profile-hero-deck-rail { display: grid; grid-template-columns: repeat(8, minmax(56px, 1fr)); gap: 5px; }
+.profile-hero-deck-rail > a { min-width: 0; display: block; border-radius: 9px; }
+.profile-hero-deck-rail .game-card-art { width: 100%; --game-card-cost-size: clamp(15px, 24%, 21px); --game-card-cost-font: clamp(10px, 1.6vw, 13px); }
+.profile-hero-deck-rail > a:hover .game-card-art { transform: translateY(-2px); }
+
+.profile-hero-proposal > .profile-hero-actions {
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+.profile-hero-proposal > .profile-hero-actions .profile-primary-actions { margin-right: auto; }
+
+@media (max-width: 760px) {
+  .site-frame-clash .profile-page .profile-hero {
+    padding: 18px 14px calc(var(--profile-wall-height) + 14px) !important;
+  }
+  .profile-hero-proposal { grid-template-columns: 1fr; gap: 9px; }
+  .profile-hero-identity,
+  .profile-competitive-status,
+  .profile-recent-form,
+  .profile-hero-deck,
+  .profile-hero-proposal > .profile-hero-actions { grid-column: 1; }
+  .profile-hero-identity { align-items: start; }
+  .profile-hero-nameplate h1 { font-size: clamp(31px, 10.5vw, 42px); }
+  .profile-hero-nameplate p { margin-top: 7px; font-size: 10px; }
+  .profile-hero-freshness { padding-top: 3px; font-size: 9px; }
+  .profile-competitive-status { padding: 11px 12px; }
+  .profile-ranked-lead { grid-template-columns: 48px minmax(0, 1fr); gap: 9px; }
+  .profile-ranked-lead > img { width: 48px; height: 48px; }
+  .profile-ranked-lead > svg { width: 32px; height: 32px; margin-inline: 8px; }
+  .profile-ranked-lead strong { font-size: 18px; }
+  .profile-ranked-lead span { font-size: 10px; }
+  .profile-trophy-road { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 9px; padding-top: 9px; }
+  .profile-trophy-road .profile-hero-metric { min-height: 34px; }
+  .profile-trophy-road .profile-hero-metric strong { font-size: 14px; }
+  .profile-arena-context { grid-column: 1 / -1; gap: 6px; margin-top: 8px; padding: 8px 0 0; border-top: 1px solid rgba(132, 161, 201, .15); border-left: 0; }
+  .profile-arena-context > img { width: 30px; height: 30px; }
+  .profile-arena-context > span { display: flex; align-items: baseline; gap: 6px; }
+  .profile-arena-context strong { font-size: 11px; }
+  .profile-recent-form { gap: 8px; padding: 11px 12px; }
+  .profile-recent-form > header strong { font-size: 17px; }
+  .profile-form-pips > span { height: 20px; }
+  .profile-hero-deck { padding: 9px 10px 7px; overflow: hidden; }
+  .profile-hero-deck > header { align-items: flex-start; margin-bottom: 5px; }
+  .profile-hero-deck-tools { align-items: center !important; }
+  .profile-hero-deck-tools > div button,
+  .profile-hero-deck-tools > div a { min-height: 28px; padding-inline: 7px; }
+  .profile-hero-deck-tools > div span { display: none; }
+  .profile-hero-deck-rail { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1px; }
+  .profile-hero-deck-rail .game-card-art { --game-card-cost-size: clamp(13px, 28%, 17px); --game-card-cost-font: 9px; }
+  .profile-hero-proposal > .profile-hero-actions { display: flex; flex-wrap: nowrap; gap: 7px; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions,
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions > div[aria-label*="profile tracking controls"],
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions { width: auto; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions { flex: 1 1 auto; }
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions { flex: 0 1 auto; display: flex; grid-template-columns: none; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { min-width: 0; height: 38px; padding-inline: 11px; }
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { width: 42px; flex: 0 0 42px; }
+}
+
+@media (max-width: 420px) {
+  .profile-hero-freshness > span { max-width: 76px; text-align: right; }
+  .profile-hero-deck-rail { margin-inline: -2px; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { font-size: 0; }
+  .profile-hero-proposal > .profile-hero-actions button svg { width: 18px; height: 18px; }
+}
