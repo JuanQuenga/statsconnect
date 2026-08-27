@@ -1748,7 +1748,7 @@ button { cursor: pointer; }
   .search-box { grid-template-columns: 112px 1fr 46px; }
   .hero-cards { margin-top: 62px; }
   .profile-page { padding-top: 20px; }
-  .profile-page:has(.profile-tabs) { padding-bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 88px); }
+  .profile-page:has(.profile-tabs) { padding-bottom: 72px; }
   .profile-hero { grid-template-columns: 1fr; gap: 22px; padding: 26px 20px; text-align: center; }
   .profile-identity-art { margin: 0 auto; }
   .profile-identity-meta,
@@ -6636,4 +6636,111 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
   .profile-hero-proposal > .profile-hero-actions .player-share-actions button { font-size: 0; }
   .profile-hero-proposal > .profile-hero-actions button svg { width: 18px; height: 18px; }
+}
+
+/* On phones, page-level navigation forms a second dock above the persistent
+ * primary navigation. The same controls remain in the document so state,
+ * keyboard behavior, and accessible names stay aligned with desktop. */
+@media (max-width: 680px) {
+  .site-frame-clash:has(.mobile-page-tabs) {
+    padding-bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 74px);
+  }
+
+  .site-frame-clash .arena-route-hero-actions:has(> .mobile-page-tabs) {
+    margin-top: 0;
+  }
+
+  .site-frame-clash .arena-hero-frame:has(.mobile-page-tabs) {
+    isolation: auto;
+  }
+
+  .site-frame-clash .mobile-page-tabs {
+    width: auto;
+    max-width: 560px;
+    min-height: 58px;
+    box-sizing: border-box;
+    position: fixed;
+    inset-inline: 10px;
+    top: auto;
+    bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 8px);
+    z-index: 79;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    flex-wrap: nowrap;
+    gap: 4px;
+    margin: 0 auto;
+    padding: 5px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid rgba(130, 211, 255, .26);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(8, 35, 67, .97), rgba(4, 20, 40, .98));
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .46);
+    backdrop-filter: blur(20px);
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    animation: mobile-page-tabs-up .32s cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  .site-frame-clash .mobile-page-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .site-frame-clash .mobile-page-tabs > button {
+    min-height: 46px;
+    flex: 1 0 auto;
+    transform: translateY(0);
+    transition: color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .site-frame-clash .mobile-page-tabs > button:active {
+    transform: scale(.96);
+  }
+
+  .site-frame-clash .mobile-page-tabs--profile > button {
+    min-width: 98px;
+    flex-basis: 98px;
+    height: 46px;
+    padding-inline: 6px;
+    font-size: 12px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--leaderboards > button {
+    min-width: 64px;
+    flex: 1 1 64px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 3px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--leaderboards > button > svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--leaderboards > button strong {
+    font-size: 9px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--decks > button {
+    min-width: 82px;
+    flex: 1 1 82px;
+    padding-inline: 8px;
+  }
+}
+
+@keyframes mobile-page-tabs-up {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-frame-clash .mobile-page-tabs {
+    animation: none;
+  }
+
+  .site-frame-clash .mobile-page-tabs > button {
+    transition: none;
+  }
 }

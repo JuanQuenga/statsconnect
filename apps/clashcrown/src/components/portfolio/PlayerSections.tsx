@@ -161,7 +161,7 @@ export type PlayerTab = "Statistics" | "Battles" | "Decks" | "Cards" | "Chests";
 export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: (tab: PlayerTab) => void }) {
   const { t } = useI18n();
   return (
-    <nav className="profile-tabs" aria-label={t("player.sections")}>
+    <nav className="profile-tabs mobile-page-tabs mobile-page-tabs--profile" aria-label={t("player.sections")}>
       {tabItems.map((tab) => (
         <button key={tab.label} type="button" className={active === tab.label ? "active" : ""} aria-current={active === tab.label ? "page" : undefined} onClick={() => onChange(tab.label as PlayerTab)}>
           <Image src={tab.icon} alt="" width={28} height={28} />

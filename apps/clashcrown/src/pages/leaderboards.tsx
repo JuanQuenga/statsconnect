@@ -82,7 +82,7 @@ function LeaderboardHero({ view, onSelectView, mode = "live" }: { view: Leaderbo
       ? "Review the rankings interface with deterministic local data. No Convex requests are made in this mode."
       : "Compare live player, clan, and Clan War rankings—and see who is moving."}
     actions={
-      <nav className={styles.modeSwitch} aria-label="Leaderboard type">
+      <nav className={`${styles.modeSwitch} mobile-page-tabs mobile-page-tabs--leaderboards`} aria-label="Leaderboard type">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           return <button key={tab.view} type="button" className={view === tab.view ? styles.activeMode : undefined} aria-pressed={view === tab.view} onClick={() => onSelectView(tab.view)}>
