@@ -55,7 +55,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
   const arenaTransitionClass = arenaTransitionFor(pathname);
 
   const navItems = [
-    { href: "/", label: t("nav.home"), icon: <Image src="/images/icons/blue.png" alt="" width={27} height={27} /> },
+    { href: "/", label: t("nav.home"), icon: <Image src="/images/icons/home-crown-v2.webp" alt="" width={27} height={27} /> },
     { href: "/meta", label: t("nav.meta") },
     { href: "/leaderboards", label: t("nav.leaderboards"), mobileLabel: locale === "es" ? "Clasif." : "Ranks", icon: <Image src="/images/icons/trophy.png" alt="" width={27} height={27} /> },
     { href: "/cards", label: t("nav.cards"), icon: <Image src="/images/icons/book-cards.png" alt="" width={27} height={27} /> },

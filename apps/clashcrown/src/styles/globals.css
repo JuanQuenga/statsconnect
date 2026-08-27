@@ -6102,7 +6102,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   color: #fff;
   align-items: start;
   background:
-    url("/images/theme/subreddit/footer-king.png") center 34px / 123px 205px no-repeat,
+    url("/images/theme/subreddit/footer-king-upscaled.webp") center 34px / 123px 205px no-repeat,
     url("/images/theme/subreddit/footer-lances.png") center bottom / clamp(1161px, 100%, 1710px) auto no-repeat,
     url("/images/theme/subreddit/arena-wall-upscaled.png") center top / auto 400px repeat-x,
     url("/images/theme/subreddit/arena-wall-footer-body-upscaled.png") center top / 256px 256px repeat;
