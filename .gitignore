@@ -7,6 +7,7 @@ coverage
 __pycache__/
 *.pyc
 .generated/brawl-3d/
+.dev-certs/
 .env
 .env.local
 *.local
