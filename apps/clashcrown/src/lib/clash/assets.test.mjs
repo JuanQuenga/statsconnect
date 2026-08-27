@@ -89,11 +89,11 @@ test("an active variant keeps its variant treatment when only the API-selected i
 test("card art falls back to matching vendored portraits before the unknown placeholder", () => {
   assert.deepEqual(cardArtFallbacks({ name: "Elite Barbarians" }), [
     "/images/cards/elite-barbarians.png",
-    "/images/cards/unknown-v2.webp"
+    "/images/cards/unknown.png"
   ]);
   assert.deepEqual(cardArtFallbacks({ name: "Battle Ram", variant: "Evolution" }), [
     "/images/cards/battle-ram-ev1.png",
     "/images/cards/battle-ram.png",
-    "/images/cards/unknown-v2.webp"
+    "/images/cards/unknown.png"
   ]);
 });

@@ -15,8 +15,8 @@
 
 import type { ApiArena, ApiCard, ApiIconUrls } from "./types";
 
-export const UNKNOWN_CARD_IMAGE = "/images/cards/unknown-v2.webp";
-export const NO_CLAN_BADGE_IMAGE = "/images/clan-badges/no-clan-v2.webp";
+export const UNKNOWN_CARD_IMAGE = "/images/cards/unknown.png";
+export const NO_CLAN_BADGE_IMAGE = "/images/clan-badges/0.png";
 
 /** Normalizes a display name into the filename convention used by cr-api-assets. */
 export function slugify(value: string) {
