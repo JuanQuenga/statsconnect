@@ -22,7 +22,7 @@ import type { ProfileHistoryPoint } from "@/lib/clash/types";
 import { useI18n, type Locale, type MessageKey } from "@/lib/i18n";
 
 const tabItems = [
-  { label: "Statistics", message: "player.statistics", icon: "/images/icons/trophy.png" },
+  { label: "Statistics", message: "player.statistics", icon: "/images/ui-icons/trophies.png" },
   { label: "Battles", message: "player.battles", icon: "/images/icons/sword.png" },
   { label: "Decks", message: "player.decks", icon: "/images/icons/cardsq.png" },
   { label: "Cards", message: "player.cards", icon: "/images/icons/book-cards.png" },
@@ -189,7 +189,7 @@ export function PlayerStats({ player, onRefresh, isRefreshing }: { player: Playe
       {rows.length ? (
         <div className="career-ledger">
           <div className="career-lead">
-            <Image src="/images/icons/trophy.png" alt="" width={76} height={76} />
+            <Image src="/images/ui-icons/trophies.png" alt="" width={76} height={76} />
             <div>
               <span>{lead[0]}</span>
               <strong>{lead[1]}</strong>
@@ -231,8 +231,8 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
           value={performance.draws ? `${performance.wins}–${performance.losses}–${performance.draws}` : `${performance.wins}–${performance.losses}`}
           label={performance.draws ? "W / L / D record" : "W / L record"}
         />
-        <PerformanceStat icon="/images/icons/trophy.png" value={`${performance.winRate.toFixed(1)}%`} label="Win rate" />
-        <PerformanceStat icon="/images/icons/crown-gold.png" value={`${performance.threeCrownRate.toFixed(1)}%`} label={`${performance.threeCrownWins} three-crown wins`} />
+        <PerformanceStat icon="/images/ui-icons/trophies.png" value={`${performance.winRate.toFixed(1)}%`} label="Win rate" />
+        <PerformanceStat icon="/images/icons/three.png" value={`${performance.threeCrownRate.toFixed(1)}%`} label={`${performance.threeCrownWins} three-crown wins`} />
         <PerformanceStat icon="/images/icons/sword.png" value={`${performance.currentWinStreak} / ${performance.bestWinStreak}`} label="Current / best streak" />
       </div>
       <div className="performance-grid">
@@ -287,11 +287,12 @@ function PerformanceStat({ icon, value, label }: { icon: string; value: string; 
 }
 
 function statIcon(label: string) {
-  if (label.includes("card")) return "/images/icons/cardsq.png";
-  if (label.includes("3 crown")) return "/images/icons/crown-gold.png";
-  if (label.includes("donation")) return "/images/icons/crown-2d.png";
-  if (label.includes("win") || label === "Losses" || label === "Battles") return "/images/icons/sword.png";
-  return "/images/icons/trophy.png";
+  const normalized = label.toLowerCase();
+  if (normalized.includes("card")) return "/images/icons/cardsq.png";
+  if (normalized.includes("3 crown")) return "/images/icons/three.png";
+  if (normalized.includes("donation")) return "/images/icons/card-collection.png";
+  if (normalized.includes("win") || normalized === "losses" || normalized === "battles") return "/images/icons/sword.png";
+  return "/images/ui-icons/trophies.png";
 }
 
 /**

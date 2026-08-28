@@ -57,7 +57,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
   const navItems = [
     { href: "/", label: t("nav.home"), icon: <Image src="/images/icons/blue-wide.png" alt="" width={27} height={27} /> },
     { href: "/meta", label: t("nav.meta") },
-    { href: "/leaderboards", label: t("nav.leaderboards"), mobileLabel: locale === "es" ? "Clasif." : "Ranks", icon: <Image src="/images/icons/trophy.png" alt="" width={27} height={27} /> },
+    { href: "/leaderboards", label: t("nav.leaderboards"), mobileLabel: locale === "es" ? "Clasif." : "Ranks", icon: <Image src="/images/ui-icons/trophies.png" alt="" width={27} height={27} /> },
     { href: "/cards", label: t("nav.cards"), icon: <Image src="/images/icons/book-cards.png" alt="" width={27} height={27} /> },
     { href: "/decks", label: t("nav.decks"), icon: <Image src="/images/icons/cardsq.png" alt="" width={27} height={27} /> },
     { href: "/clans/search", label: t("nav.clans") },

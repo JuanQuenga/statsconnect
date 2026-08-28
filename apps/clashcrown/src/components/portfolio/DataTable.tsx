@@ -16,7 +16,7 @@ export function RankCell({ rank, previousRank }: { rank?: number; previousRank?:
   );
 }
 
-export function TrophyCell({ value, icon = "/images/icons/trophy.png" }: { value?: number; icon?: string }) {
+export function TrophyCell({ value, icon = "/images/ui-icons/trophies.png" }: { value?: number; icon?: string }) {
   return (
     <span className="trophy-cell">
       <Image src={icon} alt="" width={20} height={20} />

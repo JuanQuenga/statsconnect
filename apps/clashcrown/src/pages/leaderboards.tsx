@@ -380,7 +380,7 @@ function Podium({ rows, kind, archived, mode = "live" }: { rows: DisplayRanking[
         <div className={styles.podiumBadge}>{row.badge ? <CardArt src={row.badge} fallback={NO_CLAN_BADGE_IMAGE} alt="" width={72} height={86} /> : <span>{row.rank}</span>}</div>
         <strong>{stripSupercellColorTags(row.name)}</strong>
         <small>{secondaryLabel(row, kind)}</small>
-        <div className={styles.podiumScore}><Image src="/images/icons/trophy.png" alt="" width={20} height={20} />{formatScore(row.score)}</div>
+        <div className={styles.podiumScore}><Image src="/images/ui-icons/trophies.png" alt="" width={20} height={20} />{formatScore(row.score)}</div>
       </>;
       return href ? <Link key={row.tag} href={href} className={styles.podiumCard} data-rank={row.rank}>{card}</Link> : <div key={row.tag} className={styles.podiumCard} data-rank={row.rank}>{card}</div>;
     })}</div>
@@ -425,7 +425,7 @@ function RankingRow({ row, kind, mode = "live" }: { row: DisplayRanking; kind: R
       <span><strong>{stripSupercellColorTags(row.name)}</strong><small>#{row.tag.replace(/^#/, "")} · {secondaryLabel(row, kind)}</small></span>
     </div>
     <Movement rankChange={rankChange} scoreChange={row.scoreChange} />
-    <div className={styles.rowScore}><Image src="/images/icons/trophy.png" alt="" width={20} height={20} /><strong>{formatScore(row.score)}</strong></div>
+    <div className={styles.rowScore}><Image src="/images/ui-icons/trophies.png" alt="" width={20} height={20} /><strong>{formatScore(row.score)}</strong></div>
     <ChevronRight className={styles.rowArrow} aria-hidden="true" />
   </Link>;
 }
