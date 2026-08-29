@@ -126,6 +126,14 @@ pnpm dev:clashcrown
 
 The root `pnpm dev` runs the canonical backend and Hub together. It does not run both Game Sites.
 
+To publish the exact current checkout for phone review, run:
+
+```sh
+pnpm preview:phone
+```
+
+The command creates a Vercel preview deployment and moves `https://statsconnect-phone.vercel.app` to it. The URL works outside your local network and always points to the latest run. Before printing the link, the command checks the Hub, Brawl Stars, and Clash Royale routes. It uses the StatsConnect preview environment variables and does not deploy to production. Run `vercel login` once if the Vercel CLI asks you to authenticate.
+
 ### Development without upstream credentials
 
 Set this in your personal Convex deployment to use deterministic Hub adapters:

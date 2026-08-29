@@ -15,6 +15,7 @@
     "dev:hub": "pnpm --filter statsconnect dev",
     "dev:brawlstats": "pnpm --filter brawlstats.io dev",
     "dev:clashcrown": "pnpm --filter clash-crown dev",
+    "preview:phone": "node scripts/phone-preview.ts",
     "materialize:brawl-assets": "node scripts/materialize-brawl-assets.mjs",
     "build": "node scripts/production-delivery.ts build",
     "build:unified": "node scripts/production-delivery.ts build",
