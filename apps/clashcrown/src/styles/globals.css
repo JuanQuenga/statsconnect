@@ -6426,9 +6426,9 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .profile-recent-form > header > div { min-width: 0; display: grid; gap: 4px; padding: 0 12px; border-left: 1px solid rgba(132, 161, 201, .16); }
 .profile-recent-form > header > div:first-child { padding-left: 0; border-left: 0; }
 .profile-recent-form > header strong { font: 820 20px/1 var(--font-ui); }
-.profile-form-pips { display: grid; grid-template-columns: repeat(10, minmax(14px, 1fr)); gap: 4px; }
+.profile-form-pips { display: grid; grid-template-columns: repeat(10, minmax(16px, 22px)); gap: 4px; justify-content: start; }
 .profile-form-pips > span {
-  height: 23px;
+  height: 22px;
   display: grid;
   place-items: center;
   border-radius: 5px;
@@ -6438,7 +6438,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 }
 .profile-form-pips > span.win { background: #208e5f; }
 .profile-form-pips > span.loss { background: #b6425e; }
-.profile-recent-form > p { margin: 0; color: #8398b5; font: 600 9px/1.3 var(--font-ui); }
+.profile-recent-form > p { margin: 0; color: #8398b5; font: 600 10px/1.3 var(--font-ui); }
 
 .profile-hero-deck { grid-column: 1 / -1; padding: 12px 14px 10px; }
 .profile-hero-deck > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
