@@ -6343,8 +6343,14 @@ a:hover .entity-cell strong { color: #75c5ff; }
   flex: none;
   display: grid;
   justify-items: end;
-  gap: 4px;
-  color: #8da4c2;
+  gap: 2px;
+  padding: 6px 10px;
+  border: 1px solid rgba(139, 177, 226, .28);
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(10, 26, 46, .74), rgba(5, 17, 32, .8));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(2, 10, 20, .35);
+  color: #b9cbe2;
   font: 650 10px/1.2 var(--font-ui);
 }
 .profile-hero-freshness strong { color: #f3f7ff; font-size: 12px; }
@@ -6488,22 +6494,12 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .profile-hero-deck-tools > div button,
   .profile-hero-deck-tools > div a { min-height: 28px; padding-inline: 7px; }
   .profile-hero-deck-tools > div span { display: none; }
-  .profile-hero-proposal > .profile-hero-actions { display: flex; flex-wrap: nowrap; gap: 7px; }
-  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions,
-  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions > div[aria-label*="profile tracking controls"],
-  .profile-hero-proposal > .profile-hero-actions .player-share-actions { width: auto; }
-  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions { flex: 1 1 auto; }
-  .profile-hero-proposal > .profile-hero-actions .player-share-actions { flex: 0 1 auto; display: flex; grid-template-columns: none; }
-  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
-  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { min-width: 0; height: 38px; padding-inline: 11px; }
-  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { width: 42px; flex: 0 0 42px; }
+  .profile-hero-proposal > .profile-hero-actions { display: grid; gap: 8px; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions { margin-right: 0; }
 }
 
 @media (max-width: 420px) {
   .profile-hero-freshness > span { max-width: 76px; text-align: right; }
-  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
-  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { font-size: 0; }
-  .profile-hero-proposal > .profile-hero-actions button svg { width: 18px; height: 18px; }
 }
 
 /* On phones, page-level navigation forms a second dock above the persistent
