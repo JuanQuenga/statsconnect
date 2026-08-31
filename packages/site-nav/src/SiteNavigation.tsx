@@ -7,7 +7,9 @@ export type SiteId = "statsconnect" | "brawl-stars" | "clash-royale";
 
 export type SiteNavigationLink = {
   href: string;
+  icon?: ReactNode;
   label: string;
+  mobileLabel?: string;
 };
 
 export type SiteNavigationLinkAdapterProps = {
@@ -61,6 +63,7 @@ export type SiteNavigationProps = {
   currentSite: SiteId;
   endContent?: ReactNode;
   links: readonly SiteNavigationLink[];
+  mobileLinks?: readonly SiteNavigationLink[];
   linkAdapter: SiteNavigationLinkAdapter;
   language?: SiteNavigationLanguage;
   account?: SiteNavigationAccount;
@@ -457,6 +460,7 @@ export function SiteNavigation({
   language,
   links,
   linkAdapter: LinkAdapter,
+  mobileLinks,
   profiles = [],
   renderSearch,
 }: SiteNavigationProps) {
@@ -468,6 +472,7 @@ export function SiteNavigation({
   const applicationOrigin = typeof window !== "undefined" && window.__statsConnectApplicationShell
     ? window.location.origin
     : hubOrigin;
+  const dockLinks = (mobileLinks ?? links).slice(0, 4);
 
   useEffect(() => {
     if (!open) return;
@@ -479,7 +484,7 @@ export function SiteNavigation({
     const focusables = () =>
       sheet
         ? Array.from(
-            sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+            sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), summary:not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
           )
         : [];
     mobileCloseRef.current?.focus();
@@ -515,7 +520,7 @@ export function SiteNavigation({
   }, [open]);
 
   return (
-    <header className="sc-nav" style={style}>
+    <header className="sc-nav" data-site={currentSite} style={style}>
       <div className="sc-nav__network">
         <div className="sc-nav__network-inner">
           <NetworkBrand currentSite={currentSite} hubOrigin={applicationOrigin} />
@@ -570,6 +575,14 @@ export function SiteNavigation({
               <button ref={mobileCloseRef} type="button" aria-label="Close navigation menu" onClick={close}><MenuIcon open /></button>
             </header>
             {renderSearch ? <div className="sc-nav__mobile-search">{renderSearch(close)}</div> : null}
+            {currentSite === "clash-royale" ? (
+              <div className="sc-nav__mobile-tools" aria-label="Site preferences">
+                {language ? <LanguageSelector language={language} /> : null}
+                <GamesMenu currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
+                {account ? <AccountChip account={account} /> : null}
+                {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
+              </div>
+            ) : null}
             <nav className="sc-nav__mobile-links" aria-label="Mobile primary navigation">
               {links.map((link) => (
                 <LinkAdapter key={link.href} href={link.href} className="sc-nav__mobile-link" onNavigate={close}>
@@ -580,6 +593,27 @@ export function SiteNavigation({
           </div>
         ) : null}
       </div>
+
+      {currentSite === "clash-royale" ? (
+        <nav className="sc-nav__mobile-dock" aria-label="Primary mobile navigation">
+          {dockLinks.map((link) => (
+            <LinkAdapter key={link.href} href={link.href} className="sc-nav__mobile-dock-link" onNavigate={close}>
+              <span className="sc-nav__mobile-dock-icon" aria-hidden>{link.icon}</span>
+              <span>{link.mobileLabel ?? link.label}</span>
+            </LinkAdapter>
+          ))}
+          <button
+            type="button"
+            className="sc-nav__mobile-dock-link sc-nav__mobile-dock-more"
+            aria-label="More navigation options"
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <span className="sc-nav__mobile-dock-icon" aria-hidden><MenuIcon open={open} /></span>
+            <span>More</span>
+          </button>
+        </nav>
+      ) : null}
     </header>
   );
 }

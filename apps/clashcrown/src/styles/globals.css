@@ -1736,6 +1736,7 @@ button { cursor: pointer; }
 }
 
 @media (max-width: 680px) {
+  .site-frame-clash { padding-bottom: var(--sc-nav-mobile-dock-offset, 0px); }
   .site-frame:not(.site-frame-home) main:has(.profile-page) { padding-top: 18px; }
   .home-hero,
   .page-band,
@@ -1747,7 +1748,7 @@ button { cursor: pointer; }
   .search-box { grid-template-columns: 112px 1fr 46px; }
   .hero-cards { margin-top: 62px; }
   .profile-page { padding-top: 20px; }
-  .profile-page:has(.profile-tabs) { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .profile-page:has(.profile-tabs) { padding-bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 88px); }
   .profile-hero { grid-template-columns: 1fr; gap: 22px; padding: 26px 20px; text-align: center; }
   .profile-identity-art { margin: 0 auto; }
   .profile-identity-meta,
@@ -1766,7 +1767,7 @@ button { cursor: pointer; }
     position: fixed;
     inset-inline: 16px;
     top: auto;
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 8px);
     justify-content: stretch;
     margin: 0 auto;
     padding: 5px;
@@ -1800,7 +1801,7 @@ button { cursor: pointer; }
   .profile-hero-metrics { grid-template-columns: 1fr; }
   .profile-hero-metric:nth-child(even) { border-left: 0; }
   .profile-hero-actions .player-share-actions { grid-template-columns: 1fr; }
-  .profile-tabs { inset-inline: 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .profile-tabs { inset-inline: 10px; bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 8px); }
   .profile-tabs button { min-width: 98px; flex-basis: 98px; padding-inline: 6px; }
   .stat-matrix { grid-template-columns: 1fr; }
 }

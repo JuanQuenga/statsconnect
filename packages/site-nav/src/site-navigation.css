@@ -518,7 +518,8 @@
 }
 .sc-nav__menu-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .sc-nav__mobile,
-.sc-nav__mobile-backdrop { display: none; }
+.sc-nav__mobile-backdrop,
+.sc-nav__mobile-dock { display: none; }
 
 @media (max-width: 1100px) {
   .sc-nav__search { display: none; }
@@ -560,6 +561,14 @@
   .sc-nav__mobile-heading button { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border: 1px solid var(--sc-nav-border); border-radius: 10px; color: var(--sc-nav-text); background: rgba(255, 255, 255, .05); }
   .sc-nav__mobile-heading svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
   .sc-nav__mobile-search { position: relative; z-index: 2; padding: 16px 0 10px; }
+  .sc-nav__mobile-tools { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
+  .sc-nav__mobile-tools .sc-nav__games { display: block; position: relative; }
+  .sc-nav__mobile-tools .sc-nav__games summary { height: 36px; }
+  .sc-nav__mobile-tools .sc-nav__game-menu { right: auto; left: 0; width: min(250px, calc(100vw - 68px)); max-width: calc(100vw - 68px); }
+  .sc-nav__mobile-tools .sc-nav__account { width: auto; max-width: 190px; height: 36px; padding: 3px 8px 3px 3px; }
+  .sc-nav__mobile-tools .sc-nav__account-copy { display: block; }
+  .sc-nav__mobile-tools .sc-nav__sign-in { width: auto; height: 36px; padding: 0 12px; overflow: visible; font-size: 12px; }
+  .sc-nav__mobile-tools .sc-nav__sign-in::before { content: none; }
   .sc-nav__mobile-links { min-height: 0; display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 6px; padding: 6px; overflow-y: auto; border: 1px solid rgba(230, 226, 244, .1); border-radius: 14px; background: rgba(255, 255, 255, .025); }
   .sc-nav__mobile-link { min-height: 48px; padding: 13px 14px; display: flex; align-items: center; border-radius: 9px; color: #c2ccdc; background: transparent; font-size: 15px; font-weight: 650; }
   .sc-nav__mobile-link:hover,
@@ -593,6 +602,144 @@
   .sc-nav__brand { max-width: 132px; }
   .sc-nav__brand img { max-width: 128px; max-height: 38px; }
   .sc-nav__menu-button { width: 42px; height: 42px; }
+}
+
+@media (max-width: 680px) {
+  :root {
+    --sc-nav-mobile-dock-height: 70px;
+    --sc-nav-mobile-dock-offset: calc(var(--sc-nav-mobile-dock-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .sc-nav[data-site="clash-royale"] {
+    height: 0;
+    position: static;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__network,
+  .sc-nav[data-site="clash-royale"] .sc-nav__site {
+    display: none;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock {
+    min-width: 0;
+    height: var(--sc-nav-mobile-dock-offset);
+    box-sizing: border-box;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 83;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-top: 1px solid rgba(130, 211, 255, .25);
+    background: linear-gradient(180deg, rgba(7, 30, 58, .97), rgba(3, 16, 32, .99));
+    box-shadow: 0 -14px 38px rgba(0, 0, 0, .42);
+    backdrop-filter: blur(20px);
+    animation: sc-nav-dock-up .3s cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link {
+    min-width: 0;
+    min-height: 50px;
+    padding: 4px 2px 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+    border: 0;
+    border-radius: 13px;
+    color: #9eb9d2;
+    background: transparent;
+    font: 750 10px/1 var(--font-ui, Inter, ui-sans-serif, system-ui, sans-serif);
+    letter-spacing: .01em;
+    white-space: nowrap;
+    transition: color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .2s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link:active {
+    transform: scale(.96);
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link:hover,
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link[aria-current="page"],
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-more[aria-expanded="true"] {
+    color: white;
+    background: linear-gradient(180deg, #167bd0 0%, #075ca9 100%);
+    box-shadow: 0 7px 18px rgba(0, 100, 190, .34);
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-icon {
+    width: 27px;
+    height: 27px;
+    display: grid;
+    place-items: center;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-icon img {
+    width: 27px;
+    height: 27px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .42));
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-icon svg {
+    width: 23px;
+    height: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile {
+    width: 100%;
+    max-height: calc(100dvh - var(--sc-nav-mobile-dock-offset));
+    inset: auto 0 var(--sc-nav-mobile-dock-offset);
+    border: 1px solid var(--sc-nav-border);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -22px 70px rgba(0, 0, 0, .52);
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile.is-open {
+    animation: sc-nav-sheet-up .22s ease-out both;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-panel {
+    height: auto;
+    max-height: calc(100dvh - var(--sc-nav-mobile-dock-offset));
+    padding: 16px;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-links {
+    flex: 1 1 auto;
+  }
+}
+
+@keyframes sc-nav-dock-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sc-nav-sheet-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock,
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile.is-open {
+    animation: none;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link {
+    transition: none;
+  }
 }
 
 @media (min-width: 641px) {
