@@ -86,9 +86,9 @@ function CardDetail({ slug }: { slug: string }) {
       </Head>
       <div className="profile-page">
         <ArenaHeroFrame className="card-detail-hero">
+          <Link href="/cards" className="breadcrumb card-detail-breadcrumb">← All cards</Link>
           <GameCardArt card={card} size="deck" portrait="highest" priority />
           <div>
-            <Link href="/cards" className="breadcrumb">← All cards</Link>
             <h1>{card.name}</h1>
             <div className="card-detail-meta">
               <span className={`rarity-chip rarity-${card.rarity.toLowerCase()}`}>
@@ -103,7 +103,7 @@ function CardDetail({ slug }: { slug: string }) {
               {card.heroImage ? <span className="hero-chip">Hero available</span> : null}
             </div>
             <CardVariants card={card} />
-            <Link href={`/decks?include=${cardSlug(card.name)}`} className="pink-button">
+            <Link href={`/decks?include=${cardSlug(card.name)}`} className="pink-button card-detail-cta">
               Build a deck with {card.name}
             </Link>
           </div>
