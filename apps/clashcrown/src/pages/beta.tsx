@@ -1,5 +1,5 @@
 import Head from "@/components/Head";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
@@ -8,7 +8,7 @@ import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell, TrophyCell } from "@/components/portfolio/DataTable";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
-import { variantArt, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
+import { UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardCatalog } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/clash/domain";
 import type { PipelineRun, PipelineStatusPayload } from "@/lib/clash/types";
@@ -19,6 +19,14 @@ import {
   topCardsQuery,
   topDecksQuery
 } from "@/lib/convex";
+
+function unknownCard(id: number): Card {
+  return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
+}
+
+function cardsForIds(ids: readonly number[], byId: Map<number, Card>): Card[] {
+  return ids.map((id) => byId.get(id) ?? unknownCard(id));
+}
 
 /**
  * Internal dashboard for the battle-log pipeline. It ships to production on
@@ -233,20 +241,6 @@ function pct(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-/** Mirrors the deck thumb on /meta: a variant slot renders its own art. */
-function CardThumb({ card, id, evolved }: { card?: Card; id: number; evolved?: boolean }) {
-  const name = card?.name ?? `Card ${id}`;
-  const variant = evolved ? variantArt(card) : undefined;
-  const label = variant ? `${name} (${variant.label})` : name;
-  const marked = evolved && !variant;
-  return (
-    <span className={marked ? "beta-thumb beta-thumb-evo" : "beta-thumb"} title={label}>
-      {marked ? <i className="evo-dot" aria-hidden="true" /> : null}
-      <CardArt src={variant?.src ?? card?.image ?? UNKNOWN_CARD_IMAGE} alt={label} width={46} height={56} />
-    </span>
-  );
-}
-
 /** Shown whenever a table has no rows yet, so nobody reads "0" as "nothing wins". */
 function NotEnoughData({ mode, windowDays }: { mode: MetaMode; windowDays: number }) {
   return (
@@ -303,18 +297,13 @@ function TopDecks({
       note={`${modeLabel(mode)}, last ${windowDays === 1 ? "24 hours" : `${windowDays} days`}. Ranked by how often the deck was played.`}
     >
       {decks.map((deck) => {
-        const evolved = new Set(deck.evolutionIds);
         return (
           <tr key={deck._id}>
             <td>
               <RankCell rank={deck.rank} />
             </td>
             <td>
-              <span className="beta-deck">
-                {deck.cardIds.map((id, index) => (
-                  <CardThumb key={`${id}-${index}`} id={id} card={byId.get(id)} evolved={evolved.has(id)} />
-                ))}
-              </span>
+              <DeckCardGrid cards={cardsForIds(deck.cardIds, byId)} evolutionIds={deck.evolutionIds} label={`Deck ranked ${deck.rank}`} size="compact" />
             </td>
             <td>{deck.uses.toLocaleString()}</td>
             <td className={deck.winRate >= 0.5 ? "decks-done" : "decks-none"}>{pct(deck.winRate)}</td>
@@ -364,8 +353,7 @@ function TopCards({
               <EntityCell
                 href={card ? `/cards/${cardSlug(card.name)}` : undefined}
                 name={card?.name ?? `Card ${row.cardId}`}
-                badge={card?.image ?? UNKNOWN_CARD_IMAGE}
-                badgeFallback={UNKNOWN_CARD_IMAGE}
+                card={card ?? unknownCard(row.cardId)}
                 sub={card ? `${card.rarity} · ${card.elixir} elixir` : "Not in the catalog"}
               />
             </td>
@@ -427,15 +415,7 @@ function Playground({ byId }: { byId: Map<number, Card> }) {
         <div>
           <span>Card thumbs</span>
           <div>
-            <span className="beta-deck">
-              {sample.length ? (
-                sample.map((card, index) => (
-                  <CardThumb key={card.id ?? index} id={card.id ?? 0} card={card} evolved={index === 0} />
-                ))
-              ) : (
-                <CardThumb id={0} />
-              )}
-            </span>
+            {sample.length ? <DeckCardGrid cards={sample} evolutionIds={sample[0]?.id === undefined ? [] : [sample[0].id]} label="Playground sample deck" size="compact" /> : <DeckCardGrid cards={[unknownCard(0)]} label="Playground sample deck" size="compact" />}
           </div>
         </div>
       </div>

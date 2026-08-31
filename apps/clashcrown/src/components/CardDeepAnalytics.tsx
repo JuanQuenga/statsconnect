@@ -1,28 +1,27 @@
 import { useQuery } from "convex/react";
-import { CardArt } from "./portfolio/CardArt";
 import Link from "./Link";
+import { DeckCardGrid } from "./portfolio/DeckCardGrid";
+import { GameCardArt } from "./portfolio/GameCardArt";
 import { TrendChart } from "./TrendChart";
 import { cardDetailQuery, type DeckSummary, type RelatedCardStat } from "@/lib/analytics";
 import { cardSlug } from "@/lib/clash/cards";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
-import { UNKNOWN_CARD_IMAGE, variantArt } from "@/lib/clash/assets";
+import { UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import type { Card } from "@/lib/clash/domain";
 
 function pct(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function unknownCard(id: number): Card {
+  return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
+}
+
 function MiniDeck({ deck, byId }: { deck: DeckSummary; byId: Map<number, Card> }) {
-  const evolved = new Set(deck.evolutionIds);
+  const cards = deck.cardIds.map((id) => byId.get(id) ?? unknownCard(id));
   return (
-    <article className="card-analytics-deck">
-      <div>
-        {deck.cardIds.map((id, index) => {
-          const card = byId.get(id);
-          const variant = evolved.has(id) ? variantArt(card) : undefined;
-          return <Link key={`${id}-${index}`} href={card ? `/cards/${cardSlug(card.name)}` : "/cards"}><CardArt src={variant?.src ?? card?.image ?? UNKNOWN_CARD_IMAGE} alt={card?.name ?? `Card ${id}`} width={44} height={54} /></Link>;
-        })}
-      </div>
+    <article className="analytics-deck-card">
+      <DeckCardGrid cards={cards} evolutionIds={deck.evolutionIds} label="Top deck containing this card" size="compact" />
       <p><strong>{pct(deck.winRate)}</strong> win rate <span>·</span> {deck.uses.toLocaleString()} games <span>·</span> {pct(deck.usageRate)} usage</p>
     </article>
   );
@@ -36,7 +35,7 @@ function RelatedStats({ title, note, rows, byId, empty }: { title: string; note:
       {rows.length ? <div>{rows.map((row) => {
         const card = byId.get(row.cardId);
         return <Link key={row.cardId} href={card ? `/cards/${cardSlug(card.name)}` : "/cards"} className="related-stat-row">
-          <CardArt src={card?.image ?? UNKNOWN_CARD_IMAGE} alt="" width={42} height={52} />
+          <GameCardArt card={card ?? unknownCard(row.cardId)} size="mini" />
           <span><strong>{card?.name ?? `Card ${row.cardId}`}</strong><small>{row.uses.toLocaleString()} shared games</small></span>
           <b>{pct(row.winRate)}</b>
         </Link>;
@@ -66,7 +65,7 @@ export function CardDeepAnalytics({ card, mode, byId }: { card: Card; mode: Meta
 
       <section className="profile-section">
         <div className="section-heading"><h2>Top decks containing {card.name}</h2></div>
-        {report.topDecks.length ? <div className="card-analytics-decks">{report.topDecks.map((deck) => <MiniDeck key={deck.deckHash} deck={deck} byId={byId} />)}</div> : <p className="empty-results">No deck containing {card.name} reached the ranked-deck sample floor in {modeLabel(mode)}.</p>}
+        {report.topDecks.length ? <div className="analytics-deck-list">{report.topDecks.map((deck) => <MiniDeck key={deck.deckHash} deck={deck} byId={byId} />)}</div> : <p className="empty-results">No deck containing {card.name} reached the ranked-deck sample floor in {modeLabel(mode)}.</p>}
         <p className="table-note">These are the highest-usage ranked decks, not hand-picked recommendations.</p>
       </section>
 

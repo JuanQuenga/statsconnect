@@ -1,5 +1,5 @@
 import Head from "@/components/Head";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import Link from "@/components/Link";
 import { useState } from "react";
 import { useQuery } from "convex/react";
@@ -12,11 +12,19 @@ import { SetupState } from "@/components/portfolio/AsyncState";
 import { EntityCell, RankCell, TableShell } from "@/components/portfolio/DataTable";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
-import { averageElixir, copyDeckLink, variantArt, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
+import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardCatalog } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/clash/domain";
 import { isConvexConfigured, topCardsQuery, topDecksQuery, topTowerTroopsQuery } from "@/lib/convex";
 import { useI18n } from "@/lib/i18n";
+
+function unknownCard(id: number): Card {
+  return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
+}
+
+function cardsForIds(ids: readonly number[], byId: Map<number, Card>): Card[] {
+  return ids.map((id) => byId.get(id) ?? unknownCard(id));
+}
 
 /**
  * The public face of the battle-log pipeline.
@@ -130,24 +138,6 @@ function rateClass(value: number) {
   return value >= 0.5 ? "decks-done" : "decks-none";
 }
 
-/**
- * One card in a deck. An Evolution or Hero is its own artwork upstream, so a
- * variant slot renders that art rather than the base card — the ring and dot are
- * only needed when the card has no variant art to fall back on.
- */
-function CardThumb({ card, id, evolved }: { card?: Card; id: number; evolved?: boolean }) {
-  const name = card?.name ?? `Card ${id}`;
-  const variant = evolved ? variantArt(card) : undefined;
-  const label = variant ? `${name} (${variant.label})` : name;
-  const marked = evolved && !variant;
-  return (
-    <span className={marked ? "beta-thumb beta-thumb-evo" : "beta-thumb"} title={label}>
-      {marked ? <i className="evo-dot" aria-hidden="true" /> : null}
-      <CardArt src={variant?.src ?? card?.image ?? UNKNOWN_CARD_IMAGE} alt={label} width={46} height={56} />
-    </span>
-  );
-}
-
 function NotEnoughData({ mode, windowDays }: { mode: MetaMode; windowDays: number }) {
   const { locale, t } = useI18n();
   return (
@@ -254,7 +244,6 @@ function TopDecks({
       }. Ranked by how often the deck was played, not by how well it did — a deck has to be seen at least five times to appear.`}
     >
       {decks.map((deck) => {
-        const evolved = new Set(deck.evolutionIds);
         const elixir = averageElixir(deck.cardIds.map((id) => ({ elixirCost: byId.get(id)?.elixir })));
         const expanded = expandedDeckHash === deck.deckHash;
         return [
@@ -263,13 +252,7 @@ function TopDecks({
               <RankCell rank={deck.rank} />
             </td>
             <td>
-              <span className="beta-deck">
-                {deck.cardIds.map((id, index) => (
-                  <Link key={`${id}-${index}`} href={byId.get(id) ? `/cards/${cardSlug(byId.get(id)!.name)}` : "/cards"}>
-                    <CardThumb id={id} card={byId.get(id)} evolved={evolved.has(id)} />
-                  </Link>
-                ))}
-              </span>
+              <DeckCardGrid cards={cardsForIds(deck.cardIds, byId)} evolutionIds={deck.evolutionIds} label={`Deck ranked ${deck.rank}`} size="compact" />
             </td>
             <td>{elixir ? elixir.toFixed(1) : "—"}</td>
             <td>{formatNumber(deck.uses)}</td>
@@ -346,8 +329,7 @@ function TopCards({
               <EntityCell
                 href={card ? `/cards/${cardSlug(card.name)}` : undefined}
                 name={card?.name ?? `Card ${row.cardId}`}
-                badge={card?.image ?? UNKNOWN_CARD_IMAGE}
-                badgeFallback={UNKNOWN_CARD_IMAGE}
+                card={card ?? unknownCard(row.cardId)}
                 sub={card ? `${card.rarity} · ${card.elixir} elixir` : "Not in the catalog"}
               />
             </td>
@@ -410,8 +392,7 @@ function TopTowerTroops({
               <EntityCell
                 href={card ? `/cards/${cardSlug(card.name)}` : undefined}
                 name={card?.name ?? `Tower Troop ${row.towerCardId}`}
-                badge={card?.image ?? UNKNOWN_CARD_IMAGE}
-                badgeFallback={UNKNOWN_CARD_IMAGE}
+                card={card ?? unknownCard(row.towerCardId)}
                 sub={card ? card.rarity : "Not in the catalog"}
               />
             </td>

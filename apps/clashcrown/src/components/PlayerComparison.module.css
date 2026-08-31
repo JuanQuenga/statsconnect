@@ -200,36 +200,29 @@
   background: rgba(8, 24, 44, .5);
 }
 
-.cards {
+.deckWithShared {
+  position: relative;
+}
+
+.comparisonGrid {
+  width: 100%;
+  --deck-grid-max-width: 100%;
+}
+
+.sharedBadgeGrid {
+  position: absolute;
+  inset: 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 3px;
+  column-gap: clamp(2px, .55vw, 6px);
+  row-gap: clamp(1px, .3vw, 4px);
+  pointer-events: none;
 }
 
-.card {
-  position: relative;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 10px;
-  color: white;
-  background: transparent;
-  text-align: center;
-  transition: transform .18s ease;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-}
-
-.card :global(.game-card-art) {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.shared {
-  filter: drop-shadow(0 0 5px rgba(255, 212, 92, .72));
+.sharedBadgeGrid > span {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
 }
 
 .sharedBadge {

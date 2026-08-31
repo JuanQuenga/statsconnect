@@ -1,7 +1,7 @@
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
-import { CardArt } from "@/components/portfolio/CardArt";
-import { UNKNOWN_CARD_IMAGE, variantArt } from "@/lib/clash/assets";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
+import { UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import type { Card } from "@/lib/clash/domain";
 import { clashBackend } from "@/lib/platformBackend";
 
@@ -17,36 +17,21 @@ function rateColor(value: number) {
   return value >= 0.5 ? "#7ae0ff" : "#ff9bba";
 }
 
-function MatchupCard({ id, card, evolved }: { id: number; card?: Card; evolved: boolean }) {
-  const variant = evolved ? variantArt(card) : undefined;
-  const name = card?.name ?? `Card ${id}`;
-  const label = variant ? `${name} (${variant.label})` : name;
-  const marked = evolved && !variant;
-
-  return (
-    <span className={marked ? "beta-thumb beta-thumb-evo" : "beta-thumb"} title={label}>
-      {marked ? <i className="evo-dot" aria-hidden="true" /> : null}
-      <CardArt src={variant?.src ?? card?.image ?? UNKNOWN_CARD_IMAGE} alt={label} width={46} height={56} />
-    </span>
-  );
+function unknownCard(id: number): Card {
+  return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
 }
 
 function MatchupDeck({ matchup, byId }: { matchup: Matchup; byId: Map<number, Card> }) {
-  const evolved = new Set(
-    matchup.oppDeckHash
-      .split("-")
-      .filter((token) => token.endsWith("e"))
-      .map((token) => Number(token.slice(0, -1)))
-      .filter((id) => Number.isInteger(id))
-  );
+  const evolutionIds = matchup.oppDeckHash
+    .split("-")
+    .filter((token) => token.endsWith("e"))
+    .map((token) => Number(token.slice(0, -1)))
+    .filter((id) => Number.isInteger(id));
+  const cards = matchup.cardIds.map((id) => byId.get(id) ?? unknownCard(id));
 
   return (
     <div style={{ display: "grid", gap: 8, minWidth: 196 }}>
-      <div className="beta-deck">
-        {matchup.cardIds.map((id, index) => (
-          <MatchupCard key={`${id}-${index}`} id={id} card={byId.get(id)} evolved={evolved.has(id)} />
-        ))}
-      </div>
+      <DeckCardGrid cards={cards} evolutionIds={evolutionIds} label="Opponent deck" size="compact" />
       <span style={{ color: rateColor(matchup.winRate), font: "12px var(--font-ui)" }}>
         {pct(matchup.winRate)} <small style={{ color: "#8ea2c4" }}>({matchup.uses.toLocaleString()} games)</small>
       </span>

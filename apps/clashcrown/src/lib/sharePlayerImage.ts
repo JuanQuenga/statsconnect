@@ -92,31 +92,36 @@ async function drawCards(context: CanvasRenderingContext2D, cards: Card[]) {
   const startX = 70;
   const gap = 12;
   const tileWidth = 122;
+  const tileHeight = 76;
+  const rowGap = 8;
 
   cards.forEach((card, index) => {
-    const x = startX + index * (tileWidth + gap);
-    fillRoundedRect(context, x, 412, tileWidth, 145, 16, "rgba(8, 24, 44, .9)");
+    const column = index % 4;
+    const row = Math.floor(index / 4);
+    const x = startX + column * (tileWidth + gap);
+    const y = 412 + row * (tileHeight + rowGap);
+    fillRoundedRect(context, x, y, tileWidth, tileHeight, 16, "rgba(8, 24, 44, .9)");
     const image = images[index];
     if (image) {
-      const scale = Math.min(86 / image.width, 96 / image.height);
+      const scale = Math.min(86 / image.width, 45 / image.height);
       const width = image.width * scale;
       const height = image.height * scale;
-      context.drawImage(image, x + (tileWidth - width) / 2, 422 + (96 - height) / 2, width, height);
+      context.drawImage(image, x + (tileWidth - width) / 2, y + 5 + (45 - height) / 2, width, height);
     } else {
-      fillRoundedRect(context, x + 28, 428, 66, 82, 10, "rgba(72, 96, 137, .4)");
+      fillRoundedRect(context, x + 28, y + 5, 66, 42, 10, "rgba(72, 96, 137, .4)");
       context.fillStyle = "#cbd8ef";
       context.font = "700 28px ProximaNova, Inter, sans-serif";
       context.textAlign = "center";
-      context.fillText(card.name.slice(0, 1).toUpperCase(), x + tileWidth / 2, 480);
+      context.fillText(card.name.slice(0, 1).toUpperCase(), x + tileWidth / 2, y + 35);
       context.textAlign = "left";
     }
     context.fillStyle = "#f8fbff";
     context.font = "700 13px ProximaNova, Inter, sans-serif";
     context.textAlign = "center";
-    context.fillText(card.name, x + tileWidth / 2, 535, tileWidth - 14);
+    context.fillText(card.name, x + tileWidth / 2, y + 59, tileWidth - 14);
     context.fillStyle = "#8ea2c4";
     context.font = "600 11px ProximaNova, Inter, sans-serif";
-    context.fillText(card.level !== undefined ? `LEVEL ${card.level}` : card.rarity.toUpperCase(), x + tileWidth / 2, 553);
+    context.fillText(card.level !== undefined ? `LEVEL ${card.level}` : card.rarity.toUpperCase(), x + tileWidth / 2, y + 72);
     context.textAlign = "left";
   });
 }

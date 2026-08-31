@@ -1,6 +1,6 @@
 import Head from "@/components/Head";
 import Image from "@/components/Image";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { useMemo, useState } from "react";
@@ -16,6 +16,8 @@ import { useCardMeta, DEFAULT_META_MODE } from "@/lib/useCardMeta";
 import type { Card } from "@/lib/clash/domain";
 import { errorMessage, isConvexConfigured } from "@/lib/convex";
 import { rankLabel, selectCardMetaScope } from "@/lib/cardMetaSelectors";
+
+type CardVariantOption = { label: "Base" | "Evolution" | "Hero"; card: Card };
 
 export default function CardDetailPage() {
   const router = useRouter();
@@ -84,7 +86,7 @@ function CardDetail({ slug }: { slug: string }) {
       </Head>
       <div className="profile-page">
         <ArenaHeroFrame className="card-detail-hero">
-          <CardArt src={highestAvailableCardArt(card)} alt={card.name} width={180} height={220} priority />
+          <GameCardArt card={card} size="deck" portrait="highest" priority />
           <div>
             <Link href="/cards" className="breadcrumb">← All cards</Link>
             <h1>{card.name}</h1>
@@ -136,22 +138,20 @@ function CardDetail({ slug }: { slug: string }) {
  */
 function CardVariants({ card }: { card: Card }) {
   const featured = highestAvailableCardArt(card);
-  const variants = [
-    { label: "Base", src: card.image },
-    card.evolutionImage ? { label: "Evolution", src: card.evolutionImage } : null,
-    card.heroImage ? { label: "Hero", src: card.heroImage } : null
-  ].filter(
-    (variant): variant is { label: string; src: string } =>
-      variant !== null && variant.src !== featured
+  const variants: CardVariantOption[] = [{ label: "Base", card: { ...card, variant: undefined } }];
+  if (card.evolutionImage) variants.push({ label: "Evolution", card: { ...card, variant: "Evolution" } });
+  if (card.heroImage) variants.push({ label: "Hero", card: { ...card, variant: "Hero" } });
+  const visibleVariants = variants.filter(
+    (variant) => (variant.label === "Base" ? card.image : variant.label === "Evolution" ? card.evolutionImage : card.heroImage) !== featured
   );
 
-  if (!variants.length) return null;
+  if (!visibleVariants.length) return null;
 
   return (
     <div className="card-variants">
-      {variants.map((variant) => (
+      {visibleVariants.map((variant) => (
         <figure key={variant.label}>
-          <CardArt src={variant.src} alt={`${card.name} (${variant.label})`} width={64} height={78} />
+          <GameCardArt card={variant.card} size="mini" />
           <figcaption>{variant.label}</figcaption>
         </figure>
       ))}
@@ -243,7 +243,7 @@ function StatTile({ label, value, sub }: { label: string; value: string; sub: st
 function RelatedTile({ card }: { card: Card }) {
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="card-tile">
-      <CardArt src={highestAvailableCardArt(card)} alt={card.name} width={76} height={94} />
+      <GameCardArt card={card} size="mini" portrait="highest" />
       <strong>{card.name}</strong>
       <span>
         {card.rarity} · {card.elixir || "?"}

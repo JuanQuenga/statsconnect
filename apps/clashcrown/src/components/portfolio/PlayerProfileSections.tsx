@@ -1,5 +1,6 @@
 import { Award, Star } from "lucide-react";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { cardSlug } from "@/lib/clash/cards";
 import type { Card, Player, PlayerAchievement, PlayerBadge } from "@/lib/clash/domain";
@@ -60,7 +61,7 @@ function FavoriteCard({ card }: { card: Card }) {
   return (
     <Link className="favorite-card-panel" href={`/cards/${cardSlug(card.name)}`}>
       <strong className="favorite-card-label"><Star size={13} /> Favorite card</strong>
-      <CardArt src={card.image} alt={card.name} width={142} height={174} />
+      <GameCardArt card={card} size="deck" />
       <span className="favorite-card-copy">
         <strong>{card.name}</strong>
         <small>{card.rarity} · {card.elixir || "?"} elixir</small>
@@ -79,9 +80,8 @@ function SupportCardCollection({ cards }: { cards: Card[] }) {
       <div className="support-card-list">
         {cards.map((card) => (
           <Link href={`/cards/${cardSlug(card.name)}`} key={card.id ?? card.name} aria-label={card.name}>
-            <CardArt src={card.image} alt={card.name} width={88} height={108} />
+            <GameCardArt card={card} size="library" />
             <span>{card.name}</span>
-            {card.level !== undefined ? <small>Level {card.level}</small> : null}
           </Link>
         ))}
       </div>

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { ArrowDownRight, ArrowUpRight, ChevronRight } from "lucide-react";
-import { CardArt } from "./portfolio/CardArt";
 import Link from "./Link";
+import { DeckCardGrid } from "./portfolio/DeckCardGrid";
+import { GameCardArt } from "./portfolio/GameCardArt";
 import { TrendChart } from "./TrendChart";
 import { cardSlug } from "@/lib/clash/cards";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
-import { UNKNOWN_CARD_IMAGE, variantArt } from "@/lib/clash/assets";
+import { UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { cardReportQuery, deckReportQuery, towerReportQuery, type Archetype, type CardReport, type DeckReport, type EntityTrend } from "@/lib/analytics";
 import { useRouter } from "@/lib/router";
 import type { Card } from "@/lib/clash/domain";
@@ -20,11 +21,19 @@ function nameFor(id: number, byId: Map<number, Card>) {
   return byId.get(id)?.name ?? `Card ${id}`;
 }
 
+function unknownCard(id: number): Card {
+  return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
+}
+
+function cardsForIds(ids: readonly number[], byId: Map<number, Card>): Card[] {
+  return ids.map((id) => byId.get(id) ?? unknownCard(id));
+}
+
 function CardIdentity({ id, byId }: { id: number; byId: Map<number, Card> }) {
   const card = byId.get(id);
   return (
     <Link href={card ? `/cards/${cardSlug(card.name)}` : "/cards"} className="analytics-card-id">
-      <CardArt src={card?.image ?? UNKNOWN_CARD_IMAGE} alt="" width={42} height={52} />
+      <GameCardArt card={card ?? unknownCard(id)} size="mini" />
       <span><strong>{nameFor(id, byId)}</strong>{card ? <small>{card.rarity}</small> : null}</span>
     </Link>
   );
@@ -51,15 +60,19 @@ function DeckTrendList({ trends, byId, metric }: { trends: EntityTrend[]; byId: 
   return (
     <div className="trend-list">
       {trends.map((trend) => {
-        const ids = trend.id.split("-").flatMap((part) => {
+        const parts = trend.id.split("-");
+        const ids = parts.flatMap((part) => {
           const value = Number(part.replace(/e$/, ""));
+          return Number.isFinite(value) ? [value] : [];
+        });
+        const evolutionIds = parts.flatMap((part) => {
+          if (!part.endsWith("e")) return [];
+          const value = Number(part.slice(0, -1));
           return Number.isFinite(value) ? [value] : [];
         });
         return (
           <article key={trend.id} className="trend-row trend-row-deck">
-            <div className="analytics-mini-deck" aria-label={ids.map((id) => nameFor(id, byId)).join(", ")}>
-              {ids.map((id, index) => <CardArt key={`${id}-${index}`} src={byId.get(id)?.image ?? UNKNOWN_CARD_IMAGE} alt="" width={34} height={42} />)}
-            </div>
+            <DeckCardGrid cards={cardsForIds(ids, byId)} evolutionIds={evolutionIds} label={ids.map((id) => nameFor(id, byId)).join(", ")} size="compact" />
             <TrendChart points={trend.points} metric={metric} label="Deck" />
             <div className="trend-numbers"><strong>{pct(trend.usageRate)}</strong><span>{pct(trend.winRate)} wins</span></div>
           </article>
@@ -107,7 +120,7 @@ function TierList({ report, byId }: { report: CardReport; byId: Map<number, Card
             <div>{report.tiers.filter((row) => row.tier === tier).map((row) => {
               const card = byId.get(row.cardId);
               return <Link href={card ? `/cards/${cardSlug(card.name)}` : "/cards"} key={row.cardId} title={`${nameFor(row.cardId, byId)} · ${pct(row.winRate)} win rate · ${row.uses.toLocaleString()} games`}>
-                <CardArt src={card?.image ?? UNKNOWN_CARD_IMAGE} alt={nameFor(row.cardId, byId)} width={52} height={64} />
+                <GameCardArt card={card ?? unknownCard(row.cardId)} size="mini" />
               </Link>;
             })}</div>
           </div>
@@ -118,14 +131,9 @@ function TierList({ report, byId }: { report: CardReport; byId: Map<number, Card
 }
 
 function ArchetypeDeck({ deck, byId }: { deck: Archetype["representativeDecks"][number]; byId: Map<number, Card> }) {
-  const evolved = new Set(deck.evolutionIds);
   return (
-    <div className="archetype-deck">
-      <div>{deck.cardIds.map((id, index) => {
-        const card = byId.get(id);
-        const variant = evolved.has(id) ? variantArt(card) : undefined;
-        return <CardArt key={`${id}-${index}`} src={variant?.src ?? card?.image ?? UNKNOWN_CARD_IMAGE} alt={card?.name ?? `Card ${id}`} width={42} height={52} />;
-      })}</div>
+    <div className="analytics-deck-card">
+      <DeckCardGrid cards={cardsForIds(deck.cardIds, byId)} evolutionIds={deck.evolutionIds} label="Representative archetype deck" size="compact" />
       <span><strong>{deck.uses.toLocaleString()}</strong> games · {pct(deck.winRate)} wins</span>
     </div>
   );
@@ -142,7 +150,7 @@ function Archetypes({ report, byId, selected }: { report: DeckReport; byId: Map<
         <p className="table-note">This data-derived family groups decks whose two most distinctive cards are {title}. It contains {active.uses.toLocaleString()} observed games across the current window.</p>
         <div className="archetype-detail-chart"><TrendChart points={active.points} metric="usageRate" label={title} /><div><strong>{pct(active.usageRate)}</strong><span>usage</span><strong>{pct(active.winRate)}</strong><span>win rate</span></div></div>
         <h3>Most-played decks in this family</h3>
-        <div className="archetype-decks">{active.representativeDecks.map((deck) => <ArchetypeDeck key={deck.deckHash} deck={deck} byId={byId} />)}</div>
+        <div className="analytics-deck-list">{active.representativeDecks.map((deck) => <ArchetypeDeck key={deck.deckHash} deck={deck} byId={byId} />)}</div>
       </section>
     );
   }
@@ -153,7 +161,7 @@ function Archetypes({ report, byId, selected }: { report: DeckReport; byId: Map<
       {report.archetypes.length ? <div className="archetype-grid">{report.archetypes.map((item) => {
         const title = item.coreCardIds.map((id) => nameFor(id, byId)).join(" + ");
         return <Link href={`/meta?archetype=${item.id}#archetypes`} key={item.id} className="archetype-card">
-          <div className="archetype-core">{item.coreCardIds.map((id) => <CardArt key={id} src={byId.get(id)?.image ?? UNKNOWN_CARD_IMAGE} alt="" width={54} height={66} />)}</div>
+          <div className="archetype-core">{item.coreCardIds.map((id) => <GameCardArt key={id} card={byId.get(id) ?? unknownCard(id)} size="mini" />)}</div>
           <h3>{title}</h3>
           <TrendChart points={item.points} metric="usageRate" label={title} />
           <p><strong>{pct(item.usageRate)}</strong> usage <span>·</span> <strong>{pct(item.winRate)}</strong> wins</p>

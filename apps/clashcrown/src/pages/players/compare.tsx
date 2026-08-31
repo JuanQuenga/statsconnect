@@ -2,12 +2,11 @@ import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { FormEvent, useEffect, useState } from "react";
-import { GameCardArt } from "@/components/portfolio/GameCardArt";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import styles from "@/components/PlayerComparison.module.css";
-import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured } from "@/lib/convex";
 import { usePlayerAcquisition } from "@/lib/clash/profileAcquisition";
 import { normalizeTag } from "@/lib/clash/tag";
@@ -183,21 +182,13 @@ function DeckColumn({ cards, shared }: { cards: Card[]; shared: Set<string> }) {
   if (!cards.length) return <div className={styles.emptyDeck}>No current deck available.</div>;
   return (
     <div className={styles.deckColumn}>
-      <div className={styles.cards}>
-        {cards.map((card, index) => {
-          const isShared = shared.has(cardKey(card));
-          return (
-            <Link
-              href={`/cards/${cardSlug(card.name)}`}
-              className={`${styles.card} ${isShared ? styles.shared : ""}`}
-              key={`${cardKey(card)}-${index}`}
-              aria-label={`${card.name}${isShared ? " — shared by both players" : ""}`}
-            >
-              {isShared ? <span className={styles.sharedBadge}>Shared</span> : null}
-              <GameCardArt card={card} size="library" />
-            </Link>
-          );
-        })}
+      <div className={styles.deckWithShared}>
+        <DeckCardGrid cards={cards} label="Current deck" size="standard" className={styles.comparisonGrid} />
+        <div className={styles.sharedBadgeGrid} aria-hidden="true">
+          {cards.map((card, index) => (
+            <span key={`${cardKey(card)}-${index}`}>{shared.has(cardKey(card)) ? <span className={styles.sharedBadge}>Shared</span> : null}</span>
+          ))}
+        </div>
       </div>
     </div>
   );

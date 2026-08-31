@@ -2,7 +2,7 @@ import { CardArt } from "@/components/portfolio/CardArt";
 import { cardArtFallbacks, highestAvailableCardArt, selectCardArt, slugify } from "@/lib/clash/assets";
 import type { Card } from "@/lib/clash/domain";
 
-type GameCardArtSize = "library" | "collection" | "deck";
+type GameCardArtSize = "mini" | "micro" | "library" | "collection" | "deck";
 type GameCardArtPortrait = "active" | "highest";
 
 export function GameCardArt({
@@ -10,16 +10,20 @@ export function GameCardArt({
   size = "collection",
   priority = false,
   showLevel = true,
-  portrait = "active"
+  portrait = "active",
+  evolve = false
 }: {
   card: Pick<Card, "name" | "image" | "evolutionImage" | "heroImage" | "variant" | "rarity" | "elixir" | "level">;
   size?: GameCardArtSize;
   priority?: boolean;
   showLevel?: boolean;
   portrait?: GameCardArtPortrait;
+  evolve?: boolean;
 }) {
   const activeArt = selectCardArt(card);
-  const art: { src: string; variant: "Evolution" | "Hero" | undefined } = portrait === "highest"
+  const art: { src: string; variant: "Evolution" | "Hero" | undefined } = evolve
+    ? { src: card.evolutionImage ?? card.image, variant: "Evolution" }
+    : portrait === "highest"
     ? {
         src: highestAvailableCardArt(card),
         variant: card.heroImage ? "Hero" : card.evolutionImage ? "Evolution" : undefined
@@ -36,7 +40,7 @@ export function GameCardArt({
     >
       <CardArt
         src={art.src}
-        alt={card.name}
+        alt={art.variant ? `${card.name} (${art.variant})` : card.name}
         width={150}
         height={180}
         priority={priority}

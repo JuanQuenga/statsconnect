@@ -121,13 +121,7 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
             </div>
           </header>
           {deck.length ? (
-            <div className="profile-hero-deck-rail">
-              {deck.map((card, index) => (
-                <Link key={`${card.name}-${index}`} href={`/cards/${cardSlug(card.name)}`} aria-label={card.name}>
-                  <GameCardArt card={card} size="library" showLevel={false} priority={index < 4} />
-                </Link>
-              ))}
-            </div>
+            <DeckCardGrid cards={deck} label={locale === "es" ? "Cartas del mazo actual" : "Current deck cards"} size="compact" priorityCount={4} className="profile-hero-deck-grid" />
           ) : <p>{locale === "es" ? "El perfil no incluye un mazo actual." : "This profile does not include a current deck."}</p>}
         </section>
 
@@ -553,18 +547,6 @@ export function CardCollection({
   catalogError?: boolean;
 }) {
   return <PlayerCardCollection player={player} catalogCards={catalogCards} catalogLoading={catalogLoading} catalogError={catalogError} />;
-}
-
-function CollectionCard({ card }: { card: Card }) {
-  return (
-    <Link href={`/cards/${cardSlug(card.name)}`} className="collection-card">
-      {card.variant ? <span className="evo-flag">{card.variant === "Hero" ? "HERO" : "EVO"}</span> : null}
-      {card.level ? <i className="card-level">{card.level}{card.maxLevel ? `/${card.maxLevel}` : ""}</i> : null}
-      <CardArt src={card.image} alt={card.name} width={82} height={100} />
-      <strong>{card.name}</strong>
-      <span>{card.rarity} · {card.elixir || "?"} elixir</span>
-    </Link>
-  );
 }
 
 function EmptyPanel({ title, copy }: { title: string; copy: string }) {

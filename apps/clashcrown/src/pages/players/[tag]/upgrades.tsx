@@ -4,7 +4,7 @@ import { useRouter } from "@/lib/router";
 import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { cardSlug } from "@/lib/clash/cards";
 import { buildUpgradePlans, MAX_CARD_LEVEL, type CardUpgradePlan, type UpgradeRarity } from "@/lib/clash/upgradeCosts";
@@ -158,7 +158,7 @@ function ReadyCard({ plan }: { plan: CardUpgradePlan }) {
   if (!next) return null;
   return (
     <Link href={`/cards/${cardSlug(plan.card.name)}`} className="ready-card">
-      <CardArt src={plan.card.image} alt={plan.card.name} width={58} height={72} />
+      <GameCardArt card={plan.card} size="mini" />
       <span className="ready-card-copy"><strong>{plan.card.name}</strong><small>{plan.rarity} · Level {plan.level} → {next.toLevel}</small></span>
       <span className="ready-cost"><b>{next.gold.toLocaleString()}</b><small>gold</small></span>
     </Link>
@@ -187,7 +187,7 @@ function UpgradeCard({ plan }: { plan: CardUpgradePlan }) {
       : `${plan.count.toLocaleString()} / ${(next?.cards ?? 0).toLocaleString()} cards`;
   return (
     <Link href={`/cards/${cardSlug(card.name)}`} className="upgrade-card-row">
-      <CardArt src={card.image} alt={card.name} width={52} height={64} />
+      <GameCardArt card={card} size="mini" />
       <span className="upgrade-card-name"><strong>{card.name}</strong><small>{card.rarity}{card.starLevel ? ` · ${card.starLevel}★` : ""}</small></span>
       <span className="upgrade-level">{plan.level === undefined ? "—" : `Lv ${plan.level}/${MAX_CARD_LEVEL}`}</span>
       <span className="upgrade-progress"><span className="upgrade-progress-label"><small>{progressLabel}</small><small>{Math.round(plan.progress * 100)}%</small></span><ProgressBar value={plan.progress} label={`${card.name} progress`} /></span>

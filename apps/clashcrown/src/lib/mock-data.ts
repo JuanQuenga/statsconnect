@@ -9,8 +9,11 @@ const card = (
   name,
   elixir,
   rarity,
+  level: 13 + (mockCardIndex++ % 3),
   image: `/images/cards/${slug}.png`
 });
+
+let mockCardIndex = 0;
 
 export const cards = [
   card("Hog Rider", 4, "Rare"),

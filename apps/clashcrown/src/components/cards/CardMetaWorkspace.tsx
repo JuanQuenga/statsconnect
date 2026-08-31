@@ -318,7 +318,7 @@ function RankingRow({ row, card, rank, countLabel = "Games" }: { row: CardMetaRe
     <div className={styles.rankingRow}>
       <span className={styles.rank}>{rank}</span>
       <Link className={styles.entity} href={`/cards/${cardSlug(card.name)}`}>
-        <span className={styles.thumb}><GameCardArt card={card} size="library" showLevel={false} portrait="highest" /></span>
+        <span className={styles.thumb}><GameCardArt card={card} size="library" portrait="highest" /></span>
         <span className={styles.entityText}><strong className={styles.entityName}>{card.name}</strong><small className={styles.entitySub}>{card.rarity} · {card.elixir} elixir · {tierLabel(row)}</small></span>
       </Link>
       <span className={styles.metric}><span className={styles.metricLabel}>Usage</span><strong className={styles.metricValue}>{percent(row.usageRate)}</strong></span>
@@ -334,7 +334,7 @@ function RankingRow({ row, card, rank, countLabel = "Games" }: { row: CardMetaRe
 function CardTile({ card, meta, loading, countLabel = "games" }: { card: Card; meta: CardMetaRecord | undefined; loading: boolean; countLabel?: "games" | "decks" }) {
   return (
     <Link className={styles.cardTile} href={`/cards/${cardSlug(card.name)}`}>
-      <span className={styles.cardTileArt}><GameCardArt card={card} size="library" showLevel={false} portrait="highest" /></span>
+      <span className={styles.cardTileArt}><GameCardArt card={card} size="library" portrait="highest" /></span>
       <strong className={styles.cardTileName}>{card.name}</strong>
       <span className={styles.entitySub}>{card.rarity} · {card.elixir} elixir</span>
       {meta ? <CardTileStats meta={meta} countLabel={countLabel} /> : <span className={`${styles.cardTileMeta} ${styles.status}`}>{loading ? "Loading observed stats…" : "Not observed in this sample"}</span>}

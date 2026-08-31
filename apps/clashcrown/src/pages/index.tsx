@@ -1,5 +1,6 @@
 import Image from "@/components/Image";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { ArrowRight, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -10,7 +11,7 @@ import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { PersonalDashboard } from "@/components/personalization/PersonalDashboard";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
-import { averageElixir, copyDeckLink, highestAvailableCardArt } from "@/lib/clash/assets";
+import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { useCardLibrary } from "@/lib/useCardCatalog";
 import { errorMessage, globalTournamentsAction, isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
 import type { Card } from "@/lib/clash/domain";
@@ -18,6 +19,10 @@ import type { ApiTournament } from "@/lib/clash/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
+
+function unknownCard(id: number): Card {
+  return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
+}
 
 export default function HomePage() {
   return (
@@ -114,13 +119,9 @@ function MetaTopDeck() {
   const decks = payload?.decks ?? [];
   const deck = decks[Math.min(index, Math.max(decks.length - 1, 0))];
   const cards = useMemo(
-    () => (deck?.cardIds ?? []).flatMap((id) => {
-      const card = library.byId.get(id);
-      return card ? [card] : [];
-    }),
+    () => (deck?.cardIds ?? []).map((id) => library.byId.get(id) ?? unknownCard(id)),
     [deck?.cardIds, library.byId]
   );
-  const hasCompleteDeck = !deck || cards.length === deck.cardIds.length;
 
   const elixir = averageElixir(cards.map((card) => ({ elixirCost: card.elixir })));
   const link = deck ? copyDeckLink(deck.cardIds) : undefined;
@@ -162,8 +163,6 @@ function MetaTopDeck() {
         <p className="table-note">
           No {modeLabel(mode)} decks have been observed often enough in the last {HOME_WINDOW_DAYS} days to rank.
         </p>
-      ) : !hasCompleteDeck ? (
-        <p className="table-note" role="status">This ranked deck includes a card that is not yet available in the live catalog.</p>
       ) : (
         <>
           <div className="deck-row">
@@ -173,7 +172,7 @@ function MetaTopDeck() {
                 {elixir ? elixir.toFixed(1) : "—"} elixir<span>average cost</span>
               </strong>
             </div>
-            <DeckStrip cards={cards} />
+            <DeckCardGrid cards={cards} evolutionIds={deck.evolutionIds} label="Top observed deck" size="compact" className="home-deck-grid" />
             {link ? (
               <a className="copy-deck" href={link} target="_blank" rel="noopener noreferrer">
                 <Image src="/images/icons/copy.png" alt="" width={26} height={28} />
@@ -234,12 +233,7 @@ function MetaPopularCards() {
               detail={`${top.uses.toLocaleString()} games observed`}
             />
             <Link href={`/cards/${cardSlug(card.name)}`} className="popular-card-center">
-              <CardArt
-                src={highestAvailableCardArt(card)}
-                alt={card.name}
-                width={96}
-                height={120}
-              />
+              <GameCardArt card={card} size="library" portrait="highest" />
               <strong>{card.name}</strong>
             </Link>
             <MetaMetric
@@ -335,16 +329,6 @@ function UnavailableMetaSection({ title, href = "/meta" }: { title: string; href
 
 function HomeDataMessage({ message }: { message: string }) {
   return <p className="home-data-message" role="status">{message}</p>;
-}
-
-function DeckStrip({ cards }: { cards: Card[] }) {
-  return (
-    <div className="deck-strip">
-      {cards.map((card, index) => (
-        <CardArt key={`${card.name}-${index}`} src={card.image} alt={card.name} width={54} height={66} />
-      ))}
-    </div>
-  );
 }
 
 function Pager({ onPrevious, onNext }: { onPrevious?: () => void; onNext?: () => void }) {

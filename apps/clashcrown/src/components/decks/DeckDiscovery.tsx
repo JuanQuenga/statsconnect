@@ -1,11 +1,9 @@
 import { AlertCircle, Check, Copy, Info, LoaderCircle, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
-import { CardArt } from "@/components/portfolio/CardArt";
-import Link from "@/components/Link";
+import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
-import { cardSlug } from "@/lib/clash/cards";
 import { usePlayerAcquisition } from "@/lib/clash/profileAcquisition";
 import { normalizeTag } from "@/lib/clash/tag";
 import {
@@ -43,6 +41,16 @@ function trophyRange(band: TrophyBand) {
 function numeric(value: string, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function cardsForIds(ids: readonly number[], catalog: Map<number, Card>): Card[] {
+  return ids.map((id) => catalog.get(id) ?? {
+    id,
+    name: "Unknown Card",
+    elixir: 0,
+    rarity: "Common",
+    image: UNKNOWN_CARD_IMAGE
+  });
 }
 
 export function DeckDiscovery({ cards, view, catalogMessage, onUseDeck }: DeckDiscoveryProps) {
@@ -365,18 +373,13 @@ function ObservedDeckCard({ deck, displayRank, catalog, player, observed, onCopy
       <div className="observed-deck-rank"><span>#{displayRank}</span><strong>{isPersonal ? `${deck.personalScore.toFixed(0)}/100` : `${(deck.rating * 100).toFixed(0)}/100`}</strong><small>{isPersonal ? "personal score" : "observed rating"}</small></div>
       <div className="observed-deck-main">
         <h3>{deckSignature(deck, catalog)}</h3>
-        <DeckCards deck={deck} catalog={catalog} />
+        <DeckCardGrid cards={cardsForIds(deck.cardIds, catalog)} evolutionIds={deck.evolutionIds} label="Deck cards" size="standard" className="observed-deck-grid" />
       </div>
       <div className="observed-deck-metrics"><div><span>Win rate</span><strong>{(deck.winRate * 100).toFixed(1)}%</strong><small>{deck.wins}/{deck.uses} games won</small></div><div><span>Popularity</span><strong>{(deck.usageRate * 100).toFixed(2)}%</strong><small>{deck.uses.toLocaleString()} observations</small></div><div><span>Elixir / cycle</span><strong>{cost ? `${cost.average.toFixed(1)} / ${cost.cycle}` : "Unavailable"}</strong><small>{deck.evolutionIds.length} evolution{deck.evolutionIds.length === 1 ? "" : "s"}</small></div></div>
       {isPersonal ? <PersonalFit deck={deck} catalog={catalog} replacements={replacements} /> : null}
       <div className="deck-result-actions"><button type="button" onClick={() => onUse(deck)}>Use in builder</button><button type="button" className="pink-button" onClick={() => onCopy(deck)}><Copy size={15} />Copy to game</button></div>
     </article>
   );
-}
-
-function DeckCards({ deck, catalog }: { deck: DiscoveryDeck; catalog: Map<number, Card> }) {
-  const evolutions = new Set(deck.evolutionIds);
-  return <div className="observed-card-grid" aria-label="Deck cards">{deck.cardIds.map((cardId) => { const card = catalog.get(cardId); const evolved = evolutions.has(cardId); const label = card?.name ?? `Card ${cardId}`; return card ? <Link key={cardId} href={`/cards/${cardSlug(card.name)}`} title={`View ${card.name} analytics`} aria-label={`View ${card.name} analytics`}><CardArt src={evolved ? card.evolutionImage ?? card.image : card.image} alt={label} width={68} height={84} />{evolved ? <span>EVO</span> : null}</Link> : <div key={cardId} title={label}><CardArt src={UNKNOWN_CARD_IMAGE} alt={`Unknown card ${cardId}`} width={68} height={84} />{evolved ? <span>EVO</span> : null}</div>; })}</div>;
 }
 
 const WIN_CONDITIONS = new Set([

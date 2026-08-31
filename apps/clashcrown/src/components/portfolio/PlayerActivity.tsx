@@ -1,6 +1,7 @@
 import { CalendarDays, Database, LoaderCircle } from "lucide-react";
 import { useQuery } from "convex/react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import "@/styles/activity.css";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Player } from "@/lib/clash/domain";
@@ -11,6 +12,16 @@ import { useI18n } from "@/lib/i18n";
 type ActivityDay = PlayerActivityReport["days"][number];
 
 type CalendarDay = ActivityDay;
+
+type ActivityGridStyle = CSSProperties & {
+  "--cc-activity-max-width": string;
+  "--cc-activity-weeks": number;
+};
+
+type ActivityMonthSegment = {
+  label: string;
+  span: number;
+};
 
 const WINDOW_DAYS = 90;
 
@@ -34,11 +45,14 @@ function LivePlayerActivity({ player }: { player: Player }) {
         description="Loading the battles StatsConnect has observed for this player."
         badge={<Badge variant="outline"><LoaderCircle className="animate-spin" /> Loading</Badge>}
       >
-        <div className="cr-activity-loading" aria-label="Loading activity calendar" role="status">
+        <div
+          className="cc-activity-loading"
+          style={activityGridStyle(14)}
+          aria-label="Loading activity calendar"
+          role="status"
+        >
           {Array.from({ length: 14 }, (_, column) => (
-            <span key={column} className="cr-activity-loading-column">
-              {Array.from({ length: 7 }, (_, row) => <i key={row} />)}
-            </span>
+            Array.from({ length: 7 }, (_, row) => <i key={`${column}-${row}`} />)
           ))}
         </div>
       </ActivityFrame>
@@ -68,6 +82,7 @@ function ActivityGrid({
   const monthLabels = monthLabelsFor(weeks, locale);
   const startDay = days[0]?.day ?? "";
   const endDay = days.at(-1)?.day ?? "";
+  const activityStyle = activityGridStyle(weeks.length);
   const rowsInWindow = report.days.filter((day) => day.day >= startDay && day.day <= endDay);
   const totalBattles = rowsInWindow.reduce((total, day) => total + day.battles, 0);
   const totalWins = rowsInWindow.reduce((total, day) => total + day.wins, 0);
@@ -92,17 +107,28 @@ function ActivityGrid({
         </Badge>
       }
     >
-      <div className="cr-activity-layout">
-        <div className="cr-activity-calendar-wrap">
-          <div className="cr-activity-calendar" aria-label="90-day battle activity calendar">
-            <div className="cr-activity-months" aria-hidden="true">
-              {monthLabels.map((label, index) => <span key={`${label}-${index}`} className="cr-activity-month">{label}</span>)}
-            </div>
-            <div className="cr-activity-calendar-row">
-              <div className="cr-activity-day-labels" aria-hidden="true">
-                {(["", "Mon", "", "Wed", "", "Fri", ""] as const).map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
+      <div className="cc-activity-layout">
+        <div className="cc-activity-calendar-wrap">
+          <div className="cc-activity-calendar" aria-label="90-day battle activity calendar">
+            <div className="cc-activity-month-row" aria-hidden="true">
+              <span className="cc-activity-month-gutter" />
+              <div className="cc-activity-months" style={activityStyle}>
+                {monthLabels.map((segment, index) => (
+                  <span
+                    key={`${segment.label}-${index}`}
+                    className={`cc-activity-month${segment.span < 2 ? " cc-activity-month-compact" : ""}`}
+                    style={{ gridColumn: `span ${segment.span}` }}
+                  >
+                    {segment.label}
+                  </span>
+                ))}
               </div>
-              <div className="cr-activity-grid" role="grid" aria-label="Battles by UTC day">
+            </div>
+            <div className="cc-activity-calendar-row">
+              <div className="cc-activity-day-labels" aria-hidden="true">
+                {["", "Mon", "", "Wed", "", "Fri", ""].map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
+              </div>
+              <div className="cc-activity-grid" style={activityStyle} role="grid" aria-label="Battles by UTC day">
                 {weeks.flatMap((week, weekIndex) => week.map((day, dayIndex) => (
                   day ? (
                     <span
@@ -110,28 +136,28 @@ function ActivityGrid({
                       role="gridcell"
                       aria-label={activityLabel(day, formatNumber)}
                       title={activityLabel(day, formatNumber)}
-                      className={`cr-activity-cell cr-activity-level-${activityLevel(day.battles)}`}
+                      className={`cc-activity-cell cc-activity-level-${activityLevel(day.battles)}`}
                     />
-                  ) : <span key={`empty-${weekIndex}-${dayIndex}`} className="cr-activity-cell cr-activity-empty" aria-hidden="true" />
+                  ) : <span key={`empty-${weekIndex}-${dayIndex}`} className="cc-activity-cell cc-activity-empty" aria-hidden="true" />
                 )))}
               </div>
             </div>
-            <div className="cr-activity-legend" aria-hidden="true">
-              <span>Fewer</span>
-              {[0, 1, 3, 6, 10].map((battles) => <i key={battles} className={`cr-activity-cell cr-activity-level-${activityLevel(battles)}`} />)}
+            <div className="cc-activity-legend" aria-hidden="true">
+              <span>Less</span>
+              {[0, 1, 3, 6, 10].map((battles) => <i key={battles} className={`cc-activity-cell cc-activity-level-${activityLevel(battles)}`} />)}
               <span>More</span>
             </div>
           </div>
         </div>
 
-        <dl className="cr-activity-summary">
+        <dl className="cc-activity-summary">
           <div><dt>Recorded battles</dt><dd>{formatNumber(totalBattles)}</dd></div>
           <div><dt>Active days</dt><dd>{formatNumber(activeDays)} <small>/ {WINDOW_DAYS}</small></dd></div>
           <div><dt>Win rate</dt><dd>{winRate}%</dd></div>
           <div><dt>Record</dt><dd>{totalWins}W · {totalLosses}L{totalDraws ? ` · ${totalDraws}D` : ""}</dd></div>
         </dl>
       </div>
-      <p className="cr-activity-note">
+      <p className="cc-activity-note">
         {observed
           ? `Coverage is limited to observed tracking${report.capped ? "; this window reached the 5,000-battle read cap" : ""}.`
           : "The official API battle log is limited and may omit older battles; connect tracking for an observed calendar."}
@@ -152,16 +178,16 @@ function ActivityFrame({
   children: ReactNode;
 }) {
   return (
-    <section className="profile-section cr-activity-section" aria-labelledby="cr-activity-title">
-      <Card className="cr-activity-card">
-        <CardHeader className="cr-activity-header">
+    <section className="profile-section cc-activity-section" aria-labelledby="cc-activity-title">
+      <Card className="cc-activity-card">
+        <CardHeader className="cc-activity-header">
           <div>
-            <CardTitle id="cr-activity-title">{title}</CardTitle>
+            <CardTitle id="cc-activity-title">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
           {badge}
         </CardHeader>
-        <CardContent className="cr-activity-content">{children}</CardContent>
+        <CardContent className="cc-activity-content">{children}</CardContent>
       </Card>
     </section>
   );
@@ -190,16 +216,33 @@ function activityWeeks(days: CalendarDay[]) {
   return Array.from({ length: calendar.length / 7 }, (_, index) => calendar.slice(index * 7, index * 7 + 7));
 }
 
-function monthLabelsFor(weeks: Array<Array<CalendarDay | null>>, locale: string) {
-  let previousMonth = "";
-  return weeks.map((week) => {
+function monthLabelsFor(weeks: Array<Array<CalendarDay | null>>, locale: string): ActivityMonthSegment[] {
+  const formatter = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+  const segments: Array<ActivityMonthSegment & { monthKey: string }> = [];
+  for (const week of weeks) {
     const day = week.find((item): item is CalendarDay => item !== null);
-    if (!day) return "";
+    if (!day) continue;
     const monthKey = day.day.slice(0, 7);
-    if (monthKey === previousMonth) return "";
-    previousMonth = monthKey;
-    return new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(new Date(`${day.day}T00:00:00Z`));
-  });
+    const previous = segments.at(-1);
+    if (previous?.monthKey === monthKey) {
+      previous.span += 1;
+      continue;
+    }
+    segments.push({
+      label: formatter.format(new Date(`${day.day}T00:00:00Z`)),
+      monthKey,
+      span: 1,
+    });
+  }
+  return segments.map(({ label, span }) => ({ label, span }));
+}
+
+function activityGridStyle(weekCount: number): ActivityGridStyle {
+  const gapCount = Math.max(0, weekCount - 1);
+  return {
+    "--cc-activity-max-width": `${weekCount * 26 + gapCount * 4}px`,
+    "--cc-activity-weeks": weekCount,
+  };
 }
 
 function activityLevel(battles: number) {

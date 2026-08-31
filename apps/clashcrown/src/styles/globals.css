@@ -587,19 +587,6 @@ button { cursor: pointer; }
 .player-mini small img { width: 16px; height: 16px; }
 .player-mini b { color: #2eb4ff; }
 
-.deck-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 54px);
-  gap: 5px;
-}
-
-.deck-strip img {
-  width: 54px;
-  height: 66px;
-  object-fit: contain;
-  filter: drop-shadow(0 5px 8px rgba(0,0,0,.35));
-}
-
 .score-card {
   min-height: 92px;
   padding: 16px 10px;
@@ -743,11 +730,7 @@ button { cursor: pointer; }
 
 .copy-deck { font-size: 18px; }
 .copy-deck img { width: 26px; height: 28px; object-fit: contain; }
-/* Two rows of four, the way a deck is laid out in-game. A single row of eight
-   reads as a filmstrip and makes each card too small to recognise. */
-.deck-row .deck-strip { grid-template-columns: repeat(4, 62px); justify-content: center; }
-.deck-row .deck-strip img { width: 62px; height: 76px; }
-
+.deck-row .profile-deck-grid { justify-self: center; }
 .archetype-tabs {
   display: flex;
   justify-content: center;
@@ -822,7 +805,7 @@ button { cursor: pointer; }
 .spark-label small { color: #75c5ff; font-size: 11px; }
 
 .popular-card-center { text-align: center; }
-.popular-card-center img { width: 92px; height: auto; margin: 0 auto 10px; }
+.popular-card-center .game-card-art { width: 92px; margin: 0 auto 10px; }
 .popular-card-center strong { font-size: 13px; }
 
 .event-grid {
@@ -996,40 +979,6 @@ button { cursor: pointer; }
   justify-content: flex-start;
   padding: 0 12px;
   font-size: 15px;
-}
-
-.deck-card-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 58px);
-  gap: 7px;
-  justify-content: center;
-}
-
-.deck-card {
-  position: relative;
-  height: 72px;
-}
-
-.deck-card img {
-  width: 58px;
-  height: 72px;
-  object-fit: contain;
-  filter: drop-shadow(0 5px 8px rgba(0,0,0,.35));
-}
-
-.deck-card span {
-  position: absolute;
-  top: -6px;
-  left: -5px;
-  width: 19px;
-  height: 19px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: #d329df;
-  color: white;
-  font-size: 10px;
-  box-shadow: 0 2px 0 rgba(0,0,0,.3);
 }
 
 .deck-list-metrics {
@@ -1714,13 +1663,6 @@ button { cursor: pointer; }
     justify-self: center;
     justify-content: center;
   }
-  .deck-row .deck-strip {
-    grid-template-columns: repeat(4, 54px);
-  }
-  .deck-card-grid {
-    grid-template-columns: repeat(4, 58px);
-    justify-content: center;
-  }
   .deck-list-title,
   .deck-list-metrics {
     text-align: center;
@@ -1993,8 +1935,6 @@ button:disabled { cursor: wait; opacity: .62; }
   --game-card-accent: #74b9ff;
   --game-card-level-start: #dff5ff;
   --game-card-level-end: #67c7ff;
-  --game-card-cost-size: 28px;
-  --game-card-cost-font: 17px;
   --game-card-level-font: 14px;
   width: 132px;
   aspect-ratio: 5 / 6;
@@ -2003,8 +1943,10 @@ button:disabled { cursor: wait; opacity: .62; }
   isolation: isolate;
   container-type: inline-size;
 }
-.game-card-art-library { width: 112px; --game-card-cost-size: 24px; --game-card-cost-font: 15px; }
-.game-card-art-deck { width: min(100%, 168px); --game-card-cost-size: 34px; --game-card-cost-font: 21px; --game-card-level-font: 15px; }
+.game-card-art-mini { width: 52px; }
+.game-card-art-micro { width: 32px; }
+.game-card-art-library { width: 112px; }
+.game-card-art-deck { width: min(100%, 168px); }
 .game-card-art[data-rarity="rare"] { --game-card-accent: #ff9f43; --game-card-level-start: #ffe5a3; --game-card-level-end: #ff941f; }
 .game-card-art[data-rarity="epic"] { --game-card-accent: #db6cff; --game-card-level-start: #f5c7ff; --game-card-level-end: #d85bff; }
 .game-card-art[data-rarity="legendary"] { --game-card-accent: #63e6be; --game-card-level-start: #d1fff1; --game-card-level-end: #54dfb7; }
@@ -2044,17 +1986,15 @@ button:disabled { cursor: wait; opacity: .62; }
 }
 .profile-deck-grid-compact { --deck-grid-max-width: 308px; }
 .profile-deck-grid-large { --deck-grid-max-width: 680px; }
+/* Table auto-layout collapses percentage-width grids to min-content, so decks
+   inside table cells pin to their full 2x4 footprint. */
+td .profile-deck-grid { width: 308px; }
 .profile-deck-grid-slot { min-width: 0; display: block; border-radius: 14px; }
 .profile-deck-grid-slot .game-card-art { width: 100%; transition: transform .18s ease; }
 .profile-deck-grid-slot:hover .game-card-art { z-index: 1; transform: translateY(-3px) scale(1.025); }
-.profile-deck-grid-compact .game-card-art {
-  --game-card-cost-size: clamp(16px, 28%, 22px);
-  --game-card-cost-font: clamp(10px, 3vw, 13px);
-  --game-card-level-font: clamp(8px, 2.4vw, 11px);
-}
 .game-card-elixir {
-  width: var(--game-card-cost-size);
-  height: calc(var(--game-card-cost-size) * 1.19);
+  width: clamp(14px, 21cqi, 34px);
+  height: calc(clamp(14px, 21cqi, 34px) * 1.19);
   position: absolute;
   top: 9%;
   left: 0;
@@ -2064,7 +2004,7 @@ button:disabled { cursor: wait; opacity: .62; }
   color: white;
   background: url("/images/ui-icons/elixir.png") center / contain no-repeat;
   filter: drop-shadow(0 2px 1px rgba(45, 0, 58, .75));
-  font: 400 var(--game-card-cost-font)/1 var(--font-display);
+  font: 400 clamp(10px, 13cqi, 21px)/1 var(--font-display);
   letter-spacing: -.06em;
   text-shadow: 0 2px 1px rgba(0, 0, 0, .9);
 }
@@ -2360,20 +2300,8 @@ a.status-chip:hover { background: rgba(117, 197, 255, .3); }
 .empty-card { aspect-ratio: .79; min-width: 0; position: relative; border-radius: 7px; }
 .selected-deck button { border: 1px solid transparent; background: transparent; padding: 0; }
 .selected-deck button:hover { border-color: rgba(117, 197, 255, .52); background: rgba(117, 197, 255, .08); }
+.selected-deck button > .game-card-art { width: 100%; height: 100%; }
 .selected-deck img { width: 100%; height: 100%; object-fit: contain; }
-.selected-deck button > span {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #d329df;
-  color: white;
-  font-size: 10px;
-}
 .empty-card { display: grid; place-items: center; border: 1px dashed rgba(111, 134, 170, .38); background: rgba(3, 16, 28, .4); color: #536b91; }
 .builder-notice { margin: 18px 0 0; color: #ffd2f9; text-align: center; font: 12px var(--font-ui); }
 
@@ -2444,7 +2372,7 @@ a.status-chip:hover { background: rgba(117, 197, 255, .3); }
 }
 .card-library button:hover,
 .card-library button.selected { border-color: rgba(117, 197, 255, .55); background: rgba(7, 86, 159, .34); transform: translateY(-2px); }
-.card-library button > img { width: 72px; height: 88px; object-fit: contain; }
+.card-library button > .game-card-art { width: 72px; }
 .card-library strong { font-size: 10px; line-height: 1.25; }
 .card-library button > span { color: #8ea2c4; font: 9px var(--font-ui); }
 .selected-check { position: absolute; top: 8px; right: 8px; color: #fff; background: #07569f; border-radius: 50%; padding: 2px; }
@@ -2478,6 +2406,7 @@ a.status-chip:hover { background: rgba(117, 197, 255, .3); }
   transition: transform .15s ease, border-color .15s ease, background .15s ease;
 }
 .card-tile:hover { border-color: rgba(117, 197, 255, .55); background: rgba(7, 86, 159, .34); transform: translateY(-2px); }
+.card-tile .game-card-art { width: 76px; }
 .card-tile strong { max-width: 100%; overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .card-tile-detail { color: #9eb3d3; font: 9px var(--font-ui); }
 /* "This card has an Evolution available." Nearly half the catalog evolves, so a
@@ -2567,7 +2496,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
    card, other artwork" rather than competing with the 180px hero image. */
 .card-variants { display: flex; gap: 14px; }
 .card-variants figure { display: grid; gap: 5px; justify-items: center; margin: 0; }
-.card-variants img { width: 64px; height: 78px; object-fit: contain; }
+.card-variants .game-card-art { width: 64px; }
 .card-variants figcaption {
   color: var(--muted);
   font: 10px var(--font-ui);
@@ -2664,31 +2593,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
 }
 .beta-tab:hover { border-color: rgba(117, 197, 255, .5); color: white; }
 .beta-tab-on { border-color: transparent; color: white; background: #07569f; }
-
-/* Two rows of four inside the table cell, matching the in-game deck layout. */
-.beta-deck { display: grid; grid-template-columns: repeat(4, 46px); gap: 5px; }
-.beta-thumb { position: relative; display: inline-flex; border-radius: 6px; }
-.beta-thumb img { width: 46px; height: 56px; object-fit: contain; }
-
-/* Evolution art carries its own frame and gem, so an evolved slot needs no
-   marking. The cyan ring and corner dot are the fallback for the rare card whose
-   Evolution art has not resolved, where the base art alone would read as the
-   plain card. Same meaning as the EVO pill on the card grid, at 46px. */
-.beta-thumb-evo {
-  background: rgba(122, 224, 255, .1);
-  box-shadow: inset 0 0 0 2px #7ae0ff, 0 0 9px rgba(122, 224, 255, .4);
-}
-.evo-dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  z-index: 1;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 1px solid #04203a;
-  background: linear-gradient(#7ae0ff, #2b8fd6);
-}
 
 .beta-playground { display: grid; gap: 20px; }
 .beta-playground > div {
@@ -3392,7 +3296,11 @@ a:hover .entity-cell strong { color: #75c5ff; }
   border-radius: 8px;
   background: rgba(8, 24, 44, .58);
 }
+.trend-row-deck {
+  grid-template-columns: minmax(316px, 1.2fr) minmax(240px, 2fr) 110px;
+}
 .analytics-card-id { display: flex; align-items: center; gap: 10px; min-width: 0; color: white; }
+.analytics-card-id .game-card-art { flex: none; width: 42px; }
 .analytics-card-id img { flex: none; width: 42px; height: 52px; object-fit: contain; }
 .analytics-card-id > span { display: grid; gap: 3px; min-width: 0; }
 .analytics-card-id strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
@@ -3454,9 +3362,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .trend-numbers { display: grid; gap: 4px; text-align: right; }
 .trend-numbers strong { font-size: 16px; }
 .trend-numbers span { color: #aebfda; font: 10px var(--font-ui); }
-.analytics-mini-deck { display: grid; grid-template-columns: repeat(4, 34px); gap: 2px; }
-.analytics-mini-deck img { width: 34px; height: 42px; object-fit: contain; }
-
 .mover-grid, .related-stats-grid, .card-trend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .mover-panel, .related-stats-panel, .card-trend-grid > div {
   padding: 18px;
@@ -3482,8 +3387,8 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .tier-b .tier-label { background: #ffe16a; }
 .tier-c .tier-label { background: #77d8a0; }
 .tier-row > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; }
-.tier-row img { width: 52px; height: 64px; object-fit: contain; transition: transform .15s ease; }
-.tier-row a:hover img { transform: translateY(-3px); }
+.tier-row .game-card-art { width: 52px; transition: transform .15s ease; }
+.tier-row a:hover .game-card-art { transform: translateY(-3px); }
 
 .archetype-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
 .archetype-card { display: grid; gap: 10px; padding: 18px; border: 1px solid rgba(100, 130, 176, .34); border-radius: 9px; color: white; background: rgba(8, 24, 44, .66); transition: border-color .15s ease, transform .15s ease; }
@@ -3505,16 +3410,16 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .archetype-detail-chart > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
 .archetype-detail-chart > div strong { font-size: 18px; }
 .archetype-detail-chart > div span { color: #aebfda; font: 10px var(--font-ui); }
-.archetype-decks, .card-analytics-decks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.archetype-deck, .card-analytics-deck { padding: 14px; border: 1px solid rgba(100, 130, 176, .28); border-radius: 8px; background: rgba(8, 24, 44, .58); }
-.archetype-deck > div, .card-analytics-deck > div { display: grid; grid-template-columns: repeat(4, minmax(42px, 1fr)); gap: 3px; }
-.archetype-deck img, .card-analytics-deck img { width: 100%; height: auto; aspect-ratio: 44 / 54; object-fit: contain; }
-.archetype-deck > span, .card-analytics-deck p { display: block; margin: 8px 0 0; color: #aebfda; font: 10px var(--font-ui); }
-.archetype-deck strong, .card-analytics-deck strong { color: white; }
+.analytics-deck-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.analytics-deck-card { padding: 14px; border: 1px solid rgba(100, 130, 176, .28); border-radius: 8px; background: rgba(8, 24, 44, .58); }
+.analytics-deck-card > .profile-deck-grid { width: 100%; --deck-grid-max-width: 100%; }
+.analytics-deck-card > span { display: block; margin: 8px 0 0; color: #aebfda; font: 10px var(--font-ui); }
+.analytics-deck-card p { display: block; margin: 8px 0 0; color: #aebfda; font: 10px var(--font-ui); }
+.analytics-deck-card strong { color: white; }
 
 .related-stats-panel > p { min-height: 34px; margin: 0 0 10px; color: #aebfda; font: 10px/1.5 var(--font-ui); }
 .related-stat-row { display: grid; grid-template-columns: 42px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(100, 130, 176, .2); color: white; }
-.related-stat-row img { width: 42px; height: 52px; object-fit: contain; }
+.related-stat-row .game-card-art { width: 42px; }
 .related-stat-row > span { display: grid; gap: 3px; }
 .related-stat-row strong { font-size: 11px; }
 .related-stat-row small { color: #aebfda; font: 9px var(--font-ui); }
@@ -3523,6 +3428,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 @media (max-width: 900px) {
   .archetype-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .trend-row { grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.5fr) 90px; gap: 12px; }
+  .trend-row-deck { grid-template-columns: minmax(232px, 1.2fr) minmax(0, 1.5fr) 84px; }
 }
 
 @media (max-width: 680px) {
@@ -3531,7 +3437,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .trend-row .trend-chart .recharts-xAxis { display: none; }
   .card-trend-grid .trend-chart-canvas { height: 136px; }
   .archetype-detail-chart .trend-chart-canvas { height: 148px; }
-  .mover-grid, .related-stats-grid, .card-trend-grid, .archetype-decks, .card-analytics-decks, .archetype-grid { grid-template-columns: 1fr; }
+  .mover-grid, .related-stats-grid, .card-trend-grid, .analytics-deck-list, .archetype-grid { grid-template-columns: 1fr; }
   .archetype-detail-chart { grid-template-columns: 1fr; }
   .tier-row { grid-template-columns: 48px 1fr; }
   .tier-label { font-size: 22px; }
@@ -3702,12 +3608,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .observed-deck-rank small { color: #aabbd5; font: 8px var(--font-ui); text-transform: uppercase; letter-spacing: .06em; }
 .observed-deck-main { min-width: 0; }
 .observed-deck-main h3 { margin: 0 0 9px; font-size: 15px; line-height: 1.2; }
-.observed-card-grid { display: grid; grid-template-columns: repeat(4, minmax(52px, 1fr)); gap: 5px; }
-.observed-card-grid > a,
-.observed-card-grid > div { min-width: 0; position: relative; border-radius: 6px; }
-.observed-card-grid > a:focus-visible { outline-offset: 1px; }
-.observed-card-grid img { width: 100%; height: auto; aspect-ratio: .81; object-fit: contain; filter: drop-shadow(0 5px 7px rgba(0, 0, 0, .38)); }
-.observed-card-grid span { position: absolute; right: 1px; bottom: 3px; padding: 1px 4px; border-radius: 999px; color: #052036; background: #7ae0ff; font: 800 7px var(--font-ui); }
+.observed-deck-grid { width: 100%; --deck-grid-max-width: 100%; }
 .observed-deck-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .observed-deck-metrics > div { display: grid; gap: 3px; min-width: 0; padding: 10px; border: 1px solid rgba(112, 140, 184, .25); border-radius: 7px; background: rgba(3, 16, 28, .35); }
 .observed-deck-metrics span { color: #91a6c6; font: 8px var(--font-ui); text-transform: uppercase; letter-spacing: .05em; }
@@ -5308,7 +5209,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   color: #c9b6db;
   font: 750 13px/1 var(--font-ui);
 }
-.favorite-card-panel > img { width: 142px; height: 174px; object-fit: contain; filter: drop-shadow(0 18px 18px rgba(0, 0, 0, .36)); }
+.favorite-card-panel > .game-card-art { width: 142px; height: 174px; filter: drop-shadow(0 18px 18px rgba(0, 0, 0, .36)); }
 .favorite-card-copy { display: grid; gap: 7px; }
 .favorite-card-copy strong { font-size: 23px; }
 .favorite-card-copy small { color: #d1c5dc; font: 13px var(--font-ui); }
@@ -5346,8 +5247,8 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .support-collection p { margin: 0; color: var(--muted-foreground); font: 13px/1.5 var(--font-ui); }
 .support-card-list { display: flex; justify-content: flex-end; gap: 20px; }
 .support-card-list a { min-width: 92px; display: grid; justify-items: center; gap: 5px; color: var(--foreground); text-align: center; }
-.support-card-list a:hover img { transform: translateY(-4px) scale(1.03); }
-.support-card-list img { width: 88px; height: 108px; object-fit: contain; filter: drop-shadow(0 12px 12px rgba(0, 0, 0, .3)); transition: transform .18s ease; }
+.support-card-list a:hover .game-card-art { transform: translateY(-4px) scale(1.03); }
+.support-card-list .game-card-art { width: 88px; height: 108px; filter: drop-shadow(0 12px 12px rgba(0, 0, 0, .3)); transition: transform .18s ease; }
 .support-card-list span { overflow: hidden; max-width: 100%; font: 750 12px/1.2 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
 .support-card-list small { color: var(--muted-foreground); font: 11px var(--font-ui); }
 
@@ -5561,7 +5462,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .career-rows { grid-template-columns: 1fr; }
   .career-row:nth-last-child(2) { border-bottom: 1px solid rgba(118, 148, 190, .12); }
   .favorite-card-panel { min-height: 220px; grid-template-columns: 110px minmax(0, 1fr); padding: 20px 16px; }
-  .favorite-card-panel > img { width: 108px; height: 136px; }
+  .favorite-card-panel > .game-card-art { width: 108px; height: 136px; }
   .favorite-card-copy strong { font-size: 18px; }
   .profile-badge-card { grid-template-columns: 96px minmax(0, 1fr); min-height: 120px; }
   .profile-badge-art,
@@ -5705,91 +5606,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .history-snapshot-card { padding: 24px 0; }
 }
 
-/* --- Clash Royale player activity calendar ---------------------------- */
-.cr-activity-section {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.cr-activity-card {
-  --cr-activity-cell: clamp(.75rem, 1.55vw, 1.2rem);
-  gap: 0;
-  border-color: rgba(118, 148, 190, .24);
-  background:
-    linear-gradient(140deg, rgba(17, 37, 62, .92), rgba(7, 20, 37, .96)),
-    radial-gradient(circle at 8% 0%, rgba(22, 136, 232, .12), transparent 30%);
-}
-
-.cr-activity-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 20px 24px 18px;
-  border-bottom: 1px solid rgba(118, 148, 190, .16);
-}
-
-.cr-activity-header > div:first-child { min-width: 0; display: grid; gap: 6px; }
-.cr-activity-header [data-slot="card-title"] { font-family: var(--font-ui); font-size: 20px; font-weight: 800; }
-.cr-activity-header [data-slot="card-description"] { max-width: 670px; font-size: 13px; line-height: 1.5; }
-.cr-activity-header [data-slot="badge"] { margin-top: 1px; }
-.cr-activity-header [data-slot="badge"] svg { width: 13px; height: 13px; }
-
-.cr-activity-content { padding: 0; }
-.cr-activity-layout { display: grid; grid-template-columns: minmax(0, 1fr) 208px; }
-.cr-activity-calendar-wrap { min-width: 0; overflow-x: auto; padding: 22px 24px 20px; }
-.cr-activity-calendar { width: max-content; min-width: 100%; }
-.cr-activity-months { display: flex; gap: 4px; padding-left: 40px; margin-bottom: 7px; }
-.cr-activity-month { width: var(--cr-activity-cell); color: var(--muted-foreground); font-size: 10px; line-height: 1; }
-.cr-activity-calendar-row { display: flex; align-items: flex-start; gap: 8px; }
-.cr-activity-day-labels { width: 32px; flex: 0 0 32px; display: grid; grid-template-rows: repeat(7, var(--cr-activity-cell)); gap: 4px; color: var(--muted-foreground); font-size: 10px; line-height: var(--cr-activity-cell); text-align: right; }
-.cr-activity-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, var(--cr-activity-cell)); grid-auto-columns: var(--cr-activity-cell); gap: 4px; }
-.cr-activity-cell { display: block; width: var(--cr-activity-cell); height: var(--cr-activity-cell); border-radius: 4px; }
-.cr-activity-cell:not(.cr-activity-empty) { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04); transition: transform .16s ease, box-shadow .16s ease; }
-.cr-activity-cell:not(.cr-activity-empty):hover { transform: translateY(-1px); box-shadow: 0 0 0 2px rgba(117, 197, 255, .72); }
-.cr-activity-empty { opacity: 0; }
-.cr-activity-level-0 { background: rgba(25, 42, 67, .82); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
-.cr-activity-level-1 { background: color-mix(in srgb, var(--primary) 23%, var(--secondary)); }
-.cr-activity-level-2 { background: color-mix(in srgb, var(--primary) 45%, var(--secondary)); }
-.cr-activity-level-3 { background: color-mix(in srgb, var(--primary) 68%, var(--secondary)); }
-.cr-activity-level-4 { background: var(--primary); }
-.cr-activity-legend { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 15px; color: var(--muted-foreground); font-size: 10px; }
-.cr-activity-legend .cr-activity-cell { width: 11px; height: 11px; border-radius: 3px; }
-.cr-activity-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0; border-left: 1px solid rgba(118, 148, 190, .16); background: rgba(5, 16, 30, .22); }
-.cr-activity-summary > div { min-width: 0; display: grid; align-content: center; gap: 5px; padding: 16px 18px; border-bottom: 1px solid rgba(118, 148, 190, .14); }
-.cr-activity-summary > div:nth-child(odd) { border-right: 1px solid rgba(118, 148, 190, .14); }
-.cr-activity-summary dt { color: var(--muted-foreground); font-size: 11px; line-height: 1.25; }
-.cr-activity-summary dd { margin: 0; font-family: var(--font-ui); font-size: 18px; font-weight: 800; line-height: 1.1; }
-.cr-activity-summary dd small { color: var(--muted-foreground); font: 500 11px var(--font-ui); }
-.cr-activity-note { margin: 0; padding: 12px 24px 15px; border-top: 1px solid rgba(118, 148, 190, .14); color: var(--muted-foreground); font-size: 11px; line-height: 1.45; }
-.cr-activity-loading { display: flex; justify-content: center; gap: 4px; min-height: calc(var(--cr-activity-cell) * 7 + 24px); padding: 18px 0 6px; }
-.cr-activity-loading-column { display: grid; grid-template-rows: repeat(7, var(--cr-activity-cell)); gap: 4px; }
-.cr-activity-loading-column i { display: block; width: var(--cr-activity-cell); height: var(--cr-activity-cell); border-radius: 4px; background: rgba(44, 70, 104, .5); animation: cr-activity-pulse 1.5s ease-in-out infinite; }
-.cr-activity-loading-column:nth-child(2n) i { animation-delay: .18s; }
-
-@keyframes cr-activity-pulse { 0%, 100% { opacity: .4; } 50% { opacity: .9; } }
-
-@media (max-width: 760px) {
-  .cr-activity-header { padding-inline: 18px; }
-  .cr-activity-layout { grid-template-columns: 1fr; }
-  .cr-activity-calendar-wrap { padding-inline: 18px; }
-  .cr-activity-summary { border-top: 1px solid rgba(118, 148, 190, .16); border-left: 0; }
-  .cr-activity-summary > div { min-height: 72px; }
-  .cr-activity-note { padding-inline: 18px; }
-}
-
-@media (max-width: 480px) {
-  .cr-activity-header { flex-direction: column; gap: 12px; }
-  .cr-activity-header [data-slot="badge"] { margin-top: 0; }
-  .cr-activity-calendar-wrap { padding-block: 18px 16px; }
-  .cr-activity-summary dd { font-size: 16px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cr-activity-cell:not(.cr-activity-empty) { transition: none; }
-  .cr-activity-loading-column i { animation: none; }
-}
-
 /* Extracted from runtime <style> injections so the rules ship in the CSS
    bundle instead of duplicating into the document head on every mount. */
 .collection-heading { grid-template-columns: 150px 1fr minmax(220px, 310px); }
@@ -5819,7 +5635,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .current-deck-support h3 { margin: 4px 0 0; font-size: 16px; }
 .current-deck-support-cards { display: flex; gap: 8px; }
 .current-deck-support-cards .current-deck-card { width: 112px; }
-.current-deck-support-cards .game-card-art { width: 112px; --game-card-cost-size: 26px; --game-card-cost-font: 16px; --game-card-level-font: 13px; }
+.current-deck-support-cards .game-card-art { width: 112px; }
 
 .player-share-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin-top: 17px; }
 .player-share-actions button { min-height: 39px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 15px; border: 1px solid rgba(31, 147, 255, .42); border-radius: 7px; color: white; background: rgba(7, 86, 159, .78); font: 700 11px var(--font-ui); }
@@ -5844,7 +5660,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .ready-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .ready-card { display: grid; grid-template-columns: 58px 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid rgba(62, 188, 126, .24); border-radius: 8px; background: rgba(8, 39, 47, .75); color: white; }
 .ready-card:hover { border-color: rgba(85, 216, 149, .7); transform: translateY(-1px); }
-.ready-card img { width: 58px; height: 72px; object-fit: contain; }
+.ready-card .game-card-art { width: 58px; height: 72px; }
 .ready-card-copy, .ready-cost { display: grid; gap: 4px; }
 .ready-card-copy strong { font-size: 13px; }
 .ready-card-copy small, .ready-cost small { color: #8ea2c4; font: 10px var(--font-ui); }
@@ -5869,7 +5685,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .upgrade-card-list { display: grid; gap: 7px; }
 .upgrade-card-row { display: grid; grid-template-columns: 52px minmax(120px, 1fr) 72px minmax(190px, 2fr) 60px; align-items: center; gap: 14px; min-height: 78px; padding: 8px 14px; border: 1px solid rgba(62, 88, 128, .18); border-radius: 7px; background: rgba(8, 24, 44, .72); color: white; }
 .upgrade-card-row:hover { border-color: rgba(31, 147, 255, .55); background: rgba(7, 86, 159, .25); }
-.upgrade-card-row img { width: 52px; height: 64px; object-fit: contain; }
+.upgrade-card-row .game-card-art { width: 52px; height: 64px; }
 .upgrade-card-name, .upgrade-progress { display: grid; gap: 6px; min-width: 0; }
 .upgrade-card-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .upgrade-card-name small, .upgrade-level, .upgrade-progress-label small { color: #8ea2c4; font: 10px var(--font-ui); }
@@ -5911,7 +5727,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 @media (max-width: 640px) {
   .upgrade-summary-grid, .ready-grid { grid-template-columns: 1fr; }
   .upgrade-card-row { grid-template-columns: 46px 1fr auto; gap: 10px; }
-  .upgrade-card-row img { width: 46px; height: 56px; }
+  .upgrade-card-row .game-card-art { width: 46px; height: 56px; }
   .upgrade-level { grid-column: 2; grid-row: 2; }
   .upgrade-progress { grid-column: 2 / -1; grid-row: 3; }
   .upgrade-status { grid-column: 3; grid-row: 1; }
@@ -6626,10 +6442,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .profile-hero-deck-tools > span { display: inline-flex; align-items: center; gap: 5px; color: #e9f2ff; font: 800 12px/1 var(--font-ui); }
 .profile-hero-deck-tools > span img { width: 14px; height: 17px; object-fit: contain; }
 .profile-hero-deck > p { margin: 12px 0; color: #9eb0c8; font: 650 11px/1.4 var(--font-ui); }
-.profile-hero-deck-rail { display: grid; grid-template-columns: repeat(8, minmax(56px, 1fr)); gap: 5px; }
-.profile-hero-deck-rail > a { min-width: 0; display: block; border-radius: 9px; }
-.profile-hero-deck-rail .game-card-art { width: 100%; --game-card-cost-size: clamp(15px, 24%, 21px); --game-card-cost-font: clamp(10px, 1.6vw, 13px); }
-.profile-hero-deck-rail > a:hover .game-card-art { transform: translateY(-2px); }
+.profile-hero-deck-grid { width: 100%; --deck-grid-max-width: 560px; }
 
 .profile-hero-proposal > .profile-hero-actions {
   grid-column: 1 / -1;
@@ -6675,8 +6488,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .profile-hero-deck-tools > div button,
   .profile-hero-deck-tools > div a { min-height: 28px; padding-inline: 7px; }
   .profile-hero-deck-tools > div span { display: none; }
-  .profile-hero-deck-rail { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1px; }
-  .profile-hero-deck-rail .game-card-art { --game-card-cost-size: clamp(13px, 28%, 17px); --game-card-cost-font: 9px; }
   .profile-hero-proposal > .profile-hero-actions { display: flex; flex-wrap: nowrap; gap: 7px; }
   .profile-hero-proposal > .profile-hero-actions .profile-primary-actions,
   .profile-hero-proposal > .profile-hero-actions .profile-primary-actions > div[aria-label*="profile tracking controls"],
@@ -6690,7 +6501,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 @media (max-width: 420px) {
   .profile-hero-freshness > span { max-width: 76px; text-align: right; }
-  .profile-hero-deck-rail { margin-inline: -2px; }
   .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
   .profile-hero-proposal > .profile-hero-actions .player-share-actions button { font-size: 0; }
   .profile-hero-proposal > .profile-hero-actions button svg { width: 18px; height: 18px; }

@@ -1,7 +1,7 @@
 import { Check, Copy, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
-import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { averageElixir, copyDeckLink, fourCardCycle } from "@/lib/clash/assets";
 import { deckHash, META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
@@ -110,7 +110,7 @@ export function DeckBuilder({
             const card = selected[index];
             return card ? (
               <button type="button" key={`${card.id ?? card.name}-${index}`} onClick={() => toggleCard(card)} aria-label={`Remove ${card.name}`}>
-                <CardArt src={card.image} alt={card.name} width={82} height={100} /><span>{card.elixir || "?"}</span>
+                <GameCardArt card={card} size="deck" />
               </button>
             ) : <div key={index} className="empty-card"><span>{index + 1}</span></div>;
           })}
@@ -135,7 +135,7 @@ export function DeckBuilder({
             return (
               <button type="button" key={card.id ?? card.name} className={active ? "selected" : ""} onClick={() => toggleCard(card)} aria-pressed={active}>
                 {active ? <Check className="selected-check" size={17} /> : null}
-                <CardArt src={card.image} alt={card.name} width={76} height={94} />
+                <GameCardArt card={card} size="mini" />
                 <strong>{card.name}</strong><span>{card.rarity} · {card.elixir || "?"}</span>
               </button>
             );

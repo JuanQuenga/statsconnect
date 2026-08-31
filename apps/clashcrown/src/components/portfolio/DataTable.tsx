@@ -1,9 +1,11 @@
 import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import type { ReactNode } from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { stripSupercellColorTags } from "@/lib/clash/format";
+import type { Card } from "@/lib/clash/domain";
 
 /** Renders a rank with its movement since the previous ranking snapshot. */
 export function RankCell({ rank, previousRank }: { rank?: number; previousRank?: number }) {
@@ -30,7 +32,8 @@ export function EntityCell({
   name,
   badge,
   badgeFallback,
-  sub
+  sub,
+  card
 }: {
   href?: string;
   name: string;
@@ -41,9 +44,10 @@ export function EntityCell({
    */
   badgeFallback?: string;
   sub?: ReactNode;
+  card?: Card;
 }) {
   const displayName = stripSupercellColorTags(name);
-  const art = badge ? (
+  const art = card ? <GameCardArt card={card} size="micro" /> : badge ? (
     badgeFallback ? (
       <CardArt src={badge} alt="" width={30} height={36} fallback={badgeFallback} />
     ) : (
