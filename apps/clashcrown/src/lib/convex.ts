@@ -4,6 +4,8 @@ export const convexUrl = (
   import.meta.env.VITE_CONVEX_URL ?? import.meta.env.NEXT_PUBLIC_CONVEX_URL ?? ""
 ).trim();
 export const isConvexConfigured = convexUrl.startsWith("https://");
+/** Explicit local-only fixture mode for reviewing data-heavy UI without Convex. */
+export const isClashDemoDataMode = import.meta.env.DEV && import.meta.env.VITE_CLASHCROWN_DATA_MODE === "demo";
 
 export const playerBundleAction = clashBackend.profiles.player;
 export const clanBundleAction = clashBackend.profiles.clan;

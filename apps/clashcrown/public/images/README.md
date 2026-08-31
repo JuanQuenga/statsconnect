@@ -11,6 +11,11 @@ They are for this fan project only and must not be hotlinked as a CDN.
 `art/hero-ranked-legends-2026.png` is user-supplied official promotional art
 used by the leaderboard hero.
 
+`../apple-touch-icon-blue.png` is a deterministic derivative of the official
+`../apple-touch-icon.png`: the near-black RGB matte is made transparent and
+only purple crown pixels are remapped to the established Clash blue while
+gold and white shading is preserved. It is used only in the shared game nav.
+
 To refresh the pinned asset set, review the SHA in `scripts/sync-assets.mjs`,
 then run:
 

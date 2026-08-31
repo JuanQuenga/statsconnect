@@ -6,6 +6,14 @@ function normalizeOrigin(origin: string | undefined): string {
   return (origin?.trim() || DEFAULT_HUB_ORIGIN).replace(/\/$/, "");
 }
 
+type GameAssetHrefOptions = {
+  applicationOrigin?: string;
+  applicationShell?: boolean;
+  currentPathname?: string;
+  currentSite?: SiteId;
+  hubOrigin?: string;
+};
+
 function normalizeTag(tag: string): string {
   return tag.trim().replace(/^#/, "").toUpperCase();
 }
@@ -34,4 +42,22 @@ export function gameSwitcherHref(
 
   const tag = normalizeTag(destination.tag);
   return `${origin}${gameDestinationPath(game, tag || undefined)}`;
+}
+
+export function gameAssetHref(
+  game: Exclude<SiteId, "statsconnect">,
+  options: GameAssetHrefOptions = {},
+): string {
+  const root = gameDestinationPath(game).replace(/\/$/, "");
+
+  if (options.currentSite === game) {
+    if (options.applicationShell && options.applicationOrigin) {
+      return `${normalizeOrigin(options.applicationOrigin)}${root}/`;
+    }
+
+    const pathname = options.currentPathname ?? "";
+    return pathname === root || pathname.startsWith(`${root}/`) ? `${root}/` : "/";
+  }
+
+  return `${normalizeOrigin(options.hubOrigin)}${root}/`;
 }

@@ -95,7 +95,7 @@ function DeckExperienceShell({ surface, setSurface, children }: { surface: DeckS
           title={locale === "es" ? "Encuentra un mazo que encaje" : "Find a deck that fits"}
           summary={locale === "es" ? "Busca mazos observados, considera tu colección, arma un conjunto de guerra válido o crea libremente." : "Search real observed decks, account for your collection, assemble a valid four-deck war set, or build freely from the card catalog."}
           actions={
-            <div className="deck-surface-tabs" role="tablist" aria-label={t("deck.title")}>
+            <div className="deck-surface-tabs mobile-page-tabs mobile-page-tabs--decks" role="tablist" aria-label={t("deck.title")}>
               <button type="button" role="tab" aria-selected={surface === "discover"} className={surface === "discover" ? "active" : ""} onClick={() => setSurface("discover")}><Search size={17} />{locale === "es" ? "Descubrir" : "Discover"}</button>
               <button type="button" role="tab" aria-selected={surface === "war"} className={surface === "war" ? "active" : ""} onClick={() => setSurface("war")}><ShieldCheck size={17} />{locale === "es" ? "Guerra" : "War set"}</button>
               <button type="button" role="tab" aria-selected={surface === "builder"} className={surface === "builder" ? "active" : ""} onClick={() => setSurface("builder")}><Hammer size={17} />{t("deck.title")}</button>

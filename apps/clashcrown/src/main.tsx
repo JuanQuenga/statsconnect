@@ -21,7 +21,7 @@ const APP_NAME = "StatsConnect Clash Royale";
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "") || "/";
 
 function createApplicationRouter() {
-  return createRouter({
+  const router = createRouter({
     routeTree,
     defaultPreload: "intent",
     basepath: basePath,
@@ -35,6 +35,8 @@ function createApplicationRouter() {
       });
     },
   });
+
+  return router;
 }
 
 type ClashRoyaleRouter = ReturnType<typeof createApplicationRouter>;
@@ -108,7 +110,10 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
   );
 
   return {
-    navigate: (href) => void router.navigate({ href: localHref(href) }),
+    navigate: (href) => {
+      const local = localHref(href);
+      void router.navigate({ href: local });
+    },
     unmount: () => {
       root.unmount();
       removeGlobalErrorHandlers();

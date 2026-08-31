@@ -2,14 +2,15 @@ import Image from "@/components/Image";
 import Link from "@/components/Link";
 import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
-import { Crown, RefreshCcw, Shield, Swords, Trophy } from "lucide-react";
+import { Crown, RefreshCcw, Shield, Trophy } from "lucide-react";
 import { leagueImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
-import { DeckActions } from "@/components/portfolio/DeckActions";
+import { DeckActions, deckLinkForCards } from "@/components/portfolio/DeckActions";
 import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { PlayerCardCollection } from "@/components/portfolio/PlayerCardCollection";
 import { PlayerShareActions } from "@/components/portfolio/PlayerShareActions";
@@ -21,7 +22,7 @@ import type { ProfileHistoryPoint } from "@/lib/clash/types";
 import { useI18n, type Locale, type MessageKey } from "@/lib/i18n";
 
 const tabItems = [
-  { label: "Statistics", message: "player.statistics", icon: "/images/icons/trophy.png" },
+  { label: "Statistics", message: "player.statistics", icon: "/images/ui-icons/trophies.png" },
   { label: "Battles", message: "player.battles", icon: "/images/icons/sword.png" },
   { label: "Decks", message: "player.decks", icon: "/images/icons/cardsq.png" },
   { label: "Cards", message: "player.cards", icon: "/images/icons/book-cards.png" },
@@ -29,104 +30,130 @@ const tabItems = [
 ] satisfies Array<{ label: PlayerTab; message: MessageKey; icon: string }>;
 
 export function PlayerHero({ player, actions }: { player: Player; actions?: ReactNode }) {
-  const { formatNumber, locale, t } = useI18n();
-  const wins = player.stats.Wins;
-  const battles = player.stats.Battles ?? combinedStat(player.stats.Wins, player.stats.Losses, formatNumber);
+  const { formatNumber, locale } = useI18n();
   const currentLeague = player.pathOfLegends?.current;
+  const recentBattles = player.battles.slice(0, 10);
+  const performance = analyzePlayerBattles(recentBattles);
+  const deck = player.deck.slice(0, 8);
+  const averageElixir = deck.length
+    ? deck.reduce((total, card) => total + card.elixir, 0) / deck.length
+    : undefined;
+  const deckHasActions = deckLinkForCards(deck) !== undefined;
+  const leagueLabel = currentLeague?.leagueNumber === undefined
+    ? locale === "es" ? "Clasificatoria" : "Ranked"
+    : `${locale === "es" ? "Liga" : "League"} ${currentLeague.leagueNumber}`;
+  const clanLabel = player.clan && player.clan !== "No clan"
+    ? player.clan
+    : locale === "es" ? "Sin clan" : "No clan";
 
   return (
-    <section className="profile-hero" data-arena-frame>
-      <span className="arena-hero-frame-art" aria-hidden="true" />
+    <ArenaHeroFrame className="profile-hero">
       <div className="profile-hero-glow" aria-hidden="true" />
-      <div className="profile-identity-art">
-        <div className="profile-showcase-shelf" aria-label={locale === "es" ? "Selección del jugador" : "Player loadout"}>
-          {player.favoriteCard ? (
-            <Link className="profile-favorite-art" href={`/cards/${cardSlug(player.favoriteCard.name)}`} aria-label={`Favorite card: ${player.favoriteCard.name}`}>
-              <CardArt src={player.favoriteCard.image} alt={player.favoriteCard.name} width={122} height={149} priority />
-              <span className="profile-art-caption">
-                <small>{locale === "es" ? "Carta favorita" : "Favorite card"}</small>
-                <strong>{player.favoriteCard.name}</strong>
-              </span>
-            </Link>
-          ) : null}
-          {currentLeague ? (
-            <span className="profile-league-art" aria-label={`${locale === "es" ? "Liga actual" : "Current league"}${currentLeague.leagueNumber === undefined ? "" : ` ${currentLeague.leagueNumber}`}`}>
-              <Image src={leagueImage(currentLeague.leagueNumber)} alt="" width={80} height={80} />
-              <span className="profile-art-caption">
-                <small>{locale === "es" ? "Liga actual" : "Current league"}</small>
-                <strong>{currentLeague.leagueNumber === undefined ? (locale === "es" ? "Clasificatoria" : "Ranked") : `${locale === "es" ? "Liga" : "League"} ${currentLeague.leagueNumber}`}</strong>
-              </span>
-            </span>
-          ) : null}
-          <span className="profile-arena-loadout">
-            <Image src={player.arenaImage} alt={player.arena} width={112} height={112} priority />
-            <span className="profile-art-caption">
-              <small>{locale === "es" ? "Arena actual" : "Current arena"}</small>
-              <strong>{player.arena}</strong>
-            </span>
-          </span>
-        </div>
-      </div>
-      <div className="profile-identity-copy">
-        <h1>{player.name}</h1>
-        {player.level !== undefined ? (
-          <span className="profile-player-level" aria-label={`${locale === "es" ? "Nivel del rey" : "King level"} ${player.level}`}>
-            <span className="profile-level-badge">{player.level}</span>
-            <span>
-              <small>{locale === "es" ? "Nivel del rey" : "King level"}</small>
-              <strong>{player.level}</strong>
-            </span>
-          </span>
-        ) : null}
-        <div className="profile-identity-meta">
-          <strong>#{player.tag}</strong>
-          <span aria-hidden="true">•</span>
-          {player.clanTag ? (
-            <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>
-              <CardArt src={player.clanBadge ?? NO_CLAN_BADGE_IMAGE} alt="" width={24} height={28} fallback={NO_CLAN_BADGE_IMAGE} />
-              {player.clan}
-            </Link>
-          ) : player.clan && player.clan !== "No clan" ? (
-            <span className="profile-no-clan"><Shield size={14} /> {player.clan}</span>
-          ) : (
-            <span className="profile-no-clan"><Shield size={14} /> Independent player</span>
-          )}
-        </div>
-        {player.pathOfLegends?.current?.trophies !== undefined || player.clanTag ? (
-          <div className="card-detail-meta hero-chips">
-            {player.pathOfLegends?.current?.trophies !== undefined ? (
-              <span className="status-chip">
-                Path of Legends · {formatNumber(player.pathOfLegends.current.trophies)}
-                {player.pathOfLegends.current.rank ? ` · #${formatNumber(player.pathOfLegends.current.rank)}` : ""}
-              </span>
-            ) : null}
-            {player.clanTag ? <Link className="status-chip" href={`/clans/${player.clanTag.replace(/^#/, "")}/war`}>{t("clan.war")}</Link> : null}
+      <div className="profile-hero-proposal">
+        <header className="profile-hero-identity">
+          <div className="profile-hero-nameplate">
+            <h1>{player.name}</h1>
+            <p>
+              <strong>#{player.tag}</strong>
+              <span aria-hidden="true">·</span>
+              {player.clanTag ? (
+                <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>
+                  <CardArt src={player.clanBadge ?? NO_CLAN_BADGE_IMAGE} alt="" width={20} height={22} fallback={NO_CLAN_BADGE_IMAGE} />
+                  {clanLabel}
+                </Link>
+              ) : <span><Shield size={13} /> {clanLabel}</span>}
+            </p>
           </div>
-        ) : null}
-        <div className="profile-hero-actions">
-          {actions}
+          <div className="profile-hero-freshness">
+            {player.level !== undefined ? <strong>{locale === "es" ? "Rey" : "King"} {player.level}</strong> : null}
+            <span>{updatedLabel(player.fetchedAt, locale)}</span>
+          </div>
+        </header>
+
+        <section className="profile-competitive-status" aria-label={locale === "es" ? "Estado competitivo" : "Competitive status"}>
+          <div className="profile-ranked-lead">
+            {currentLeague ? <Image src={leagueImage(currentLeague.leagueNumber)} alt="" width={78} height={78} priority /> : <Trophy aria-hidden="true" />}
+            <div>
+              <small>{currentLeague ? "Path of Legends" : "Trophy Road"}</small>
+              <strong>{currentLeague ? leagueLabel : player.arena}</strong>
+              {currentLeague?.trophies !== undefined ? (
+                <span>
+                  {formatNumber(currentLeague.trophies)}
+                  {currentLeague.rank ? ` · #${formatNumber(currentLeague.rank)}` : ""}
+                </span>
+              ) : <span>{locale === "es" ? "Sin posición clasificatoria registrada" : "No Ranked standing recorded"}</span>}
+            </div>
+          </div>
+          <div className="profile-trophy-road">
+            <HeroMetric icon={<Trophy />} label="Trophy Road" value={player.trophies === undefined ? "—" : formatNumber(player.trophies)} />
+            <HeroMetric icon={<Crown />} label={locale === "es" ? "Mejor marca" : "Personal best"} value={player.bestTrophies === undefined ? "—" : formatNumber(player.bestTrophies)} />
+            <div className="profile-arena-context">
+              <Image src={player.arenaImage} alt="" width={48} height={48} priority />
+              <span><small>{locale === "es" ? "Arena actual" : "Current arena"}</small><strong>{player.arena}</strong></span>
+            </div>
+          </div>
+        </section>
+
+        <section className="profile-recent-form" aria-label={locale === "es" ? "Forma reciente" : "Recent form"}>
+          <header>
+            <div><small>{locale === "es" ? "Forma reciente" : "Recent form"}</small><strong>{performance.games ? `${performance.wins}–${performance.losses}${performance.draws ? `–${performance.draws}` : ""}` : "—"}</strong></div>
+            <div><small>{locale === "es" ? "Victorias" : "Win rate"}</small><strong>{performance.games ? `${performance.winRate.toFixed(0)}%` : "—"}</strong></div>
+            <div><small>{locale === "es" ? "Racha" : "Streak"}</small><strong>{resultStreak(recentBattles)}</strong></div>
+          </header>
+          {performance.recent.length ? (
+            <div className="profile-form-pips" role="list" aria-label={`${locale === "es" ? "Últimas" : "Last"} ${performance.recent.length} ${locale === "es" ? "batallas registradas" : "recorded battles"}`}>
+              {performance.recent.map((battle, index) => (
+                <span key={`${battle.date}-${battle.opponent}-${index}`} className={battle.result.toLowerCase()} role="listitem" aria-label={battle.result}>
+                  {battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L"}
+                </span>
+              ))}
+            </div>
+          ) : <p>{locale === "es" ? "Sin batallas recientes registradas" : "No recent battles recorded"}</p>}
+          <p>{locale === "es" ? `Últimas ${performance.recent.length} batallas registradas` : `Last ${performance.recent.length} recorded battles`}</p>
+        </section>
+
+        <section className="profile-hero-deck" aria-label={locale === "es" ? "Mazo actual" : "Current deck"}>
+          <header>
+            <div><small>{locale === "es" ? "Mazo actual" : "Current deck"}</small><strong>{deck.length === 8 ? `${deck.length} ${locale === "es" ? "cartas" : "cards"}` : locale === "es" ? "No disponible" : "Unavailable"}</strong></div>
+            <div className="profile-hero-deck-tools">
+              {averageElixir !== undefined ? <span><Image src="/images/ui-icons/elixir.png" alt="" width={16} height={19} />{averageElixir.toFixed(1)}</span> : null}
+              {deckHasActions ? <DeckActions cards={deck} label={locale === "es" ? "mazo actual" : "current deck"} compact /> : null}
+            </div>
+          </header>
+          {deck.length ? (
+            <div className="profile-hero-deck-rail">
+              {deck.map((card, index) => (
+                <Link key={`${card.name}-${index}`} href={`/cards/${cardSlug(card.name)}`} aria-label={card.name}>
+                  <GameCardArt card={card} size="library" showLevel={false} priority={index < 4} />
+                </Link>
+              ))}
+            </div>
+          ) : <p>{locale === "es" ? "El perfil no incluye un mazo actual." : "This profile does not include a current deck."}</p>}
+        </section>
+
+        <div className="profile-hero-actions" aria-label={locale === "es" ? "Acciones del perfil" : "Profile actions"}>
+          {actions ? <div className="profile-primary-actions">{actions}</div> : null}
           <PlayerShareActions player={player} compact />
         </div>
       </div>
-      <div className="profile-hero-metrics" aria-label="Player highlights">
-        <HeroMetric icon={<Trophy />} label="Trophies" value={player.trophies === undefined ? "—" : formatNumber(player.trophies)} />
-        <HeroMetric icon={<Crown />} label="Personal best" value={player.bestTrophies === undefined ? "—" : formatNumber(player.bestTrophies)} />
-        <HeroMetric icon={<Swords />} label="Wins" value={wins ?? "—"} />
-        <HeroMetric icon={<Shield />} label="Battles" value={battles ?? "—"} />
-      </div>
-    </section>
+    </ArenaHeroFrame>
   );
+}
+
+function resultStreak(battles: Battle[]) {
+  const latest = battles[0]?.result;
+  if (!latest) return "—";
+  let count = 0;
+  for (const battle of battles) {
+    if (battle.result !== latest) break;
+    count += 1;
+  }
+  const prefix = latest === "Win" ? "W" : latest === "Loss" ? "L" : "D";
+  return `${prefix}${count}`;
 }
 
 function HeroMetric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return <div className="profile-hero-metric"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>;
-}
-
-function combinedStat(first: string | undefined, second: string | undefined, formatNumber: (value: number) => string) {
-  if (!first || !second) return undefined;
-  const firstValue = Number(first.replace(/[^\d.-]/g, ""));
-  const secondValue = Number(second.replace(/[^\d.-]/g, ""));
-  return Number.isFinite(firstValue) && Number.isFinite(secondValue) ? formatNumber(firstValue + secondValue) : undefined;
 }
 
 export type PlayerTab = "Statistics" | "Battles" | "Decks" | "Cards" | "Chests";
@@ -134,7 +161,7 @@ export type PlayerTab = "Statistics" | "Battles" | "Decks" | "Cards" | "Chests";
 export function PlayerTabs({ active, onChange }: { active: PlayerTab; onChange: (tab: PlayerTab) => void }) {
   const { t } = useI18n();
   return (
-    <nav className="profile-tabs" aria-label={t("player.sections")}>
+    <nav className="profile-tabs mobile-page-tabs mobile-page-tabs--profile" aria-label={t("player.sections")}>
       {tabItems.map((tab) => (
         <button key={tab.label} type="button" className={active === tab.label ? "active" : ""} aria-current={active === tab.label ? "page" : undefined} onClick={() => onChange(tab.label as PlayerTab)}>
           <Image src={tab.icon} alt="" width={28} height={28} />
@@ -318,8 +345,8 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
           value={performance.draws ? `${performance.wins}–${performance.losses}–${performance.draws}` : `${performance.wins}–${performance.losses}`}
           label={performance.draws ? "W / L / D record" : "W / L record"}
         />
-        <PerformanceStat icon="/images/icons/trophy.png" value={`${performance.winRate.toFixed(1)}%`} label="Win rate" />
-        <PerformanceStat icon="/images/icons/crown-gold.png" value={`${performance.threeCrownRate.toFixed(1)}%`} label={`${performance.threeCrownWins} three-crown wins`} />
+        <PerformanceStat icon="/images/ui-icons/trophies.png" value={`${performance.winRate.toFixed(1)}%`} label="Win rate" />
+        <PerformanceStat icon="/images/icons/three.png" value={`${performance.threeCrownRate.toFixed(1)}%`} label={`${performance.threeCrownWins} three-crown wins`} />
         <PerformanceStat icon="/images/icons/sword.png" value={`${performance.currentWinStreak} / ${performance.bestWinStreak}`} label="Current / best streak" />
       </div>
       <div className="performance-grid">

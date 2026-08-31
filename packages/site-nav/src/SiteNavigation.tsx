@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type AnchorHTMLAttributes, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { handleApplicationNavigation } from "./application-navigation";
-import { gameSwitcherHref } from "./navigation-targets";
+import { gameAssetHref, gameSwitcherHref } from "./navigation-targets";
 import "./site-navigation.css";
 
 export type SiteId = "statsconnect" | "brawl-stars" | "clash-royale";
@@ -218,19 +218,37 @@ function NetworkBrand({ currentSite, hubOrigin }: { currentSite: SiteId; hubOrig
 }
 
 function SiteIcon({
+  applicationOrigin,
+  applicationShell,
   className,
+  currentPathname,
+  currentSite,
   hubOrigin,
   site,
 }: {
+  applicationOrigin?: string;
+  applicationShell: boolean;
   className: string;
+  currentPathname?: string;
+  currentSite: SiteId;
   hubOrigin?: string;
   site: (typeof sites)[number];
 }) {
+  const iconFile = site.id === "clash-royale" ? "apple-touch-icon-blue.png" : "apple-touch-icon.png";
+  const iconBase = site.id === "statsconnect"
+    ? ""
+    : gameAssetHref(site.id, {
+        applicationOrigin,
+        applicationShell,
+        currentPathname,
+        currentSite,
+        hubOrigin,
+      });
   return (
-    <span className={className} aria-hidden>
+    <span className={className} data-site={site.id} aria-hidden>
       {site.id === "statsconnect"
         ? site.icon
-        : <img src={`${gameSwitcherHref(site.id, hubOrigin)}apple-touch-icon.png`} alt="" />}
+        : <img src={`${iconBase}${iconFile}`} alt="" />}
     </span>
   );
 }
@@ -243,10 +261,16 @@ function gameProfiles(
 }
 
 function NetworkSites({
+  applicationOrigin,
+  applicationShell,
+  currentPathname,
   currentSite,
   hubOrigin,
   profiles,
 }: {
+  applicationOrigin?: string;
+  applicationShell: boolean;
+  currentPathname?: string;
   currentSite: SiteId;
   hubOrigin?: string;
   profiles: readonly SiteNavigationProfile[];
@@ -260,7 +284,7 @@ function NetworkSites({
         return (
           <div className="sc-nav__network-group" key={site.id}>
             <ApplicationLink className="sc-nav__network-game" href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
-              <SiteIcon className="sc-nav__network-game-icon" hubOrigin={hubOrigin} site={site} />
+              <SiteIcon applicationOrigin={applicationOrigin} applicationShell={applicationShell} className="sc-nav__network-game-icon" currentPathname={currentPathname} currentSite={currentSite} hubOrigin={hubOrigin} site={site} />
               <span>{site.label}</span>
             </ApplicationLink>
             {saved.map((profile) => (
@@ -281,10 +305,16 @@ function NetworkSites({
 }
 
 function GamesMenu({
+  applicationOrigin,
+  applicationShell,
+  currentPathname,
   currentSite,
   hubOrigin,
   profiles,
 }: {
+  applicationOrigin?: string;
+  applicationShell: boolean;
+  currentPathname?: string;
   currentSite: SiteId;
   hubOrigin?: string;
   profiles: readonly SiteNavigationProfile[];
@@ -306,7 +336,7 @@ function GamesMenu({
           return (
             <div className="sc-nav__game-menu-group" key={site.id}>
               <ApplicationLink href={gameSwitcherHref(site.id, hubOrigin)} aria-current={current ? "page" : undefined}>
-                <SiteIcon className="sc-nav__game-icon" hubOrigin={hubOrigin} site={site} />
+                <SiteIcon applicationOrigin={applicationOrigin} applicationShell={applicationShell} className="sc-nav__game-icon" currentPathname={currentPathname} currentSite={currentSite} hubOrigin={hubOrigin} site={site} />
                 <span>
                   <strong>{site.label}</strong>
                   <small>{detail}</small>
@@ -469,9 +499,9 @@ export function SiteNavigation({
   const sheetRef = useRef<HTMLDivElement>(null);
   const close = () => setOpen(false);
   const style: NavigationStyle = { "--sc-nav-accent": accentColor };
-  const applicationOrigin = typeof window !== "undefined" && window.__statsConnectApplicationShell
-    ? window.location.origin
-    : hubOrigin;
+  const applicationShell = typeof window !== "undefined" && Boolean(window.__statsConnectApplicationShell);
+  const applicationOrigin = applicationShell && typeof window !== "undefined" ? window.location.origin : hubOrigin;
+  const currentPathname = typeof window !== "undefined" ? window.location.pathname : undefined;
   const dockLinks = (mobileLinks ?? links).slice(0, 4);
 
   useEffect(() => {
@@ -524,10 +554,10 @@ export function SiteNavigation({
       <div className="sc-nav__network">
         <div className="sc-nav__network-inner">
           <NetworkBrand currentSite={currentSite} hubOrigin={applicationOrigin} />
-          <NetworkSites currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
+          <NetworkSites applicationOrigin={applicationOrigin} applicationShell={applicationShell} currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
           <div className="sc-nav__network-actions">
             <LanguageSelector language={language} />
-            <div className="sc-nav__network-menu"><GamesMenu currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} /></div>
+            <div className="sc-nav__network-menu"><GamesMenu applicationOrigin={applicationOrigin} applicationShell={applicationShell} currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} /></div>
             {account ? <AccountChip account={account} /> : null}
             {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
           </div>
@@ -578,7 +608,7 @@ export function SiteNavigation({
             {currentSite === "clash-royale" ? (
               <div className="sc-nav__mobile-tools" aria-label="Site preferences">
                 {language ? <LanguageSelector language={language} /> : null}
-                <GamesMenu currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
+                <GamesMenu applicationOrigin={applicationOrigin} applicationShell={applicationShell} currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
                 {account ? <AccountChip account={account} /> : null}
                 {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
               </div>

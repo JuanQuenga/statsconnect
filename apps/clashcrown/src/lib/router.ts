@@ -1,4 +1,8 @@
-import { useParams, useSearch, useRouter as useTanStackRouter } from "@tanstack/react-router";
+import {
+  useParams,
+  useSearch,
+  useRouter as useTanStackRouter,
+} from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 
 type QueryValue = string | string[] | undefined;
@@ -32,7 +36,10 @@ export function useRouter() {
   const query = useMemo(() => ({ ...search, ...params }), [search, params]) as Record<string, QueryValue>;
 
   const navigate = useCallback(
-    (target: LegacyUrl, replace = false) => router.navigate({ href: toHref(target), replace }),
+    (target: LegacyUrl, replace = false) => {
+      const href = toHref(target);
+      return router.navigate({ href, replace });
+    },
     [router],
   );
 

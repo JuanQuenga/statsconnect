@@ -5,6 +5,7 @@ import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
 import { useMemo, useState } from "react";
 import { Layout } from "@/components/portfolio/Layout";
+import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { CardDeepAnalytics } from "@/components/CardDeepAnalytics";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { highestAvailableCardArt, rarityImage } from "@/lib/clash/assets";
@@ -14,6 +15,7 @@ import { useCardLibrary } from "@/lib/useCardCatalog";
 import { useCardMeta, DEFAULT_META_MODE } from "@/lib/useCardMeta";
 import type { Card } from "@/lib/clash/domain";
 import { errorMessage, isConvexConfigured } from "@/lib/convex";
+import { rankLabel, selectCardMetaScope } from "@/lib/cardMetaSelectors";
 
 export default function CardDetailPage() {
   const router = useRouter();
@@ -71,6 +73,7 @@ function CardDetail({ slug }: { slug: string }) {
     );
   }
 
+  const isTowerTroop = library.towerTroops.some((item) => item.id === card.id);
   const rarityIcon = rarityImage(card.rarity);
 
   return (
@@ -80,8 +83,7 @@ function CardDetail({ slug }: { slug: string }) {
         <meta name="description" content={`${card.name} — ${card.rarity} card costing ${card.elixir} elixir.`} />
       </Head>
       <div className="profile-page">
-        <section className="card-detail-hero" data-arena-frame>
-          <span className="arena-hero-frame-art" aria-hidden="true" />
+        <ArenaHeroFrame className="card-detail-hero">
           <CardArt src={highestAvailableCardArt(card)} alt={card.name} width={180} height={220} priority />
           <div>
             <Link href="/cards" className="breadcrumb">← All cards</Link>
@@ -103,10 +105,16 @@ function CardDetail({ slug }: { slug: string }) {
               Build a deck with {card.name}
             </Link>
           </div>
-        </section>
+        </ArenaHeroFrame>
 
-        <CardStats card={card} mode={mode} onModeChange={setMode} meta={meta} />
-        <CardDeepAnalytics card={card} mode={mode} byId={library.byId} />
+        <CardStats
+          card={card}
+          mode={mode}
+          onModeChange={setMode}
+          meta={meta}
+          isTowerTroop={isTowerTroop}
+        />
+        {!isTowerTroop ? <CardDeepAnalytics card={card} mode={mode} byId={library.byId} /> : null}
 
         <section className="profile-section">
           <h2>Similar cards</h2>
@@ -162,19 +170,27 @@ function CardStats({
   card,
   mode,
   onModeChange,
-  meta
+  meta,
+  isTowerTroop
 }: {
   card: Card;
   mode: MetaMode;
   onModeChange: (mode: MetaMode) => void;
   meta: ReturnType<typeof useCardMeta>;
+  isTowerTroop: boolean;
 }) {
-  const stat = typeof card.id === "number" ? meta.byId.get(card.id) : undefined;
+  const scope = selectCardMetaScope({
+    cardId: typeof card.id === "number" ? card.id : undefined,
+    isTowerTroop,
+    regular: { byId: meta.byId, decksObserved: meta.decksObserved, ranked: meta.ranked, loading: meta.loading },
+    tower: { byId: meta.towerById, decksObserved: meta.towerDecksObserved, loading: meta.towerLoading }
+  });
+  const stat = scope.record;
 
   return (
     <section className="profile-section">
       <div className="section-heading">
-        <h2>Usage in real battles</h2>
+        <h2>{isTowerTroop ? "Tower Troop usage in real battles" : "Usage in real battles"}</h2>
       </div>
       <div className="beta-tabs" role="group" aria-label="Battle mode">
         {META_MODES.map((item) => (
@@ -192,12 +208,12 @@ function CardStats({
       {stat ? (
         <div className="beta-grid">
           <StatTile label="Usage" value={`${(stat.usageRate * 100).toFixed(1)}%`} sub="of decks observed" />
-          <StatTile label="Win rate" value={`${(stat.winRate * 100).toFixed(1)}%`} sub={`${stat.uses.toLocaleString()} games`} />
-          <StatTile label="Most played" value={`#${stat.rank}`} sub={`of ${meta.ranked} cards seen`} />
+          <StatTile label="Win rate" value={`${(stat.winRate * 100).toFixed(1)}%`} sub={`${stat.uses.toLocaleString()} ${scope.countLabel}`} />
+          <StatTile label="Most played" value={rankLabel(stat.rank)} sub={stat.rank === null ? "Rank unavailable" : `of ${scope.ranked} ${isTowerTroop ? "Tower Troops" : "cards"} seen`} />
         </div>
       ) : (
         <p className="empty-results">
-          {meta.loading
+          {scope.loading
             ? "Loading statistics…"
             : `${card.name} has not appeared in the ${modeLabel(mode)} battles crawled over the last ${
                 meta.windowDays
@@ -206,7 +222,7 @@ function CardStats({
       )}
 
       <p className="table-note">
-        Counted from {Math.round(meta.decksObserved).toLocaleString()} decks in {modeLabel(mode)} over the last{" "}
+        Counted from {Math.round(scope.decksObserved).toLocaleString()} decks in {modeLabel(mode)} over the last{" "}
         {meta.windowDays} days. The official API publishes no card statistics, so these come from crawled battle logs —
         a sample of the ladder, not all of it. <Link href="/meta">See the full meta report</Link>.
       </p>

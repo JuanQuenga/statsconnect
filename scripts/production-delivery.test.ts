@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -9,6 +10,8 @@ import {
   planVercelRelease,
   publicAppOrigin,
   publicOrigin,
+  removeStandaloneApplicationDocuments,
+  standaloneApplicationDocumentPaths,
   unifiedPublicEnvironment,
   viteBasePath,
   viteOutputDirectory,
@@ -142,6 +145,29 @@ test("the root Vercel Adapter never caches the shell document or application man
 
 test("the unified build owns a generated application-shell manifest", () => {
   assert.equal(applicationShellManifestPath, "dist/application-shell-manifest.json");
+});
+
+test("the unified build leaves the root shell as the only application document", async (context) => {
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "statsconnect-delivery-"));
+  context.after(async () => {
+    await rm(fixtureRoot, { force: true, recursive: true });
+  });
+
+  const assetPaths = deliveryApps.slice(1).map((app) => path.join(app.outputDirectory, "assets", "entry.js"));
+  for (const relativePath of [...standaloneApplicationDocumentPaths, ...assetPaths]) {
+    const absolutePath = path.join(fixtureRoot, relativePath);
+    await mkdir(path.dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, "fixture", "utf8");
+  }
+
+  removeStandaloneApplicationDocuments(fixtureRoot);
+
+  for (const relativePath of standaloneApplicationDocumentPaths) {
+    await assert.rejects(access(path.join(fixtureRoot, relativePath)));
+  }
+  for (const relativePath of assetPaths) {
+    await access(path.join(fixtureRoot, relativePath));
+  }
 });
 
 test("root scripts own the unified delivery entry points", async () => {

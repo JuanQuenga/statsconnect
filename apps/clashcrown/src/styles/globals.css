@@ -99,6 +99,13 @@ body:has(.site-frame-clash) {
   overscroll-behavior-y: none;
 }
 
+@media (max-width: 680px) {
+  html,
+  body:has(.site-frame-clash) {
+    background: #031020;
+  }
+}
+
 ::selection {
   color: var(--foreground);
   background: color-mix(in srgb, var(--primary) 35%, transparent);
@@ -3894,46 +3901,83 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 .site-frame main:focus { outline: none; }
 
-/* Shared frame art for bespoke route heroes. The art is a real first child so
- * this contract never competes with a hero's existing ::before/::after rules. */
-.site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) {
-  position: relative;
-  isolation: isolate;
-  padding-bottom: 112px;
+/* Shared seasonal scene for every Clash Royale hero. The frame is full-bleed
+ * and attached to the navigation; route components only supply their content. */
+.site-frame-clash > main:has(.arena-hero-frame) {
+  padding-top: 0;
 }
 
-.site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) > .arena-hero-frame-art:first-child {
+/* The legacy mobile shell adds an 18px breathing room to every profile page.
+ * A seasonal hero is the page's top edge now, so keep it flush with the nav. */
+.site-frame-clash:not(.site-frame-home) > main:has(.arena-hero-frame) {
+  padding-top: 0;
+}
+
+.site-frame-clash > main:has(.arena-hero-frame) > .profile-page,
+.site-frame-clash > main:has(.arena-hero-frame) > .decks-page,
+.site-frame-clash > main:has(.arena-hero-frame) > .editorial-page,
+.site-frame-clash > main:has(.arena-hero-frame) > .page {
+  padding-top: 0;
+}
+
+.site-frame-clash > main:has(.arena-hero-frame) > .editorial-page.guide-detail {
+  padding-top: 0;
+}
+
+.site-frame-clash .arena-hero-frame {
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  width: 100dvw;
+  max-width: none;
+  min-height: 336px;
+  margin-inline: calc(50% - 50vw);
+  margin-inline: calc(50% - 50dvw);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  background: #8eb6cc;
+  box-shadow: none;
+}
+
+/* During a route handoff, reveal the incoming hero only as the battlement
+ * moves. The wall pseudo-element is inside the frame, so it remains visible. */
+.site-frame-clash .arena-hero-frame[data-arena-height-transition="active"] {
+  overflow: clip;
+}
+
+.site-frame-clash .arena-hero-frame-art {
   position: absolute;
   z-index: 0;
   inset: 0;
   display: block;
-  min-height: 100%;
   pointer-events: none;
-  background-color: #17301f;
+  background-color: #8eb6cc;
   background-image:
-    url("/images/theme/subreddit/battlement-strip-upscaled.png"),
-    url("/images/theme/subreddit/forest-hero.png");
-  background-position: center bottom, center top;
-  background-size: 950px 94px, auto 286px;
-  background-repeat: repeat-x, no-repeat;
+    linear-gradient(90deg, rgba(4, 16, 32, .72) 0%, rgba(4, 16, 32, .5) 36%, rgba(4, 16, 32, .16) 72%, rgba(4, 16, 32, .06) 100%),
+    linear-gradient(180deg, rgba(4, 16, 32, .08) 0%, transparent 54%, rgba(4, 16, 32, .46) 100%),
+    url("/images/theme/subreddit/home-hero-v2.png");
+  background-position: center 44%;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
-.site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) > .arena-hero-frame-art:first-child ~ * {
+.site-frame-clash .arena-hero-frame::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 94px;
+  pointer-events: none;
+  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
+}
+
+.site-frame-clash .arena-hero-frame > :not(.arena-hero-frame-art) {
   position: relative;
   z-index: 1;
-}
-
-@media (max-width: 680px) {
-  .site-frame-clash [data-arena-frame]:has(> .arena-hero-frame-art:first-child) > .arena-hero-frame-art:first-child {
-    background-position: center bottom, 62% top;
-  }
-}
-
-/* Compact route surface: the shared Clash Royale scene fills the viewport,
- * while the battlement remains a repeatable bottom rail. Keeping the content
- * above the rail prevents route copy and actions from being covered. */
-.site-frame-clash > main:has(.arena-route-hero) {
-  padding-top: 0;
 }
 
 .site-frame-clash > main .arena-route-hero {
@@ -3945,30 +3989,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 }
 
 .site-frame-clash .arena-route-hero {
-  position: relative;
-  isolation: isolate;
   min-height: 336px;
-  overflow: visible;
-  color: #fff;
-  background-color: #8eb6cc;
-  background-image:
-    linear-gradient(180deg, rgba(4, 16, 32, .58), rgba(4, 16, 32, .3) 45%, rgba(4, 16, 32, .78) 100%),
-    url("/images/theme/subreddit/home-hero-v2.png");
-  background-position: center 44%;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-
-.site-frame-clash .arena-route-hero::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 94px;
-  pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
 }
 
 .site-frame-clash .arena-route-hero-inner {
@@ -3988,7 +4009,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .site-frame-clash .arena-route-hero-content {
   min-width: 0;
   max-width: 760px;
-  text-shadow: 0 3px 4px rgba(0, 0, 0, .72), 0 9px 24px rgba(0, 0, 0, .36);
+  text-shadow: 0 2px 3px rgba(3, 14, 24, .56);
 }
 
 .site-frame-clash .arena-route-hero-eyebrow {
@@ -4002,11 +4023,35 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .site-frame-clash .arena-route-hero h1 {
   max-width: 100%;
   margin: 0;
+  font-family: var(--font-ui);
+  font-weight: 820;
+  font-synthesis: none;
   font-size: clamp(34px, 4.5vw, 58px);
-  line-height: .98;
+  line-height: 1.04;
+  letter-spacing: -.045em;
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
+
+/* Internal page heroes use the UI face for dependable word shapes and line
+ * metrics. The homepage keeps its intentional editorial treatment in
+ * `.royale-hero-copy h1`; route-level titles are covered by their explicit
+ * `.arena-route-hero` and `.data-state` classes below. */
+.site-frame-clash .editorial-hero h1,
+.site-frame-clash .guide-detail-hero h1,
+.site-frame-clash .decks-hero h1,
+.site-frame-clash .card-detail-hero h1,
+.site-frame-clash .clan-hero h1,
+.site-frame-clash .data-state h1 {
+  font-family: var(--font-ui);
+  font-weight: 820;
+  font-synthesis: none;
+  line-height: 1.04;
+  letter-spacing: -.045em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .28);
+}
+
+.site-frame-clash .data-state h1 { text-shadow: none; }
 
 .site-frame-clash .arena-route-hero-description {
   max-width: 680px;
@@ -4067,8 +4112,9 @@ a:hover .entity-cell strong { color: #75c5ff; }
 @media (max-width: 680px) {
   .site-frame-clash .arena-route-hero {
     min-height: 360px;
-    background-position: 58% center;
   }
+
+  .site-frame-clash .arena-hero-frame-art { background-position: 58% center; }
 
   .site-frame-clash .arena-route-hero-inner {
     width: calc(100% - 32px);
@@ -4078,6 +4124,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
   .site-frame-clash .arena-route-hero h1 {
     font-size: clamp(32px, 9vw, 42px);
+    line-height: 1.1;
   }
 
   .site-frame-clash .arena-route-hero-description {
@@ -4090,17 +4137,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
   .site-frame-clash .arena-route-hero-aside {
     max-width: none;
-  }
-}
-
-@media (max-width: 680px) {
-  .site-frame-clash:not(.site-frame-home) > main:has(.arena-route-hero),
-  .site-frame-clash:not(.site-frame-home) > main:has([data-arena-frame]) {
-    padding-top: 18px;
-  }
-
-  .site-frame-clash:not(.site-frame-home) > main:has(.arena-route-hero) {
-    padding-top: 0;
   }
 }
 
@@ -4122,6 +4158,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 .royale-hero-inner {
   width: min(var(--page-width), calc(100% - 48px));
+  min-width: 0;
   min-height: 680px;
   margin: 0 auto;
   display: grid;
@@ -4133,6 +4170,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .royale-hero-copy {
   position: relative;
   z-index: 2;
+  min-width: 0;
   padding: 72px 0 112px;
   max-width: 680px;
   text-shadow: 0 2px 22px rgba(2, 7, 16, .62);
@@ -4351,6 +4389,49 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .royale-hero-showcase-state p { margin: 0; color: var(--muted-foreground); font-size: 14px; line-height: 1.55; }
 .royale-hero-showcase-state a { width: fit-content; color: var(--primary); font-size: 14px; font-weight: 750; }
 
+.player-tag-guide {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 560px;
+  padding: 36px 0 72px;
+}
+
+.player-tag-guide-heading {
+  width: min(400px, 100%);
+  max-width: 100%;
+}
+
+.player-tag-guide-heading h2 {
+  margin: 0;
+  color: #fff;
+  font: 800 clamp(22px, 2vw, 28px)/1.15 var(--font-ui);
+  letter-spacing: -.02em;
+}
+
+.player-tag-guide-screen {
+  width: min(400px, 100%);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgba(211, 234, 250, .45);
+  border-radius: 10px;
+  background: #2a1644;
+}
+
+.player-tag-guide-screen > picture,
+.player-tag-guide-screen > picture > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.player-tag-guide-screen > picture > img {
+  object-fit: cover;
+}
+
 .home-data-state {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -4396,6 +4477,14 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .royale-hero-character-card { place-items: start center; }
   .royale-hero-character-card > img { width: min(230px, 58%); height: 58%; object-position: center top; }
   .royale-hero-showcase-state { min-height: 390px; padding: 34px 0 80px; }
+  .player-tag-guide { min-height: 390px; padding: 18px 0 42px; }
+  .player-tag-guide-heading { text-align: center; }
+  .player-tag-guide-heading h2 { font-size: 23px; }
+  .royale-hero-inner { min-width: 0; max-width: calc(100% - 32px); }
+  .royale-hero-copy,
+  .player-tag-guide { width: 100%; max-width: 100%; min-width: 0; }
+  .hero-title-line { white-space: normal; overflow-wrap: break-word; }
+  .player-tag-guide-screen { width: min(340px, 100%); }
   .home-data-state { grid-template-columns: 1fr; }
   .home-data-state .pink-button { justify-self: start; }
   .meta-metric { min-height: 96px; }
@@ -5920,23 +6009,6 @@ a:hover .entity-cell strong { color: #75c5ff; }
   min-height: 660px;
   color: #fff;
   background-color: #8eb6cc;
-  background-image: url("/images/theme/subreddit/home-hero-v2.png");
-  background-position: center center;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-
-.site-frame-home .royale-hero::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: auto;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 94px;
-  pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
 }
 
 .site-frame-home .royale-hero-inner {
@@ -6081,7 +6153,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   color: #fff;
   align-items: start;
   background:
-    url("/images/theme/subreddit/footer-king.png") center 34px / 123px 205px no-repeat,
+    url("/images/theme/subreddit/footer-king-upscaled.webp") center 34px / 123px 205px no-repeat,
     url("/images/theme/subreddit/footer-lances.png") center bottom / clamp(1161px, 100%, 1710px) auto no-repeat,
     url("/images/theme/subreddit/arena-wall-upscaled.png") center top / auto 400px repeat-x,
     url("/images/theme/subreddit/arena-wall-footer-body-upscaled.png") center top / 256px 256px repeat;
@@ -6172,5 +6244,561 @@ a:hover .entity-cell strong { color: #75c5ff; }
     align-items: center;
     gap: 6px;
     margin-top: 210px;
+  }
+}
+
+/* Route-specific content remains intact inside the shared seasonal frame. */
+.site-frame-home .arena-hero-frame.royale-hero {
+  background: #8eb6cc;
+}
+
+.site-frame-home .arena-hero-frame.royale-hero .arena-hero-frame-art {
+  background-position: center center;
+}
+
+.site-frame-home .arena-hero-frame.royale-hero::before {
+  z-index: 2;
+}
+
+.site-frame-clash .profile-page .profile-hero,
+.site-frame-clash .card-detail-hero,
+.site-frame-clash .guide-detail-hero {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.site-frame-clash .profile-page .profile-hero {
+  padding-inline: max(24px, calc((100vw - var(--page-width)) / 2 + 24px));
+}
+
+.site-frame-clash .profile-page .profile-hero-glow {
+  z-index: -1;
+}
+
+.site-frame-clash .clan-hero {
+  min-height: 235px;
+  padding: 34px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) 112px;
+}
+
+.site-frame-clash .card-detail-hero {
+  min-height: 336px;
+  padding: 34px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) 112px;
+}
+
+.site-frame-clash .guide-detail-hero {
+  min-height: 350px;
+  padding: 38px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) 112px;
+}
+
+@media (max-width: 760px) {
+  .site-frame-clash .profile-page .profile-hero {
+    padding: 30px 22px 112px;
+  }
+
+  .site-frame-clash .guide-detail-hero {
+    grid-template-columns: 1fr;
+    padding: 26px 22px 112px;
+    text-align: center;
+  }
+
+  .site-frame-clash .guide-detail-hero > img {
+    grid-row: 1;
+    width: 140px;
+    height: 170px;
+    margin: 0 auto;
+  }
+
+  .site-frame-clash .guide-detail-hero .editorial-actions {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 680px) {
+  .site-frame-clash .card-detail-hero {
+    grid-template-columns: 1fr;
+    padding: 26px 22px 112px;
+    text-align: center;
+  }
+
+  .site-frame-clash .card-detail-hero > img {
+    margin-inline: auto;
+  }
+
+  .site-frame-clash .card-detail-hero > div {
+    justify-items: center;
+  }
+}
+
+/* Profile hero polish: keep identity, actions, and highlights in one stable
+ * content flow. This intentionally stays scoped to the player profile so the
+ * shared arena frame and other route heroes keep their own geometry. */
+.site-frame-clash .profile-page .profile-hero {
+  --profile-wall-height: 94px;
+  padding-bottom: calc(var(--profile-wall-height) + 22px) !important;
+}
+
+.profile-page .profile-identity-meta .profile-player-level {
+  align-items: center;
+  gap: 7px;
+  margin: 0 4px 0 0;
+}
+
+.profile-page .profile-identity-meta .profile-player-level > span:last-child {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.profile-page .profile-identity-meta .profile-level-badge {
+  width: 40px;
+  height: 40px;
+  font-size: 13px !important;
+}
+
+.profile-page .profile-hero-actions {
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.profile-page .profile-primary-actions,
+.profile-page .profile-hero-actions .player-share-actions {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+}
+
+.profile-page .profile-primary-actions > div[aria-label*="profile tracking controls"] {
+  width: auto;
+  margin: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.profile-page .profile-primary-actions > div[aria-label*="profile tracking controls"] > span {
+  display: none;
+}
+
+.profile-page .profile-primary-actions button,
+.profile-page .profile-hero-actions .player-share-actions button {
+  min-width: 138px;
+  height: 40px;
+  min-height: 40px;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 15px;
+  border: 1px solid rgba(127, 157, 198, .32);
+  border-radius: 8px;
+  color: var(--foreground);
+  background: rgba(25, 48, 78, .86);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset;
+  font: 700 11px/1 var(--font-ui);
+  white-space: nowrap;
+}
+
+.profile-page .profile-primary-actions button:hover,
+.profile-page .profile-hero-actions .player-share-actions button:hover {
+  border-color: rgba(22, 136, 232, .62);
+  background: rgba(37, 61, 94, .96);
+}
+
+.profile-page .profile-hero-metrics {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 760px) {
+  .profile-page .profile-hero {
+    gap: 6px;
+  }
+
+  .profile-page .profile-hero-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .profile-page .profile-primary-actions,
+  .profile-page .profile-primary-actions > div[aria-label*="profile tracking controls"],
+  .profile-page .profile-hero-actions .player-share-actions {
+    width: 100%;
+  }
+
+  .profile-page .profile-primary-actions button {
+    flex: 1 1 auto;
+  }
+
+  .profile-page .profile-hero-actions .player-share-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-page .profile-hero-actions .player-share-actions button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-page .profile-identity-meta .profile-player-level {
+    margin-right: 0;
+  }
+
+  .profile-page .profile-identity-meta .profile-level-badge {
+    width: 36px;
+    height: 36px;
+    font-size: 12px !important;
+  }
+
+  .profile-page .profile-hero-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-page .profile-hero-metric:nth-child(even) {
+    border-left: 1px solid rgba(132, 161, 201, .16);
+    border-top: 0;
+  }
+
+  .profile-page .profile-hero-metric:nth-child(n + 3) {
+    border-top: 1px solid rgba(132, 161, 201, .16);
+  }
+
+  .profile-page .profile-hero-actions .player-share-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Player hero proposal: competitive status, current form, and deck before
+ * career totals. Keep this block last so it replaces the earlier dossier
+ * layout without changing the shared arena frame or profile tabs. */
+.site-frame-clash .profile-page .profile-hero {
+  min-height: 0;
+  display: block;
+  padding: 32px max(24px, calc((100vw - var(--page-width)) / 2 + 24px)) calc(var(--profile-wall-height) + 22px) !important;
+  text-align: left;
+}
+
+.profile-hero-proposal {
+  width: min(100%, var(--page-width));
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(330px, .9fr);
+  gap: 14px;
+  margin-inline: auto;
+  font-family: var(--font-ui);
+}
+
+.profile-hero-identity {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.profile-hero-nameplate { min-width: 0; }
+.profile-hero-nameplate h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 850 clamp(34px, 4.2vw, 58px)/.96 var(--font-ui);
+  letter-spacing: -.045em;
+}
+.profile-hero-nameplate p {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 9px 0 0;
+  color: #a9bbd2;
+  font: 650 12px/1.3 var(--font-ui);
+}
+.profile-hero-nameplate p > strong { color: #eef5ff; letter-spacing: .07em; }
+.profile-hero-nameplate p a,
+.profile-hero-nameplate p > span:last-child { display: inline-flex; align-items: center; gap: 5px; color: inherit; }
+.profile-hero-nameplate p a:hover { color: #fff; }
+.profile-hero-nameplate p img { width: 18px; height: 20px; object-fit: contain; }
+
+.profile-hero-freshness {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: #8da4c2;
+  font: 650 10px/1.2 var(--font-ui);
+}
+.profile-hero-freshness strong { color: #f3f7ff; font-size: 12px; }
+
+.profile-competitive-status,
+.profile-recent-form,
+.profile-hero-deck {
+  min-width: 0;
+  border: 1px solid rgba(139, 177, 226, .2);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(13, 33, 59, .82), rgba(5, 17, 32, .9));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .045);
+  backdrop-filter: blur(14px);
+}
+
+.profile-competitive-status { padding: 14px; }
+.profile-ranked-lead {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.profile-ranked-lead > img { width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .42)); }
+.profile-ranked-lead > svg { width: 42px; height: 42px; margin-inline: 10px; color: #f8c348; }
+.profile-ranked-lead > div { min-width: 0; display: grid; gap: 3px; }
+.profile-ranked-lead small,
+.profile-trophy-road small,
+.profile-recent-form small,
+.profile-hero-deck small {
+  color: #86a0c3;
+  font: 750 9px/1.1 var(--font-ui);
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.profile-ranked-lead strong { overflow: hidden; font: 820 21px/1.05 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+.profile-ranked-lead span { color: #b9c9dd; font: 650 11px/1.25 var(--font-ui); }
+
+.profile-trophy-road {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, .72fr)) minmax(130px, 1fr);
+  gap: 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(132, 161, 201, .17);
+}
+.profile-trophy-road .profile-hero-metric {
+  min-height: 42px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 7px;
+  padding: 0 10px 0 0;
+  border: 0;
+}
+.profile-trophy-road .profile-hero-metric + .profile-hero-metric { padding-left: 10px; border-top: 0; border-left: 1px solid rgba(132, 161, 201, .15); }
+.profile-trophy-road .profile-hero-metric > span { width: 22px; height: 22px; color: #f5bd40; background: none; }
+.profile-trophy-road .profile-hero-metric svg { width: 17px; height: 17px; }
+.profile-trophy-road .profile-hero-metric div { gap: 2px; }
+.profile-trophy-road .profile-hero-metric strong { font-size: 16px; }
+.profile-arena-context {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 11px;
+  border-left: 1px solid rgba(132, 161, 201, .15);
+}
+.profile-arena-context > img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 7px 8px rgba(0, 0, 0, .42)); }
+.profile-arena-context > span { min-width: 0; display: grid; gap: 3px; }
+.profile-arena-context strong { overflow: hidden; font: 750 12px/1.1 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+
+.profile-recent-form { display: grid; align-content: center; gap: 10px; padding: 14px; }
+.profile-recent-form > header { display: grid; grid-template-columns: 1.2fr repeat(2, .8fr); }
+.profile-recent-form > header > div { min-width: 0; display: grid; gap: 4px; padding: 0 12px; border-left: 1px solid rgba(132, 161, 201, .16); }
+.profile-recent-form > header > div:first-child { padding-left: 0; border-left: 0; }
+.profile-recent-form > header strong { font: 820 20px/1 var(--font-ui); }
+.profile-form-pips { display: grid; grid-template-columns: repeat(10, minmax(14px, 1fr)); gap: 4px; }
+.profile-form-pips > span {
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  color: #fff;
+  background: #65758b;
+  font: 800 9px/1 var(--font-ui);
+}
+.profile-form-pips > span.win { background: #208e5f; }
+.profile-form-pips > span.loss { background: #b6425e; }
+.profile-recent-form > p { margin: 0; color: #8398b5; font: 600 9px/1.3 var(--font-ui); }
+
+.profile-hero-deck { grid-column: 1 / -1; padding: 12px 14px 10px; }
+.profile-hero-deck > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.profile-hero-deck > header > div { display: flex; align-items: baseline; gap: 8px; }
+.profile-hero-deck > header > div strong { font: 750 11px/1 var(--font-ui); }
+.profile-hero-deck-tools { align-items: center !important; }
+.profile-hero-deck-tools > span { display: inline-flex; align-items: center; gap: 5px; color: #e9f2ff; font: 800 12px/1 var(--font-ui); }
+.profile-hero-deck-tools > span img { width: 14px; height: 17px; object-fit: contain; }
+.profile-hero-deck > p { margin: 12px 0; color: #9eb0c8; font: 650 11px/1.4 var(--font-ui); }
+.profile-hero-deck-rail { display: grid; grid-template-columns: repeat(8, minmax(56px, 1fr)); gap: 5px; }
+.profile-hero-deck-rail > a { min-width: 0; display: block; border-radius: 9px; }
+.profile-hero-deck-rail .game-card-art { width: 100%; --game-card-cost-size: clamp(15px, 24%, 21px); --game-card-cost-font: clamp(10px, 1.6vw, 13px); }
+.profile-hero-deck-rail > a:hover .game-card-art { transform: translateY(-2px); }
+
+.profile-hero-proposal > .profile-hero-actions {
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+.profile-hero-proposal > .profile-hero-actions .profile-primary-actions { margin-right: auto; }
+
+@media (max-width: 760px) {
+  .site-frame-clash .profile-page .profile-hero {
+    padding: 18px 14px calc(var(--profile-wall-height) + 14px) !important;
+  }
+  .profile-hero-proposal { grid-template-columns: 1fr; gap: 9px; }
+  .profile-hero-identity,
+  .profile-competitive-status,
+  .profile-recent-form,
+  .profile-hero-deck,
+  .profile-hero-proposal > .profile-hero-actions { grid-column: 1; }
+  .profile-hero-identity { align-items: start; }
+  .profile-hero-nameplate h1 { font-size: clamp(31px, 10.5vw, 42px); }
+  .profile-hero-nameplate p { margin-top: 7px; font-size: 10px; }
+  .profile-hero-freshness { padding-top: 3px; font-size: 9px; }
+  .profile-competitive-status { padding: 11px 12px; }
+  .profile-ranked-lead { grid-template-columns: 48px minmax(0, 1fr); gap: 9px; }
+  .profile-ranked-lead > img { width: 48px; height: 48px; }
+  .profile-ranked-lead > svg { width: 32px; height: 32px; margin-inline: 8px; }
+  .profile-ranked-lead strong { font-size: 18px; }
+  .profile-ranked-lead span { font-size: 10px; }
+  .profile-trophy-road { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 9px; padding-top: 9px; }
+  .profile-trophy-road .profile-hero-metric { min-height: 34px; }
+  .profile-trophy-road .profile-hero-metric strong { font-size: 14px; }
+  .profile-arena-context { grid-column: 1 / -1; gap: 6px; margin-top: 8px; padding: 8px 0 0; border-top: 1px solid rgba(132, 161, 201, .15); border-left: 0; }
+  .profile-arena-context > img { width: 30px; height: 30px; }
+  .profile-arena-context > span { display: flex; align-items: baseline; gap: 6px; }
+  .profile-arena-context strong { font-size: 11px; }
+  .profile-recent-form { gap: 8px; padding: 11px 12px; }
+  .profile-recent-form > header strong { font-size: 17px; }
+  .profile-form-pips > span { height: 20px; }
+  .profile-hero-deck { padding: 9px 10px 7px; overflow: hidden; }
+  .profile-hero-deck > header { align-items: flex-start; margin-bottom: 5px; }
+  .profile-hero-deck-tools { align-items: center !important; }
+  .profile-hero-deck-tools > div button,
+  .profile-hero-deck-tools > div a { min-height: 28px; padding-inline: 7px; }
+  .profile-hero-deck-tools > div span { display: none; }
+  .profile-hero-deck-rail { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1px; }
+  .profile-hero-deck-rail .game-card-art { --game-card-cost-size: clamp(13px, 28%, 17px); --game-card-cost-font: 9px; }
+  .profile-hero-proposal > .profile-hero-actions { display: flex; flex-wrap: nowrap; gap: 7px; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions,
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions > div[aria-label*="profile tracking controls"],
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions { width: auto; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions { flex: 1 1 auto; }
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions { flex: 0 1 auto; display: flex; grid-template-columns: none; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { min-width: 0; height: 38px; padding-inline: 11px; }
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { width: 42px; flex: 0 0 42px; }
+}
+
+@media (max-width: 420px) {
+  .profile-hero-freshness > span { max-width: 76px; text-align: right; }
+  .profile-hero-deck-rail { margin-inline: -2px; }
+  .profile-hero-proposal > .profile-hero-actions .profile-primary-actions button,
+  .profile-hero-proposal > .profile-hero-actions .player-share-actions button { font-size: 0; }
+  .profile-hero-proposal > .profile-hero-actions button svg { width: 18px; height: 18px; }
+}
+
+/* On phones, page-level navigation forms a second dock above the persistent
+ * primary navigation. The same controls remain in the document so state,
+ * keyboard behavior, and accessible names stay aligned with desktop. */
+@media (max-width: 680px) {
+  .site-frame-clash:has(.mobile-page-tabs) {
+    padding-bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 74px);
+  }
+
+  .site-frame-clash .arena-route-hero-actions:has(> .mobile-page-tabs) {
+    margin-top: 0;
+  }
+
+  .site-frame-clash .arena-hero-frame:has(.mobile-page-tabs) {
+    isolation: auto;
+  }
+
+  .site-frame-clash .mobile-page-tabs {
+    width: auto;
+    max-width: 560px;
+    min-height: 58px;
+    box-sizing: border-box;
+    position: fixed;
+    inset-inline: 10px;
+    top: auto;
+    bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 8px);
+    z-index: 79;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    flex-wrap: nowrap;
+    gap: 4px;
+    margin: 0 auto;
+    padding: 5px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid rgba(130, 211, 255, .26);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(8, 35, 67, .97), rgba(4, 20, 40, .98));
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .46);
+    backdrop-filter: blur(20px);
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    animation: mobile-page-tabs-up .32s cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  .site-frame-clash .mobile-page-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .site-frame-clash .mobile-page-tabs > button {
+    min-height: 46px;
+    flex: 1 0 auto;
+    transform: translateY(0);
+    transition: color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .site-frame-clash .mobile-page-tabs > button:active {
+    transform: scale(.96);
+  }
+
+  .site-frame-clash .mobile-page-tabs--profile > button {
+    min-width: 98px;
+    flex-basis: 98px;
+    height: 46px;
+    padding-inline: 6px;
+    font-size: 12px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--leaderboards > button {
+    min-width: 64px;
+    flex: 1 1 64px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 3px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--leaderboards > button > svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--leaderboards > button strong {
+    font-size: 9px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--decks > button {
+    min-width: 82px;
+    flex: 1 1 82px;
+    padding-inline: 8px;
+  }
+}
+
+@keyframes mobile-page-tabs-up {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-frame-clash .mobile-page-tabs {
+    animation: none;
+  }
+
+  .site-frame-clash .mobile-page-tabs > button {
+    transition: none;
   }
 }

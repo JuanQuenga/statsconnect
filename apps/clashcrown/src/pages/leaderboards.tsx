@@ -3,13 +3,17 @@ import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { ErrorState, LoadingState, SetupState } from "@/components/portfolio/AsyncState";
 import { CardArt } from "@/components/portfolio/CardArt";
+import { LeaderboardHistoryPanel } from "@/components/leaderboards/LeaderboardHistoryPanel";
+import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { badgeImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { stripSupercellColorTags } from "@/lib/clash/format";
 import type { ApiClanRanking, ApiLeaderboard, ApiLocation, ApiPlayerRanking, RankingKind } from "@/lib/clash/types";
+import { demoClanWarRankings, demoClans, demoClansForLocation, demoLeaderboards, demoLocations, demoPlayersForBoard, demoRankingHref } from "@/lib/leaderboardDemoData";
 import {
   GLOBAL_LOCATION_ID,
   errorMessage,
+  isClashDemoDataMode,
   isConvexConfigured,
   leaderboardAction,
   leaderboardsAction,
@@ -22,27 +26,30 @@ import {
   type HistoricalLeaderboardDetail,
   type HistoricalLeaderboardSnapshotId
 } from "@/lib/history";
+import { useRouter } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { useAction, useConvex } from "convex/react";
 import { ArrowUpRight, ChevronRight, Crown, Globe2, History, Search, Swords, TrendingUp, Trophy, Users } from "lucide-react";
-import { useDeferredValue, useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
 import styles from "./leaderboards.module.css";
 
+type LeaderboardView = RankingKind | "history";
+type RankingDataMode = "live" | "demo";
+
 const TABS: Array<{
-  kind: RankingKind;
+  view: LeaderboardView;
   label: string;
   shortLabel: string;
-  description: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 }> = [
-  { kind: "players", label: "Top Players", shortLabel: "Players", description: "The live Path of Legends and event boards currently published by Clash Royale.", icon: Trophy },
-  { kind: "clans", label: "Top Clans", shortLabel: "Clans", description: "The strongest clans worldwide or in a country, ranked by total clan score.", icon: Users },
-  { kind: "clanwars", label: "Clan Wars", shortLabel: "Clan Wars", description: "The global and local River Race order, ranked by clan war trophies.", icon: Swords }
+  { view: "players", label: "Top Players", shortLabel: "Players", icon: Trophy },
+  { view: "clans", label: "Top Clans", shortLabel: "Clans", icon: Users },
+  { view: "clanwars", label: "Clan Wars", shortLabel: "Clan Wars", icon: Swords },
+  { view: "history", label: "History", shortLabel: "History", icon: History }
 ];
 
 const SCORE_SENTINEL = 2147483647;
 const PAGE_SIZES = [25, 50, 100] as const;
-const relativeTime = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 const dateTime = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
 type DisplayRanking = {
@@ -61,13 +68,147 @@ type DisplayRanking = {
 };
 
 export default function LeaderboardsPage() {
+  if (isClashDemoDataMode) return <DemoLeaderboards />;
   if (!isConvexConfigured) return <Layout><SetupState feature="leaderboards" /></Layout>;
   return <Leaderboards />;
 }
 
+function LeaderboardHero({ view, onSelectView, mode = "live" }: { view: LeaderboardView; onSelectView: (view: LeaderboardView) => void; mode?: RankingDataMode }) {
+  return <ArenaRouteHero
+    className={styles.hero}
+    eyebrow={mode === "demo" ? <span className={styles.demoBadge}>Demo data · local only</span> : undefined}
+    title="Leaderboards"
+    summary={mode === "demo"
+      ? "Review the rankings interface with deterministic local data. No Convex requests are made in this mode."
+      : "Compare live player, clan, and Clan War rankings—and see who is moving."}
+    actions={
+      <nav className={`${styles.modeSwitch} mobile-page-tabs mobile-page-tabs--leaderboards`} aria-label="Leaderboard type">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return <button key={tab.view} type="button" className={view === tab.view ? styles.activeMode : undefined} aria-pressed={view === tab.view} onClick={() => onSelectView(tab.view)}>
+            <Icon aria-hidden="true" />
+            <strong>{tab.shortLabel}</strong>
+          </button>;
+        })}
+      </nav>
+    }
+  />;
+}
+
+function LeaderboardControls({ kind, scopeName, boardPicker, search, onSearch }: { kind: RankingKind; scopeName: string; boardPicker: ReactNode; search: string; onSearch: (value: string) => void }) {
+  const activeTab = TABS.find((tab) => tab.view === kind) ?? TABS[0];
+  return <section className={styles.controls} aria-label="Ranking controls">
+    <div className={styles.scopeSummary}>
+      <span className={styles.scopeIcon}>{kind === "players" ? <Trophy /> : <Globe2 />}</span>
+      <div><small>{activeTab.label}</small><strong>{scopeName}</strong></div>
+    </div>
+    {boardPicker}
+    <label className={styles.searchField}>
+      <span className="sr-only">Search this ranking</span>
+      <Search aria-hidden="true" />
+      <input type="search" value={search} onChange={(event) => onSearch(event.target.value)} placeholder={kind === "players" ? "Search player, tag, or clan" : "Search clan, tag, or region"} />
+    </label>
+  </section>;
+}
+
+function DemoLeaderboards() {
+  const router = useRouter();
+  const [view, setView] = useState<LeaderboardView>(() => parseLeaderboardView(router.query.view));
+  const kind = view === "history" ? "players" : view;
+  const isHistory = view === "history";
+  const [locationId, setLocationId] = useState(GLOBAL_LOCATION_ID);
+  const [boardId, setBoardId] = useState(demoLeaderboards[0].id);
+  const [search, setSearch] = useState("");
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(25);
+  const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase());
+
+  const activeBoard = demoLeaderboards.find((board) => board.id === boardId) ?? demoLeaderboards[0];
+  const activeLocation = demoLocations.find((location) => location.id === locationId) ?? demoLocations[0];
+  const rows = useMemo(() => {
+    if (kind === "players") return normalisePlayers(demoPlayersForBoard(activeBoard.id));
+    const source = kind === "clanwars" ? demoClanWarRankings : demoClans;
+    return normaliseClans(demoClansForLocation(source, locationId), kind);
+  }, [activeBoard.id, kind, locationId]);
+  const scopeName = kind === "players" ? activeBoard.name ?? "Demo season" : activeLocation.name;
+  const filteredRows = useMemo(() => {
+    if (!deferredSearch) return rows;
+    return rows.filter((row) => [row.name, row.tag, row.clanName, row.clanTag, row.location]
+      .some((value) => value?.toLocaleLowerCase().includes(deferredSearch)));
+  }, [deferredSearch, rows]);
+  const visibleRows = filteredRows.slice(0, pageSize);
+  const podium = rows.slice(0, 3);
+
+  useEffect(() => {
+    setView(parseLeaderboardView(router.query.view));
+  }, [router.query.view]);
+
+  useEffect(() => {
+    setSearch("");
+    setPageSize(25);
+  }, [boardId, kind, locationId]);
+
+  function selectView(nextView: LeaderboardView) {
+    setView(nextView);
+    void router.replace(
+      { pathname: "/leaderboards", query: nextView === "players" ? {} : { view: nextView } },
+      undefined,
+      { shallow: true },
+    );
+  }
+
+  const boardPicker = kind === "players" ? (
+    <label className={styles.scopePicker}>
+      <span>Board</span>
+      <select value={activeBoard.id} onChange={(event) => setBoardId(Number(event.target.value))}>
+        {demoLeaderboards.map((board) => <option key={board.id} value={board.id}>{board.name}</option>)}
+      </select>
+    </label>
+  ) : (
+    <label className={styles.scopePicker}>
+      <span>Region</span>
+      <select value={locationId} onChange={(event) => setLocationId(Number(event.target.value))}>
+        {demoLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+      </select>
+    </label>
+  );
+
+  return (
+    <Layout>
+      <Head>
+        <title>Leaderboards preview | StatsConnect · Clash Royale statistics</title>
+        <meta name="description" content="Local-only demo data for reviewing the Clash Royale rankings interface." />
+      </Head>
+      <div className={`${styles.page} ${styles.pageWithHero}`}>
+        <LeaderboardHero view={view} onSelectView={selectView} mode="demo" />
+
+        {isHistory ? <DemoHistoryPanel /> : <>
+          <LeaderboardControls kind={kind} scopeName={scopeName} boardPicker={boardPicker} search={search} onSearch={setSearch} />
+
+          <Podium rows={podium} kind={kind} archived={false} mode="demo" />
+          <div className={styles.contentGrid}>
+            <RankingList rows={visibleRows} total={filteredRows.length} sourceTotal={rows.length} kind={kind} query={search} pageSize={pageSize} setPageSize={setPageSize} archived={false} mode="demo" />
+            <Insights detail={undefined} loading={false} kind={kind} mode="demo" />
+          </div>
+        </>}
+      </div>
+    </Layout>
+  );
+}
+
+function DemoHistoryPanel() {
+  return <section className={styles.demoHistory} aria-label="Demo history notice">
+    <History aria-hidden="true" />
+    <h2>History requires Convex captures</h2>
+    <p>The local preview includes current ranking rows so you can review layout, search, tabs, and responsive behavior. Historical comparisons are unavailable without real Convex captures.</p>
+  </section>;
+}
+
 function Leaderboards() {
   const convex = useConvex();
-  const [kind, setKind] = useState<RankingKind>("players");
+  const router = useRouter();
+  const [view, setView] = useState<LeaderboardView>(() => parseLeaderboardView(router.query.view));
+  const kind = view === "history" ? "players" : view;
+  const isHistory = view === "history";
   const [locationId, setLocationId] = useState(GLOBAL_LOCATION_ID);
   const [boardId, setBoardId] = useState<number>();
   const [search, setSearch] = useState("");
@@ -85,7 +226,7 @@ function Leaderboards() {
     staleTime: 24 * 60 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false,
-    enabled: kind !== "players"
+    enabled: !isHistory && kind !== "players"
   });
   const boardsQuery = useQuery({
     queryKey: ["leaderboards"],
@@ -93,13 +234,13 @@ function Leaderboards() {
     staleTime: 30 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false,
-    enabled: kind === "players"
+    enabled: !isHistory && kind === "players"
   });
   const activeBoard = boardId ?? boardsQuery.data?.[0]?.id;
   const boardQuery = useQuery({
     queryKey: ["leaderboard", activeBoard],
     queryFn: async () => (await getBoard({ leaderboardId: activeBoard!, limit: 100 })).leaderboard.data.items ?? [],
-    enabled: kind === "players" && typeof activeBoard === "number",
+    enabled: !isHistory && kind === "players" && typeof activeBoard === "number",
     staleTime: 5 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false
@@ -107,7 +248,7 @@ function Leaderboards() {
   const rankingsQuery = useQuery({
     queryKey: ["rankings", kind, locationId],
     queryFn: async () => (await getRankings({ kind, locationId, limit: 100 })).rankings.data.items ?? [],
-    enabled: kind !== "players",
+    enabled: !isHistory && kind !== "players",
     staleTime: 5 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false
@@ -119,7 +260,7 @@ function Leaderboards() {
   const snapshotsQuery = useQuery({
     queryKey: ["leaderboard-snapshots", boardKey, "rankings-desk"],
     queryFn: () => convex.query(leaderboardSnapshotsQuery, { boardKey: boardKey!, limit: 3 }),
-    enabled: Boolean(boardKey),
+    enabled: !isHistory && Boolean(boardKey),
     staleTime: 2 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false
@@ -134,14 +275,13 @@ function Leaderboards() {
       ...(previousSnapshotId ? { compareToId: previousSnapshotId as HistoricalLeaderboardSnapshotId } : {}),
       limit: 100
     }),
-    enabled: Boolean(latestSnapshotId),
+    enabled: !isHistory && Boolean(latestSnapshotId),
     staleTime: 2 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false
   });
 
   const { global, countries } = useMemo(() => splitLocations(locationsQuery.data ?? []), [locationsQuery.data]);
-  const activeTab = TABS.find((tab) => tab.kind === kind) ?? TABS[0];
   const activeBoardName = boardsQuery.data?.find((board) => board.id === activeBoard)?.name;
   const activeLocationName = [...global, ...countries].find((location) => location.id === locationId)?.name ?? "Global";
   const scopeName = kind === "players" ? activeBoardName ?? "Current event" : activeLocationName;
@@ -164,9 +304,22 @@ function Leaderboards() {
   const podium = rows.slice(0, 3);
 
   useEffect(() => {
+    setView(parseLeaderboardView(router.query.view));
+  }, [router.query.view]);
+
+  useEffect(() => {
     setSearch("");
     setPageSize(25);
   }, [activeBoard, kind, locationId]);
+
+  function selectView(nextView: LeaderboardView) {
+    setView(nextView);
+    void router.replace(
+      { pathname: "/leaderboards", query: nextView === "players" ? {} : { view: nextView } },
+      undefined,
+      { shallow: true }
+    );
+  }
 
   const boardPicker = kind === "players" ? (
     <label className={styles.scopePicker}>
@@ -191,45 +344,11 @@ function Leaderboards() {
         <title>Leaderboards | StatsConnect · Clash Royale statistics</title>
         <meta name="description" content="Live Clash Royale player, clan, and clan-war rankings with searchable results and real historical movement from StatsConnect." />
       </Head>
-      <div className={styles.page}>
-        <section className={styles.hero} data-arena-frame>
-          <span className="arena-hero-frame-art" aria-hidden="true" />
-          <div className={styles.heroCopy}>
-            <h1>Leaderboards</h1>
-            <p>Find the players and clans setting the pace now, then use StatsConnect’s saved observations to see who is actually climbing.</p>
-            <div className={styles.heroFacts} aria-label="Leaderboard coverage">
-              <span><strong>{rows.length || "—"}</strong> positions</span>
-              <span><strong>{historyQuery.data?.board.snapshotCount ?? snapshots.length}</strong> saved captures</span>
-              <span><strong>{formatRelativeTime(historyQuery.data?.snapshot.lastObservedAt)}</strong> checked</span>
-            </div>
-          </div>
-          <div className={styles.heroArt} aria-hidden="true">
-            <Image src="/images/art/leaderboards-hero-banner-2026-no-character.png" alt="" width={2172} height={724} priority />
-          </div>
-        </section>
+      <div className={`${styles.page} ${styles.pageWithHero}`}>
+        <LeaderboardHero view={view} onSelectView={selectView} mode="live" />
 
-        <nav className={styles.modeSwitch} aria-label="Leaderboard type">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return <button key={tab.kind} type="button" className={kind === tab.kind ? styles.activeMode : undefined} aria-pressed={kind === tab.kind} onClick={() => setKind(tab.kind)}>
-              <Icon aria-hidden="true" />
-              <span><strong>{tab.shortLabel}</strong><small>{tab.description}</small></span>
-            </button>;
-          })}
-        </nav>
-
-        <section className={styles.controls} aria-label="Ranking controls">
-          <div className={styles.scopeSummary}>
-            <span className={styles.scopeIcon}>{kind === "players" ? <Trophy /> : <Globe2 />}</span>
-            <div><small>{activeTab.label}</small><strong>{scopeName}</strong></div>
-          </div>
-          {boardPicker}
-          <label className={styles.searchField}>
-            <span className="sr-only">Search this ranking</span>
-            <Search aria-hidden="true" />
-            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={kind === "players" ? "Search player, tag, or clan" : "Search clan, tag, or region"} />
-          </label>
-        </section>
+        {isHistory ? <LeaderboardHistoryPanel /> : <>
+        <LeaderboardControls kind={kind} scopeName={scopeName} boardPicker={boardPicker} search={search} onSearch={setSearch} />
 
         {activeQuery.isLoading && !rows.length ? <LoadingState label="rankings" /> : null}
         {activeQuery.error && !rows.length ? <ErrorState message={errorMessage(activeQuery.error)} /> : null}
@@ -237,33 +356,38 @@ function Leaderboards() {
           <Podium rows={podium} kind={kind} archived={isArchiveFallback} />
           <div className={styles.contentGrid}>
             <RankingList rows={visibleRows} total={filteredRows.length} sourceTotal={rows.length} kind={kind} query={search} pageSize={pageSize} setPageSize={setPageSize} archived={isArchiveFallback} liveError={activeQuery.error ? errorMessage(activeQuery.error) : undefined} />
-            <Insights detail={historyQuery.data} loading={snapshotsQuery.isLoading || historyQuery.isLoading} kind={kind} />
+            <Insights detail={historyQuery.data} loading={snapshotsQuery.isLoading || historyQuery.isLoading} kind={kind} mode="live" />
           </div>
         </> : !activeQuery.isLoading && !activeQuery.error ? <section className={styles.emptyState}><Trophy /><h2>No ranked entries yet</h2><p>This board is active but has not published meaningful scores. Try another board or region.</p></section> : null}
+        </>}
       </div>
     </Layout>
   );
 }
 
-function Podium({ rows, kind, archived }: { rows: DisplayRanking[]; kind: RankingKind; archived: boolean }) {
+function Podium({ rows, kind, archived, mode = "live" }: { rows: DisplayRanking[]; kind: RankingKind; archived: boolean; mode?: RankingDataMode }) {
   if (rows.length < 3) return null;
   const ordered = [rows[1], rows[0], rows[2]];
+  const orderLabel = archived ? "Saved order" : mode === "demo" ? "Demo order" : "Live order";
+  const orderDescription = archived
+    ? "The top three in the newest saved capture."
+    : mode === "demo" ? "The deterministic top three in this local preview." : "The current top three on this board.";
   return <section className={styles.podiumSection} aria-label={`Top three ${kind === "players" ? "players" : "clans"}`}>
-    <div className={styles.sectionIntro}><div><h2>The podium</h2><p>{archived ? "The top three in the newest saved capture." : "The current top three on this board."}</p></div><span><Crown /> {archived ? "Saved order" : "Live order"}</span></div>
+    <div className={styles.sectionIntro}><div><h2>The podium</h2><p>{orderDescription}</p></div><span><Crown /> {orderLabel}</span></div>
     <div className={styles.podium}>{ordered.map((row) => {
-      const href = rankingHref(row, kind);
+      const href = rankingHref(row, kind, mode);
       const card = <>
         <div className={styles.podiumBadge}>{row.badge ? <CardArt src={row.badge} fallback={NO_CLAN_BADGE_IMAGE} alt="" width={72} height={86} /> : <span>{row.rank}</span>}</div>
         <strong>{stripSupercellColorTags(row.name)}</strong>
         <small>{secondaryLabel(row, kind)}</small>
-        <div className={styles.podiumScore}><Image src="/images/icons/trophy.png" alt="" width={20} height={20} />{formatScore(row.score)}</div>
+        <div className={styles.podiumScore}><Image src="/images/ui-icons/trophies.png" alt="" width={20} height={20} />{formatScore(row.score)}</div>
       </>;
       return href ? <Link key={row.tag} href={href} className={styles.podiumCard} data-rank={row.rank}>{card}</Link> : <div key={row.tag} className={styles.podiumCard} data-rank={row.rank}>{card}</div>;
     })}</div>
   </section>;
 }
 
-function RankingList({ rows, total, sourceTotal, kind, query, pageSize, setPageSize, archived, liveError }: {
+function RankingList({ rows, total, sourceTotal, kind, query, pageSize, setPageSize, archived, liveError, mode = "live" }: {
   rows: DisplayRanking[];
   total: number;
   sourceTotal: number;
@@ -273,22 +397,26 @@ function RankingList({ rows, total, sourceTotal, kind, query, pageSize, setPageS
   setPageSize: (value: (typeof PAGE_SIZES)[number]) => void;
   archived: boolean;
   liveError?: string;
+  mode?: RankingDataMode;
 }) {
+  const summary = archived
+    ? "Showing the latest saved production capture while the live board is unavailable."
+    : mode === "demo" ? `${sourceTotal} demo entries, ranked in preview order.` : `${sourceTotal} live entries, ranked in official order.`;
   return <section className={styles.rankingPanel}>
     <div className={styles.panelHeading}>
-      <div><h2>Full ranking</h2><p>{archived ? "Showing the latest saved production capture while the live board is unavailable." : `${sourceTotal} live entries, ranked in official order.`}</p></div>
+      <div><h2>Full ranking</h2><p>{summary}</p></div>
       <div className={styles.pageSizes} aria-label="Rows shown">{PAGE_SIZES.map((size) => <button key={size} type="button" className={pageSize === size ? styles.activePageSize : undefined} onClick={() => setPageSize(size)}>{size}</button>)}</div>
     </div>
     {liveError && archived ? <p className={styles.archiveNotice}>Live refresh failed: {liveError} The saved capture below is still available.</p> : null}
     <div className={styles.columnLabels} aria-hidden="true"><span>Rank</span><span>Player / clan</span><span>Movement</span><span>Score</span><span /></div>
-    <div className={styles.rankingRows}>{rows.map((row) => <RankingRow key={row.tag} row={row} kind={kind} />)}</div>
+    <div className={styles.rankingRows}>{rows.map((row) => <RankingRow key={row.tag} row={row} kind={kind} mode={mode} />)}</div>
     {!rows.length ? <div className={styles.noMatches}><Search /><strong>No matches for “{query}”</strong><span>Try a shorter name, clan, or tag.</span></div> : null}
     {total > rows.length ? <p className={styles.listFoot}>Showing {rows.length} of {total} matching entries. Choose a larger row count to see more.</p> : null}
   </section>;
 }
 
-function RankingRow({ row, kind }: { row: DisplayRanking; kind: RankingKind }) {
-  const href = rankingHref(row, kind);
+function RankingRow({ row, kind, mode = "live" }: { row: DisplayRanking; kind: RankingKind; mode?: RankingDataMode }) {
+  const href = rankingHref(row, kind, mode);
   const rankChange = row.previousRank ? row.previousRank - row.rank : undefined;
   return <Link href={href} className={styles.rankingRow}>
     <div className={styles.rankNumber} data-rank={row.rank}>{row.rank}</div>
@@ -297,7 +425,7 @@ function RankingRow({ row, kind }: { row: DisplayRanking; kind: RankingKind }) {
       <span><strong>{stripSupercellColorTags(row.name)}</strong><small>#{row.tag.replace(/^#/, "")} · {secondaryLabel(row, kind)}</small></span>
     </div>
     <Movement rankChange={rankChange} scoreChange={row.scoreChange} />
-    <div className={styles.rowScore}><Image src="/images/icons/trophy.png" alt="" width={20} height={20} /><strong>{formatScore(row.score)}</strong></div>
+    <div className={styles.rowScore}><Image src="/images/ui-icons/trophies.png" alt="" width={20} height={20} /><strong>{formatScore(row.score)}</strong></div>
     <ChevronRight className={styles.rowArrow} aria-hidden="true" />
   </Link>;
 }
@@ -311,28 +439,32 @@ function Movement({ rankChange, scoreChange }: { rankChange?: number; scoreChang
   </span>;
 }
 
-function Insights({ detail, loading, kind }: { detail: HistoricalLeaderboardDetail | null | undefined; loading: boolean; kind: RankingKind }) {
+function Insights({ detail, loading, kind, mode = "live" }: { detail: HistoricalLeaderboardDetail | null | undefined; loading: boolean; kind: RankingKind; mode?: RankingDataMode }) {
   const movers = useMemo(() => detail?.entries.filter((entry) => typeof entry.rankChange === "number" && entry.rankChange > 0).sort((a, b) => (b.rankChange ?? 0) - (a.rankChange ?? 0)).slice(0, 5) ?? [], [detail]);
+  const movementDescription = mode === "demo" ? "Movement is not calculated for local fixture rows." : "Changes between real StatsConnect captures.";
+  const movementEmpty = mode === "demo" ? "Movement is unavailable in this fixture preview; real Convex captures are required." : "This board needs two changed captures before movement analysis appears.";
+  const archiveDescription = mode === "demo" ? "The local preview does not include saved history." : "What StatsConnect has observed in production.";
+  const archiveEmpty = mode === "demo" ? "History requires Convex captures and is unavailable in this local preview." : "The live board works now. Saved comparisons will appear after the crawler records it.";
   return <aside className={styles.insights}>
     <section className={styles.movementPanel}>
-      <div className={styles.insightHeading}><span><TrendingUp /></span><div><h2>Biggest movers</h2><p>Changes between real StatsConnect captures.</p></div></div>
+      <div className={styles.insightHeading}><span><TrendingUp /></span><div><h2>Biggest movers</h2><p>{movementDescription}</p></div></div>
       {loading ? <div className={styles.insightLoading}>Comparing saved observations…</div> : null}
       {!loading && movers.length ? <ol className={styles.moverList}>{movers.map((entry) => {
         const href = kind === "players" ? `/players/${entry.tag}` : `/clans/${entry.tag}`;
         return <li key={entry.tag}><Link href={href}><span><strong>{stripSupercellColorTags(entry.name)}</strong><small>Now #{entry.rank}</small></span><b>+{entry.rankChange}</b></Link></li>;
       })}</ol> : null}
       {!loading && detail && !movers.length ? <p className={styles.insightEmpty}>No upward rank changes in the two newest saved captures.</p> : null}
-      {!loading && !detail ? <p className={styles.insightEmpty}>This board needs two changed captures before movement analysis appears.</p> : null}
+      {!loading && !detail ? <p className={styles.insightEmpty}>{movementEmpty}</p> : null}
     </section>
     <section className={styles.archivePanel}>
-      <div className={styles.insightHeading}><span><History /></span><div><h2>Saved history</h2><p>What StatsConnect has observed in production.</p></div></div>
+      <div className={styles.insightHeading}><span><History /></span><div><h2>Saved history</h2><p>{archiveDescription}</p></div></div>
       {detail ? <div className={styles.archiveStats}>
         <div><span>Changed captures</span><strong>{detail.board.snapshotCount.toLocaleString()}</strong></div>
         <div><span>First observed</span><strong>{dateTime.format(detail.board.firstObservedAt)}</strong></div>
         <div><span>Latest check</span><strong>{dateTime.format(detail.snapshot.lastObservedAt)}</strong></div>
         <div><span>Compared with</span><strong>{detail.comparedAt ? dateTime.format(detail.comparedAt) : "Waiting for a change"}</strong></div>
-      </div> : <p className={styles.insightEmpty}>The live board works now. Saved comparisons will appear after the crawler records it.</p>}
-      <Link className={styles.historyLink} href="/history">Explore every captured board <ArrowUpRight /></Link>
+      </div> : <p className={styles.insightEmpty}>{archiveEmpty}</p>}
+      <Link className={styles.historyLink} href="/leaderboards?view=history">Explore every captured board <ArrowUpRight /></Link>
     </section>
   </aside>;
 }
@@ -365,7 +497,13 @@ function normaliseHistory(detail: HistoricalLeaderboardDetail | null | undefined
   return detail?.entries.map((entry) => ({ tag: entry.tag, name: entry.name, rank: entry.rank, previousRank: entry.previousRank, score: entry.score ?? entry.trophies, previousScore: entry.previousScore, scoreChange: entry.scoreChange, clanTag: entry.clanTag, clanName: entry.clanName })) ?? [];
 }
 
-function rankingHref(row: DisplayRanking, kind: RankingKind) {
+function parseLeaderboardView(value: string | string[] | undefined): LeaderboardView {
+  if (value === "clans" || value === "clanwars" || value === "history") return value;
+  return "players";
+}
+
+function rankingHref(row: DisplayRanking, kind: RankingKind, mode: RankingDataMode = "live") {
+  if (mode === "demo") return demoRankingHref(kind);
   const tag = row.tag.replace(/^#/, "");
   return kind === "players" ? `/players/${tag}` : `/clans/${tag}`;
 }
@@ -378,13 +516,4 @@ function secondaryLabel(row: DisplayRanking, kind: RankingKind) {
 
 function formatScore(score?: number) {
   return typeof score === "number" ? score.toLocaleString() : "—";
-}
-
-function formatRelativeTime(timestamp?: number) {
-  if (!timestamp) return "Not yet";
-  const minutes = Math.round((timestamp - Date.now()) / 60_000);
-  if (Math.abs(minutes) < 60) return relativeTime.format(minutes, "minute");
-  const hours = Math.round(minutes / 60);
-  if (Math.abs(hours) < 24) return relativeTime.format(hours, "hour");
-  return relativeTime.format(Math.round(hours / 24), "day");
 }

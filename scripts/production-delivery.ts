@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -79,6 +79,9 @@ export const unifiedPublicEnvironment = {
 } as const;
 
 export const applicationShellManifestPath = "dist/application-shell-manifest.json";
+export const standaloneApplicationDocumentPaths = deliveryApps
+  .slice(1)
+  .map((app) => path.join(app.outputDirectory, "index.html"));
 
 const applicationShellMetadata = {
   brawlstats: {
@@ -152,6 +155,13 @@ export function runUnifiedBuild(): void {
   }
 
   writeApplicationShellManifest();
+  removeStandaloneApplicationDocuments();
+}
+
+export function removeStandaloneApplicationDocuments(rootDirectory = repositoryRoot): void {
+  for (const documentPath of standaloneApplicationDocumentPaths) {
+    rmSync(path.join(rootDirectory, documentPath), { force: true });
+  }
 }
 
 function publicAssetPath(app: DeliveryApp, file: string): string {

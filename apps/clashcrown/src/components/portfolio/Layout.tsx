@@ -63,7 +63,6 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
     { href: "/decks", label: t("nav.decks"), mobileLabel: locale === "es" ? "Mazos" : "Decks", icon: <Image src="/images/icons/cardsq.png" alt="" width={27} height={27} /> },
     { href: "/clans/search", label: t("nav.clans") },
     { href: "/news", label: t("nav.news") },
-    { href: "/guides", label: t("nav.guides") },
     { href: "/tools", label: t("nav.tools") },
   ];
   const mobileNavItems = navItems.filter((item) => ["/", "/leaderboards", "/cards", "/decks"].includes(item.href));
@@ -78,7 +77,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         Skip to content
       </a>
       <SiteNavigation
-        accentColor="#1688e8"
+        accentColor="#4fc8ff"
         currentSite="clash-royale"
         account={auth.account ? {
           avatarUrl: auth.account.image ?? undefined,
@@ -134,14 +133,13 @@ function SiteFooter() {
           <div>
             <strong>Build</strong>
             <Link href="/cards">Card Library</Link>
-            <Link href="/decks">Deck Discovery</Link>
+            <Link href="/decks">Decks</Link>
             <Link href="/tools">{t("nav.tools")}</Link>
           </div>
           <div>
             <strong>Discover</strong>
             <Link href="/clans/search">Clan Search</Link>
             <Link href="/news">{t("nav.news")}</Link>
-            <Link href="/guides">{t("nav.guides")}</Link>
           </div>
         </div>
         <div className="footer-legal">

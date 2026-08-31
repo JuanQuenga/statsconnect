@@ -13,3 +13,7 @@ These files preserve the artwork used by the classic `r/ClashRoyale` old Reddit 
 | `blue-banner.png` | `https://b.thumbs.redditmedia.com/kWBKOhD5nrqAGAn_HUmuc1yjz0TQ-aJQtYRSwRz6Ibs.png` |
 
 Source stylesheet inspected on August 23, 2026: `https://b.thumbs.redditmedia.com/dqTf3nag6RMUMkM6-q6m7ZmhdiRIpqSRVNoXyioYNcQ.css`.
+
+`footer-king-upscaled.webp` is a deterministic 4x Lanczos upscale of
+`footer-king.png`; it keeps the original artwork while supplying enough pixels
+for high-density mobile displays.
