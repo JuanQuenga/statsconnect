@@ -119,9 +119,8 @@ function CardDetail({ slug }: { slug: string }) {
 
           <section className="profile-section card-report-section card-report-similar" aria-labelledby="similar-cards-heading">
             <header className="card-report-heading">
-              <p className="card-report-eyebrow">Related cards</p>
               <h2 id="similar-cards-heading">Similar cards</h2>
-              <p>Cards of the same rarity with a comparable elixir cost.</p>
+              <p>Same rarity, within one elixir.</p>
             </header>
             <div className="card-report-card-list">
               {related.map((item) => (
@@ -194,11 +193,9 @@ function CardStats({
     <section className="profile-section card-report-section card-report-overview" aria-labelledby="card-battle-stats-heading">
       <header className="card-report-heading card-report-heading-with-control">
         <div>
-          <p className="card-report-eyebrow">Battle snapshot</p>
           <h2 id="card-battle-stats-heading">
             {isTowerTroop ? "Tower Troop usage in real battles" : "Usage in real battles"}
           </h2>
-          <p>Observed performance across the current seven-day battle sample.</p>
         </div>
         <div className="card-mode-switch" role="group" aria-label="Battle mode">
           {META_MODES.map((item) => (
@@ -212,6 +209,18 @@ function CardStats({
             </button>
           ))}
         </div>
+        <label className="card-mode-select">
+          <span>Battle mode</span>
+          <select
+            value={mode}
+            onChange={(event) => {
+              const nextMode = META_MODES.find((item) => item === event.currentTarget.value);
+              if (nextMode) onModeChange(nextMode);
+            }}
+          >
+            {META_MODES.map((item) => <option key={item} value={item}>{modeLabel(item)}</option>)}
+          </select>
+        </label>
       </header>
 
       {stat ? (
@@ -231,9 +240,8 @@ function CardStats({
       )}
 
       <p className="card-report-note card-report-source">
-        <strong>Source:</strong> {Math.round(scope.decksObserved).toLocaleString()} decks observed in {modeLabel(mode)} over the
-        last {meta.windowDays} days. The official API does not publish card statistics, so these figures come from crawled
-        battle logs and represent a ladder sample. <Link href="/meta">See the full meta report</Link>.
+        <strong>{Math.round(scope.decksObserved).toLocaleString()} observed decks</strong> · {modeLabel(mode)} · {meta.windowDays}
+        {" "}days. Battle-log sample; the official API does not publish card stats. <Link href="/meta">Full meta report</Link>.
       </p>
     </section>
   );

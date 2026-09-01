@@ -34,14 +34,14 @@ function DeckResult({ deck, byId }: { deck: DeckSummary; byId: Map<number, Card>
 function RelatedStats({
   title,
   note,
-  metricLabel,
+  countLabel,
   rows,
   byId,
   empty
 }: {
   title: string;
   note: string;
-  metricLabel: string;
+  countLabel: string;
   rows: RelatedCardStat[];
   byId: Map<number, Card>;
   empty: string;
@@ -65,11 +65,10 @@ function RelatedStats({
                 <GameCardArt card={relatedCard ?? unknownCard(row.cardId)} size="mini" />
                 <span>
                   <strong>{relatedCard?.name ?? `Card ${row.cardId}`}</strong>
-                  <small>{row.uses.toLocaleString()} shared games</small>
+                  <small>{row.uses.toLocaleString()} {countLabel}</small>
                 </span>
                 <span className="card-report-related-metric">
                   <strong>{pct(row.winRate)}</strong>
-                  <small>{metricLabel}</small>
                 </span>
               </Link>
             );
@@ -88,7 +87,6 @@ export function CardDeepAnalytics({ card, mode, byId }: { card: Card; mode: Meta
     return (
       <section className="profile-section card-report-section" aria-labelledby="card-analytics-loading-heading">
         <header className="card-report-heading">
-          <p className="card-report-eyebrow">Detailed report</p>
           <h2 id="card-analytics-loading-heading">Deeper analytics</h2>
         </header>
         <p className="empty-results">Loading daily trends, decks, pairings, and counters…</p>
@@ -99,13 +97,9 @@ export function CardDeepAnalytics({ card, mode, byId }: { card: Card; mode: Meta
   return (
     <>
       <section className="profile-section card-report-section" aria-labelledby="card-trend-heading">
-        <header className="card-report-heading card-report-heading-with-context">
-          <div>
-            <p className="card-report-eyebrow">Movement</p>
-            <h2 id="card-trend-heading">Seven-day trend</h2>
-            <p>Daily usage and results across the latest battle sample.</p>
-          </div>
-          <p className="card-report-context">Mode <strong>{modeLabel(mode)}</strong></p>
+        <header className="card-report-heading">
+          <h2 id="card-trend-heading">Seven-day trend</h2>
+          <p>{modeLabel(mode)} · last 7 days</p>
         </header>
         {report.trend.some((point) => point.uses > 0) ? (
           <div className="card-report-trends">
@@ -113,42 +107,40 @@ export function CardDeepAnalytics({ card, mode, byId }: { card: Card; mode: Meta
             <div className="card-report-trend"><h3>Daily win rate</h3><TrendChart points={report.trend} metric="winRate" label={card.name} /></div>
           </div>
         ) : <p className="empty-results">{card.name} was not observed in this mode during the last seven daily aggregates.</p>}
-        <p className="card-report-note">A missing day means no observation, not a 0% win rate. Usage is the share of observed decks containing this card.</p>
+        <p className="card-report-note">Missing days mean no observations. Usage is the share of observed decks containing this card.</p>
       </section>
 
       <section className="profile-section card-report-section" aria-labelledby="card-decks-heading">
         <header className="card-report-heading">
-          <p className="card-report-eyebrow">Deck results</p>
           <h2 id="card-decks-heading">Top decks containing {card.name}</h2>
-          <p>Ranked decks with the most observed play in {modeLabel(mode)}.</p>
+          <p>{modeLabel(mode)} · ranked by observed usage</p>
         </header>
         {report.topDecks.length ? (
           <div className="card-report-deck-list">
             {report.topDecks.map((deck) => <DeckResult key={deck.deckHash} deck={deck} byId={byId} />)}
           </div>
         ) : <p className="empty-results">No deck containing {card.name} reached the ranked-deck sample floor in {modeLabel(mode)}.</p>}
-        <p className="card-report-note">Ordered by observed usage. These are battle-log results, not hand-picked recommendations.</p>
+        <p className="card-report-note">Ranked by observed usage.</p>
       </section>
 
       <section className="profile-section card-report-section" aria-labelledby="card-pairings-heading">
         <header className="card-report-heading">
-          <p className="card-report-eyebrow">Relationships</p>
           <h2 id="card-pairings-heading">Pairings and counters</h2>
-          <p>Cards that commonly share a deck with {card.name}, and opponents that perform well against it.</p>
+          <p>Partners share decks with {card.name}. Counters have the best results against those decks.</p>
         </header>
         <div className="card-report-related-grid">
           <RelatedStats
             title="Frequent partners"
-            note={`Cards most often played alongside ${card.name}.`}
-            metricLabel="deck win rate"
+            note={`Most common cards in ${card.name} decks.`}
+            countLabel="shared games"
             rows={report.pairings}
             byId={byId}
             empty={`No partner clears the ${report.minPairUses}-game floor.`}
           />
           <RelatedStats
             title="Counters"
-            note={`Opponent cards with the best results against decks containing ${card.name}.`}
-            metricLabel="opponent win rate"
+            note={`Highest opposing win rates against ${card.name} decks.`}
+            countLabel="matchups"
             rows={report.counters}
             byId={byId}
             empty={`No opponent card clears the ${report.minCounterUses}-matchup floor in mode-aware data yet.`}
@@ -159,7 +151,6 @@ export function CardDeepAnalytics({ card, mode, byId }: { card: Card; mode: Meta
       {card.evolutionImage || report.evolution ? (
         <section className="profile-section card-report-section" aria-labelledby="card-evolution-heading">
           <header className="card-report-heading">
-            <p className="card-report-eyebrow">Card variant</p>
             <h2 id="card-evolution-heading">Evolution performance</h2>
             <p>Battle-log results split by whether the Evolution slot was active.</p>
           </header>
@@ -174,7 +165,7 @@ export function CardDeepAnalytics({ card, mode, byId }: { card: Card; mode: Meta
         </section>
       ) : null}
 
-      {report.truncated ? <p className="card-report-caveat">Pairing or counter analysis reached its daily read cap. Results describe the scanned sample and may not be exhaustive.</p> : null}
+      {report.truncated ? <p className="card-report-caveat">Pairings and counters use a capped daily sample.</p> : null}
     </>
   );
 }
