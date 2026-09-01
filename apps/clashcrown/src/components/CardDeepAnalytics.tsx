@@ -17,30 +17,66 @@ function unknownCard(id: number): Card {
   return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
 }
 
-function MiniDeck({ deck, byId }: { deck: DeckSummary; byId: Map<number, Card> }) {
+function DeckResult({ deck, byId }: { deck: DeckSummary; byId: Map<number, Card> }) {
   const cards = deck.cardIds.map((id) => byId.get(id) ?? unknownCard(id));
   return (
-    <article className="analytics-deck-card">
+    <article className="card-report-deck">
       <DeckCardGrid cards={cards} evolutionIds={deck.evolutionIds} label="Top deck containing this card" size="compact" />
-      <p><strong>{pct(deck.winRate)}</strong> win rate <span>·</span> {deck.uses.toLocaleString()} games <span>·</span> {pct(deck.usageRate)} usage</p>
+      <dl className="card-report-deck-metrics">
+        <div><dt>Win rate</dt><dd>{pct(deck.winRate)}</dd></div>
+        <div><dt>Games</dt><dd>{deck.uses.toLocaleString()}</dd></div>
+        <div><dt>Usage</dt><dd>{pct(deck.usageRate)}</dd></div>
+      </dl>
     </article>
   );
 }
 
-function RelatedStats({ title, note, rows, byId, empty }: { title: string; note: string; rows: RelatedCardStat[]; byId: Map<number, Card>; empty: string }) {
+function RelatedStats({
+  title,
+  note,
+  metricLabel,
+  rows,
+  byId,
+  empty
+}: {
+  title: string;
+  note: string;
+  metricLabel: string;
+  rows: RelatedCardStat[];
+  byId: Map<number, Card>;
+  empty: string;
+}) {
   return (
-    <div className="related-stats-panel">
-      <h3>{title}</h3>
-      <p>{note}</p>
-      {rows.length ? <div>{rows.map((row) => {
-        const card = byId.get(row.cardId);
-        return <Link key={row.cardId} href={card ? `/cards/${cardSlug(card.name)}` : "/cards"} className="related-stat-row">
-          <GameCardArt card={card ?? unknownCard(row.cardId)} size="mini" />
-          <span><strong>{card?.name ?? `Card ${row.cardId}`}</strong><small>{row.uses.toLocaleString()} shared games</small></span>
-          <b>{pct(row.winRate)}</b>
-        </Link>;
-      })}</div> : <p className="analytics-empty">{empty}</p>}
-    </div>
+    <section className="card-report-related-group">
+      <header>
+        <h3>{title}</h3>
+        <p>{note}</p>
+      </header>
+      {rows.length ? (
+        <div className="card-report-related-list">
+          {rows.map((row) => {
+            const relatedCard = byId.get(row.cardId);
+            return (
+              <Link
+                key={row.cardId}
+                href={relatedCard ? `/cards/${cardSlug(relatedCard.name)}` : "/cards"}
+                className="card-report-related-row"
+              >
+                <GameCardArt card={relatedCard ?? unknownCard(row.cardId)} size="mini" />
+                <span>
+                  <strong>{relatedCard?.name ?? `Card ${row.cardId}`}</strong>
+                  <small>{row.uses.toLocaleString()} shared games</small>
+                </span>
+                <span className="card-report-related-metric">
+                  <strong>{pct(row.winRate)}</strong>
+                  <small>{metricLabel}</small>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : <p className="analytics-empty">{empty}</p>}
+    </section>
   );
 }
 
@@ -49,45 +85,96 @@ export function CardDeepAnalytics({ card, mode, byId }: { card: Card; mode: Meta
 
   if (typeof card.id !== "number") return null;
   if (report === undefined) {
-    return <section className="profile-section"><h2>Deeper analytics</h2><p className="empty-results">Loading daily trends, decks, pairings, and counters…</p></section>;
+    return (
+      <section className="profile-section card-report-section" aria-labelledby="card-analytics-loading-heading">
+        <header className="card-report-heading">
+          <p className="card-report-eyebrow">Detailed report</p>
+          <h2 id="card-analytics-loading-heading">Deeper analytics</h2>
+        </header>
+        <p className="empty-results">Loading daily trends, decks, pairings, and counters…</p>
+      </section>
+    );
   }
 
   return (
     <>
-      <section className="profile-section">
-        <div className="section-heading"><h2>Seven-day trend</h2><span>{modeLabel(mode)}</span></div>
-        {report.trend.some((point) => point.uses > 0) ? <div className="card-trend-grid">
-          <div><h3>Daily usage</h3><TrendChart points={report.trend} metric="usageRate" label={card.name} /></div>
-          <div><h3>Daily win rate</h3><TrendChart points={report.trend} metric="winRate" label={card.name} /></div>
-        </div> : <p className="empty-results">{card.name} was not observed in this mode during the last seven daily aggregates.</p>}
-        <p className="table-note">A missing day means no observation, not a 0% win rate. Usage is the share of observed decks containing this card.</p>
+      <section className="profile-section card-report-section" aria-labelledby="card-trend-heading">
+        <header className="card-report-heading card-report-heading-with-context">
+          <div>
+            <p className="card-report-eyebrow">Movement</p>
+            <h2 id="card-trend-heading">Seven-day trend</h2>
+            <p>Daily usage and results across the latest battle sample.</p>
+          </div>
+          <p className="card-report-context">Mode <strong>{modeLabel(mode)}</strong></p>
+        </header>
+        {report.trend.some((point) => point.uses > 0) ? (
+          <div className="card-report-trends">
+            <div className="card-report-trend"><h3>Daily usage</h3><TrendChart points={report.trend} metric="usageRate" label={card.name} /></div>
+            <div className="card-report-trend"><h3>Daily win rate</h3><TrendChart points={report.trend} metric="winRate" label={card.name} /></div>
+          </div>
+        ) : <p className="empty-results">{card.name} was not observed in this mode during the last seven daily aggregates.</p>}
+        <p className="card-report-note">A missing day means no observation, not a 0% win rate. Usage is the share of observed decks containing this card.</p>
       </section>
 
-      <section className="profile-section">
-        <div className="section-heading"><h2>Top decks containing {card.name}</h2></div>
-        {report.topDecks.length ? <div className="analytics-deck-list">{report.topDecks.map((deck) => <MiniDeck key={deck.deckHash} deck={deck} byId={byId} />)}</div> : <p className="empty-results">No deck containing {card.name} reached the ranked-deck sample floor in {modeLabel(mode)}.</p>}
-        <p className="table-note">These are the highest-usage ranked decks, not hand-picked recommendations.</p>
+      <section className="profile-section card-report-section" aria-labelledby="card-decks-heading">
+        <header className="card-report-heading">
+          <p className="card-report-eyebrow">Deck results</p>
+          <h2 id="card-decks-heading">Top decks containing {card.name}</h2>
+          <p>Ranked decks with the most observed play in {modeLabel(mode)}.</p>
+        </header>
+        {report.topDecks.length ? (
+          <div className="card-report-deck-list">
+            {report.topDecks.map((deck) => <DeckResult key={deck.deckHash} deck={deck} byId={byId} />)}
+          </div>
+        ) : <p className="empty-results">No deck containing {card.name} reached the ranked-deck sample floor in {modeLabel(mode)}.</p>}
+        <p className="card-report-note">Ordered by observed usage. These are battle-log results, not hand-picked recommendations.</p>
       </section>
 
-      <section className="profile-section">
-        <div className="section-heading"><h2>Pairings and counters</h2></div>
-        <div className="related-stats-grid">
-          <RelatedStats title="Frequent partners" note={`Cards most often played alongside ${card.name}. The percentage is that shared deck's win rate.`} rows={report.pairings} byId={byId} empty={`No partner clears the ${report.minPairUses}-game floor.`} />
-          <RelatedStats title="Counters" note={`Opponent cards with the best results against decks containing ${card.name}. The percentage is the opponent's win rate.`} rows={report.counters} byId={byId} empty={`No opponent card clears the ${report.minCounterUses}-matchup floor in mode-aware data yet.`} />
+      <section className="profile-section card-report-section" aria-labelledby="card-pairings-heading">
+        <header className="card-report-heading">
+          <p className="card-report-eyebrow">Relationships</p>
+          <h2 id="card-pairings-heading">Pairings and counters</h2>
+          <p>Cards that commonly share a deck with {card.name}, and opponents that perform well against it.</p>
+        </header>
+        <div className="card-report-related-grid">
+          <RelatedStats
+            title="Frequent partners"
+            note={`Cards most often played alongside ${card.name}.`}
+            metricLabel="deck win rate"
+            rows={report.pairings}
+            byId={byId}
+            empty={`No partner clears the ${report.minPairUses}-game floor.`}
+          />
+          <RelatedStats
+            title="Counters"
+            note={`Opponent cards with the best results against decks containing ${card.name}.`}
+            metricLabel="opponent win rate"
+            rows={report.counters}
+            byId={byId}
+            empty={`No opponent card clears the ${report.minCounterUses}-matchup floor in mode-aware data yet.`}
+          />
         </div>
       </section>
 
-      {card.evolutionImage || report.evolution ? <section className="profile-section">
-        <div className="section-heading"><h2>Evolution performance</h2></div>
-        {report.evolution ? <div className="beta-grid">
-          <div className="beta-tile"><span>Evolved games</span><strong>{report.evolution.uses.toLocaleString()}</strong><small>Evolution slot recorded</small></div>
-          <div className="beta-tile"><span>Evolved win rate</span><strong>{pct(report.evolution.winRate)}</strong><small>{report.evolution.wins.toLocaleString()} wins</small></div>
-          <div className="beta-tile"><span>Base win rate</span><strong>{report.evolution.baseWinRate === null ? "—" : pct(report.evolution.baseWinRate)}</strong><small>{report.evolution.baseUses.toLocaleString()} non-Evolution games</small></div>
-        </div> : <p className="empty-results">The catalog confirms this Evolution exists, but no battle in this sample recorded {card.name} in an Evolution slot. No performance number is shown.</p>}
-        <p className="table-note">Evolution status comes from the battle log's Evolution slot, not from artwork or an inferred deck name.</p>
-      </section> : null}
+      {card.evolutionImage || report.evolution ? (
+        <section className="profile-section card-report-section" aria-labelledby="card-evolution-heading">
+          <header className="card-report-heading">
+            <p className="card-report-eyebrow">Card variant</p>
+            <h2 id="card-evolution-heading">Evolution performance</h2>
+            <p>Battle-log results split by whether the Evolution slot was active.</p>
+          </header>
+          {report.evolution ? (
+            <dl className="card-report-metric-grid card-report-evolution-grid">
+              <div className="card-report-metric"><dt>Evolved games</dt><dd><strong>{report.evolution.uses.toLocaleString()}</strong><span>Evolution slot recorded</span></dd></div>
+              <div className="card-report-metric"><dt>Evolved win rate</dt><dd><strong>{pct(report.evolution.winRate)}</strong><span>{report.evolution.wins.toLocaleString()} wins</span></dd></div>
+              <div className="card-report-metric"><dt>Base win rate</dt><dd><strong>{report.evolution.baseWinRate === null ? "Not available" : pct(report.evolution.baseWinRate)}</strong><span>{report.evolution.baseUses.toLocaleString()} non-Evolution games</span></dd></div>
+            </dl>
+          ) : <p className="empty-results">The catalog confirms this Evolution exists, but no battle in this sample recorded {card.name} in an Evolution slot. No performance number is shown.</p>}
+          <p className="card-report-note">Evolution status comes from the battle log's Evolution slot, not from artwork or an inferred deck name.</p>
+        </section>
+      ) : null}
 
-      {report.truncated ? <p className="analytics-caveat">Pairing or counter analysis reached its bounded daily read cap. Results describe the scanned sample and are not claimed as exhaustive.</p> : null}
+      {report.truncated ? <p className="card-report-caveat">Pairing or counter analysis reached its daily read cap. Results describe the scanned sample and may not be exhaustive.</p> : null}
     </>
   );
 }

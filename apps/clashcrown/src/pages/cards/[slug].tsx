@@ -107,24 +107,29 @@ function CardDetail({ slug }: { slug: string }) {
           </div>
         </ArenaHeroFrame>
 
-        <CardStats
-          card={card}
-          mode={mode}
-          onModeChange={setMode}
-          meta={meta}
-          isTowerTroop={isTowerTroop}
-        />
-        {!isTowerTroop ? <CardDeepAnalytics card={card} mode={mode} byId={library.byId} /> : null}
+        <div className="card-report">
+          <CardStats
+            card={card}
+            mode={mode}
+            onModeChange={setMode}
+            meta={meta}
+            isTowerTroop={isTowerTroop}
+          />
+          {!isTowerTroop ? <CardDeepAnalytics card={card} mode={mode} byId={library.byId} /> : null}
 
-        <section className="profile-section">
-          <h2>Similar cards</h2>
-          <p className="table-note">Cards of the same rarity and a comparable elixir cost.</p>
-          <div className="card-library">
-            {related.map((item) => (
-              <RelatedTile key={item.id ?? item.name} card={item} />
-            ))}
-          </div>
-        </section>
+          <section className="profile-section card-report-section card-report-similar" aria-labelledby="similar-cards-heading">
+            <header className="card-report-heading">
+              <p className="card-report-eyebrow">Related cards</p>
+              <h2 id="similar-cards-heading">Similar cards</h2>
+              <p>Cards of the same rarity with a comparable elixir cost.</p>
+            </header>
+            <div className="card-report-card-list">
+              {related.map((item) => (
+                <RelatedTile key={item.id ?? item.name} card={item} />
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     </Layout>
   );
@@ -186,29 +191,35 @@ function CardStats({
   const stat = scope.record;
 
   return (
-    <section className="profile-section">
-      <div className="section-heading">
-        <h2>{isTowerTroop ? "Tower Troop usage in real battles" : "Usage in real battles"}</h2>
-      </div>
-      <div className="segmented" role="group" aria-label="Battle mode">
-        {META_MODES.map((item) => (
-          <button
-            key={item}
-            type="button"
-            aria-pressed={item === mode}
-            onClick={() => onModeChange(item)}
-          >
-            {modeLabel(item)}
-          </button>
-        ))}
-      </div>
+    <section className="profile-section card-report-section card-report-overview" aria-labelledby="card-battle-stats-heading">
+      <header className="card-report-heading card-report-heading-with-control">
+        <div>
+          <p className="card-report-eyebrow">Battle snapshot</p>
+          <h2 id="card-battle-stats-heading">
+            {isTowerTroop ? "Tower Troop usage in real battles" : "Usage in real battles"}
+          </h2>
+          <p>Observed performance across the current seven-day battle sample.</p>
+        </div>
+        <div className="card-mode-switch" role="group" aria-label="Battle mode">
+          {META_MODES.map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-pressed={item === mode}
+              onClick={() => onModeChange(item)}
+            >
+              {modeLabel(item)}
+            </button>
+          ))}
+        </div>
+      </header>
 
       {stat ? (
-        <div className="card-stat-grid">
+        <dl className="card-report-metric-grid">
           <StatTile icon={<BarChart3 />} label="Usage" value={`${(stat.usageRate * 100).toFixed(1)}%`} sub="of decks observed" />
           <StatTile icon={<TrendingUp />} label="Win rate" value={`${(stat.winRate * 100).toFixed(1)}%`} sub={`${stat.uses.toLocaleString()} ${scope.countLabel}`} />
           <StatTile icon={<Trophy />} label="Rank" value={rankLabel(stat.rank)} sub={stat.rank === null ? "Rank unavailable" : `of ${scope.ranked} ${isTowerTroop ? "Tower Troops" : "cards"} seen`} />
-        </div>
+        </dl>
       ) : (
         <p className="empty-results">
           {scope.loading
@@ -219,10 +230,10 @@ function CardStats({
         </p>
       )}
 
-      <p className="table-note">
-        Counted from {Math.round(scope.decksObserved).toLocaleString()} decks in {modeLabel(mode)} over the last{" "}
-        {meta.windowDays} days. The official API publishes no card statistics, so these come from crawled battle logs —
-        a sample of the ladder, not all of it. <Link href="/meta">See the full meta report</Link>.
+      <p className="card-report-note card-report-source">
+        <strong>Source:</strong> {Math.round(scope.decksObserved).toLocaleString()} decks observed in {modeLabel(mode)} over the
+        last {meta.windowDays} days. The official API does not publish card statistics, so these figures come from crawled
+        battle logs and represent a ladder sample. <Link href="/meta">See the full meta report</Link>.
       </p>
     </section>
   );
@@ -230,21 +241,23 @@ function CardStats({
 
 function StatTile({ icon, label, value, sub }: { icon: ReactNode; label: string; value: string; sub: string }) {
   return (
-    <div className="stat-tile">
-      <span>{icon}{label}</span>
-      <strong>{value}</strong>
-      <small>{sub}</small>
+    <div className="card-report-metric">
+      <dt>{icon}{label}</dt>
+      <dd>
+        <strong>{value}</strong>
+        <span>{sub}</span>
+      </dd>
     </div>
   );
 }
 
 function RelatedTile({ card }: { card: Card }) {
   return (
-    <Link href={`/cards/${cardSlug(card.name)}`} className="card-tile">
+    <Link href={`/cards/${cardSlug(card.name)}`} className="card-report-card-link">
       <GameCardArt card={card} size="mini" portrait="highest" />
-      <strong>{card.name}</strong>
       <span>
-        {card.rarity} · {card.elixir || "?"}
+        <strong>{card.name}</strong>
+        <small>{card.rarity} · {card.elixir || "?"} elixir</small>
       </span>
     </Link>
   );
