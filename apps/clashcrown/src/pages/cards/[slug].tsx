@@ -89,19 +89,16 @@ function CardDetail({ slug }: { slug: string }) {
           <Link href="/cards" className="breadcrumb card-detail-breadcrumb">← All cards</Link>
           <GameCardArt card={card} size="deck" portrait="highest" priority />
           <div>
+            <p className="card-detail-kicker" data-rarity={card.rarity.toLowerCase()}>{rarityIcon ? <Image src={rarityIcon} alt="" width={14} height={14} /> : null}{card.rarity} card</p>
             <h1>{card.name}</h1>
-            <div className="card-detail-meta">
-              <span className={`rarity-chip rarity-${card.rarity.toLowerCase()}`}>
-                {rarityIcon ? <Image src={rarityIcon} alt="" width={20} height={20} /> : null}
-                {card.rarity}
+            <p className="card-detail-meta">
+              <span>
+                <Image src="/images/ui-icons/elixir.png" alt="" width={15} height={17} />
+                {card.elixir || "?"} Elixir
               </span>
-              <span className="elixir-chip">
-                <Image src="/images/ui-icons/elixir.png" alt="" width={20} height={20} />
-                {card.elixir || "?"} elixir
-              </span>
-              {card.evolutionImage ? <span className="evo-chip">Evolution available</span> : null}
-              {card.heroImage ? <span className="hero-chip">Hero available</span> : null}
-            </div>
+              {card.evolutionImage ? <span>Evolution available</span> : null}
+              {card.heroImage ? <span>Hero available</span> : null}
+            </p>
             <CardVariants card={card} />
             <Link href={`/decks?include=${cardSlug(card.name)}`} className="pink-button card-detail-cta">
               Build a deck with {card.name}
