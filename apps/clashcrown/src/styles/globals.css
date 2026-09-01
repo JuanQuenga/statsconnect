@@ -6677,6 +6677,15 @@ a:hover .entity-cell strong { color: #75c5ff; }
  * Card analytics read as one report below the hero. Sections use whitespace
  * and dividers instead of bordered panels, including at phone widths. */
 .card-report {
+  --card-report-heading: #0b223d;
+  --card-report-ink: #17324f;
+  --card-report-copy: #294763;
+  --card-report-muted: #3f5870;
+  --card-report-accent: #006fae;
+  --card-report-accent-strong: #005b91;
+  --card-report-divider: rgba(20, 48, 76, .32);
+  --card-report-divider-soft: rgba(20, 48, 76, .23);
+  --card-report-grid: rgba(20, 48, 76, .28);
   width: min(100%, 1120px);
   margin: 18px auto 0;
 }
@@ -6685,7 +6694,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   margin: 0;
   padding: clamp(38px, 5vw, 60px) 0;
   border: 0;
-  border-top: 1px solid rgba(132, 161, 201, .2);
+  border-top: 1px solid var(--card-report-divider);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -6704,7 +6713,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .card-report-heading h2,
 .site-frame-clash .card-report-section h2 {
   margin: 0;
-  color: #f7faff;
+  color: var(--card-report-heading);
   font: 790 clamp(28px, 3.5vw, 40px)/1.08 var(--font-ui);
   letter-spacing: -.035em;
   text-align: left;
@@ -6715,9 +6724,8 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .card-report-heading > div > p {
   max-width: 680px;
   margin: 0;
-  color: #d7e3f2;
+  color: var(--card-report-copy);
   font: 400 15px/1.6 var(--font-ui);
-  text-shadow: 0 1px 2px rgba(3, 14, 24, .52);
 }
 
 .card-report-heading-with-control {
@@ -6735,7 +6743,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-self: end;
-  border-bottom: 1px solid rgba(132, 161, 201, .3);
+  border-bottom: 1px solid var(--card-report-divider);
 }
 
 .card-mode-switch > button {
@@ -6745,7 +6753,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   border: 0;
   border-bottom: 3px solid transparent;
   border-radius: 0;
-  color: #d7e2f0;
+  color: var(--card-report-muted);
   background: transparent;
   font: 700 13px/1.25 var(--font-ui);
   text-align: center;
@@ -6754,9 +6762,9 @@ a:hover .entity-cell strong { color: #75c5ff; }
   transition: color .15s ease, border-color .15s ease, background-color .15s ease;
 }
 
-.card-mode-switch > button:hover { color: #fff; background: rgba(117, 197, 255, .06); }
-.card-mode-switch > button[aria-pressed="true"] { color: #fff; border-bottom-color: #55b7ff; background: rgba(31, 149, 245, .1); }
-.card-mode-switch > button:focus-visible { outline: 3px solid rgba(117, 197, 255, .7); outline-offset: 3px; }
+.card-mode-switch > button:hover { color: var(--card-report-accent-strong); background: rgba(0, 111, 174, .06); }
+.card-mode-switch > button[aria-pressed="true"] { color: var(--card-report-heading); border-bottom-color: var(--card-report-accent); background: rgba(0, 111, 174, .08); }
+.card-mode-switch > button:focus-visible { outline: 3px solid rgba(0, 111, 174, .55); outline-offset: 3px; }
 
 .card-mode-select { display: none; }
 
@@ -6764,7 +6772,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
-  border-block: 1px solid rgba(132, 161, 201, .2);
+  border-block: 1px solid var(--card-report-divider);
 }
 
 .card-report-metric {
@@ -6775,7 +6783,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   padding: 24px clamp(20px, 3vw, 34px);
 }
 
-.card-report-metric + .card-report-metric { border-left: 1px solid rgba(132, 161, 201, .18); }
+.card-report-metric + .card-report-metric { border-left: 1px solid var(--card-report-divider-soft); }
 .card-report-metric:first-child { padding-left: 0; }
 .card-report-metric:last-child { padding-right: 0; }
 
@@ -6783,50 +6791,54 @@ a:hover .entity-cell strong { color: #75c5ff; }
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  color: #d7e4f3;
+  color: var(--card-report-copy);
   font: 700 13px/1.3 var(--font-ui);
   letter-spacing: .035em;
   text-transform: uppercase;
 }
 
-.card-report-metric dt svg { width: 20px; height: 20px; color: #6fc2ff; stroke-width: 1.8; }
+.card-report-metric dt svg { width: 20px; height: 20px; color: var(--card-report-accent); stroke-width: 1.8; }
 .card-report-metric dd { display: grid; gap: 7px; margin: 0; }
-.card-report-metric dd strong { color: #f8fbff; font: 800 clamp(32px, 4vw, 46px)/1 var(--font-ui); letter-spacing: -.04em; }
-.card-report-metric dd span { color: #d0dceb; font: 500 13px/1.45 var(--font-ui); }
+.card-report-metric dd strong { color: var(--card-report-heading); font: 800 clamp(32px, 4vw, 46px)/1 var(--font-ui); letter-spacing: -.04em; }
+.card-report-metric dd span { color: var(--card-report-muted); font: 500 13px/1.45 var(--font-ui); }
 
 .card-report-note {
   max-width: 800px;
   margin: 20px 0 0;
-  color: #e3ebf5;
+  color: var(--card-report-copy);
   font: 450 14px/1.55 var(--font-ui);
   text-align: left;
-  text-shadow: 0 1px 2px rgba(3, 14, 24, .48);
 }
 
-.card-report-note strong { color: #f0f5fc; }
-.card-report-note a { color: #b9e2ff; text-decoration: underline; text-underline-offset: 3px; }
+.card-report-note strong { color: var(--card-report-heading); }
+.card-report-note a { color: var(--card-report-accent-strong); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 .card-report-source { margin-top: 22px; }
 .card-report .empty-results,
-.card-report .analytics-empty { margin: 0; padding: 18px 0; color: #d2deed; font: 400 14px/1.6 var(--font-ui); text-align: left; }
+.card-report .analytics-empty { margin: 0; padding: 18px 0; color: var(--card-report-copy); font: 400 14px/1.6 var(--font-ui); text-align: left; }
 
 .card-report-trends {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  border-block: 1px solid rgba(132, 161, 201, .18);
+  border-block: 1px solid var(--card-report-divider-soft);
 }
 
 .card-report-trend { min-width: 0; padding: 24px 30px 18px 0; }
-.card-report-trend + .card-report-trend { padding-right: 0; padding-left: 30px; border-left: 1px solid rgba(132, 161, 201, .18); }
-.card-report-trend h3 { margin: 0 0 16px; color: #eaf1fb; font: 720 16px/1.3 var(--font-ui); }
+.card-report-trend + .card-report-trend { padding-right: 0; padding-left: 30px; border-left: 1px solid var(--card-report-divider-soft); }
+.card-report-trend h3 { margin: 0 0 16px; color: var(--card-report-ink); font: 720 16px/1.3 var(--font-ui); }
 .card-report-trend .trend-chart-canvas { height: 180px; }
-.card-report .trend-chart { --trend-grid: rgba(230, 239, 249, .22); --trend-axis: #c4d5e8; }
-.card-report .trend-chart-summary { color: #d0dceb; font-size: 12px; }
-.card-report .trend-chart-summary strong { font-size: 21px; }
+.card-report .trend-chart { --trend-grid: var(--card-report-grid); --trend-axis: var(--card-report-muted); }
+.card-report .trend-chart-summary { color: var(--card-report-muted); font-size: 12px; }
+.card-report .trend-chart-summary strong { color: var(--card-report-heading); font-size: 21px; }
+.card-report .trend-chart-summary span[data-trend="up"] { color: #176b49; }
+.card-report .trend-chart-summary span[data-trend="down"] { color: #9e3544; }
+.card-report .trend-chart-summary span[data-trend="flat"] { color: var(--card-report-muted); }
+.card-report .trend-chart-canvas .recharts-cartesian-axis-line,
+.card-report .trend-chart-canvas .recharts-cartesian-axis-tick-line { stroke: var(--card-report-divider); }
 .card-report .trend-chart-canvas .recharts-cartesian-axis-tick-value { font-size: 11px; }
 .card-report .trend-chart-tooltip { font-size: 12px; }
 
-.card-report-deck-list { border-bottom: 1px solid rgba(47, 70, 102, .28); }
+.card-report-deck-list { border-bottom: 1px solid var(--card-report-divider); }
 .card-report-deck {
   min-width: 0;
   display: grid;
@@ -6834,7 +6846,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   gap: 34px;
   align-items: center;
   padding: 24px 0;
-  border-top: 1px solid rgba(47, 70, 102, .28);
+  border-top: 1px solid var(--card-report-divider);
 }
 
 .card-report-deck > .profile-deck-grid { margin-inline: 0; }
@@ -6847,23 +6859,23 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 .card-report-deck-metrics > div { min-width: 0; display: grid; gap: 7px; padding: 4px 20px; }
 .card-report-deck-metrics > div:first-child { padding-left: 0; }
-.card-report-deck-metrics > div + div { border-left: 1px solid rgba(132, 161, 201, .18); }
-.card-report-deck-metrics dt { color: #d0dceb; font: 650 12px/1.3 var(--font-ui); text-transform: uppercase; letter-spacing: .05em; }
-.card-report-deck-metrics dd { margin: 0; color: #f7faff; font: 770 clamp(20px, 2.6vw, 30px)/1.1 var(--font-ui); letter-spacing: -.025em; }
+.card-report-deck-metrics > div + div { border-left: 1px solid var(--card-report-divider-soft); }
+.card-report-deck-metrics dt { color: var(--card-report-muted); font: 650 12px/1.3 var(--font-ui); text-transform: uppercase; letter-spacing: .05em; }
+.card-report-deck-metrics dd { margin: 0; color: var(--card-report-heading); font: 770 clamp(20px, 2.6vw, 30px)/1.1 var(--font-ui); letter-spacing: -.025em; }
 
 .card-report-related-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  border-block: 1px solid rgba(132, 161, 201, .18);
+  border-block: 1px solid var(--card-report-divider-soft);
 }
 
 .card-report-related-group { min-width: 0; padding: 26px 30px 8px 0; }
-.card-report-related-group + .card-report-related-group { padding-right: 0; padding-left: 30px; border-left: 1px solid rgba(132, 161, 201, .18); }
+.card-report-related-group + .card-report-related-group { padding-right: 0; padding-left: 30px; border-left: 1px solid var(--card-report-divider-soft); }
 .card-report-related-group > header { min-height: 88px; }
-.card-report-related-group h3 { margin: 0 0 8px; color: #f2f6fd; font: 740 19px/1.25 var(--font-ui); }
-.card-report-related-group > header p { margin: 0; color: #d0dceb; font: 400 13px/1.55 var(--font-ui); }
-.card-report-related-list { border-bottom: 1px solid rgba(132, 161, 201, .16); }
+.card-report-related-group h3 { margin: 0 0 8px; color: var(--card-report-ink); font: 740 19px/1.25 var(--font-ui); }
+.card-report-related-group > header p { margin: 0; color: var(--card-report-copy); font: 400 13px/1.55 var(--font-ui); }
+.card-report-related-list { border-bottom: 1px solid var(--card-report-divider-soft); }
 .card-report-related-row {
   min-width: 0;
   display: grid;
@@ -6871,17 +6883,17 @@ a:hover .entity-cell strong { color: #75c5ff; }
   gap: 12px;
   align-items: center;
   padding: 12px 0;
-  border-top: 1px solid rgba(132, 161, 201, .16);
-  color: #f5f8ff;
+  border-top: 1px solid var(--card-report-divider-soft);
+  color: var(--card-report-ink);
 }
 
 .card-report-related-row .game-card-art { width: 52px; }
 .card-report-related-row > span { min-width: 0; display: grid; gap: 4px; }
 .card-report-related-row > span > strong { overflow: hidden; font: 680 14px/1.25 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
-.card-report-related-row small { color: #cbd8e8; font: 400 12px/1.35 var(--font-ui); }
+.card-report-related-row small { color: var(--card-report-muted); font: 400 12px/1.35 var(--font-ui); }
 .card-report-related-metric { justify-items: end; align-self: center; text-align: right; }
-.card-report-related-metric strong { color: #f7faff; font: 740 16px/1.15 var(--font-ui) !important; }
-.card-report-related-row:hover > span:first-of-type > strong { color: #75c5ff; }
+.card-report-related-metric strong { color: var(--card-report-heading); font: 740 16px/1.15 var(--font-ui) !important; }
+.card-report-related-row:hover > span:first-of-type > strong { color: var(--card-report-accent-strong); }
 
 .card-report-evolution-grid .card-report-metric dt { min-height: 20px; }
 .card-report-evolution-grid .card-report-metric dd strong { font-size: clamp(27px, 3.5vw, 40px); }
@@ -6889,16 +6901,15 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .card-report-caveat {
   margin: 0;
   padding: 16px 0 0;
-  color: #e3ebf5;
+  color: var(--card-report-copy);
   font: 450 14px/1.55 var(--font-ui);
   text-align: left;
-  text-shadow: 0 1px 2px rgba(3, 14, 24, .48);
 }
 
 .card-report-card-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-bottom: 1px solid rgba(132, 161, 201, .18);
+  border-bottom: 1px solid var(--card-report-divider-soft);
 }
 
 .card-report-card-link {
@@ -6908,22 +6919,22 @@ a:hover .entity-cell strong { color: #75c5ff; }
   gap: 12px;
   align-items: center;
   padding: 16px 18px 16px 0;
-  border-top: 1px solid rgba(132, 161, 201, .18);
-  color: #f5f8ff;
+  border-top: 1px solid var(--card-report-divider-soft);
+  color: var(--card-report-ink);
 }
 
-.card-report-card-link:not(:nth-child(4n + 1)) { padding-left: 18px; border-left: 1px solid rgba(132, 161, 201, .14); }
+.card-report-card-link:not(:nth-child(4n + 1)) { padding-left: 18px; border-left: 1px solid var(--card-report-divider-soft); }
 .card-report-card-link .game-card-art { width: 72px; }
 .card-report-card-link > span { min-width: 0; display: grid; gap: 5px; }
 .card-report-card-link strong { overflow: hidden; font: 680 14px/1.3 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
-.card-report-card-link small { color: #cbd8e8; font: 400 13px/1.35 var(--font-ui); }
-.card-report-card-link:hover strong { color: #75c5ff; }
+.card-report-card-link small { color: var(--card-report-muted); font: 400 13px/1.35 var(--font-ui); }
+.card-report-card-link:hover strong { color: var(--card-report-accent-strong); }
 
 @media (max-width: 920px) {
   .card-mode-switch { width: min(100%, 560px); }
   .card-report-card-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .card-report-card-link:not(:nth-child(4n + 1)) { padding-left: 0; border-left: 0; }
-  .card-report-card-link:nth-child(even) { padding-left: 18px; border-left: 1px solid rgba(132, 161, 201, .14); }
+  .card-report-card-link:nth-child(even) { padding-left: 18px; border-left: 1px solid var(--card-report-divider-soft); }
 }
 
 @media (max-width: 680px) {
@@ -6943,35 +6954,35 @@ a:hover .entity-cell strong { color: #75c5ff; }
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 14px;
-    color-scheme: dark;
+    color-scheme: light;
   }
-  .card-mode-select > span { color: #d7e4f3; font: 650 12px/1.3 var(--font-ui); }
+  .card-mode-select > span { color: var(--card-report-copy); font: 650 12px/1.3 var(--font-ui); }
   .card-mode-select select {
     min-width: 0;
     width: 100%;
     padding: 10px 28px 10px 0;
     border: 0;
-    border-bottom: 2px solid #55b7ff;
+    border-bottom: 2px solid var(--card-report-accent);
     border-radius: 0;
-    color: #fff;
+    color: var(--card-report-heading);
     background: transparent;
     font: 700 16px/1.3 var(--font-ui);
   }
-  .card-mode-select option { color: #fff; background: #0a2543; }
+  .card-mode-select option { color: var(--card-report-heading); background: #fff; }
 
   .card-report-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .card-report-metric { padding: 20px 0; }
   .card-report-metric + .card-report-metric { border-left: 0; }
-  .card-report-metric:nth-child(even) { padding-left: 18px; border-left: 1px solid rgba(132, 161, 201, .18); }
+  .card-report-metric:nth-child(even) { padding-left: 18px; border-left: 1px solid var(--card-report-divider-soft); }
   .card-report-metric:nth-child(odd) { padding-right: 18px; }
-  .card-report-metric:nth-child(n + 3) { grid-column: 1 / -1; padding-right: 0; padding-left: 0; border-top: 1px solid rgba(132, 161, 201, .18); border-left: 0; }
+  .card-report-metric:nth-child(n + 3) { grid-column: 1 / -1; padding-right: 0; padding-left: 0; border-top: 1px solid var(--card-report-divider-soft); border-left: 0; }
   .card-report-metric dt { font-size: 12px; }
   .card-report-metric dd strong { font-size: clamp(30px, 10vw, 40px); }
   .card-report-metric dd span { font-size: 13px; }
 
   .card-report-trends { grid-template-columns: 1fr; }
   .card-report-trend { padding: 22px 0; }
-  .card-report-trend + .card-report-trend { padding: 22px 0; border-top: 1px solid rgba(132, 161, 201, .18); border-left: 0; }
+  .card-report-trend + .card-report-trend { padding: 22px 0; border-top: 1px solid var(--card-report-divider-soft); border-left: 0; }
   .card-report-trend .trend-chart-canvas { height: 154px; }
 
   .card-report-deck { grid-template-columns: 1fr; gap: 20px; }
@@ -6979,13 +6990,13 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .card-report-deck-metrics { grid-template-columns: 1fr; }
   .card-report-deck-metrics > div,
   .card-report-deck-metrics > div:first-child { grid-template-columns: 1fr auto; align-items: baseline; gap: 16px; padding: 10px 0; }
-  .card-report-deck-metrics > div + div { border-top: 1px solid rgba(132, 161, 201, .16); border-left: 0; }
+  .card-report-deck-metrics > div + div { border-top: 1px solid var(--card-report-divider-soft); border-left: 0; }
   .card-report-deck-metrics dd { font-size: 20px; }
 
   .card-report-related-grid { grid-template-columns: 1fr; }
   .card-report-related-group,
   .card-report-related-group + .card-report-related-group { padding: 24px 0 8px; border-left: 0; }
-  .card-report-related-group + .card-report-related-group { border-top: 1px solid rgba(132, 161, 201, .18); }
+  .card-report-related-group + .card-report-related-group { border-top: 1px solid var(--card-report-divider-soft); }
   .card-report-related-group > header { min-height: 0; margin-bottom: 18px; }
   .card-report-related-row { grid-template-columns: 50px minmax(0, 1fr) auto; gap: 10px; }
   .card-report-related-row .game-card-art { width: 50px; }
@@ -6998,7 +7009,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
     padding: 14px 8px 14px 0;
     border-left: 0;
   }
-  .card-report-card-link:nth-child(even) { padding-right: 0; padding-left: 8px; border-left: 1px solid rgba(132, 161, 201, .14); }
+  .card-report-card-link:nth-child(even) { padding-right: 0; padding-left: 8px; border-left: 1px solid var(--card-report-divider-soft); }
   .card-report-card-link .game-card-art { width: 58px; }
   .card-report-card-link strong { font-size: 13px; }
   .card-report-card-link small { font-size: 12px; }
