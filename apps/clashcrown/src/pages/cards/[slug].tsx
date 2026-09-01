@@ -3,7 +3,8 @@ import Image from "@/components/Image";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { BarChart3, TrendingUp, Trophy } from "lucide-react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { CardDeepAnalytics } from "@/components/CardDeepAnalytics";
@@ -189,12 +190,12 @@ function CardStats({
       <div className="section-heading">
         <h2>{isTowerTroop ? "Tower Troop usage in real battles" : "Usage in real battles"}</h2>
       </div>
-      <div className="beta-tabs" role="group" aria-label="Battle mode">
+      <div className="segmented" role="group" aria-label="Battle mode">
         {META_MODES.map((item) => (
           <button
             key={item}
             type="button"
-            className={item === mode ? "beta-tab beta-tab-on" : "beta-tab"}
+            aria-pressed={item === mode}
             onClick={() => onModeChange(item)}
           >
             {modeLabel(item)}
@@ -203,10 +204,10 @@ function CardStats({
       </div>
 
       {stat ? (
-        <div className="beta-grid">
-          <StatTile label="Usage" value={`${(stat.usageRate * 100).toFixed(1)}%`} sub="of decks observed" />
-          <StatTile label="Win rate" value={`${(stat.winRate * 100).toFixed(1)}%`} sub={`${stat.uses.toLocaleString()} ${scope.countLabel}`} />
-          <StatTile label="Most played" value={rankLabel(stat.rank)} sub={stat.rank === null ? "Rank unavailable" : `of ${scope.ranked} ${isTowerTroop ? "Tower Troops" : "cards"} seen`} />
+        <div className="card-stat-grid">
+          <StatTile icon={<BarChart3 />} label="Usage" value={`${(stat.usageRate * 100).toFixed(1)}%`} sub="of decks observed" />
+          <StatTile icon={<TrendingUp />} label="Win rate" value={`${(stat.winRate * 100).toFixed(1)}%`} sub={`${stat.uses.toLocaleString()} ${scope.countLabel}`} />
+          <StatTile icon={<Trophy />} label="Rank" value={rankLabel(stat.rank)} sub={stat.rank === null ? "Rank unavailable" : `of ${scope.ranked} ${isTowerTroop ? "Tower Troops" : "cards"} seen`} />
         </div>
       ) : (
         <p className="empty-results">
@@ -227,10 +228,10 @@ function CardStats({
   );
 }
 
-function StatTile({ label, value, sub }: { label: string; value: string; sub: string }) {
+function StatTile({ icon, label, value, sub }: { icon: ReactNode; label: string; value: string; sub: string }) {
   return (
-    <div className="beta-tile">
-      <span>{label}</span>
+    <div className="stat-tile">
+      <span>{icon}{label}</span>
       <strong>{value}</strong>
       <small>{sub}</small>
     </div>
