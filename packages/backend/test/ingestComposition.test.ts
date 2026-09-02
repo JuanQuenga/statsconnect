@@ -10,9 +10,13 @@ const ingestSource = await readFile(
   new URL("../convex/brawl/ingest.ts", import.meta.url),
   "utf8",
 );
+const foldSource = await readFile(
+  new URL("../convex/brawl/foldPolicy.ts", import.meta.url),
+  "utf8",
+);
 
 equal(
-  ingestSource.includes("newTeamDelta(teamWon, ids)"),
+  foldSource.includes("newTeamDelta(team.won, team.brawlerIds)"),
   true,
   "folded team deltas retain the battle team composition",
 );

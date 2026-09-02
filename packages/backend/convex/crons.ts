@@ -1,5 +1,10 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
+import {
+  ROLLUP_FAST_INTERVAL_MINUTES,
+  ROLLUP_FULL_INTERVAL_MINUTES,
+  rollupWindowsForCron,
+} from "./cronPolicy";
 
 const crons = cronJobs();
 
@@ -58,10 +63,16 @@ crons.interval(
   {},
 );
 crons.interval(
-  "clash: roll up deck rankings",
-  { minutes: 30 },
+  "clash: roll up daily deck rankings",
+  { minutes: ROLLUP_FAST_INTERVAL_MINUTES },
   internal.clash.crawler.rollup,
-  {},
+  { windows: rollupWindowsForCron("fast") },
+);
+crons.interval(
+  "clash: roll up weekly deck rankings",
+  { minutes: ROLLUP_FULL_INTERVAL_MINUTES },
+  internal.clash.crawler.rollup,
+  { windows: rollupWindowsForCron("full") },
 );
 crons.interval(
   "clash: prune expired rows",

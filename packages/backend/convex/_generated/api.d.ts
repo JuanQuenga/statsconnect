@@ -10,15 +10,18 @@
 
 import type * as auth from "../auth.js";
 import type * as authOrigins from "../authOrigins.js";
+import type * as brawl_bucketPolicy from "../brawl/bucketPolicy.js";
 import type * as brawl_clubs from "../brawl/clubs.js";
 import type * as brawl_controls from "../brawl/controls.js";
 import type * as brawl_crawler from "../brawl/crawler.js";
+import type * as brawl_foldPolicy from "../brawl/foldPolicy.js";
 import type * as brawl_http from "../brawl/http.js";
 import type * as brawl_ingest from "../brawl/ingest.js";
 import type * as brawl_ingestPolicy from "../brawl/ingestPolicy.js";
 import type * as brawl_pipeline from "../brawl/pipeline.js";
 import type * as brawl_pipelinePolicy from "../brawl/pipelinePolicy.js";
 import type * as brawl_players from "../brawl/players.js";
+import type * as brawl_rosterPolicy from "../brawl/rosterPolicy.js";
 import type * as brawl_stats from "../brawl/stats.js";
 import type * as brawl_upstreamIntake from "../brawl/upstreamIntake.js";
 import type * as clash_analytics from "../clash/analytics.js";
@@ -28,6 +31,7 @@ import type * as clash_clanManagementActions from "../clash/clanManagementAction
 import type * as clash_clashApi from "../clash/clashApi.js";
 import type * as clash_clashFetch from "../clash/clashFetch.js";
 import type * as clash_crawler from "../clash/crawler.js";
+import type * as clash_forceAuthorization from "../clash/forceAuthorization.js";
 import type * as clash_history from "../clash/history.js";
 import type * as clash_lib_battles from "../clash/lib/battles.js";
 import type * as clash_lib_domain from "../clash/lib/domain.js";
@@ -40,6 +44,9 @@ import type * as clash_meta from "../clash/meta.js";
 import type * as clash_news from "../clash/news.js";
 import type * as clash_personalization from "../clash/personalization.js";
 import type * as clash_players from "../clash/players.js";
+import type * as clash_summaries from "../clash/summaries.js";
+import type * as clash_summaryPolicy from "../clash/summaryPolicy.js";
+import type * as cronPolicy from "../cronPolicy.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as hub_access from "../hub/access.js";
@@ -75,15 +82,18 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authOrigins: typeof authOrigins;
+  "brawl/bucketPolicy": typeof brawl_bucketPolicy;
   "brawl/clubs": typeof brawl_clubs;
   "brawl/controls": typeof brawl_controls;
   "brawl/crawler": typeof brawl_crawler;
+  "brawl/foldPolicy": typeof brawl_foldPolicy;
   "brawl/http": typeof brawl_http;
   "brawl/ingest": typeof brawl_ingest;
   "brawl/ingestPolicy": typeof brawl_ingestPolicy;
   "brawl/pipeline": typeof brawl_pipeline;
   "brawl/pipelinePolicy": typeof brawl_pipelinePolicy;
   "brawl/players": typeof brawl_players;
+  "brawl/rosterPolicy": typeof brawl_rosterPolicy;
   "brawl/stats": typeof brawl_stats;
   "brawl/upstreamIntake": typeof brawl_upstreamIntake;
   "clash/analytics": typeof clash_analytics;
@@ -93,6 +103,7 @@ declare const fullApi: ApiFromModules<{
   "clash/clashApi": typeof clash_clashApi;
   "clash/clashFetch": typeof clash_clashFetch;
   "clash/crawler": typeof clash_crawler;
+  "clash/forceAuthorization": typeof clash_forceAuthorization;
   "clash/history": typeof clash_history;
   "clash/lib/battles": typeof clash_lib_battles;
   "clash/lib/domain": typeof clash_lib_domain;
@@ -105,6 +116,9 @@ declare const fullApi: ApiFromModules<{
   "clash/news": typeof clash_news;
   "clash/personalization": typeof clash_personalization;
   "clash/players": typeof clash_players;
+  "clash/summaries": typeof clash_summaries;
+  "clash/summaryPolicy": typeof clash_summaryPolicy;
+  cronPolicy: typeof cronPolicy;
   crons: typeof crons;
   http: typeof http;
   "hub/access": typeof hub_access;

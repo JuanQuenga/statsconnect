@@ -572,11 +572,25 @@ export const retainPipelineData = internalMutation({
       limit,
     );
 
+    // Roster rows live and die with their snapshot; legacy inline rosters
+    // need no extra deletion.
+    let rosterDeleted = 0;
+    for (const row of snapshots.slice(0, plan.delete.snapshots)) {
+      await ctx.db.delete(row._id);
+      const roster = await ctx.db
+        .query("playerSnapshotRosters")
+        .withIndex("by_tag_and_day", (q) => q.eq("tag", row.tag).eq("day", row.day))
+        .unique();
+      if (roster) {
+        await ctx.db.delete(roster._id);
+        rosterDeleted += 1;
+      }
+    }
+
     await Promise.all([
       ...battles.slice(0, plan.delete.battles).map((row) => ctx.db.delete(row._id)),
       ...fetchLogs.slice(0, plan.delete.fetchLogs).map((row) => ctx.db.delete(row._id)),
       ...runs.slice(0, plan.delete.runs).map((row) => ctx.db.delete(row._id)),
-      ...snapshots.slice(0, plan.delete.snapshots).map((row) => ctx.db.delete(row._id)),
       ...playerBattles.slice(0, plan.delete.playerBattles).map((row) => ctx.db.delete(row._id)),
       ...dailyBrawlerStats.slice(0, plan.delete.dailyBrawlerStats).map((row) => ctx.db.delete(row._id)),
       ...dailyMatchups.slice(0, plan.delete.dailyMatchups).map((row) => ctx.db.delete(row._id)),
@@ -589,7 +603,7 @@ export const retainPipelineData = internalMutation({
     ]);
     await ctx.db.patch(args.runId, { updatedAt: now });
     await incrementCounter(ctx, "retention_rows_deleted", plan.deleted, now);
-    return { status: "deleted" as const, deleted: plan.deleted, more: plan.more };
+    return { status: "deleted" as const, deleted: plan.deleted + rosterDeleted, more: plan.more };
   },
 });
 

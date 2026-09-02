@@ -6,6 +6,8 @@ import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { clashUpstream, GLOBAL_LOCATION_ID } from "./clashFetch";
 import { battleObservations, META_MODES, playerBattleObservation, type DeckObservation, type MetaMode, type PlayerBattleObservation } from "./lib/battles";
+import { BACKGROUND_CRON_ENV, ROLLUP_ALL_WINDOWS, backgroundCronEnabled } from "../cronPolicy";
+import { planCardSummaryPairs, refreshMsFromEnv } from "./summaryPolicy";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -23,6 +25,8 @@ const LEASE_MS = 5 * 60 * 1000;
 /** Battle logs hold 25 battles, so polling faster than this mostly re-reads old rows. */
 const REVISIT_SECONDS = 45 * 60;
 const MAX_ROLLUP_ROWS = 60_000;
+/** Rolling 7-day span card summaries cover; matches cardDetail's max window. */
+const CARD_SUMMARY_DAYS = 7;
 
 function envNumber(name: string, fallback: number) {
   const parsed = Number(process.env[name]);
@@ -95,6 +99,39 @@ async function run(ctx: ActionCtx, job: string, body: () => Promise<RunResult>):
     });
     throw error;
   }
+}
+
+/**
+ * Heavy crons skip entirely on deployments that opt out, so dev pushes stop
+ * paying for pipeline work production already does. Runs before run() so a
+ * disabled tick writes nothing at all, not even a run log row.
+ */
+function cronDisabled(): RunResult | null {
+  if (backgroundCronEnabled(process.env)) return null;
+  return {
+    note: `Disabled by ${BACKGROUND_CRON_ENV}.`,
+    counters: { disabled: 1 },
+  };
+}
+
+/** Materialises the freshest stale card-summary pairs, bounded per tick. */
+async function materializeCardSummaries(ctx: ActionCtx) {
+  const pairs = await ctx.runQuery(internal.clash.summaries.cardSummaryPairs, {
+    days: CARD_SUMMARY_DAYS,
+    modes: [...META_MODES],
+    now: Date.now(),
+  });
+  const planned = planCardSummaryPairs(pairs, Date.now(), undefined, refreshMsFromEnv(process.env));
+  let materialized = 0;
+  for (const pair of planned) {
+    const result = await ctx.runMutation(internal.clash.summaries.materializeCardDay, {
+      mode: pair.mode,
+      day: pair.day,
+      now: Date.now(),
+    });
+    if (!result.skipped) materialized += 1;
+  }
+  return { pairs: planned.length, materialized };
 }
 
 // --- Discovery ------------------------------------------------------------
@@ -245,6 +282,8 @@ export const discover = internalAction({
 export const crawl = internalAction({
   args: { batch: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const disabled = cronDisabled();
+    if (disabled) return disabled;
     const upstream = clashUpstream(ctx);
     const batch = Math.min(args.batch ?? envNumber("CLASH_CRAWL_BATCH", 8), 50);
 
@@ -466,17 +505,23 @@ async function aggregateWindow(ctx: ActionCtx, days: number) {
 }
 
 export const rollup = internalAction({
-  args: {},
+  args: { windows: v.optional(v.array(v.number())) },
   returns: runResult,
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    const disabled = cronDisabled();
+    if (disabled) return disabled;
     const topN = envNumber("CLASH_RANKING_SIZE", 100);
+    const requested = args.windows ?? [...ROLLUP_ALL_WINDOWS];
+    const windows = [...new Set(requested)].filter((windowDays) =>
+      (ROLLUP_ALL_WINDOWS as readonly number[]).includes(windowDays),
+    );
 
     return run(ctx, "rollup", async (): Promise<RunResult> => {
       let written = 0;
       let rowsRead = 0;
       const truncatedWindows: number[] = [];
 
-      for (const windowDays of [1, 7]) {
+      for (const windowDays of windows.length ? windows : [...ROLLUP_ALL_WINDOWS]) {
         const { byMode, totals, rowsRead: read, truncated } = await aggregateWindow(ctx, windowDays);
         rowsRead += read;
         if (truncated) truncatedWindows.push(windowDays);
@@ -510,11 +555,28 @@ export const rollup = internalAction({
         }
       }
 
+      // Fresh rankings make fresh card summaries possible; both share the tick.
+      let summaries = { pairs: 0, materialized: 0 };
+      try {
+        summaries = await materializeCardSummaries(ctx);
+      } catch {
+        // Summaries are a cache; a failed refresh must not fail the rollup.
+      }
+
       const note = truncatedWindows.length
         ? `${written} rows; windows ${truncatedWindows.join(", ")}d hit the ${MAX_ROLLUP_ROWS}-row read cap and are partial`
         : `${written} ranking rows from ${rowsRead} daily aggregates`;
 
-      return { note, counters: { written, rowsRead, truncated: truncatedWindows.length } };
+      return {
+        note,
+        counters: {
+          written,
+          rowsRead,
+          truncated: truncatedWindows.length,
+          summaryPairs: summaries.pairs,
+          summaries: summaries.materialized,
+        },
+      };
     });
   }
 });

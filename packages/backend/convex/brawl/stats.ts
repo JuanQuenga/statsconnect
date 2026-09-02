@@ -1,5 +1,13 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, query } from "../_generated/server";
+import {
+  bucketBreakdown,
+  combineStatRows,
+  combineTeamRows,
+  groupSum,
+  perBucketLimit,
+  type TrophyBucketFilter,
+} from "./bucketPolicy";
 
 export const MIN_META_PICKS = 25;
 const META_ROW_LIMIT = 10_000;
@@ -265,22 +273,41 @@ export const getMapStats = query({
   }),
   handler: async (ctx, args) => {
     const trophyBucket = args.trophyBucket || "all";
-    const [rows, teamRows, matchupRows] = await Promise.all([
-      ctx.db
-        .query("mapBrawlerStats")
-        .withIndex("by_map_bucket", (q) => q.eq("mapId", args.mapId).eq("trophyBucket", trophyBucket))
-        .take(200),
-      ctx.db
-        .query("mapTeamStats")
-        .withIndex("by_map_bucket_hash", (q) => q.eq("mapId", args.mapId).eq("trophyBucket", trophyBucket))
-        .take(200),
-      ctx.db
-        .query("mapBrawlerMatchups")
-        .withIndex("by_map_bucket_brawler_opponent", (q) =>
-          q.eq("mapId", args.mapId).eq("trophyBucket", trophyBucket),
-        )
-        .take(MAX_MAP_MATCHUPS),
+    // "all" is reconstructed by summing the bucket partitions; the split
+    // budget keeps total reads identical to the old single query.
+    const buckets = bucketBreakdown(trophyBucket);
+    const readPerBucket = <Row>(
+      read: (bucket: TrophyBucketFilter) => Promise<Row[]>,
+    ): Promise<Row[]> => Promise.all(buckets.map(read)).then((all) => all.flat());
+    const [rawRows, rawTeamRows, rawMatchupRows] = await Promise.all([
+      readPerBucket((bucket) =>
+        ctx.db
+          .query("mapBrawlerStats")
+          .withIndex("by_map_bucket", (q) => q.eq("mapId", args.mapId).eq("trophyBucket", bucket))
+          .take(perBucketLimit(200, buckets.length)),
+      ),
+      readPerBucket((bucket) =>
+        ctx.db
+          .query("mapTeamStats")
+          .withIndex("by_map_bucket_hash", (q) => q.eq("mapId", args.mapId).eq("trophyBucket", bucket))
+          .take(perBucketLimit(200, buckets.length)),
+      ),
+      readPerBucket((bucket) =>
+        ctx.db
+          .query("mapBrawlerMatchups")
+          .withIndex("by_map_bucket_brawler_opponent", (q) =>
+            q.eq("mapId", args.mapId).eq("trophyBucket", bucket),
+          )
+          .take(perBucketLimit(MAX_MAP_MATCHUPS, buckets.length)),
+      ),
     ]);
+    const rows = groupSum(rawRows, (row) => `${row.brawlerId}`, combineStatRows);
+    const teamRows = groupSum(rawTeamRows, (row) => row.teamHash, combineTeamRows);
+    const matchupRows = groupSum(
+      rawMatchupRows,
+      (row) => `${row.brawlerId}:${row.opponentBrawlerId}`,
+      combineTeamRows,
+    );
 
     const sampleSize = rows.reduce((sum, row) => sum + row.picks, 0);
     const stats = rows
@@ -294,7 +321,7 @@ export const getMapStats = query({
           starPlayer: row.starPlayer,
           winRate: decided ? (row.wins / decided) * 100 : 0,
           useRate: sampleSize ? (row.picks / sampleSize) * 100 : 0,
-          trophyBucket: row.trophyBucket,
+          trophyBucket,
         };
       })
       .sort((a, b) => b.winRate - a.winRate || b.picks - a.picks);
@@ -308,7 +335,7 @@ export const getMapStats = query({
           losses: row.losses,
           picks: row.picks,
           winRate: decided ? (row.wins / decided) * 100 : 0,
-          trophyBucket: row.trophyBucket,
+          trophyBucket,
         };
       })
       .sort((a, b) => b.picks - a.picks || b.winRate - a.winRate);
@@ -323,10 +350,12 @@ export const getMapStats = query({
           losses: row.losses,
           picks: row.picks,
           winRate: decided ? (row.wins / decided) * 100 : 0,
-          trophyBucket: row.trophyBucket,
+          trophyBucket,
         };
       })
       .sort((a, b) => b.picks - a.picks || b.winRate - a.winRate);
+    // Merged bucket rows can exceed the single-query cap before grouping.
+    matchups.length = Math.min(matchups.length, MAX_MAP_MATCHUPS);
 
     return { stats, teams, matchups, sampleSize, minPicks: MIN_META_PICKS };
   },
@@ -354,29 +383,50 @@ export const getBrawlerStats = query({
   }),
   handler: async (ctx, args) => {
     const trophyBucket = args.trophyBucket || "all";
-    const [rows, teamRows, matchupRows] = await Promise.all([
-      ctx.db
-        .query("mapBrawlerStats")
-        .withIndex("by_brawler_and_bucket", (q) =>
-          q.eq("brawlerId", args.brawlerId).eq("trophyBucket", trophyBucket),
-        )
-        .take(1_000),
-      ctx.db
-        .query("mapTeamStats")
-        .withIndex("by_trophy_bucket", (q) => q.eq("trophyBucket", trophyBucket))
-        .take(TEAM_ROW_LIMIT),
-      ctx.db
-        .query("mapBrawlerMatchups")
-        .withIndex("by_brawler_and_bucket", (q) =>
-          q.eq("brawlerId", args.brawlerId).eq("trophyBucket", trophyBucket),
-        )
-        .take(2_000),
+    const buckets = bucketBreakdown(trophyBucket);
+    const readPerBucket = <Row>(
+      read: (bucket: TrophyBucketFilter) => Promise<Row[]>,
+    ): Promise<Row[]> => Promise.all(buckets.map(read)).then((all) => all.flat());
+    const [rawRows, rawTeamRows, rawMatchupRows] = await Promise.all([
+      readPerBucket((bucket) =>
+        ctx.db
+          .query("mapBrawlerStats")
+          .withIndex("by_brawler_and_bucket", (q) =>
+            q.eq("brawlerId", args.brawlerId).eq("trophyBucket", bucket),
+          )
+          .take(perBucketLimit(1_000, buckets.length)),
+      ),
+      readPerBucket((bucket) =>
+        ctx.db
+          .query("mapTeamStats")
+          .withIndex("by_trophy_bucket", (q) => q.eq("trophyBucket", bucket))
+          .take(perBucketLimit(TEAM_ROW_LIMIT, buckets.length)),
+      ),
+      readPerBucket((bucket) =>
+        ctx.db
+          .query("mapBrawlerMatchups")
+          .withIndex("by_brawler_and_bucket", (q) =>
+            q.eq("brawlerId", args.brawlerId).eq("trophyBucket", bucket),
+          )
+          .take(perBucketLimit(2_000, buckets.length)),
+      ),
     ]);
+    const rows = groupSum(rawRows, (row) => `${row.mapId}`, combineStatRows);
+    const teamRows = groupSum(rawTeamRows, (row) => `${row.mapId}:${row.teamHash}`, combineTeamRows);
+    const matchupRows = groupSum(
+      rawMatchupRows,
+      (row) => `${row.mapId}:${row.opponentBrawlerId}`,
+      combineTeamRows,
+    );
 
-    const stats = rows.map(toStatResult).sort((a, b) => b.picks - a.picks);
+    const stats = rows
+      .map(toStatResult)
+      .map((row) => ({ ...row, trophyBucket }))
+      .sort((a, b) => b.picks - a.picks);
     const teams = teamRows
       .filter((row) => row.brawlerIds.includes(args.brawlerId))
       .map(toTeamResult)
+      .map((row) => ({ ...row, trophyBucket }))
       .sort((a, b) => b.picks - a.picks || b.winRate - a.winRate)
       .slice(0, 100);
     const matchups = matchupRows
@@ -393,6 +443,7 @@ export const getBrawlerStats = query({
           trophyBucket: row.trophyBucket,
         };
       })
+      .map((row) => ({ ...row, trophyBucket }))
       .sort((a, b) => b.picks - a.picks || b.winRate - a.winRate);
     const totals = rows.reduce(
       (result, row) => ({
@@ -433,14 +484,24 @@ export const getMetaResearch = query({
   }),
   handler: async (ctx, args) => {
     const trophyBucket = args.trophyBucket || "all";
-    const rows = await ctx.db
-      .query("mapBrawlerStats")
-      .withIndex("by_trophy_bucket", (q) => q.eq("trophyBucket", trophyBucket))
-      .take(META_ROW_LIMIT + 1);
+    const buckets = bucketBreakdown(trophyBucket);
+    const rawRows = (await Promise.all(
+      buckets.map((bucket) =>
+        ctx.db
+          .query("mapBrawlerStats")
+          .withIndex("by_trophy_bucket", (q) => q.eq("trophyBucket", bucket))
+          .take(perBucketLimit(META_ROW_LIMIT + 1, buckets.length)),
+      ),
+    )).flat();
+    const rows = groupSum(
+      rawRows,
+      (row) => `${row.mapId}:${row.brawlerId}`,
+      combineStatRows,
+    );
     const capped = rows.length > META_ROW_LIMIT;
     const visibleRows = rows.slice(0, META_ROW_LIMIT);
     return {
-      stats: visibleRows.map(toStatResult),
+      stats: visibleRows.map(toStatResult).map((row) => ({ ...row, trophyBucket })),
       sampleSize: visibleRows.reduce((sum, row) => sum + row.picks, 0),
       minPicks: MIN_META_PICKS,
       capped,
@@ -476,63 +537,96 @@ export const getMetaTrends = internalQuery({
     const today = utcDayStart(Math.min(args.now ?? Date.now(), Date.now()));
     const windowDays = args.window === "all" ? null : Number(args.window);
     const rowLimit = args.brawlerId ? DAILY_BRAWLER_ROW_LIMIT : DAILY_META_ROW_LIMIT;
-    const firstRow = args.brawlerId
-      ? await ctx.db
-          .query("dailyMapBrawlerStats")
-          .withIndex("by_brawler_bucket_and_day", (q) =>
-            q.eq("brawlerId", args.brawlerId!).eq("trophyBucket", trophyBucket),
-          )
-          .order("asc")
-          .first()
-      : await ctx.db
-          .query("dailyMapBrawlerStats")
-          .withIndex("by_bucket_and_day", (q) => q.eq("trophyBucket", trophyBucket))
-          .order("asc")
-          .first();
-    const coverageStartAt = firstRow?.day ?? null;
+    // "all" reads the bucket partitions and reconstructs the merged view; the
+    // split budget keeps total reads identical to the old single query.
+    const buckets = bucketBreakdown(trophyBucket);
+    const perBucketRowLimit = perBucketLimit(rowLimit + 1, buckets.length);
+    const perBucketMatchupLimit = perBucketLimit(DAILY_MATCHUP_ROW_LIMIT + 1, buckets.length);
+    const readDailyRows = (dayFrom: number, dayTo: number) =>
+      Promise.all(
+        buckets.map((bucket) =>
+          args.brawlerId
+            ? ctx.db
+                .query("dailyMapBrawlerStats")
+                .withIndex("by_brawler_bucket_and_day", (q) =>
+                  q
+                    .eq("brawlerId", args.brawlerId!)
+                    .eq("trophyBucket", bucket)
+                    .gte("day", dayFrom)
+                    .lte("day", dayTo),
+                )
+                .take(perBucketRowLimit)
+            : ctx.db
+                .query("dailyMapBrawlerStats")
+                .withIndex("by_bucket_and_day", (q) =>
+                  q.eq("trophyBucket", bucket).gte("day", dayFrom).lte("day", dayTo),
+                )
+                .take(perBucketRowLimit),
+        ),
+      );
+    const readDailyMatchups = (dayFrom: number, dayTo: number) =>
+      Promise.all(
+        buckets.map((bucket) =>
+          ctx.db
+            .query("dailyBrawlerMatchups")
+            .withIndex("by_brawler_bucket_and_day", (q) =>
+              q
+                .eq("brawlerId", args.brawlerId!)
+                .eq("trophyBucket", bucket)
+                .gte("day", dayFrom)
+                .lte("day", dayTo),
+            )
+            .take(perBucketMatchupLimit),
+        ),
+      );
+    const firstDays = await Promise.all(
+      buckets.map((bucket) =>
+        args.brawlerId
+          ? ctx.db
+              .query("dailyMapBrawlerStats")
+              .withIndex("by_brawler_bucket_and_day", (q) =>
+                q.eq("brawlerId", args.brawlerId!).eq("trophyBucket", bucket),
+              )
+              .order("asc")
+              .first()
+          : ctx.db
+              .query("dailyMapBrawlerStats")
+              .withIndex("by_bucket_and_day", (q) => q.eq("trophyBucket", bucket))
+              .order("asc")
+              .first(),
+      ),
+    );
+    const coverageStartAt = firstDays.reduce<number | null>(
+      (earliest, row) => (row ? (earliest === null ? row.day : Math.min(earliest, row.day)) : earliest),
+      null,
+    );
     const currentStart = windowDays === null
       ? coverageStartAt ?? today
       : today - (windowDays - 1) * DAY_MS;
     const currentEnd = today;
 
-    const currentRowsWithOverflow = args.brawlerId
-      ? await ctx.db
-          .query("dailyMapBrawlerStats")
-          .withIndex("by_brawler_bucket_and_day", (q) =>
-            q
-              .eq("brawlerId", args.brawlerId!)
-              .eq("trophyBucket", trophyBucket)
-              .gte("day", currentStart)
-              .lte("day", currentEnd),
-          )
-          .take(rowLimit + 1)
-      : await ctx.db
-          .query("dailyMapBrawlerStats")
-          .withIndex("by_bucket_and_day", (q) =>
-            q.eq("trophyBucket", trophyBucket).gte("day", currentStart).lte("day", currentEnd),
-          )
-          .take(rowLimit + 1);
-    const currentCapped = currentRowsWithOverflow.length > rowLimit;
+    const currentBucketRows = await readDailyRows(currentStart, currentEnd);
+    const currentRowsWithOverflow = currentBucketRows.flat();
+    const currentCapped =
+      currentRowsWithOverflow.length > rowLimit ||
+      currentBucketRows.some((rows) => rows.length === perBucketRowLimit);
     const current = buildTrendPeriod(
       currentRowsWithOverflow.slice(0, rowLimit),
       currentStart,
       currentEnd,
       currentCapped,
     );
-    const currentMatchupRowsWithOverflow = args.brawlerId
-      ? await ctx.db
-          .query("dailyBrawlerMatchups")
-          .withIndex("by_brawler_bucket_and_day", (q) =>
-            q
-              .eq("brawlerId", args.brawlerId!)
-              .eq("trophyBucket", trophyBucket)
-              .gte("day", currentStart)
-              .lte("day", currentEnd),
-          )
-          .take(DAILY_MATCHUP_ROW_LIMIT + 1)
+    const currentMatchupBucketRows = args.brawlerId
+      ? await readDailyMatchups(currentStart, currentEnd)
       : [];
-    const currentMatchupCapped = currentMatchupRowsWithOverflow.length > DAILY_MATCHUP_ROW_LIMIT;
-    const currentMatchups = buildTrendMatchups(currentMatchupRowsWithOverflow.slice(0, DAILY_MATCHUP_ROW_LIMIT));
+    const currentMatchupRowsWithOverflow = currentMatchupBucketRows.flat();
+    const currentMatchupCapped =
+      currentMatchupRowsWithOverflow.length > DAILY_MATCHUP_ROW_LIMIT ||
+      currentMatchupBucketRows.some((rows) => rows.length === perBucketMatchupLimit);
+    const currentMatchups = buildTrendMatchups(
+      currentMatchupRowsWithOverflow.slice(0, DAILY_MATCHUP_ROW_LIMIT),
+    ).map((row) => ({ ...row, trophyBucket }));
+    current.stats = current.stats.map((row) => ({ ...row, trophyBucket }));
 
     if (windowDays === null) {
       return {
@@ -554,44 +648,28 @@ export const getMetaTrends = internalQuery({
 
     const previousEnd = currentStart - DAY_MS;
     const previousStart = previousEnd - (windowDays - 1) * DAY_MS;
-    const previousRowsWithOverflow = args.brawlerId
-      ? await ctx.db
-          .query("dailyMapBrawlerStats")
-          .withIndex("by_brawler_bucket_and_day", (q) =>
-            q
-              .eq("brawlerId", args.brawlerId!)
-              .eq("trophyBucket", trophyBucket)
-              .gte("day", previousStart)
-              .lte("day", previousEnd),
-          )
-          .take(rowLimit + 1)
-      : await ctx.db
-          .query("dailyMapBrawlerStats")
-          .withIndex("by_bucket_and_day", (q) =>
-            q.eq("trophyBucket", trophyBucket).gte("day", previousStart).lte("day", previousEnd),
-          )
-          .take(rowLimit + 1);
-    const previousCapped = previousRowsWithOverflow.length > rowLimit;
+    const previousBucketRows = await readDailyRows(previousStart, previousEnd);
+    const previousRowsWithOverflow = previousBucketRows.flat();
+    const previousCapped =
+      previousRowsWithOverflow.length > rowLimit ||
+      previousBucketRows.some((rows) => rows.length === perBucketRowLimit);
     const previous = buildTrendPeriod(
       previousRowsWithOverflow.slice(0, rowLimit),
       previousStart,
       previousEnd,
       previousCapped,
     );
-    const previousMatchupRowsWithOverflow = args.brawlerId
-      ? await ctx.db
-          .query("dailyBrawlerMatchups")
-          .withIndex("by_brawler_bucket_and_day", (q) =>
-            q
-              .eq("brawlerId", args.brawlerId!)
-              .eq("trophyBucket", trophyBucket)
-              .gte("day", previousStart)
-              .lte("day", previousEnd),
-          )
-          .take(DAILY_MATCHUP_ROW_LIMIT + 1)
+    const previousMatchupBucketRows = args.brawlerId
+      ? await readDailyMatchups(previousStart, previousEnd)
       : [];
-    const previousMatchupCapped = previousMatchupRowsWithOverflow.length > DAILY_MATCHUP_ROW_LIMIT;
-    const previousMatchups = buildTrendMatchups(previousMatchupRowsWithOverflow.slice(0, DAILY_MATCHUP_ROW_LIMIT));
+    const previousMatchupRowsWithOverflow = previousMatchupBucketRows.flat();
+    const previousMatchupCapped =
+      previousMatchupRowsWithOverflow.length > DAILY_MATCHUP_ROW_LIMIT ||
+      previousMatchupBucketRows.some((rows) => rows.length === perBucketMatchupLimit);
+    const previousMatchups = buildTrendMatchups(
+      previousMatchupRowsWithOverflow.slice(0, DAILY_MATCHUP_ROW_LIMIT),
+    ).map((row) => ({ ...row, trophyBucket }));
+    previous.stats = previous.stats.map((row) => ({ ...row, trophyBucket }));
     const comparisonReady =
       coverageStartAt !== null &&
       coverageStartAt <= previousStart &&

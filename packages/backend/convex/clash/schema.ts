@@ -320,6 +320,41 @@ export const clashTables = {
     .index("by_window_and_mode", ["windowDays", "mode"])
     .index("by_window_and_mode_and_computed_at", ["windowDays", "mode", "computedAt"]),
 
+  /**
+   * Materialised per-day inputs for `cardDetail`, written by the rollup cron.
+   * One request used to re-read up to ~1,600 aggregate rows per day; it now
+   * reads exactly one of these docs per day. Counters store wins from the
+   * opponent-card perspective, matching the live computation.
+   */
+  cardDaySummaries: defineTable({
+    day: v.number(),
+    mode: metaMode,
+    cardId: v.number(),
+    uses: v.number(),
+    wins: v.number(),
+    decksObserved: v.number(),
+    pairings: v.array(v.object({ cardId: v.number(), uses: v.number(), wins: v.number() })),
+    counters: v.array(v.object({ cardId: v.number(), uses: v.number(), wins: v.number() })),
+    evolvedUses: v.number(),
+    evolvedWins: v.number(),
+    baseUses: v.number(),
+    baseWins: v.number(),
+    truncated: v.boolean(),
+    computedAt: v.number()
+  })
+    .index("by_mode_card_and_day", ["mode", "cardId", "day"])
+    .index("by_mode_and_day", ["mode", "day"])
+    .index("by_day", ["day"]),
+
+  /** Freshness marker per (mode, day), so the cron plans ticks without rescanning summaries. */
+  cardSummaryRuns: defineTable({
+    mode: metaMode,
+    day: v.number(),
+    computedAt: v.number()
+  })
+    .index("by_mode_and_day", ["mode", "day"])
+    .index("by_day", ["day"]),
+
   /** One row per cron execution, so the beta page can show what the pipeline is doing. */
   clashPipelineRuns: defineTable({
     job: v.string(),

@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { boundedInteger, envEnabled } from "./controls";
+import { backgroundCronEnabled } from "../cronPolicy";
 import {
   brawlTagKey,
   createBrawlUpstreamIntake,
@@ -184,6 +185,11 @@ export const crawl = internalAction({
   args: {},
   returns: v.object({ fetched: v.number(), battles: v.number(), failures: v.number() }),
   handler: async (ctx) => {
+    // Dev deployments opt out entirely so they stop paying for pipeline
+    // work production already does; a disabled tick writes nothing at all.
+    if (!backgroundCronEnabled(process.env)) {
+      return { fetched: 0, battles: 0, failures: 0 };
+    }
     const runId = await ctx.runMutation(internal.brawl.pipeline.beginPipelineRun, {
       job: "crawl",
     });

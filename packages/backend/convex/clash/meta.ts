@@ -614,6 +614,17 @@ export const pruneBatch = internalMutation({
       .take(32);
     for (const row of staleBudgets) await ctx.db.delete(row._id);
 
+    const staleSummaries = await ctx.db
+      .query("cardDaySummaries")
+      .withIndex("by_day", (q) => q.lt("day", dayCutoff))
+      .take(256);
+    for (const row of staleSummaries) await ctx.db.delete(row._id);
+    const staleSummaryRuns = await ctx.db
+      .query("cardSummaryRuns")
+      .withIndex("by_day", (q) => q.lt("day", dayCutoff))
+      .take(64);
+    for (const row of staleSummaryRuns) await ctx.db.delete(row._id);
+
     const deleted =
       staleSeen.length +
       staleDecks.length +
@@ -626,7 +637,9 @@ export const pruneBatch = internalMutation({
       staleHistory +
       staleLogs.length +
       staleRuns.length +
-      staleBudgets.length;
+      staleBudgets.length +
+      staleSummaries.length +
+      staleSummaryRuns.length;
     return { deleted, more: deleted > 0 };
   }
 });

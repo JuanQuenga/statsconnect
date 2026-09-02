@@ -1,8 +1,19 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import { metaMode } from "./schema";
 import { dayKeysBack, type MetaMode } from "./lib/battles";
 import { normalizeTag } from "./lib/tag";
+import {
+  MIN_COUNTER_USES,
+  MIN_PAIR_USES,
+  composeCardCounters,
+  composeCardEvolution,
+  composeCardPairings,
+  composeCardTrend,
+  composeCardTruncated,
+  type CardDaySummary,
+} from "./summaryPolicy";
 
 const MAX_WINDOW_DAYS = 7;
 const CARD_DAY_LIMIT = 400;
@@ -456,6 +467,111 @@ export const deckReport = query({
 
 const relatedCard = v.object({ cardId: v.number(), uses: v.number(), wins: v.number(), winRate: v.number() });
 
+type CardDetailCore = {
+  trend: Array<{ day: number; uses: number; wins: number; winRate: number | null; usageRate: number }>;
+  pairings: Array<{ cardId: number; uses: number; wins: number; winRate: number }>;
+  counters: Array<{ cardId: number; uses: number; wins: number; winRate: number }>;
+  evolution: ReturnType<typeof composeCardEvolution>;
+  truncated: boolean;
+};
+
+/**
+ * The original per-request computation. It re-reads up to ~1,600 aggregate
+ * rows per day, so it now only runs when a materialised summary is missing.
+ */
+async function cardDetailLive(
+  ctx: QueryCtx,
+  args: { cardId: number; mode: MetaMode; days: number[] },
+): Promise<CardDetailCore> {
+  const trend: Array<{ day: number; uses: number; wins: number; winRate: number | null; usageRate: number }> = [];
+  const pairings = new Map<number, Aggregate>();
+  const counters = new Map<number, Aggregate>();
+  let evolvedUses = 0;
+  let evolvedWins = 0;
+  let baseUses = 0;
+  let baseWins = 0;
+  let truncated = false;
+
+  for (const day of args.days) {
+    const cardRows = await ctx.db
+      .query("cardStats")
+      .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", day).eq("mode", args.mode).eq("cardId", args.cardId))
+      .take(1);
+    const allCards = await ctx.db
+      .query("cardStats")
+      .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", day).eq("mode", args.mode))
+      .take(CARD_DAY_LIMIT);
+    truncated ||= allCards.length === CARD_DAY_LIMIT;
+    const card = cardRows[0];
+    const decksObserved = allCards.reduce((sum, row) => sum + row.uses, 0) / 8;
+    trend.push({
+      day,
+      uses: card?.uses ?? 0,
+      wins: card?.wins ?? 0,
+      winRate: card?.uses ? card.wins / card.uses : null,
+      usageRate: decksObserved && card ? card.uses / decksObserved : 0
+    });
+
+    const deckRows = await ctx.db
+      .query("deckStats")
+      .withIndex("by_day_and_mode", (q) => q.eq("day", day).eq("mode", args.mode))
+      .take(DETAIL_DECK_DAY_LIMIT);
+    truncated ||= deckRows.length === DETAIL_DECK_DAY_LIMIT;
+    for (const row of deckRows) {
+      if (!row.cardIds.includes(args.cardId)) continue;
+      for (const otherId of row.cardIds) {
+        if (otherId !== args.cardId) add(pairings, otherId, row.uses, row.wins);
+      }
+      if (row.evolutionIds.includes(args.cardId)) {
+        evolvedUses += row.uses;
+        evolvedWins += row.wins;
+      } else {
+        baseUses += row.uses;
+        baseWins += row.wins;
+      }
+    }
+
+    const matchupRows = await ctx.db
+      .query("matchupStats")
+      .withIndex("by_day_and_mode", (q) => q.eq("day", day).eq("mode", args.mode as MetaMode))
+      .take(DETAIL_MATCHUP_DAY_LIMIT);
+    truncated ||= matchupRows.length === DETAIL_MATCHUP_DAY_LIMIT;
+    for (const row of matchupRows) {
+      if (!row.cardIds.includes(args.cardId)) continue;
+      for (const opponentId of new Set(row.oppCardIds)) {
+        // Store wins from the opponent-card perspective, so a high rate means
+        // that card beat decks containing the card being inspected.
+        add(counters, opponentId, row.uses, row.uses - row.wins);
+      }
+    }
+  }
+
+  return {
+    trend,
+    pairings: [...pairings.entries()]
+      .filter(([, value]) => value.uses >= MIN_PAIR_USES)
+      .sort((left, right) => right[1].uses - left[1].uses || left[0] - right[0])
+      .slice(0, 8)
+      .map(([cardId, value]) => ({ cardId, uses: value.uses, wins: value.wins, winRate: value.wins / value.uses })),
+    counters: [...counters.entries()]
+      .filter(([cardId, value]) => cardId !== args.cardId && value.uses >= MIN_COUNTER_USES)
+      .sort((left, right) => right[1].wins / right[1].uses - left[1].wins / left[1].uses || right[1].uses - left[1].uses)
+      .slice(0, 8)
+      .map(([cardId, value]) => ({ cardId, uses: value.uses, wins: value.wins, winRate: value.wins / value.uses })),
+    truncated,
+    evolution: evolvedUses
+      ? {
+          uses: evolvedUses,
+          wins: evolvedWins,
+          winRate: evolvedWins / evolvedUses,
+          baseUses,
+          baseWins,
+          baseWinRate: baseUses ? baseWins / baseUses : null
+        }
+      : null
+  };
+}
+
 export const cardDetail = query({
   args: { cardId: v.number(), mode: metaMode, windowDays: v.optional(v.number()) },
   returns: v.object({
@@ -479,71 +595,47 @@ export const cardDetail = query({
   handler: async (ctx, args) => {
     const daysCount = windowDays(args.windowDays);
     const days = dayKeysBack(daysCount);
-    const trend: Array<{ day: number; uses: number; wins: number; winRate: number | null; usageRate: number }> = [];
-    const pairings = new Map<number, Aggregate>();
-    const counters = new Map<number, Aggregate>();
-    let evolvedUses = 0;
-    let evolvedWins = 0;
-    let baseUses = 0;
-    let baseWins = 0;
-    let truncated = false;
-
-    for (const day of [...days].reverse()) {
-      const cardRows = await ctx.db
-        .query("cardStats")
-        .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", day).eq("mode", args.mode).eq("cardId", args.cardId))
-        .take(1);
-      const allCards = await ctx.db
-        .query("cardStats")
-        .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", day).eq("mode", args.mode))
-        .take(CARD_DAY_LIMIT);
-      truncated ||= allCards.length === CARD_DAY_LIMIT;
-      const card = cardRows[0];
-      const decksObserved = allCards.reduce((sum, row) => sum + row.uses, 0) / 8;
-      trend.push({
-        day,
-        uses: card?.uses ?? 0,
-        wins: card?.wins ?? 0,
-        winRate: card?.uses ? card.wins / card.uses : null,
-        usageRate: decksObserved && card ? card.uses / decksObserved : 0
-      });
-
-      const deckRows = await ctx.db
-        .query("deckStats")
-        .withIndex("by_day_and_mode", (q) => q.eq("day", day).eq("mode", args.mode))
-        .take(DETAIL_DECK_DAY_LIMIT);
-      truncated ||= deckRows.length === DETAIL_DECK_DAY_LIMIT;
-      for (const row of deckRows) {
-        if (!row.cardIds.includes(args.cardId)) continue;
-        for (const otherId of row.cardIds) {
-          if (otherId !== args.cardId) add(pairings, otherId, row.uses, row.wins);
-        }
-        if (row.evolutionIds.includes(args.cardId)) {
-          evolvedUses += row.uses;
-          evolvedWins += row.wins;
-        } else {
-          baseUses += row.uses;
-          baseWins += row.wins;
-        }
-      }
-
-      const matchupRows = await ctx.db
-        .query("matchupStats")
-        .withIndex("by_day_and_mode", (q) => q.eq("day", day).eq("mode", args.mode as MetaMode))
-        .take(DETAIL_MATCHUP_DAY_LIMIT);
-      truncated ||= matchupRows.length === DETAIL_MATCHUP_DAY_LIMIT;
-      for (const row of matchupRows) {
-        if (!row.cardIds.includes(args.cardId)) continue;
-        for (const opponentId of new Set(row.oppCardIds)) {
-          // Store wins from the opponent-card perspective, so a high rate means
-          // that card beat decks containing the card being inspected.
-          add(counters, opponentId, row.uses, row.uses - row.wins);
-        }
-      }
-    }
-
     const minPairUses = 10;
     const minCounterUses = 10;
+
+    // Fast path: one bounded read per requested day instead of the per-day
+    // scan of cardStats, deckStats, and matchupStats. Days order oldest first
+    // to match the trend axis the live path produces.
+    const summaries: Array<CardDaySummary | null> = [];
+    for (const day of [...days].reverse()) {
+      const row = await ctx.db
+        .query("cardDaySummaries")
+        .withIndex("by_mode_card_and_day", (q) =>
+          q.eq("mode", args.mode).eq("cardId", args.cardId).eq("day", day)
+        )
+        .unique();
+      summaries.push(row
+        ? {
+            day: row.day,
+            uses: row.uses,
+            wins: row.wins,
+            decksObserved: row.decksObserved,
+            pairings: row.pairings,
+            counters: row.counters,
+            evolvedUses: row.evolvedUses,
+            evolvedWins: row.evolvedWins,
+            baseUses: row.baseUses,
+            baseWins: row.baseWins,
+            truncated: row.truncated
+          }
+        : null);
+    }
+
+    const core: CardDetailCore = summaries.every((summary) => summary !== null)
+      ? {
+          trend: composeCardTrend(summaries as CardDaySummary[]),
+          pairings: composeCardPairings(summaries as CardDaySummary[]),
+          counters: composeCardCounters(summaries as CardDaySummary[], args.cardId),
+          evolution: composeCardEvolution(summaries as CardDaySummary[]),
+          truncated: composeCardTruncated(summaries as CardDaySummary[])
+        }
+      : await cardDetailLive(ctx, { cardId: args.cardId, mode: args.mode, days: [...days].reverse() });
+
     const rankings = await ctx.db
       .query("deckRankings")
       .withIndex("by_window_and_mode_and_rank", (q) => q.eq("windowDays", daysCount).eq("mode", args.mode))
@@ -553,8 +645,8 @@ export const cardDetail = query({
       windowDays: daysCount,
       minPairUses,
       minCounterUses,
-      truncated,
-      trend,
+      truncated: core.truncated,
+      trend: core.trend,
       topDecks: rankings
         .filter((row) => row.cardIds.includes(args.cardId))
         .slice(0, 6)
@@ -567,26 +659,9 @@ export const cardDetail = query({
           winRate: row.winRate,
           usageRate: row.usageRate
         })),
-      pairings: [...pairings.entries()]
-        .filter(([, value]) => value.uses >= minPairUses)
-        .sort((left, right) => right[1].uses - left[1].uses || left[0] - right[0])
-        .slice(0, 8)
-        .map(([cardId, value]) => ({ cardId, uses: value.uses, wins: value.wins, winRate: value.wins / value.uses })),
-      counters: [...counters.entries()]
-        .filter(([cardId, value]) => cardId !== args.cardId && value.uses >= minCounterUses)
-        .sort((left, right) => right[1].wins / right[1].uses - left[1].wins / left[1].uses || right[1].uses - left[1].uses)
-        .slice(0, 8)
-        .map(([cardId, value]) => ({ cardId, uses: value.uses, wins: value.wins, winRate: value.wins / value.uses })),
-      evolution: evolvedUses
-        ? {
-            uses: evolvedUses,
-            wins: evolvedWins,
-            winRate: evolvedWins / evolvedUses,
-            baseUses,
-            baseWins,
-            baseWinRate: baseUses ? baseWins / baseUses : null
-          }
-        : null
+      pairings: core.pairings,
+      counters: core.counters,
+      evolution: core.evolution
     };
   }
 });

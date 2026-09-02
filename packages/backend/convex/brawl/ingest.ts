@@ -6,6 +6,15 @@ import { recordPlayerSightings, type PlayerSighting } from "./players";
 import { optionalBattleText } from "./ingestPolicy";
 import { trophyBucketFromTrophies } from "./stats";
 import {
+  foldBattle,
+  newFoldMaps,
+  type FoldMaps,
+  type FoldPerson,
+  type FoldTeam,
+  type StatDelta,
+  type TeamStatDelta,
+} from "./foldPolicy";
+import {
   createBrawlUpstreamIntake,
   normalizeBrawlTag as normalizedTag,
 } from "./upstreamIntake";
@@ -46,10 +55,6 @@ function participants(battle: BattleLogItem["battle"]): Array<BattlePlayer & { t
   return [];
 }
 
-function teamHash(ids: number[]) {
-  return [...ids].sort((a, b) => a - b).join("-");
-}
-
 function battleTimestamp(value?: string): number | null {
   const match = String(value || "").match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
   if (!match) return null;
@@ -69,56 +74,6 @@ function personalResult(battle: BattleLogItem["battle"]): "victory" | "defeat" |
   return "unknown";
 }
 
-type StatDelta = {
-  picks: number;
-  wins: number;
-  losses: number;
-  starPlayer: number;
-  firstBattleAt?: number;
-  lastBattleAt?: number;
-};
-
-type TeamStatDelta = StatDelta & {
-  brawlerIds: number[];
-};
-
-function newDelta(won: boolean | null, isStar: boolean, observedAt?: number): StatDelta {
-  return {
-    picks: 1,
-    wins: won === true ? 1 : 0,
-    losses: won === false ? 1 : 0,
-    starPlayer: isStar ? 1 : 0,
-    ...(observedAt !== undefined
-      ? { firstBattleAt: observedAt, lastBattleAt: observedAt }
-      : {}),
-  };
-}
-
-function newTeamDelta(won: boolean | null, brawlerIds: number[]): TeamStatDelta {
-  return {
-    ...newDelta(won, false),
-    brawlerIds: [...brawlerIds],
-  };
-}
-
-function foldDelta<T extends StatDelta>(map: Map<string, T>, key: string, delta: T): void {
-  const existing = map.get(key);
-  if (!existing) {
-    map.set(key, delta);
-    return;
-  }
-  existing.picks += delta.picks;
-  existing.wins += delta.wins;
-  existing.losses += delta.losses;
-  existing.starPlayer += delta.starPlayer;
-  if (delta.firstBattleAt !== undefined) {
-    existing.firstBattleAt = Math.min(existing.firstBattleAt ?? delta.firstBattleAt, delta.firstBattleAt);
-  }
-  if (delta.lastBattleAt !== undefined) {
-    existing.lastBattleAt = Math.max(existing.lastBattleAt ?? delta.lastBattleAt, delta.lastBattleAt);
-  }
-}
-
 export const ingestBattleLogItems = internalMutation({
   args: {
     items: v.array(v.any()),
@@ -129,11 +84,7 @@ export const ingestBattleLogItems = internalMutation({
     let inserted = 0;
     const focus = normalizedTag(args.focusTag || null);
     const sightings: PlayerSighting[] = [];
-    const brawlerDeltas = new Map<string, StatDelta>();
-    const dailyBrawlerDeltas = new Map<string, StatDelta>();
-    const teamDeltas = new Map<string, TeamStatDelta>();
-    const matchupDeltas = new Map<string, StatDelta>();
-    const dailyMatchupDeltas = new Map<string, StatDelta>();
+    const deltas: FoldMaps = newFoldMaps();
 
     for (const raw of args.items as BattleLogItem[]) {
       if (focus) {
@@ -230,95 +181,89 @@ export const ingestBattleLogItems = internalMutation({
 
       const focusTeamIndex = focusPlayer?.teamIndex ?? 0;
       const focusResult = result === "victory" || result === "defeat" ? result : null;
+      const focusOutcome = result === "victory" ? true : result === "defeat" ? false : result === "draw" ? null : undefined;
+      const rawTeams = Array.isArray(raw.battle?.teams) ? raw.battle.teams : undefined;
 
+      const foldPeople: FoldPerson[] = [];
       for (const person of people) {
         const brawlerId = Number(person.brawler?.id);
         if (!Number.isFinite(brawlerId) || brawlerId <= 0) continue;
-        const personBucket = trophyBucketFromTrophies(Number(person.brawler?.trophies || 0));
         let won: boolean | null = null;
-        if (focusResult && Array.isArray(raw.battle?.teams)) {
+        if (focusResult && rawTeams) {
           const focusWon = focusResult === "victory";
           won = person.teamIndex === focusTeamIndex ? focusWon : !focusWon;
         } else if (focusResult && focus && normalizedTag(person.tag || null) === focus) {
           won = focusResult === "victory";
         }
-        const isStar = starBrawlerId === brawlerId;
-
-        for (const trophyBucket of ["all", personBucket] as const) {
-          foldDelta(
-            brawlerDeltas,
-            `${mapId}|${brawlerId}|${trophyBucket}`,
-            newDelta(won, isStar, trendDay !== null && observedAt !== null ? observedAt : undefined),
-          );
-          if (trendDay !== null && observedAt !== null) {
-            foldDelta(
-              dailyBrawlerDeltas,
-              `${mapId}|${brawlerId}|${trophyBucket}|${trendDay}`,
-              newDelta(won, isStar, observedAt),
-            );
-          }
-        }
+        foldPeople.push({
+          brawlerId,
+          bucket: trophyBucketFromTrophies(Number(person.brawler?.trophies || 0)),
+          won,
+          isStar: starBrawlerId === brawlerId,
+        });
       }
 
-      if (Array.isArray(raw.battle?.teams) && focusResult) {
-        const focusWon = focusResult === "victory";
-        for (const [teamIndex, team] of raw.battle.teams.entries()) {
-          const ids = (team || [])
-            .map((p) => Number(p.brawler?.id))
-            .filter((id) => Number.isFinite(id) && id > 0)
-            .sort((a, b) => a - b);
-          if (ids.length < 2) continue;
-          const hash = teamHash(ids);
-          const teamWon = teamIndex === focusTeamIndex ? focusWon : !focusWon;
-          const avgTrophies =
-            (team || []).reduce((sum, p) => sum + Number(p.brawler?.trophies || 0), 0) / Math.max(1, team?.length || 1);
-          const personBucket = trophyBucketFromTrophies(avgTrophies);
-          for (const trophyBucket of ["all", personBucket] as const) {
-            foldDelta(teamDeltas, `${mapId}|${trophyBucket}|${hash}`, newTeamDelta(teamWon, ids));
-          }
-        }
-      }
-
-      const focusOutcome = result === "victory" ? true : result === "defeat" ? false : result === "draw" ? null : undefined;
-      if (Array.isArray(raw.battle?.teams) && raw.battle.teams.length >= 2 && focusOutcome !== undefined) {
-        for (const [teamIndex, team] of raw.battle.teams.entries()) {
-          const teamWon = focusOutcome === null ? null : teamIndex === focusTeamIndex ? focusOutcome : !focusOutcome;
-          const opponents = raw.battle.teams
-            .filter((_, opponentTeamIndex) => opponentTeamIndex !== teamIndex)
-            .flatMap((opponentTeam) => opponentTeam || [])
-            .map((opponent) => Number(opponent.brawler?.id))
-            .filter((id) => Number.isFinite(id) && id > 0);
-          if (!opponents.length) continue;
+      // Teams are derived twice because the lifetime team fold skips draws
+      // while the matchup fold records them with neither side credited.
+      const foldTeams = (kind: "stats" | "matchups"): FoldTeam[] | null => {
+        if (!rawTeams || rawTeams.length < 2) return null;
+        if (kind === "stats" && !focusResult) return null;
+        if (kind === "matchups" && focusOutcome === undefined) return null;
+        const teams: FoldTeam[] = [];
+        for (const [teamIndex, team] of rawTeams.entries()) {
+          const members: FoldPerson[] = [];
           for (const person of team || []) {
             const brawlerId = Number(person.brawler?.id);
             if (!Number.isFinite(brawlerId) || brawlerId <= 0) continue;
-            const personBucket = trophyBucketFromTrophies(Number(person.brawler?.trophies || 0));
-            for (const opponentBrawlerId of opponents) {
-              for (const trophyBucket of ["all", personBucket] as const) {
-                foldDelta(
-                  matchupDeltas,
-                  `${mapId}|${trophyBucket}|${brawlerId}|${opponentBrawlerId}`,
-                  newDelta(teamWon, false),
-                );
-                if (trendDay !== null && observedAt !== null) {
-                  foldDelta(
-                    dailyMatchupDeltas,
-                    `${mapId}|${trophyBucket}|${brawlerId}|${opponentBrawlerId}|${trendDay}`,
-                    newDelta(teamWon, false, observedAt),
-                  );
-                }
-              }
-            }
+            members.push({
+              brawlerId,
+              bucket: trophyBucketFromTrophies(Number(person.brawler?.trophies || 0)),
+              won: null,
+              isStar: false,
+            });
+          }
+          const ids = members.map((member) => member.brawlerId).sort((a, b) => a - b);
+          const avgTrophies =
+            (team || []).reduce((sum, p) => sum + Number(p.brawler?.trophies || 0), 0) /
+            Math.max(1, team?.length || 1);
+          if (kind === "stats") {
+            if (ids.length < 2) continue;
+            const focusWon = focusResult === "victory";
+            teams.push({
+              bucket: trophyBucketFromTrophies(avgTrophies),
+              brawlerIds: ids,
+              won: teamIndex === focusTeamIndex ? focusWon : !focusWon,
+              people: members,
+            });
+          } else {
+            const outcome: boolean | null =
+              focusOutcome === undefined || focusOutcome === null ? null : focusOutcome;
+            teams.push({
+              bucket: trophyBucketFromTrophies(avgTrophies),
+              brawlerIds: ids,
+              won: teamIndex === focusTeamIndex ? outcome : !outcome,
+              people: members,
+            });
           }
         }
-      }
+        return teams;
+      };
+
+      foldBattle(deltas, {
+        mapId,
+        trendDay,
+        observedAt,
+        people: foldPeople,
+        statTeams: foldTeams("stats"),
+        matchupTeams: foldTeams("matchups"),
+      });
     }
 
-    await flushMapBrawlerStats(ctx, brawlerDeltas);
-    await flushDailyBrawlerStats(ctx, dailyBrawlerDeltas);
-    await flushTeamStats(ctx, teamDeltas);
-    await flushMatchupStats(ctx, matchupDeltas);
-    await flushDailyMatchupStats(ctx, dailyMatchupDeltas);
+    await flushMapBrawlerStats(ctx, deltas.brawlerDeltas);
+    await flushDailyBrawlerStats(ctx, deltas.dailyBrawlerDeltas);
+    await flushTeamStats(ctx, deltas.teamDeltas);
+    await flushMatchupStats(ctx, deltas.matchupDeltas);
+    await flushDailyMatchupStats(ctx, deltas.dailyMatchupDeltas);
 
     await recordPlayerSightings(ctx, sightings);
 

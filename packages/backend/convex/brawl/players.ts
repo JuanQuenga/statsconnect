@@ -2,6 +2,11 @@ import { v } from "convex/values";
 import { internalMutation, query } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import { hourBucket } from "./controls";
+import {
+  rosterFingerprint,
+  rosterNeedsWrite,
+  snapshotScalarsChanged,
+} from "./rosterPolicy";
 
 export type PlayerSighting = {
   tag: string;
@@ -267,34 +272,40 @@ export const recordProfile = internalMutation({
       rankedSeasonBestName: args.rankedSeasonBestName,
       rankedBest: args.rankedBest,
       rankedBestName: args.rankedBestName,
-      brawlers: args.brawlers,
     };
+    const fingerprint = rosterFingerprint(args.brawlers);
     if (existingSnapshot) {
-      const unchanged =
-        existingSnapshot.name === snapshot.name &&
-        existingSnapshot.trophies === snapshot.trophies &&
-        existingSnapshot.highestTrophies === snapshot.highestTrophies &&
-        existingSnapshot.expLevel === snapshot.expLevel &&
-        existingSnapshot.victory3v3 === snapshot.victory3v3 &&
-        existingSnapshot.soloVictories === snapshot.soloVictories &&
-        existingSnapshot.duoVictories === snapshot.duoVictories &&
-        existingSnapshot.clubTag === snapshot.clubTag &&
-        existingSnapshot.clubName === snapshot.clubName &&
-        existingSnapshot.iconId === snapshot.iconId &&
-        existingSnapshot.brawlerCount === snapshot.brawlerCount &&
-        existingSnapshot.power11Count === snapshot.power11Count &&
-        existingSnapshot.rankedCurrent === snapshot.rankedCurrent &&
-        existingSnapshot.rankedCurrentName === snapshot.rankedCurrentName &&
-        existingSnapshot.rankedSeasonBest === snapshot.rankedSeasonBest &&
-        existingSnapshot.rankedSeasonBestName === snapshot.rankedSeasonBestName &&
-        existingSnapshot.rankedBest === snapshot.rankedBest &&
-        existingSnapshot.rankedBestName === snapshot.rankedBestName &&
-        JSON.stringify(existingSnapshot.brawlers ?? []) === JSON.stringify(snapshot.brawlers ?? []);
-      if (unchanged) return { createdSnapshot: false };
-      await ctx.db.patch(existingSnapshot._id, snapshot);
+      const scalarsChanged = snapshotScalarsChanged(existingSnapshot, snapshot);
+      const rosterChanged = rosterNeedsWrite(existingSnapshot.rosterFingerprint, fingerprint);
+      if (!scalarsChanged && !rosterChanged) return { createdSnapshot: false };
+      if (scalarsChanged) {
+        await ctx.db.patch(existingSnapshot._id, { ...snapshot, rosterFingerprint: fingerprint });
+      } else {
+        await ctx.db.patch(existingSnapshot._id, { rosterFingerprint: fingerprint });
+      }
+      if (rosterChanged) {
+        // The roster rewrite is the expensive part, so it only happens when
+        // the fingerprint says the roster itself actually changed.
+        const existingRoster = await ctx.db
+          .query("playerSnapshotRosters")
+          .withIndex("by_tag_and_day", (q) => q.eq("tag", tag).eq("day", day))
+          .unique();
+        const rosterDoc = { tag, day, recordedAt: now, fingerprint, brawlers: args.brawlers ?? [] };
+        if (existingRoster) await ctx.db.patch(existingRoster._id, rosterDoc);
+        else await ctx.db.insert("playerSnapshotRosters", rosterDoc);
+      }
       return { createdSnapshot: false };
     }
-    await ctx.db.insert("playerSnapshots", { tag, day, ...snapshot });
+    await ctx.db.insert("playerSnapshots", { tag, day, ...snapshot, rosterFingerprint: fingerprint });
+    if (args.brawlers?.length) {
+      await ctx.db.insert("playerSnapshotRosters", {
+        tag,
+        day,
+        recordedAt: now,
+        fingerprint,
+        brawlers: args.brawlers,
+      });
+    }
     return { createdSnapshot: true };
   },
 });
@@ -362,28 +373,40 @@ export const history = query({
       .withIndex("by_tag_and_day", (q) => q.eq("tag", tag))
       .order("desc")
       .take(limit);
-    return rows.map(({ day, recordedAt, name, trophies, highestTrophies, expLevel, victory3v3, soloVictories, duoVictories, clubTag, clubName, iconId, brawlerCount, power11Count, rankedCurrent, rankedCurrentName, rankedSeasonBest, rankedSeasonBestName, rankedBest, rankedBestName, brawlers }) => ({
-      day,
-      recordedAt,
-      name,
-      trophies,
-      highestTrophies,
-      expLevel,
-      victory3v3,
-      soloVictories,
-      duoVictories,
-      clubTag,
-      clubName,
-      iconId,
-      brawlerCount,
-      power11Count,
-      rankedCurrent,
-      rankedCurrentName,
-      rankedSeasonBest,
-      rankedSeasonBestName,
-      rankedBest,
-      rankedBestName,
-      brawlers,
+    return Promise.all(rows.map(async (row) => {
+      // Legacy snapshots carry the roster inline; new snapshots store it
+      // separately, so history keeps returning the same shape.
+      let brawlers = row.brawlers;
+      if (brawlers === undefined) {
+        const roster = await ctx.db
+          .query("playerSnapshotRosters")
+          .withIndex("by_tag_and_day", (q) => q.eq("tag", row.tag).eq("day", row.day))
+          .unique();
+        brawlers = roster?.brawlers;
+      }
+      return {
+        day: row.day,
+        recordedAt: row.recordedAt,
+        name: row.name,
+        trophies: row.trophies,
+        highestTrophies: row.highestTrophies,
+        expLevel: row.expLevel,
+        victory3v3: row.victory3v3,
+        soloVictories: row.soloVictories,
+        duoVictories: row.duoVictories,
+        clubTag: row.clubTag,
+        clubName: row.clubName,
+        iconId: row.iconId,
+        brawlerCount: row.brawlerCount,
+        power11Count: row.power11Count,
+        rankedCurrent: row.rankedCurrent,
+        rankedCurrentName: row.rankedCurrentName,
+        rankedSeasonBest: row.rankedSeasonBest,
+        rankedSeasonBestName: row.rankedSeasonBestName,
+        rankedBest: row.rankedBest,
+        rankedBestName: row.rankedBestName,
+        brawlers,
+      };
     }));
   },
 });

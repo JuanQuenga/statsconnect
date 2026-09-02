@@ -54,6 +54,20 @@ export const upstreamOutcome = v.union(
   v.literal("configuration_error"),
 );
 
+/** One owned brawler inside a player snapshot roster. */
+export const playerRosterEntry = v.object({
+  id: v.number(),
+  name: v.string(),
+  power: v.number(),
+  rank: v.number(),
+  trophies: v.number(),
+  highestTrophies: v.number(),
+  gadgets: v.array(v.object({ id: v.number(), name: v.string() })),
+  starPowers: v.array(v.object({ id: v.number(), name: v.string() })),
+  gears: v.array(v.object({ id: v.number(), name: v.string() })),
+  hypercharges: v.array(v.object({ id: v.number(), name: v.string() })),
+});
+
 export const brawlTables = {
   brawlSeenBattles: defineTable({
     dedupeKey: v.string(),
@@ -188,21 +202,28 @@ export const brawlTables = {
     rankedSeasonBestName: v.optional(v.string()),
     rankedBest: v.optional(v.number()),
     rankedBestName: v.optional(v.string()),
-    brawlers: v.optional(v.array(v.object({
-      id: v.number(),
-      name: v.string(),
-      power: v.number(),
-      rank: v.number(),
-      trophies: v.number(),
-      highestTrophies: v.number(),
-      gadgets: v.array(v.object({ id: v.number(), name: v.string() })),
-      starPowers: v.array(v.object({ id: v.number(), name: v.string() })),
-      gears: v.array(v.object({ id: v.number(), name: v.string() })),
-      hypercharges: v.array(v.object({ id: v.number(), name: v.string() })),
-    }))),
+    /** Legacy inline rosters; new snapshots keep rosters in playerSnapshotRosters. */
+    brawlers: v.optional(v.array(playerRosterEntry)),
+    /** Fingerprint of the roster stored in playerSnapshotRosters for this day. */
+    rosterFingerprint: v.optional(v.string()),
   })
     .index("by_tag_and_day", ["tag", "day"])
     .index("by_recorded_at", ["recordedAt"]),
+
+  /**
+   * Full brawler roster for one daily snapshot, stored separately so the
+   * frequently-read and patched snapshot document stays small. recordProfile
+   * only rewrites a roster when its fingerprint changes.
+   */
+  playerSnapshotRosters: defineTable({
+    tag: v.string(),
+    day: v.number(),
+    recordedAt: v.number(),
+    fingerprint: v.string(),
+    brawlers: v.array(playerRosterEntry),
+  })
+    .index("by_tag_and_day", ["tag", "day"])
+    .index("by_day", ["day"]),
 
   playerBattles: defineTable({
     playerTag: v.string(),
