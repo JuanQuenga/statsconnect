@@ -1949,33 +1949,20 @@ button:disabled { cursor: wait; opacity: .62; }
 .game-card-art[data-rarity="champion"] { --game-card-accent: #ffd166; --game-card-level-start: #fff4ba; --game-card-level-end: #ffc83d; }
 .game-card-art[data-variant="evolution"] { --game-card-level-start: #ffc4ff; --game-card-level-end: #f36bff; }
 .game-card-art[data-variant="hero"] { --game-card-level-start: #fff3af; --game-card-level-end: #ffbd32; }
-.game-card-art::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 12% 9% 7%;
-  border-radius: 22%;
-  background: color-mix(in srgb, var(--game-card-accent) 52%, transparent);
-  filter: blur(12px);
-  opacity: .82;
-}
 .game-card-art > img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: contain;
   object-position: center;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--game-card-accent) 76%, transparent)) drop-shadow(0 11px 12px rgba(0, 0, 0, .38));
+  filter: drop-shadow(0 8px 7px rgba(0, 0, 0, .4));
 }
-.game-card-art[data-variant="evolution"] > img { filter: drop-shadow(0 0 8px rgba(242, 70, 255, .72)) drop-shadow(0 0 4px var(--game-card-accent)) drop-shadow(0 12px 13px rgba(0, 0, 0, .4)); }
-.game-card-art[data-variant="hero"] > img { filter: drop-shadow(0 0 8px rgba(255, 195, 54, .68)) drop-shadow(0 0 4px var(--game-card-accent)) drop-shadow(0 12px 13px rgba(0, 0, 0, .4)); }
 .profile-deck-grid {
   --deck-grid-max-width: 408px;
   width: min(100%, var(--deck-grid-max-width));
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: clamp(2px, .55vw, 6px);
-  row-gap: clamp(1px, .3vw, 4px);
+  gap: 0;
   align-items: end;
   justify-content: center;
   margin-inline: auto;
@@ -1986,8 +1973,8 @@ button:disabled { cursor: wait; opacity: .62; }
    inside table cells pin to their full 2x4 footprint. */
 td .profile-deck-grid { width: 308px; }
 .profile-deck-grid-slot { min-width: 0; display: block; border-radius: 14px; }
-.profile-deck-grid-slot .game-card-art { width: 100%; transition: transform .18s ease; }
-.profile-deck-grid-slot:hover .game-card-art { z-index: 1; transform: translateY(-3px) scale(1.025); }
+.profile-deck-grid-slot .game-card-art { width: 100%; transform: scale(1.055); transition: transform .18s ease; }
+.profile-deck-grid-slot:hover .game-card-art { z-index: 1; transform: translateY(-3px) scale(1.08); }
 .game-card-elixir {
   width: clamp(14px, 21cqi, 34px);
   height: calc(clamp(14px, 21cqi, 34px) * 1.19);
@@ -6512,7 +6499,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .profile-hero-deck-tools > span { display: inline-flex; align-items: center; gap: 5px; color: #e9f2ff; font: 800 12px/1 var(--font-ui); }
 .profile-hero-deck-tools > span img { width: 14px; height: 17px; object-fit: contain; }
 .profile-hero-deck > p { margin: 12px 0; color: #9eb0c8; font: 650 11px/1.4 var(--font-ui); }
-.profile-hero-deck-grid { width: 100%; --deck-grid-max-width: 560px; }
+.profile-hero-deck-grid { --deck-grid-max-width: 560px; margin-inline: auto; }
 
 .profile-hero-proposal > .profile-hero-actions {
   grid-column: 1 / -1;
@@ -6686,38 +6673,21 @@ a:hover .entity-cell strong { color: #75c5ff; }
   --card-report-divider: rgba(20, 48, 76, .32);
   --card-report-divider-soft: rgba(20, 48, 76, .23);
   --card-report-grid: rgba(20, 48, 76, .28);
-  --card-report-band-offset: 18px;
-  position: relative;
-  isolation: isolate;
   width: min(100%, 1120px);
-  margin: 18px auto 0;
-}
-
-.card-report::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: calc(-1 * var(--card-report-band-offset));
-  bottom: 0;
-  left: 50%;
-  width: 100vw;
-  width: 100dvw;
-  transform: translateX(-50%);
-  border-top: 1px solid rgba(8, 42, 74, .16);
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5fa 22%, #e8eff7 100%);
+  display: grid;
+  gap: 28px;
+  margin: 28px auto 40px;
 }
 
 .site-frame-clash .card-report > .card-report-section {
   margin: 0;
-  padding: clamp(38px, 5vw, 60px) 0;
-  border: 0;
-  border-top: 1px solid var(--card-report-divider);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  padding: clamp(32px, 4vw, 44px);
+  border: 1px solid rgba(255, 255, 255, .92);
+  border-bottom: 5px solid #818393;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .99), rgba(244, 244, 246, .99));
+  box-shadow: 0 1px 20px rgba(26, 24, 31, .28);
 }
-
-.site-frame-clash .card-report > .card-report-section:first-child { border-top: 0; }
 
 .card-report-heading {
   max-width: 760px;
@@ -6956,8 +6926,8 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 @media (max-width: 680px) {
   .site-frame-clash .profile-page:has(.card-detail-hero) { width: calc(100% - 24px); }
-  .card-report { --card-report-band-offset: 8px; margin-top: 8px; }
-  .site-frame-clash .card-report > .card-report-section { padding: 38px 0; }
+  .card-report { gap: 18px; margin: 18px auto 24px; }
+  .site-frame-clash .card-report > .card-report-section { padding: 28px 18px 30px; border-bottom-width: 4px; border-radius: 8px; }
   .card-report-heading { gap: 7px; margin-bottom: 24px; }
   .card-report-heading h2,
   .site-frame-clash .card-report-section h2 { font-size: clamp(27px, 8.5vw, 34px); }
