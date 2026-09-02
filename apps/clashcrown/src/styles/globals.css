@@ -7012,3 +7012,348 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .card-report-card-link:nth-child(even) { grid-template-columns: 64px minmax(0, 1fr); padding: 13px 0; border-left: 0; }
   .card-report-card-link .game-card-art { width: 64px; }
 }
+
+/* Player profile redesign: keep the arena hero dark, then switch the profile
+ * content to a bright editorial report. This block intentionally comes last. */
+.profile-hero-proposal {
+  grid-template-columns: minmax(320px, .9fr) minmax(500px, 1.1fr);
+  align-items: stretch;
+}
+
+.profile-competitive-status {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  align-content: center;
+}
+.profile-recent-form { grid-column: 1; grid-row: 3; }
+.profile-hero-deck {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px 20px;
+}
+
+.profile-hero-status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-hero-level {
+  width: 52px;
+  height: 52px;
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+}
+
+.profile-hero-level img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 8px rgba(0, 0, 0, .38));
+}
+
+.profile-hero-level strong {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  color: #fff;
+  font: 850 15px/1 var(--font-ui);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+  transform: translate(-50%, -48%);
+}
+
+.profile-hero-status .profile-hero-freshness {
+  display: block;
+  max-width: 112px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #9db0c8;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  font: 600 10px/1.35 var(--font-ui);
+  text-align: right;
+}
+
+.profile-hero-deck > header {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.profile-hero-deck > header > .profile-hero-elixir {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-hero-elixir > img {
+  width: 42px;
+  height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 8px rgba(64, 0, 84, .5));
+}
+
+.profile-hero-elixir > span {
+  display: grid;
+  gap: 2px;
+}
+
+.profile-hero-deck .profile-hero-elixir strong {
+  color: #fff;
+  font: 850 36px/.88 var(--font-ui);
+  letter-spacing: -.04em;
+}
+
+.profile-hero-deck .profile-hero-elixir small {
+  color: #aebfd4;
+  font: 700 9px/1 var(--font-ui);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.profile-hero-deck-tools { margin-left: auto; }
+.profile-hero-deck-grid {
+  --deck-grid-max-width: 500px;
+  width: 100%;
+  margin: auto;
+}
+.profile-hero-proposal > .profile-hero-actions { grid-row: 4; }
+
+@media (max-width: 1020px) {
+  .profile-hero-proposal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-competitive-status { grid-column: 1; grid-row: 2; }
+  .profile-recent-form { grid-column: 2; grid-row: 2; }
+  .profile-hero-deck { grid-column: 1 / -1; grid-row: 3; }
+  .profile-hero-proposal > .profile-hero-actions { grid-row: 4; }
+}
+
+@media (max-width: 760px) {
+  .profile-hero-proposal { grid-template-columns: 1fr; }
+  .profile-competitive-status { grid-column: 1; grid-row: 2; }
+  .profile-recent-form { grid-column: 1; grid-row: 3; }
+  .profile-hero-deck { grid-column: 1; grid-row: 4; padding: 12px; }
+  .profile-hero-proposal > .profile-hero-actions { grid-row: 5; }
+  .profile-hero-deck-grid { --deck-grid-max-width: 440px; }
+}
+
+@media (max-width: 430px) {
+  .profile-hero-status { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .profile-hero-status .profile-hero-freshness { max-width: 78px; text-align: left; }
+  .profile-hero-deck { overflow: hidden; padding: 10px 8px 8px; }
+  .profile-hero-deck > header { gap: 8px; }
+  .profile-hero-elixir > img { width: 34px; height: 41px; }
+  .profile-hero-deck .profile-hero-elixir strong { font-size: 29px; }
+  .profile-hero-deck-grid { --deck-grid-max-width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.profile-page {
+  --profile-report-heading: #0b223d;
+  --profile-report-ink: #17324f;
+  --profile-report-copy: #425b72;
+  --profile-report-rule: rgba(20, 48, 76, .2);
+  --profile-report-rule-strong: rgba(20, 48, 76, .3);
+  --profile-report-wash: #f1f4f6;
+}
+
+.profile-page > .profile-story,
+.profile-page > .profile-section {
+  --background: #fff;
+  --foreground: var(--profile-report-ink);
+  --card: #fff;
+  --card-foreground: var(--profile-report-ink);
+  --secondary: #edf2f5;
+  --secondary-foreground: var(--profile-report-ink);
+  --muted: #edf2f5;
+  --muted-foreground: var(--profile-report-copy);
+  --muted-surface: #edf2f5;
+  --border: var(--profile-report-rule);
+  --line-soft: var(--profile-report-rule);
+  --popover: #fff;
+  --popover-foreground: var(--profile-report-ink);
+  color: var(--profile-report-ink);
+  color-scheme: light;
+}
+
+.profile-page > .profile-story,
+.profile-page > .profile-section {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .92);
+  border-bottom: 5px solid #818393;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff, #f5f6f7);
+  box-shadow: 0 1px 20px rgba(26, 24, 31, .24);
+}
+
+.profile-page > .profile-section {
+  margin-bottom: 28px;
+  padding: clamp(30px, 4vw, 44px);
+}
+
+.profile-story .profile-section {
+  padding: clamp(32px, 4vw, 46px);
+  color: var(--profile-report-ink);
+  background: transparent;
+}
+
+.profile-story .profile-section + .profile-section,
+.profile-story .history-callout,
+.profile-story .history-callout + .profile-section {
+  border-color: var(--profile-report-rule-strong);
+}
+
+.profile-story h2,
+.profile-story h3,
+.profile-story strong,
+.profile-story dd,
+.profile-page > .profile-section h2,
+.profile-page > .profile-section h3 {
+  color: var(--profile-report-heading);
+}
+
+.profile-story p,
+.profile-story small,
+.profile-story dt,
+.profile-story .table-note,
+.profile-story .chart-range,
+.profile-story .profile-editorial-heading > p,
+.profile-story .profile-editorial-heading .chart-range,
+.profile-story .profile-editorial-heading > div:first-child > span,
+.profile-story .update-tools {
+  color: var(--profile-report-copy);
+}
+
+.profile-story .profile-stat-group {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-story .profile-stat-group-heading {
+  border-block: 1px solid var(--profile-report-rule-strong);
+  background: var(--profile-report-wash);
+}
+
+.profile-story .profile-stat-grid {
+  border-bottom: 1px solid var(--profile-report-rule-strong);
+}
+
+.profile-story .profile-stat-group-heading h3,
+.profile-story .profile-stat-card dd { color: var(--profile-report-heading); }
+.profile-story .profile-stat-card,
+.profile-story .stat-cell,
+.profile-story .career-ledger,
+.profile-story .career-lead,
+.profile-story .career-row,
+.profile-story .profile-detail-row,
+.profile-story .support-collection,
+.profile-story .profile-badge-card,
+.profile-story .achievement-row,
+.profile-story .performance-grid,
+.profile-story .performance-timeline,
+.profile-story .trophy-chart-summary,
+.profile-story .trophy-chart-metric,
+.profile-story .pol-columns,
+.profile-story .pol-card {
+  border-color: var(--profile-report-rule);
+}
+
+.profile-story .profile-stat-card,
+.profile-story .stat-cell,
+.profile-story .trophy-chart-metric,
+.profile-story .pol-card { background: transparent; }
+.profile-story .stat-cell-icon { background: #e8f1f7; }
+
+.profile-story .favorite-card-panel {
+  border: 1px solid var(--profile-report-rule);
+  border-radius: 6px;
+  color: var(--profile-report-ink);
+  background: linear-gradient(145deg, #f2edf5, #f8fafb);
+}
+.profile-story .favorite-card-label,
+.profile-story .favorite-card-copy small { color: var(--profile-report-copy); }
+
+.profile-story .badge-level-track,
+.profile-story .achievement-track { background: #dce4ea; }
+.profile-story .profile-badge-art::before { background: radial-gradient(circle, rgba(31, 147, 255, .16), transparent 68%); }
+
+.profile-story .members-table-wrap,
+.profile-story .cc-activity-card {
+  border-color: var(--profile-report-rule);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.profile-story .performance-mode-table h3,
+.profile-story .performance-timeline h3,
+.profile-story .cc-activity-header [data-slot="card-title"] { color: var(--profile-report-heading); }
+.profile-story .members-table th,
+.profile-story .members-table td,
+.profile-story .cc-activity-header,
+.profile-story .cc-activity-summary,
+.profile-story .cc-activity-summary > div,
+.profile-story .cc-activity-note { border-color: var(--profile-report-rule); }
+.profile-story .cc-activity-summary { background: var(--profile-report-wash); }
+.profile-story .cc-activity-level-0 { background: #dce4e9; box-shadow: inset 0 0 0 1px rgba(20, 48, 76, .08); }
+.profile-story .cc-activity-loading i { background: #dce4e9; }
+.profile-story .form-pip.win { box-shadow: 0 0 0 4px #fff, 0 0 0 5px rgba(33, 139, 97, .24); }
+.profile-story .form-pip.loss { box-shadow: 0 0 0 4px #fff, 0 0 0 5px rgba(166, 60, 91, .22); }
+.profile-story .form-pip.draw { box-shadow: 0 0 0 4px #fff, 0 0 0 5px rgba(74, 90, 120, .22); }
+.profile-story .trophy-chart .recharts-cartesian-grid line { stroke: var(--profile-report-rule); }
+
+.profile-story .history-callout {
+  color: var(--profile-report-ink);
+  background: linear-gradient(90deg, #eaf2f8, #f8fafb 72%);
+}
+.profile-story .history-callout p { color: var(--profile-report-copy); }
+.profile-story .chest-footer { background: linear-gradient(180deg, #fff, #f2f4f6); }
+.profile-story .chest-item,
+.profile-story .chest-item:first-child { background: transparent; }
+.profile-story .chest-item strong { color: var(--profile-report-ink); }
+
+.profile-page > .profile-section .personal-deck-card,
+.profile-page > .profile-section .collection-card,
+.profile-page > .profile-section .collection-card-missing {
+  border-color: var(--profile-report-rule);
+  border-radius: 6px;
+  color: var(--profile-report-ink);
+  background: rgba(255, 255, 255, .58);
+  box-shadow: none;
+}
+.profile-page > .profile-section .personal-deck-footer,
+.profile-page > .profile-section .collection-summary > span,
+.profile-page > .profile-section .collection-toolbar {
+  border-color: var(--profile-report-rule);
+  color: var(--profile-report-copy);
+  background: var(--profile-report-wash);
+}
+.profile-page > .profile-section .collection-summary strong,
+.profile-page > .profile-section .collection-card strong,
+.profile-page > .profile-section .personal-deck-metric strong { color: var(--profile-report-heading); }
+.profile-page > .profile-section .collection-card-meta,
+.profile-page > .profile-section .collection-catalog-note,
+.profile-page > .profile-section .deck-cost-summary,
+.profile-page > .profile-section .table-note { color: var(--profile-report-copy); }
+.profile-page > .profile-section .card-search,
+.profile-page > .profile-section .rarity-filter,
+.profile-page > .profile-section .toolbar-toggle {
+  border-color: var(--profile-report-rule-strong);
+  color: var(--profile-report-ink);
+  background: #fff;
+}
+.profile-page > .profile-section .card-search input,
+.profile-page > .profile-section .rarity-filter select { color: var(--profile-report-ink); background: transparent; }
+.profile-page > .profile-section .toolbar-toggle-on { color: #fff; background: #07569f; }
+
+@media (max-width: 520px) {
+  .profile-page > .profile-story,
+  .profile-page > .profile-section { border-radius: 8px; }
+  .profile-story .profile-section,
+  .profile-page > .profile-section { padding: 28px 18px; }
+}

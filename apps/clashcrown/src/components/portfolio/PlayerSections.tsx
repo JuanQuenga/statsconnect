@@ -64,9 +64,14 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
               ) : <span><Shield size={13} /> {clanLabel}</span>}
             </p>
           </div>
-          <div className="profile-hero-freshness">
-            {player.level !== undefined ? <strong>{locale === "es" ? "Rey" : "King"} {player.level}</strong> : null}
-            <span>{updatedLabel(player.fetchedAt, locale)}</span>
+          <div className="profile-hero-status">
+            {player.level !== undefined ? (
+              <span className="profile-hero-level" aria-label={`${locale === "es" ? "Nivel del rey" : "King level"} ${player.level}`}>
+                <Image src="/images/ui-icons/playerlevel.png" alt="" width={52} height={52} />
+                <strong aria-hidden="true">{player.level}</strong>
+              </span>
+            ) : null}
+            <span className="profile-hero-freshness">{updatedLabel(player.fetchedAt, locale)}</span>
           </div>
         </header>
 
@@ -114,9 +119,19 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
 
         <section className="profile-hero-deck" aria-label={locale === "es" ? "Mazo actual" : "Current deck"}>
           <header>
-            <div><small>{locale === "es" ? "Mazo actual" : "Current deck"}</small><strong>{deck.length === 8 ? `${deck.length} ${locale === "es" ? "cartas" : "cards"}` : locale === "es" ? "No disponible" : "Unavailable"}</strong></div>
+            <div
+              className="profile-hero-elixir"
+              aria-label={averageElixir === undefined
+                ? (locale === "es" ? "Elixir promedio no disponible" : "Average elixir unavailable")
+                : `${averageElixir.toFixed(1)} ${locale === "es" ? "de elixir promedio" : "average elixir"}`}
+            >
+              <Image src="/images/ui-icons/elixir.png" alt="" width={46} height={55} />
+              <span aria-hidden="true">
+                <strong>{averageElixir?.toFixed(1) ?? "—"}</strong>
+                <small>{locale === "es" ? "Elixir prom." : "Avg. elixir"}</small>
+              </span>
+            </div>
             <div className="profile-hero-deck-tools">
-              {averageElixir !== undefined ? <span><Image src="/images/ui-icons/elixir.png" alt="" width={16} height={19} />{averageElixir.toFixed(1)}</span> : null}
               {deckHasActions ? <DeckActions cards={deck} label={locale === "es" ? "mazo actual" : "current deck"} compact /> : null}
             </div>
           </header>
