@@ -6686,8 +6686,25 @@ a:hover .entity-cell strong { color: #75c5ff; }
   --card-report-divider: rgba(20, 48, 76, .32);
   --card-report-divider-soft: rgba(20, 48, 76, .23);
   --card-report-grid: rgba(20, 48, 76, .28);
+  --card-report-band-offset: 18px;
+  position: relative;
+  isolation: isolate;
   width: min(100%, 1120px);
   margin: 18px auto 0;
+}
+
+.card-report::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * var(--card-report-band-offset));
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  width: 100dvw;
+  transform: translateX(-50%);
+  border-top: 1px solid rgba(8, 42, 74, .16);
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5fa 22%, #e8eff7 100%);
 }
 
 .site-frame-clash .card-report > .card-report-section {
@@ -6939,7 +6956,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 
 @media (max-width: 680px) {
   .site-frame-clash .profile-page:has(.card-detail-hero) { width: calc(100% - 24px); }
-  .card-report { margin-top: 8px; }
+  .card-report { --card-report-band-offset: 8px; margin-top: 8px; }
   .site-frame-clash .card-report > .card-report-section { padding: 38px 0; }
   .card-report-heading { gap: 7px; margin-bottom: 24px; }
   .card-report-heading h2,
