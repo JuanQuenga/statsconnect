@@ -177,7 +177,56 @@ for local dev/preview QA; production never reads it. If neither the explicit
 directory nor the fallback contains a requested file, the request fails
 without falling through to the SPA shell.
 
-## Production storage
+## Cloudflare production delivery
+
+Production uses the asset-only Worker configured in `wrangler.brawl-assets.jsonc`.
+Vercel sends temporary redirects from both public asset prefixes and the old API
+prefix to `https://statsconnect-brawl-assets.juanquenga.workers.dev/`.
+Catalog URLs remain relative. Cloudflare sends CORS headers so the browser can
+follow these redirects. Asset bytes bypass Vercel Functions and Vercel transfer.
+Each initial asset request still incurs a redirect round trip.
+
+Prepare a separate release from the captured package and its runtime report:
+
+```sh
+node scripts/prepare-brawl-cloudflare-assets.mjs \
+  --source-dir .generated/brawl-3d-full/release-final \
+  --verification-report .generated/brawl-3d-full/final-runtime-verification.json \
+  --output-dir .generated/brawl-3d-full/cloudflare-release
+pnpm dlx wrangler@4.129.0 deploy --config wrangler.brawl-assets.jsonc
+```
+
+The preparation script excludes skins named in the failed runtime checks,
+updates catalog shard hashes, checks local references, and enforces the free
+20,000-file and 25 MiB-per-file limits. The source package remains unchanged.
+Do not deploy the unfiltered candidate. Runtime checks do not replace visual
+review of every skin.
+
+Cloudflare static requests and asset storage are free. This configuration has
+no Worker script, paid bindings, or `run_worker_first` invocation. Missing files
+return 404 rather than the app shell. Catalog metadata revalidates; hashed
+objects use immutable caching. See [Cloudflare's billing limits](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/).
+
+After upload, verify the actual hosted bytes before deploying Vercel's redirects:
+
+```sh
+node scripts/verify-brawl-cdn.mjs \
+  --origin https://statsconnect-brawl-assets.juanquenga.workers.dev/ \
+  --local-dir .generated/brawl-3d-full/cloudflare-release
+```
+
+Repeat with `--origin https://stats.juanquenga.com/bs/assets/brawlers/3d/`
+after Vercel promotion. The check compares every catalog shard and sample GLB,
+PNG, BIN, and WEBP bytes, including the largest file. It also checks CORS, byte
+ranges, and missing-file responses. Open a production brawler page to verify
+skin selection and animation rendering separately.
+
+## Optional server proxy
+
+The proxy below is retained for alternative storage deployments. Production
+redirects bypass it, so `BRAWL_3D_ASSET_STORAGE_ORIGIN` is not required for the
+Cloudflare configuration. To use the proxy instead, replace the asset redirects
+with routing that resolves the API function before the SPA fallback.
 
 Provision one project-controlled immutable object store (Vercel Blob with a
 custom project domain, or an object store behind a project-controlled HTTPS

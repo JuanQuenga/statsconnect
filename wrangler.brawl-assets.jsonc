@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/wrangler@4.129.0/config-schema.json",
+  "name": "statsconnect-brawl-assets",
+  "account_id": "d8d607f7d73230084318db47be2718f1",
+  "compatibility_date": "2026-09-06",
+  "workers_dev": true,
+  "assets": {
+    "directory": ".generated/brawl-3d-full/cloudflare-release",
+    "html_handling": "none",
+    "not_found_handling": "none"
+  }
+}

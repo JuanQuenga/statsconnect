@@ -13,12 +13,18 @@ async function readJson<T>(relativePath: string): Promise<T> {
   return JSON.parse(await readFile(path.join(repositoryRoot, relativePath), "utf8")) as T;
 }
 
-test("brawler 3D requests use same-origin rewrites before the SPA fallback", async () => {
-  const vercel = await readJson<{ rewrites: Array<{ source: string; destination: string }> }>("vercel.json");
-  assert.deepEqual(vercel.rewrites.slice(0, 2), [
-    { source: "/bs/assets/brawlers/3d/:path*", destination: "/api/brawlers-3d/:path*" },
-    { source: "/assets/brawlers/3d/:path*", destination: "/api/brawlers-3d/:path*" },
-  ]);
+test("brawler 3D requests redirect to owned static hosting before SPA rewrites", async () => {
+  const vercel = await readJson<{
+    redirects: Array<{ source: string; destination: string; permanent: boolean }>;
+    rewrites: Array<{ source: string; destination: string }>;
+  }>("vercel.json");
+  for (const prefix of ["/bs/assets/brawlers/3d", "/assets/brawlers/3d", "/api/brawlers-3d"]) {
+    assert.deepEqual(vercel.redirects.find((route) => route.source === `${prefix}/:path*`), {
+      source: `${prefix}/:path*`,
+      destination: "https://statsconnect-brawl-assets.juanquenga.workers.dev/:path*",
+      permanent: false,
+    });
+  }
   assert.equal(vercel.rewrites.at(-1)?.destination, "/index.html");
 });
 

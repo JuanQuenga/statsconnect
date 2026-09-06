@@ -5,6 +5,21 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/bs/assets/brawlers/3d/:path*",
+      "destination": "https://statsconnect-brawl-assets.juanquenga.workers.dev/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/assets/brawlers/3d/:path*",
+      "destination": "https://statsconnect-brawl-assets.juanquenga.workers.dev/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/api/brawlers-3d/:path*",
+      "destination": "https://statsconnect-brawl-assets.juanquenga.workers.dev/:path*",
+      "permanent": false
+    },
+    {
       "source": "/brawlstars",
       "destination": "/bs",
       "permanent": true
@@ -44,8 +59,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/bs/assets/brawlers/3d/:path*", "destination": "/api/brawlers-3d/:path*" },
-    { "source": "/assets/brawlers/3d/:path*", "destination": "/api/brawlers-3d/:path*" },
     { "source": "/bs", "destination": "/index.html" },
     { "source": "/bs/:path*", "destination": "/index.html" },
     { "source": "/cr", "destination": "/index.html" },
