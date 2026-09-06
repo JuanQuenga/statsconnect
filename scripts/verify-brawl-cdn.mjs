@@ -57,7 +57,7 @@ export async function verifyCdn({ origin, localDir }) {
       headers: { Origin: PRODUCTION, 'Accept-Encoding': 'identity', ...extraHeaders },
       signal: AbortSignal.timeout(60_000),
     });
-    if (response.status !== expectedStatus) {
+    if (!(Array.isArray(expectedStatus) ? expectedStatus.includes(response.status) : response.status === expectedStatus)) {
       await response.body?.cancel();
       throw new Error(`${relative}: expected HTTP ${expectedStatus}, got ${response.status}`);
     }
@@ -131,10 +131,17 @@ export async function verifyCdn({ origin, localDir }) {
   stats.sampledAssets.sort((a, b) => a.path.localeCompare(b.path));
   const glb = samples.get('glb');
   const localGlb = await readFile(path.join(root, glb));
-  const ranged = await request(glb, 206, { Range: 'bytes=0-31' });
-  if (ranged.headers.get('content-range') !== `bytes 0-31/${localGlb.length}`) throw new Error('Incorrect Content-Range');
+  const ranged = await request(glb, [200, 206], { Range: 'bytes=0-31' });
   const rangeBytes = Buffer.from(await ranged.arrayBuffer());
-  if (!rangeBytes.equals(localGlb.subarray(0, 32))) throw new Error('Range byte mismatch');
+  if (ranged.status === 206) {
+    if (ranged.headers.get('content-range') !== `bytes 0-31/${localGlb.length}`) throw new Error('Incorrect Content-Range');
+    if (!rangeBytes.equals(localGlb.subarray(0, 32))) throw new Error('Range byte mismatch');
+    stats.rangeResponse = 'partial-206';
+  } else {
+    // HTTP servers may ignore Range. The viewer fetches complete GLBs.
+    if (!rangeBytes.equals(localGlb)) throw new Error('Full response to Range does not match GLB');
+    stats.rangeResponse = 'full-200-range-not-supported';
+  }
   stats.rangeVerified = true;
   const missing = await request('__cdn-verification-missing-asset__.glb', 404);
   const missingBytes = Buffer.from(await missing.arrayBuffer());

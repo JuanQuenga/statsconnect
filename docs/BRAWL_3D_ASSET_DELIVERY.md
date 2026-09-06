@@ -221,6 +221,11 @@ PNG, BIN, and WEBP bytes, including the largest file. It also checks CORS, byte
 ranges, and missing-file responses. Open a production brawler page to verify
 skin selection and animation rendering separately.
 
+Workers Static Assets currently returns a full `200` response to GLB Range
+requests on this deployment. The viewer fetches complete GLBs. The verifier
+accepts this valid HTTP behavior only when the full response matches the local
+file, and reports that partial downloads are unsupported.
+
 ## Optional server proxy
 
 The proxy below is retained for alternative storage deployments. Production
