@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -59,6 +59,113 @@ function sourceTables() {
   ];
   return { characters, confs, skins };
 }
+
+function inventoryPage(names) {
+  return `<div id="search-data" data-entries="${JSON.stringify(names.map((name) => [true, "", false, name])).replaceAll('"', "&#34;")}"></div>`;
+}
+
+test("deduplicates enabled route slugs before offsets and visits 1321 unique routes once", async () => {
+  const names = Array.from({ length: 1321 }, (_, index) => `Skin ${index}`);
+  const html = inventoryPage([names[0], ...names, ...names.slice(1, 6)]);
+  const calls = [];
+  const fetchImpl = async (url) => { calls.push(url); return new Response(url.endsWith("/en/") ? html : page("Crow (Default)", "crow_geo.glb", "crow_tex.sctx")); };
+  const result = await crawlMvInventory({ ...sourceTables(), fetchImpl, requestDelayMs: 0 });
+  assert.equal(result.routes.length, 1321);
+  assert.equal(new Set(calls.slice(1)).size, 1321);
+  assert.equal(calls.length, 1322);
+  const sliced = await crawlMvInventory({ ...sourceTables(), fetchImpl, requestDelayMs: 0, offset: 1, limit: 1 });
+  assert.equal(sliced.routes[0].route, "Skin_1");
+});
+
+test("shares an exact-URL content cache across packages without sharing provenance", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "mv-url-cache-"));
+  const calls = new Map();
+  const fetchImpl = async (url) => {
+    calls.set(url, (calls.get(url) ?? 0) + 1);
+    if (url.endsWith("/en/")) return new Response(inventoryPage(["Crow (Default)", "Colt (Default)"]));
+    if (url.includes("/skins/")) return new Response(url.includes("Crow") ? page("Crow", "crow_geo.glb", "crow_tex.sctx", "shared_face") : page("Colt", "colt_redux_geo.glb", "colt_redux_tex.sctx", "shared_face"));
+    return new Response(Buffer.from(url));
+  };
+  try {
+    const result = await crawlMvInventory({ ...sourceTables(), fetchImpl, outputDir: root, requestDelayMs: 0, assetConcurrency: 4 });
+    const [crow, colt] = result.routes;
+    assert.equal(calls.get("https://cdn.brawlbox.com.cn/sc3d/idle.glb"), 1);
+    assert.equal(calls.get("https://cdn.brawlbox.com.cn/sc3d/crow_tex.png"), 1);
+    assert.equal(crow.assets.face.path, colt.assets.face.path);
+    assert.notEqual(crow.assets.face.assetSetId, colt.assets.face.assetSetId);
+    assert.equal(crow.assets.face.sourceUrl, "https://cdn.brawlbox.com.cn/faces/shared_face");
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("resumes partial assets and repairs corrupt ready cache bytes without refetching the page", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "mv-partial-cache-"));
+  const stateFile = path.join(root, "state.json");
+  const calls = new Map();
+  let failing = true;
+  const fetchImpl = async (url) => {
+    calls.set(url, (calls.get(url) ?? 0) + 1);
+    if (url.endsWith("/en/")) return new Response(inventoryPage(["Crow (Default)"]));
+    if (url.includes("/skins/")) return new Response(page("Crow", "crow_geo.glb", "crow_tex.sctx"));
+    if (failing && url.endsWith("crow_tex.png")) return new Response("temporary", { status: 503 });
+    return new Response(Buffer.from(url));
+  };
+  try {
+    const options = { ...sourceTables(), fetchImpl, outputDir: root, stateFile, requestDelayMs: 0, maxRetries: 0 };
+    const partial = await crawlMvInventory(options);
+    assert.ok(partial.routes[0].reason);
+    assert.ok(partial.routes[0].capturedAssets["asset-geometry"].path);
+    const state = JSON.parse(await readFile(stateFile, "utf8"));
+    assert.match(await readFile(state.routes["Crow_(Default)"].pageCapture.path, "utf8"), /glCanvas/);
+    failing = false;
+    const resumed = await crawlMvInventory({ ...options, resume: true });
+    assert.equal(resumed.routes[0].reason, undefined);
+    assert.equal(calls.get("https://cdn.brawlbox.com.cn/sc3d/crow_geo.glb"), 1);
+    assert.equal(calls.get("https://mv.brawlstars.top/skins/Crow_(Default)"), 1);
+    await writeFile(resumed.routes[0].assets.geometry.path, "corrupt");
+    const repaired = await crawlMvInventory({ ...options, resume: true });
+    assert.equal(calls.get("https://cdn.brawlbox.com.cn/sc3d/crow_geo.glb"), 2);
+    assert.equal(calls.get("https://cdn.brawlbox.com.cn/sc3d/crow_tex.png"), 2);
+    assert.equal(await readFile(repaired.routes[0].assets.geometry.path, "utf8"), "https://cdn.brawlbox.com.cn/sc3d/crow_geo.glb");
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("bounds stalled requests and retries network failures", async () => {
+  let pageRequests = 0;
+  const started = Date.now();
+  const stalled = await crawlMvInventory({ ...sourceTables(), requestDelayMs: 0, retryDelayMs: 0, requestTimeoutMs: 10, maxRetries: 1, fetchImpl: async (url) => {
+    if (url.endsWith("/en/")) return new Response(inventoryPage(["Crow (Default)"]));
+    pageRequests += 1; return new Promise(() => {});
+  } });
+  assert.match(stalled.routes[0].reason, /timed out/);
+  assert.equal(pageRequests, 2);
+  assert.ok(Date.now() - started < 1000);
+  let failures = 0;
+  const recovered = await crawlMvInventory({ ...sourceTables(), requestDelayMs: 0, retryDelayMs: 0, maxRetries: 1, fetchImpl: async (url) => {
+    if (url.endsWith("/en/")) return new Response(inventoryPage(["Crow (Default)"]));
+    if (failures++ === 0) throw new Error("connection reset");
+    return new Response(page("Crow", "crow_geo.glb", "crow_tex.sctx"));
+  } });
+  assert.equal(recovered.routes[0].reason, undefined);
+  assert.equal(failures, 2);
+});
+
+test("page texture overrides take precedence over material template textures", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "mv-override-precedence-"));
+  const requested = [];
+  const geometry = materialGlb([{ name: "character_mat", shader: "uber", constants: ["DIFFUSE", "SPECULAR"], variables: { textures: { diffuseTex2D: "sc3d/wrong_template.sctx", specularTex2D: "sc3d/wrong_template.sctx" } } }], [0]);
+  try {
+    const result = await crawlMvInventory({ ...sourceTables(), outputDir: root, requestDelayMs: 0, fetchImpl: async (url) => {
+      requested.push(url);
+      if (url.endsWith("/en/")) return new Response(inventoryPage(["Crow (Default)"]));
+      if (url.includes("/skins/")) return new Response(page("Crow", "crow_geo.glb", "crow_tex.sctx"));
+      return new Response(url.endsWith("crow_geo.glb") ? geometry : Buffer.from(url));
+    } });
+    assert.equal(result.routes[0].reason, undefined);
+    assert.equal(requested.some((url) => url.includes("wrong_template")), false);
+    assert.equal(result.routes[0].materialSlots[0].diffuseTexture, "texture");
+    assert.equal(result.routes[0].materialSlots[0].specularTexture, "specularTexture");
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 
 test("crawls the canonical English inventory and mirrors Spike, Crow, Colt, and Shelly packages", async () => {
   const root = mkdtempSync(path.join(tmpdir(), "mv-import-test-"));
@@ -136,7 +243,10 @@ test("preserves every explicit face export bound to custom page animations", asy
   assert.equal(colt.assets.faces.colt_taunt.url, "https://cdn.brawlbox.com.cn/faces/colt_taunt");
   const mismatchedAtlas = html.replace("characters.sc", "other-characters.sc");
   const mixed = await crawlMvInventory({ ...sourceTables(), fetchImpl: async (url) => new Response(url === "https://mv.brawlstars.top/en/" ? inventoryHtml : mismatchedAtlas), requestDelayMs: 0 });
-  assert.equal(mixed.routes[0].reason, "multiple face atlases require per-face atlas support");
+  assert.equal(mixed.routes[0].reason, undefined);
+  assert.equal(mixed.routes[0].assets.face.metadata.faceAtlasKey, "other-characters.sc");
+  assert.equal(mixed.routes[0].assets.faces.colt_taunt.metadata.faceAtlasKey, "characters.sc");
+  assert.equal(Object.keys(mixed.routes[0].assets.faceAtlases).length, 2);
 });
 
 test("resumes a completed route without requesting its page or CDN files", async () => {
@@ -188,7 +298,7 @@ test("derives every used material slot and mirrors override texture variables", 
     { name: "unused_material", constants: ["DIFFUSE"], variables: { textures: { diffuseTex2D: "sc3d/unused.sctx" } } },
   ], [0, 1, 1], { generator: "COLLADA2GLTF" });
   const animations = JSON.stringify({ idle: ["idle.glb", "characters.sc", "crow_def_face", "1", "10", "Idle Anim"] }).replaceAll('"', "&#34;");
-  const html = `<canvas id="glCanvas" data-model-name="crow_geo.glb" data-animations="${animations}" data-diffuse-texture-override="crow_tex.sctx" data-specular-texture-override="crow_tex.sctx" data-materials-file-override="materials_override.glb"></canvas>`;
+  const html = `<canvas id="glCanvas" data-model-name="crow_geo.glb" data-animations="${animations}" data-materials-file-override="materials_override.glb"></canvas>`;
   const requested = [];
   const fetchImpl = async (url) => {
     requested.push(url);

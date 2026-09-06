@@ -18,6 +18,12 @@ import {
 const ready = (url: string) => ({ kind: "ready" as const, url });
 const unavailable = { kind: "unavailable" as const, reason: "not-captured" };
 
+test("retains the source viewer's human-readable skin name", () => {
+  const source = fixture();
+  const catalog = parseBrawlerAssetCatalog({ ...source, defaults: source.defaults.map((entry) => ({ ...entry, skinId: "CrowWhite", displayName: "White Crow" })) });
+  assert.equal(catalogEntryLabel(catalog.defaults[0]), "White Crow");
+});
+
 function fixture() {
   return {
     schemaVersion: 1,

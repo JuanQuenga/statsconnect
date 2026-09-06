@@ -66,6 +66,7 @@ export type BrawlerAssetCatalogEntry = {
   readonly brawlerId: number | null;
   readonly skinId: string;
   readonly character: string;
+  readonly displayName?: string;
   readonly publicCharacter: string | null;
   readonly assetGroup: ViewerAssetGroup;
   readonly released: boolean;
@@ -190,6 +191,7 @@ function catalogEntry(value: unknown): BrawlerAssetCatalogEntry {
     brawlerId: typeof source.brawlerId === "number" ? source.brawlerId : null,
     skinId: source.skinId,
     character: source.character,
+    displayName: typeof source.displayName === "string" ? source.displayName : undefined,
     publicCharacter: typeof source.publicCharacter === "string" ? source.publicCharacter : null,
     assetGroup: catalogAssetGroup(source),
     released: source.released === true,
@@ -369,6 +371,7 @@ export function catalogEntryHasRuntime(entry: BrawlerAssetCatalogEntry): boolean
 }
 
 export function catalogEntryLabel(entry: BrawlerAssetCatalogEntry): string {
+  if (entry.displayName) return entry.displayName;
   return entry.skinId === entry.character || entry.skinId.toLowerCase().includes("default")
     ? `${entry.character} (Default)`
     : entry.skinId;

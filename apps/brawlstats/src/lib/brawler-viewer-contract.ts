@@ -155,6 +155,13 @@ export function decodeFaceBinary(buffer: ArrayBuffer): FaceBinary {
     requireBytes(view, offset, 8);
     const vertexCount = readU32(view, offset);
     const indexCount = readU32(view, offset + 4);
+    if (vertexCount === 0 && indexCount === 0) {
+      // A zero/zero source frame is a valid transparent frame. Rendering zero
+      // triangles after clearing the face target preserves that blank frame.
+      frames.push({ vertices: [], indices: [] });
+      offset += 8;
+      continue;
+    }
     if (vertexCount === 0 || indexCount === 0) throw new Error("face frame contains no geometry");
     offset += 8;
     requireBytes(view, offset, vertexCount * 8 + vertexCount * 4 + vertexCount * 4 + vertexCount * 3 + indexCount * 2);

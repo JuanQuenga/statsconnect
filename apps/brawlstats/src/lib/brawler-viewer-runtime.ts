@@ -24,6 +24,57 @@ export type LoadedModel = {
   readonly animations: readonly THREE.AnimationClip[];
 };
 
+/** Keep indexed primitives independent of unused vertices from other bone palettes. */
+export function compactReferenceGeometry(model: LoadedModel): number {
+  const compacted = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+  model.scene.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    const source: THREE.BufferGeometry = object.geometry;
+    const existing = compacted.get(source);
+    if (existing) { object.geometry = existing; return; }
+    const index = source.index;
+    const position = source.getAttribute("position");
+    if (!index || !position) return;
+    const used = [...new Set(Array.from(index.array))];
+    if (used.some((vertex) => !Number.isSafeInteger(vertex) || vertex < 0 || vertex >= position.count)) throw new Error("reference mesh index is outside its vertex buffer");
+    if (used.length === position.count) return;
+    const remap = new Map(used.map((vertex, compactIndex) => [vertex, compactIndex]));
+    const copyAttribute = (attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute): THREE.BufferAttribute => {
+      if (attribute.count !== position.count) throw new Error("reference mesh attributes have inconsistent vertex counts");
+      const interleaved = attribute instanceof THREE.InterleavedBufferAttribute;
+      const original = interleaved ? attribute.data.array : attribute.array;
+      const array = original.slice(0, used.length * attribute.itemSize);
+      const stride = interleaved ? attribute.data.stride : attribute.itemSize;
+      const offset = interleaved ? attribute.offset : 0;
+      for (let target = 0; target < used.length; target++) for (let component = 0; component < attribute.itemSize; component++) {
+        array[target * attribute.itemSize + component] = original[used[target] * stride + offset + component];
+      }
+      const result = new THREE.BufferAttribute(array, attribute.itemSize, attribute.normalized);
+      result.name = attribute.name;
+      result.setUsage(interleaved ? attribute.data.usage : attribute.usage);
+      if (attribute instanceof THREE.BufferAttribute) result.gpuType = attribute.gpuType;
+      return result;
+    };
+    const geometry = source.clone();
+    for (const [name, attribute] of Object.entries(source.attributes)) geometry.setAttribute(name, copyAttribute(attribute));
+    if (Object.keys(source.morphAttributes).some((name) => !["position", "normal", "color"].includes(name))) throw new Error("reference mesh has an unsupported morph attribute");
+    for (const name of ["position", "normal", "color"] as const) {
+      const attributes = source.morphAttributes[name];
+      if (attributes) geometry.morphAttributes[name] = attributes.map(copyAttribute);
+    }
+    geometry.setIndex(Array.from(index.array, (vertex) => {
+      const result = remap.get(vertex);
+      if (result === undefined) throw new Error("reference index remapping failed");
+      return result;
+    }));
+    geometry.boundingBox = null;
+    geometry.boundingSphere = null;
+    compacted.set(source, geometry);
+    object.geometry = geometry;
+  });
+  return compacted.size;
+}
+
 /** Repair mirrored reference rotations in memory, without rewriting source assets. */
 export function normalizeReferenceModelRotations(model: LoadedModel): {
   readonly normalizedNodeCount: number;
@@ -40,6 +91,17 @@ export function normalizeReferenceModelRotations(model: LoadedModel): {
     return norm;
   };
   model.scene.traverse((node) => {
+    if (node.scale.x === 0 && node.scale.y === 0 && node.scale.z === 0 && node.position.toArray().every(Number.isFinite)) {
+      // A fully collapsed transform has no observable orientation. Three's
+      // decomposition of its zero-scale matrix can produce NaN quaternions.
+      // Identity preserves the exact collapsed transform and its translation.
+      if (!node.quaternion.equals(new THREE.Quaternion())) {
+        node.quaternion.identity();
+        node.updateMatrix();
+        normalizedNodeCount += 1;
+      }
+      return;
+    }
     const norm = rotationNorm(node.quaternion.toArray(), node.name);
     if (Math.abs(norm - 1) <= 1e-6) return;
     const { x, y, z, w } = node.quaternion;
@@ -466,6 +528,7 @@ export class BrawlerViewerRuntime {
   private prepareLoadedModel(model: LoadedModel): void {
     if (this.manifest.assetGroup !== "reference-bridge") return;
     try {
+      compactReferenceGeometry(model);
       normalizeReferenceModelRotations(model);
     } catch (error) {
       disposeObject(model.scene);

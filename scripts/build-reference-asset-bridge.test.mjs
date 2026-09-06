@@ -156,3 +156,40 @@ test("content-addresses face atlas/materials and preserves route animation metad
     rmSync(source.root, { recursive: true, force: true });
   }
 });
+
+test("deduplicated delivery shares identical bytes without losing package identity", async () => {
+  const source = await fixture();
+  try {
+    source.inventory.routes[1].assets.texture = { ...source.inventory.routes[0].assets.texture };
+    const outputDir = path.join(source.root, "generated");
+    const result = await buildReferenceBridge({ inventory: source.inventory, charactersCsv: source.charactersCsv, outputDir, contentAddressed: true, deduplicateAssets: true });
+    assert.equal(result.coverage.coveredRoutes, 3);
+    const [crow, shelly] = result.entries;
+    assert.equal(crow.assets.texture.url, shelly.assets.texture.url);
+    assert.match(crow.assets.texture.url, /\/objects\/[a-f0-9]{64}\.png$/);
+    assert.match(crow.assets.face.url, /\/objects\/[a-f0-9]{64}\.bin$/);
+    assert.equal(crow.skinId, "CrowDefault");
+    assert.equal(shelly.skinId, "ShellyDefault");
+    assert.equal(crow.source.contentAddressed, true);
+    assert.equal(crow.cameraScale, source.inventory.routes[0].cameraScale ?? 1);
+  } finally {
+    rmSync(source.root, { recursive: true, force: true });
+  }
+});
+
+test("a missing optional cinematic does not hide a complete model and its other animations", async () => {
+  const source = await fixture();
+  try {
+    const entry = source.inventory.routes[0];
+    const unavailable = { kind: "unavailable", sourceUrl: "https://reference.invalid/missing.glb", reason: "404 Not Found" };
+    entry.assets.animations.cinematic = unavailable;
+    entry.downloadFailures = { "asset-animations-cinematic": unavailable };
+    entry.reason = "1 asset downloads unavailable";
+    const bridge = await buildReferenceBridge({ inventory: source.inventory, charactersCsv: source.charactersCsv, outputDir: path.join(source.root, "generated") });
+    assert.equal(bridge.entries[0].status, "ready");
+    assert.equal(bridge.entries[0].captureComplete, false);
+    assert.deepEqual(bridge.entries[0].unavailableAnimations, ["cinematic"]);
+    assert.equal(bridge.entries[0].assets.animations.idle.kind, "ready");
+    assert.equal(bridge.entries[0].assets.animations.cinematic, undefined);
+  } finally { rmSync(source.root, { recursive: true, force: true }); }
+});

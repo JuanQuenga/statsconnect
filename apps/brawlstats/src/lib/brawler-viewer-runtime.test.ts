@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
 import type { BrawlerSkinManifest } from "./brawler-viewer-contract.ts";
-import { BrawlerViewerRuntime, centerModelForFraming, normalizeReferenceModelRotations, type LoadedModel } from "./brawler-viewer-runtime.ts";
+import { BrawlerViewerRuntime, centerModelForFraming, normalizeReferenceModelRotations, compactReferenceGeometry, type LoadedModel } from "./brawler-viewer-runtime.ts";
 
 function fixtureManifest(customReady = true): BrawlerSkinManifest {
   const unavailable = { kind: "unavailable" as const, reason: "not-captured" as const };
@@ -23,6 +23,26 @@ function fixtureManifest(customReady = true): BrawlerSkinManifest {
     attachments: { weapon: "handSSC" },
   };
 }
+
+test("shared vertex buffers do not bind unused vertices to the wrong primitive skeleton", () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 20, 20], 3));
+  geometry.setAttribute("uv", new THREE.Uint16BufferAttribute([0, 0, 65535, 0, 0, 65535, 10, 10], 2, true));
+  geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0], 4));
+  geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], 4));
+  geometry.setIndex([0, 1, 2]);
+  const bone = new THREE.Bone();
+  const mesh = new THREE.SkinnedMesh(geometry, new THREE.MeshBasicMaterial());
+  mesh.add(bone); mesh.bind(new THREE.Skeleton([bone]));
+  assert.throws(() => mesh.computeBoundingBox());
+  assert.equal(compactReferenceGeometry({ scene: mesh, animations: [] }), 1);
+  assert.equal(mesh.geometry.attributes.position.count, 3);
+  assert.equal(mesh.geometry.attributes.uv.getX(1), 1);
+  assert.deepEqual(Array.from(mesh.geometry.index!.array), [0, 1, 2]);
+  mesh.computeBoundingBox();
+  assert.deepEqual(mesh.boundingBox?.max.toArray(), [1, 1, 0]);
+  assert.equal(compactReferenceGeometry({ scene: mesh, animations: [] }), 0);
+});
 
 function faceFixtureBuffer(frameCount = 1): ArrayBuffer {
   const vertices = 4;
@@ -643,6 +663,19 @@ test("reference rotation repair reports corrections and leaves valid unit values
   assert.ok(Math.abs(result.maximumNormDeviation - 0.4559282753865751) < 1e-6);
   assert.deepEqual(Array.from(track.values), [0, 0, 0, 1, 0, 0, 0, 1]);
   assert.deepEqual(normalizeReferenceModelRotations(model), { normalizedNodeCount: 0, normalizedSampleCount: 0, maximumNormDeviation: 0 });
+});
+
+test("collapsed reference transforms retain their matrix without a NaN orientation", () => {
+  const node = new THREE.Object3D();
+  node.name = "hidden-accessory";
+  const authored = new THREE.Matrix4().makeScale(0, 0, 0).setPosition(1, 2, 3);
+  node.applyMatrix4(authored);
+  const scene = new THREE.Group();
+  scene.add(node);
+  normalizeReferenceModelRotations({ scene, animations: [] });
+  assert.deepEqual(node.quaternion.toArray(), [0, 0, 0, 1]);
+  assert.deepEqual(node.scale.toArray(), [0, 0, 0]);
+  assert.ok(node.matrix.equals(authored));
 });
 
 test("reference rotation repair rejects zero and non-finite nodes or samples", () => {

@@ -6,6 +6,8 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildReferenceBridge } from "./build-reference-asset-bridge.mjs";
+import { atomicWrite, createAssetCache, fetchWithRetry, verifiedBytes, acquireImportLock } from "./mv-download-cache.mjs";
+import { resolveMvSkinIdentity } from "./mv-skin-identity.mjs";
 
 const DEFAULT_INVENTORY_URL = "https://mv.brawlstars.top/en/";
 const DEFAULT_CDN_ORIGIN = "https://cdn.brawlbox.com.cn";
@@ -59,7 +61,7 @@ function extractAttributeTag(html, selector) {
   return match ? parseAttributes(match[0]) : null;
 }
 
-function parseCatalogEntries(html) {
+export function parseCatalogEntries(html) {
   const tag = extractAttributeTag(html, "id=[\"']search-data[\"']");
   if (!tag?.["data-entries"]) throw new Error("English inventory is missing #search-data data-entries");
   const parsed = JSON.parse(tag["data-entries"]);
@@ -69,7 +71,7 @@ function parseCatalogEntries(html) {
     .map((entry) => ({ displayName: entry[3], rarity: typeof entry[1] === "string" ? entry[1] : null }));
 }
 
-function routeSlug(displayName) {
+export function routeSlug(displayName) {
   return displayName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
 }
 
@@ -105,34 +107,10 @@ function referenceAnimationTiming(fileName, declaredStart, declaredEnd) {
   };
 }
 
-function sleep(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-function retryAfterMilliseconds(response) {
-  const value = response.headers?.get?.("retry-after");
-  if (!value) return 0;
-  const seconds = Number(value);
-  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? Math.max(0, timestamp - Date.now()) : 0;
-}
-
-async function fetchWithRetry(fetchImpl, url, { headers, maxRetries, retryDelayMs, requestDelayMs, requestGate }) {
-  for (let attempt = 0; ; attempt += 1) {
-    const waitUntil = requestGate.nextRequestAt - Date.now();
-    if (waitUntil > 0) await sleep(waitUntil);
-    const response = await fetchImpl(url, { headers });
-    requestGate.nextRequestAt = Date.now() + requestDelayMs;
-    const retryable = response.status === 429 || response.status >= 500;
-    if (!retryable || attempt >= maxRetries) return response;
-    await sleep(Math.max(retryDelayMs * (2 ** attempt), retryAfterMilliseconds(response)));
-  }
-}
-
 function sourceUrl(cdnOrigin, value, kind) {
   if (typeof value !== "string" || !value) return null;
   let relative = value;
+  if (kind === "model") relative = relative.split(":", 1)[0];
   if (kind === "faceAtlas") relative = `faces/${value}.png`;
   else if (kind === "face") relative = `faces/${value}`;
   else {
@@ -170,24 +148,6 @@ function parseCsv(text) {
   const [header, , ...data] = rows;
   if (!header?.length) throw new Error("CSV has no header");
   return data.filter((candidate) => candidate.some(Boolean)).map((candidate, rowIndex) => ({ rowIndex, ...Object.fromEntries(header.map((key, index) => [key, candidate[index] ?? ""])) }));
-}
-
-function stableCharacterId(rows, character) {
-  const names = String(character ?? "").split(";").map((name) => name.trim().toLowerCase()).filter(Boolean);
-  const row = rows.find((candidate) => names.some((name) => String(candidate.Name ?? "").split(";").map((value) => value.trim().toLowerCase()).includes(name)));
-  return row ? 16000000 + row.rowIndex : null;
-}
-
-function packageMatch({ model, diffuse, skins, confs, characters }) {
-  const modelCandidates = confs.filter((conf) => String(conf.Model ?? "").split(":", 1)[0] === model);
-  const exact = modelCandidates.filter((conf) => {
-    const skin = skins.find((candidate) => candidate.Conf === conf.Name);
-    return !diffuse || skin?.DiffuseTexture === diffuse;
-  });
-  const conf = exact[0] ?? modelCandidates[0] ?? null;
-  const skin = conf ? skins.find((candidate) => candidate.Conf === conf.Name) ?? null : null;
-  const character = conf?.Character ?? null;
-  return { conf, skin, character, brawlerId: stableCharacterId(characters, character) };
 }
 
 function faceSymbols(animations) {
@@ -256,6 +216,10 @@ function materialSlotDefinitions(document, { cdnOrigin, assets, uvSource = "defa
   const slots = [];
   const referencedAssets = {};
   const assetKeyFor = (materialName, field, value) => {
+    // The reference renderer gives page-declared overrides precedence over
+    // every material's built-in texture, not only its '.' placeholder.
+    if (field === "diffuseTexture" && assets.texture?.url) return "texture";
+    if (field === "specularTexture" && assets.specularTexture?.url) return "specularTexture";
     const rawTexture = typeof value === "string" ? value.split("#", 1)[0] : null;
     if (rawTexture === ".") {
       if (field === "diffuseTexture" && assets.texture?.url) return "texture";
@@ -309,14 +273,14 @@ function materialSlotDefinitions(document, { cdnOrigin, assets, uvSource = "defa
   return { slots, referencedAssets };
 }
 
-function pageToInventoryEntry({ html, route, displayName, cdnOrigin, characters, skins, confs }) {
+export function pageToInventoryEntry({ html, route, displayName, cdnOrigin, characters, skins, confs, translations, history }) {
   const page = pageAttributes(html);
   const attrs = page.attributes;
   const model = attrs["data-model-name"];
   const diffuse = attrs["data-diffuse-texture-override"] || null;
-  const specular = attrs["data-specular-texture-override"] || diffuse;
-  const match = packageMatch({ model, diffuse, skins, confs, characters });
-  const skinId = match.skin?.Name ?? match.conf?.Name ?? `Reference-${safeSegment(route)}`;
+  const specular = attrs["data-specular-texture-override"] || null;
+  const match = resolveMvSkinIdentity({ model, diffuse, specular: attrs["data-specular-texture-override"] || undefined, materialsOverride: attrs["data-materials-file-override"] || null, displayName, skins, confs, characters, translations, history });
+  const skinId = match.skinId ?? `Reference-${safeSegment(route)}`;
   const character = match.character ?? "Unknown";
   const assetSetId = `mv.brawlstars.top:${safeSegment(route, "skin")}`;
   const assets = {
@@ -330,18 +294,25 @@ function pageToInventoryEntry({ html, route, displayName, cdnOrigin, characters,
   const materialsOverride = attrs["data-materials-file-override"] || null;
   if (materialsOverride) assets.materialSource = sourceAsset(sourceUrl(cdnOrigin, materialsOverride, "materialsSource"), "materialsSource");
   const atlasNames = [...new Set(Object.values(page.animations).filter((value) => Array.isArray(value) && typeof value[1] === "string" && value[1]).map((value) => value[1]))];
-  if (atlasNames.length > 1) throw new Error("multiple face atlases require per-face atlas support");
   if (atlasNames[0]) assets.faceAtlas = sourceAsset(sourceUrl(cdnOrigin, atlasNames[0], "faceAtlas"), "faceAtlas");
+  if (atlasNames.length > 1) assets.faceAtlases = Object.fromEntries(atlasNames.map((name) => [name, sourceAsset(sourceUrl(cdnOrigin, name, "faceAtlas"), `faceAtlas:${name}`)]));
+  const atlasForExport = new Map();
+  for (const value of Object.values(page.animations)) {
+    if (!Array.isArray(value) || !value[1] || !value[2]) continue;
+    if (atlasForExport.has(value[2]) && atlasForExport.get(value[2]) !== value[1]) throw new Error("the same face export declares conflicting atlases");
+    atlasForExport.set(value[2], value[1]);
+  }
   const symbols = faceSymbols(page.animations);
-  if (symbols.face) assets.face = sourceAsset(sourceUrl(cdnOrigin, symbols.face, "face"), "face");
-  if (symbols.happy) assets.faces.happy = sourceAsset(sourceUrl(cdnOrigin, symbols.happy, "face"), "face:happy");
-  if (symbols.sad) assets.faces.sad = sourceAsset(sourceUrl(cdnOrigin, symbols.sad, "face"), "face:sad");
+  const faceMetadata = (name) => ({ faceAtlasKey: atlasForExport.get(name) ?? null });
+  if (symbols.face) assets.face = sourceAsset(sourceUrl(cdnOrigin, symbols.face, "face"), "face", faceMetadata(symbols.face));
+  if (symbols.happy) assets.faces.happy = sourceAsset(sourceUrl(cdnOrigin, symbols.happy, "face"), "face:happy", faceMetadata(symbols.happy));
+  if (symbols.sad) assets.faces.sad = sourceAsset(sourceUrl(cdnOrigin, symbols.sad, "face"), "face:sad", faceMetadata(symbols.sad));
   const animationMetadata = {};
   for (const [key, value] of Object.entries(page.animations)) {
     if (!Array.isArray(value) || typeof value[0] !== "string" || !value[0]) continue;
     const faceExport = typeof value[2] === "string" && value[2] ? value[2] : null;
     const face = !faceExport ? null : faceExport === symbols.happy ? "happy" : faceExport === symbols.sad ? "sad" : faceExport === symbols.face ? "face" : faceExport;
-    if (face && !["face", "happy", "sad"].includes(face)) assets.faces[face] = sourceAsset(sourceUrl(cdnOrigin, faceExport, "face"), `face:${face}`);
+    if (face && !["face", "happy", "sad"].includes(face)) assets.faces[face] = sourceAsset(sourceUrl(cdnOrigin, faceExport, "face"), `face:${face}`, faceMetadata(faceExport));
     const timing = referenceAnimationTiming(value[0], value[3], value[4]);
     assets.animations[key] = sourceAsset(sourceUrl(cdnOrigin, value[0], "animation"), `animation:${key}`, { label: value[5] ?? key, ...timing, face });
     animationMetadata[key] = { label: value[5] ?? key, ...timing, face };
@@ -359,7 +330,8 @@ function pageToInventoryEntry({ html, route, displayName, cdnOrigin, characters,
     displayName,
     character,
     skinId,
-    brawlerId: match.brawlerId,
+    brawlerId: match.brawlerId ?? null,
+    identity: { kind: match.kind, reason: match.reason ?? null, evidence: match.evidence ?? [], candidates: match.candidates ?? [], entityKind: match.entityKind ?? null, ownerBrawlerIds: match.ownerBrawlerIds ?? [], sourceCharacter: match.sourceCharacter ?? null, sourceVersion: match.sourceVersion ?? null },
     sourceKind: DEFAULT_SOURCE_KIND,
     assetSetId,
     captureId: `mv.brawlstars.top:${route}:${pageHash.slice(0, 16)}`,
@@ -392,30 +364,28 @@ async function writeState(file, value) {
   await rename(temporary, file);
 }
 
-async function downloadEntryAssets(entry, { fetchImpl, outputDir, resumeState, requestHeaders, retryOptions }) {
+async function downloadEntryAssets(entry, { assetCache, assetConcurrency = 1 }) {
   const downloaded = {};
+  const failures = {};
+  entry.capturedAssets = downloaded;
   const visited = new Set();
   const visit = async (asset, key) => {
     if (!asset?.url) return;
     if (visited.has(key)) return;
     visited.add(key);
-    const digest = resumeState?.assets?.[key]?.sha256;
-    const sourceExtension = path.extname(new URL(asset.url).pathname) || (asset.role.startsWith("face") ? ".bin" : ".bin");
-    const fileName = `${safeSegment(key)}.${digest ?? "pending"}${sourceExtension}`;
-    const destination = path.join(outputDir, safeSegment(String(entry.brawlerId ?? "unknown")), safeSegment(entry.skinId), fileName);
-    if (digest && existsSync(destination)) { downloaded[key] = { path: destination, sha256: digest, sourceKind: entry.sourceKind, assetSetId: entry.assetSetId, ...(asset.metadata ?? {}) }; return; }
-    const bytes = await fetchBytes(fetchImpl, asset.url, requestHeaders, retryOptions);
-    const actual = createHash("sha256").update(bytes).digest("hex");
-    const finalDestination = path.join(outputDir, safeSegment(String(entry.brawlerId ?? "unknown")), safeSegment(entry.skinId), `${safeSegment(key)}.${actual}${sourceExtension}`);
-    await mkdir(path.dirname(finalDestination), { recursive: true });
-    await writeFile(finalDestination, bytes);
-    downloaded[key] = { path: finalDestination, sha256: actual, sourceKind: entry.sourceKind, assetSetId: entry.assetSetId, ...(asset.metadata ?? {}) };
+    try {
+      const capture = await assetCache.get(asset.url);
+      downloaded[key] = { ...capture, sourceKind: entry.sourceKind, assetSetId: entry.assetSetId, ...(asset.metadata ?? {}) };
+    } catch (error) {
+      failures[key] = { kind: "unavailable", sourceUrl: asset.url, reason: String(error instanceof Error ? error.message : error) };
+    }
   };
-  const walk = async (value, key) => {
+  const pending = [];
+  const walk = (value, key) => {
     if (!value || typeof value !== "object") return;
-    if (Array.isArray(value)) { for (const [index, child] of value.entries()) await walk(child, `${key}-${index}`); return; }
-    if (typeof value.url === "string" && typeof value.role === "string") { await visit(value, key); return; }
-    for (const [childKey, child] of Object.entries(value)) await walk(child, `${key}-${childKey}`);
+    if (Array.isArray(value)) { for (const [index, child] of value.entries()) walk(child, `${key}-${index}`); return; }
+    if (typeof value.url === "string" && typeof value.role === "string") { pending.push([value, key]); return; }
+    for (const [childKey, child] of Object.entries(value)) walk(child, `${key}-${childKey}`);
   };
   await visit(entry.assets.geometry, "asset-geometry");
   await visit(entry.assets.materialSource, "asset-materialSource");
@@ -436,19 +406,30 @@ async function downloadEntryAssets(entry, { fetchImpl, outputDir, resumeState, r
       const derived = materialSlotDefinitions(materialDocument, { cdnOrigin: new URL(entry.assets.geometry.url).origin, assets: entry.assets, uvSource });
       materialSlots = derived.slots;
       entry.assets.materials = { ...(entry.assets.materials ?? {}), ...derived.referencedAssets };
+      if (!entry.assets.texture?.url) {
+        const declared = materialSlots.find((slot) => typeof slot.diffuseTexture === "string" && slot.diffuseTexture.startsWith("material:"));
+        const texture = declared ? entry.assets.materials[declared.diffuseTexture.slice("material:".length)] : null;
+        if (texture?.url) entry.assets.texture = { ...texture, role: "texture" };
+      }
       entry.geometryMetadata = { ...(entry.geometryMetadata ?? {}), uvSource };
     } catch (error) {
-      if (entry.assets.materialSource) throw new Error(`materials document is invalid: ${error instanceof Error ? error.message : error}`);
+      if (entry.assets.materialSource) failures["material-metadata"] = { kind: "unavailable", sourceUrl: entry.assets.materialSource.url, reason: `materials document is invalid: ${error instanceof Error ? error.message : error}` };
     }
   }
-  await walk(entry.assets, "asset");
+  walk(entry.assets, "asset");
+  let next = 0;
+  await Promise.all(Array.from({ length: assetConcurrency }, async () => {
+    while (next < pending.length) { const [asset, key] = pending[next++]; await visit(asset, key); }
+  }));
   const replace = (value, key = "asset") => {
     if (!value || typeof value !== "object") return value;
     if (Array.isArray(value)) return value.map((child, index) => replace(child, `${key}-${index}`));
-    if (typeof value.url === "string" && typeof value.role === "string") return downloaded[key] ?? value;
-    return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, replace(child, `${key}-${childKey}`)]));
+    if (typeof value.url === "string" && typeof value.role === "string") return downloaded[key] ?? failures[key] ?? value;
+    if (value.url === null && typeof value.role === "string") return undefined;
+    return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, replace(child, `${key}-${childKey}`)]).filter(([, child]) => child !== undefined));
   };
-  return { ...entry, assets: replace(entry.assets), materialSlots };
+  const { capturedAssets, ...complete } = entry;
+  return { ...complete, assets: replace(entry.assets), materialSlots, ...(Object.keys(failures).length ? { capturedAssets, downloadFailures: failures, reason: `${Object.keys(failures).length} asset downloads unavailable` } : {}) };
 }
 
 export async function crawlMvInventory({
@@ -458,11 +439,16 @@ export async function crawlMvInventory({
   characters,
   skins,
   confs,
+  translations = {},
+  history = [],
   fetchImpl = fetch,
   requestHeaders = DEFAULT_REFERENCE_HEADERS,
   maxRetries = 4,
   retryDelayMs = 500,
   requestDelayMs = 100,
+  requestTimeoutMs = 30000,
+  assetConcurrency = 1,
+  onProgress = null,
   routes = null,
   limit = null,
   offset = 0,
@@ -471,42 +457,83 @@ export async function crawlMvInventory({
   resume = false,
 }) {
   if (!Array.isArray(characters) || !Array.isArray(skins) || !Array.isArray(confs)) throw new Error("characters, skins, and confs CSV rows are required");
+  if (!Number.isInteger(assetConcurrency) || assetConcurrency < 1 || assetConcurrency > 4) throw new Error("assetConcurrency must be between 1 and 4");
   const headers = { ...DEFAULT_REFERENCE_HEADERS, ...requestHeaders };
-  const retryOptions = { maxRetries, retryDelayMs, requestDelayMs, requestGate: { nextRequestAt: 0 } };
+  const retryOptions = { maxRetries, retryDelayMs, requestDelayMs, requestTimeoutMs, onProgress, requestGate: { nextRequestAt: 0 } };
   const inventoryResponse = await fetchWithRetry(fetchImpl, inventoryUrl, { headers, ...retryOptions });
   if (!inventoryResponse.ok) throw new Error(`inventory request failed: ${inventoryResponse.status}`);
-  const entries = parseCatalogEntries(await inventoryResponse.text());
+  const inventoryHtml = await inventoryResponse.text();
+  if (outputDir) await atomicWrite(path.join(outputDir, "inventory.html"), inventoryHtml);
+  const enabledRows = parseCatalogEntries(inventoryHtml);
+  const entries = [...new Map(enabledRows.map((entry) => [routeSlug(entry.displayName), entry])).values()];
   const routeFilter = routes ? new Set(routes.map((route) => routeSlug(route))) : null;
   const selected = entries.filter((entry) => !routeFilter || routeFilter.has(routeSlug(entry.displayName))).filter((_, index) => index >= offset).slice(0, limit ?? entries.length);
   const state = resume && stateFile && existsSync(stateFile) ? JSON.parse(await readFile(stateFile, "utf8")) : { schemaVersion: 1, inventoryUrl, routes: {} };
+  if (state.inventoryUrl !== inventoryUrl) throw new Error("resume state belongs to a different inventory");
+  const assetCache = outputDir ? createAssetCache({ directory: path.join(outputDir, "cache"), fetchBytes: (url) => fetchBytes(fetchImpl, url, headers, retryOptions), onProgress }) : null;
   const result = [];
   for (const item of selected) {
     const route = routeSlug(item.displayName);
     const existing = resume ? state.routes?.[route] : null;
     let entry;
-    if (existing?.entry && (!outputDir || existing.status === "ready")) entry = existing.entry;
-    else {
+    {
       const pageUrl = new URL(`${PAGE_ROUTE_PREFIX}${encodeURIComponent(route)}`, pageOrigin).toString();
+      let pageCapture = existing?.pageCapture;
       try {
-        const pageResponse = await fetchWithRetry(fetchImpl, pageUrl, { headers, ...retryOptions });
-        if (!pageResponse.ok) throw new Error(`skin page request failed: ${pageResponse.status}`);
-        entry = pageToInventoryEntry({ html: await pageResponse.text(), route, displayName: item.displayName, cdnOrigin, characters, skins, confs });
-        if (outputDir) entry = await downloadEntryAssets(entry, { fetchImpl, outputDir, resumeState: existing, requestHeaders: headers, retryOptions });
-        state.routes[route] = { status: "ready", entry };
+        const cachedPage = pageCapture ? await verifiedBytes(pageCapture.path, pageCapture.sha256) : null;
+        let html;
+        if (cachedPage) html = cachedPage.toString("utf8");
+        else {
+          const pageResponse = await fetchWithRetry(fetchImpl, pageUrl, { headers, ...retryOptions });
+          if (!pageResponse.ok) throw new Error(`skin page request failed: ${pageResponse.status}`);
+          html = await pageResponse.text();
+          if (outputDir) {
+            const sha256 = createHash("sha256").update(html).digest("hex");
+            const file = path.join(outputDir, "pages", `${createHash("sha256").update(route).digest("hex")}.html`);
+            await atomicWrite(file, html);
+            pageCapture = { path: file, sha256, sourceUrl: pageUrl };
+          }
+        }
+        state.routes[route] = { status: "capturing", pageCapture };
+        if (stateFile) await writeState(stateFile, state);
+        entry = pageToInventoryEntry({ html, route, displayName: item.displayName, cdnOrigin, characters, skins, confs, translations, history });
+        if (outputDir) entry = await downloadEntryAssets(entry, { assetCache, assetConcurrency });
+        state.routes[route] = { status: entry.reason ? "unavailable" : "ready", pageCapture, entry };
       } catch (error) {
-        entry = { route, displayName: item.displayName, sourceUrl: pageUrl, sourceRoute: pageUrl, character: "Unknown", skinId: `Reference-${safeSegment(route)}`, brawlerId: null, sourceKind: DEFAULT_SOURCE_KIND, assetSetId: `mv.brawlstars.top:${safeSegment(route)}`, assets: {}, animationMetadata: {}, materialSlots: [], faceFlags: {}, capabilities: {}, cameraScale: 1, license: { status: "diagnostic-only" }, reason: String(error instanceof Error ? error.message : error) };
-        state.routes[route] = { status: "unavailable", entry };
+        entry = { ...(entry ?? { route, displayName: item.displayName, sourceUrl: pageUrl, sourceRoute: pageUrl, character: "Unknown", skinId: `Reference-${safeSegment(route)}`, brawlerId: null, sourceKind: DEFAULT_SOURCE_KIND, assetSetId: `mv.brawlstars.top:${safeSegment(route)}`, assets: {}, animationMetadata: {}, materialSlots: [], faceFlags: {}, capabilities: {}, cameraScale: 1, license: { status: "diagnostic-only" } }), reason: String(error instanceof Error ? error.message : error) };
+        state.routes[route] = { status: "unavailable", pageCapture, entry };
       }
       if (stateFile) await writeState(stateFile, state);
     }
     result.push(entry);
+    onProgress?.({ event: "route", completed: result.length, total: selected.length, route, status: state.routes[route].status, identity: entry.identity?.kind ?? "unmapped", reason: entry.reason ?? null });
   }
-  return { schemaVersion: 1, kind: "mv-reference-inventory", source: { inventoryUrl, pageOrigin, cdnOrigin }, routes: result };
+  return { schemaVersion: 1, kind: "mv-reference-inventory", source: { inventoryUrl, pageOrigin, cdnOrigin }, inventoryCounts: { enabledRows: enabledRows.length, uniqueEnabledRoutes: entries.length, duplicateRows: enabledRows.length - entries.length, selectedRoutes: selected.length }, routes: result };
 }
 
-async function readCsvFromGit(repo, commit, file) {
+export async function readCsvFromGit(repo, commit, file) {
   const { execFileSync } = await import("node:child_process");
   return parseCsv(execFileSync("git", ["-C", repo, "show", `${commit}:${file}`], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }));
+}
+
+export async function loadMvSourceTables({ mirror, commit, version, historyVersions = [] }) {
+  const characters = await readCsvFromGit(mirror, commit, `${version}/csv_logic/characters.csv`);
+  const skins = await readCsvFromGit(mirror, commit, `${version}/csv_logic/skins.csv`);
+  const confs = await readCsvFromGit(mirror, commit, `${version}/csv_logic/skin_confs.csv`);
+  const textRows = await readCsvFromGit(mirror, commit, `${version}/localization/texts.csv`);
+  const translations = Object.fromEntries(textRows.map((row) => [row.TID, row.EN]));
+  const history = [];
+  for (const historicalVersion of historyVersions) {
+    if (!/^(?:CN-)?\d+(?:\.\d+){1,2}$/.test(historicalVersion)) throw new Error("invalid history version");
+    const select = (rows, fields) => rows.map((row) => Object.fromEntries(["rowIndex", ...fields].map((field) => [field, row[field]])));
+    const historicalCharacters = select(await readCsvFromGit(mirror, commit, `${historicalVersion}/csv_logic/characters.csv`), ["Name", "Type", "ItemName", "DefaultSkin", "TID"]);
+    const historicalSkins = select(await readCsvFromGit(mirror, commit, `${historicalVersion}/csv_logic/skins.csv`), ["Name", "Conf", "TID", "ShopTID", "DiffuseTexture", "SpecularTexture", "MaterialsFile", "PetSkin", "PetSkin2", "OverchargePetSkin", "OverchargePetSkin2"]);
+    const historicalConfs = select(await readCsvFromGit(mirror, commit, `${historicalVersion}/csv_logic/skin_confs.csv`), ["Name", "Character", "Model"]);
+    const tids = new Set([...historicalCharacters.map((row) => row.TID), ...historicalSkins.flatMap((row) => [row.TID, row.ShopTID])]);
+    const historicalTexts = await readCsvFromGit(mirror, commit, `${historicalVersion}/localization/texts.csv`);
+    history.push({ version: historicalVersion, characters: historicalCharacters, skins: historicalSkins, confs: historicalConfs, translations: Object.fromEntries(historicalTexts.filter((row) => tids.has(row.TID)).map((row) => [row.TID, row.EN])) });
+  }
+  return { characters, skins, confs, translations, history };
 }
 
 async function main() {
@@ -517,10 +544,11 @@ async function main() {
   const outputDir = path.resolve(String(outputOption));
   const commit = options.get("commit") ?? "e39b51ecd3dc7be45ac7d2b1f0210bc4cea054f0";
   const version = options.get("version") ?? "68.250";
-  const characters = await readCsvFromGit(mirror, commit, `${version}/csv_logic/characters.csv`);
-  const skins = await readCsvFromGit(mirror, commit, `${version}/csv_logic/skins.csv`);
-  const confs = await readCsvFromGit(mirror, commit, `${version}/csv_logic/skin_confs.csv`);
+  const historyVersions = String(options.get("history-versions") ?? "").split(",").filter(Boolean);
+  const { characters, skins, confs, translations, history } = await loadMvSourceTables({ mirror, commit, version, historyVersions });
   const stateFile = options.get("state") ?? path.join(outputDir, ".mv-import-state.json");
+  const releaseLock = await acquireImportLock(stateFile);
+  try {
   const routes = options.get("routes") ? String(options.get("routes")).split(",").map((route) => route.trim()).filter(Boolean) : null;
   let requestHeaders = DEFAULT_REFERENCE_HEADERS;
   if (options.get("request-headers-json")) {
@@ -528,17 +556,32 @@ async function main() {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || Object.entries(parsed).some(([key, value]) => typeof key !== "string" || typeof value !== "string")) throw new Error("--request-headers-json must contain a JSON object of string header values");
     requestHeaders = { ...DEFAULT_REFERENCE_HEADERS, ...parsed };
   }
-  const inventory = await crawlMvInventory({ inventoryUrl: options.get("inventory-url") ?? DEFAULT_INVENTORY_URL, cdnOrigin: options.get("cdn-origin") ?? DEFAULT_CDN_ORIGIN, characters, skins, confs, routes, limit: options.get("limit") ? Number(options.get("limit")) : null, offset: options.get("offset") ? Number(options.get("offset")) : 0, outputDir, stateFile, resume: options.has("resume"), requestHeaders, maxRetries: options.get("max-retries") ? Number(options.get("max-retries")) : 4, retryDelayMs: options.get("retry-delay-ms") ? Number(options.get("retry-delay-ms")) : 500, requestDelayMs: options.get("request-delay-ms") ? Number(options.get("request-delay-ms")) : 100 });
+  const inventory = await crawlMvInventory({
+    inventoryUrl: options.get("inventory-url") ?? DEFAULT_INVENTORY_URL,
+    cdnOrigin: options.get("cdn-origin") ?? DEFAULT_CDN_ORIGIN,
+    characters, skins, confs, translations, history, routes, outputDir, stateFile, requestHeaders,
+    limit: options.has("limit") ? Number(options.get("limit")) : null,
+    offset: options.has("offset") ? Number(options.get("offset")) : 0,
+    resume: options.has("resume"),
+    maxRetries: options.has("max-retries") ? Number(options.get("max-retries")) : 4,
+    retryDelayMs: options.has("retry-delay-ms") ? Number(options.get("retry-delay-ms")) : 500,
+    requestDelayMs: options.has("request-delay-ms") ? Number(options.get("request-delay-ms")) : 100,
+    requestTimeoutMs: options.has("request-timeout-ms") ? Number(options.get("request-timeout-ms")) : 30000,
+    assetConcurrency: options.has("asset-concurrency") ? Number(options.get("asset-concurrency")) : 1,
+    onProgress: options.has("progress") ? (event) => { if (event.event !== "asset" || options.has("verbose-assets")) console.log(JSON.stringify(event)); } : null,
+  });
   const inventoryOutput = options.get("inventory-output") ?? path.join(outputDir, "mv-reference-inventory.json");
+  inventory.source.metadata = { commit, version, historyVersions };
   await mkdir(path.dirname(inventoryOutput), { recursive: true });
-  await writeFile(inventoryOutput, `${JSON.stringify(inventory, null, 2)}\n`);
+  await atomicWrite(inventoryOutput, `${JSON.stringify(inventory, null, 2)}\n`);
   if (options.get("bridge-output")) {
     const bridgeAssetsDir = path.resolve(String(options.get("bridge-assets-dir") ?? outputDir));
-    const bridge = await buildReferenceBridge({ inventory, charactersRows: characters, outputDir: bridgeAssetsDir, publicPrefix: options.get("public-prefix") ?? "/assets/brawlers/3d/reference-bridge", auditOutput: options.get("bridge-audit-output") ?? null, contentAddressed: true, storagePrefix: options.get("storage-prefix") ?? "" });
+    const bridge = await buildReferenceBridge({ inventory, charactersRows: characters, outputDir: bridgeAssetsDir, publicPrefix: options.get("public-prefix") ?? "/assets/brawlers/3d/reference-bridge", auditOutput: options.get("bridge-audit-output") ?? null, contentAddressed: true, deduplicateAssets: options.has("deduplicate-assets"), storagePrefix: options.get("storage-prefix") ?? "" });
     await mkdir(path.dirname(options.get("bridge-output")), { recursive: true });
     await writeFile(options.get("bridge-output"), `${JSON.stringify(bridge, null, 2)}\n`);
     if (bridge.coverage.unavailableRoutes) process.exitCode = 1;
   }
+  } finally { await releaseLock(); }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => { console.error(error.message); process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => { console.error(error.message); process.exitCode = 1; });

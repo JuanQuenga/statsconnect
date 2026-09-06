@@ -458,6 +458,45 @@ test("preserves source-declared attack and custom animation face bindings", () =
   } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
 });
 
+test("batch staging quarantines invalid reference packages without weakening valid entries", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "reference-quarantine-test-"));
+  try {
+    const bridge = bridgeFixture();
+    bridge.entries.push({ ...structuredClone(bridge.entries[0]), skinId: "BadSkin", route: "Bad_Skin", status: "unavailable" });
+    const input = path.join(directory, "bridge.json");
+    const output = path.join(directory, "manifest.json");
+    writeFileSync(input, JSON.stringify(bridge));
+    const command = [script, "--mirror", source.root, "--commit", source.commit, "--reference-bridge", input, "--allow-diagnostic-reference-assets", "--output", output];
+    assert.throws(() => execFileSync(process.execPath, command, { stdio: "pipe" }), /unavailable/);
+    execFileSync(process.execPath, [...command, "--quarantine-reference-failures"], { stdio: "pipe" });
+    const result = JSON.parse(readFileSync(output, "utf8"));
+    assert.equal(result.defaults.find((entry) => entry.skinId === "CrowDefault").baseModel.kind, "ready");
+    assert.equal(result.skins.some((entry) => entry.skinId === "BadSkin"), false);
+    assert.equal(result.referenceRejections.length, 1);
+    assert.equal(result.referenceRejections[0].route, "Bad_Skin");
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
+});
+
+test("reference half-range UVs are admitted only with matching geometry evidence", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "reference-half-uv-test-"));
+  try {
+    const bridge = bridgeFixture();
+    bridge.entries[0].geometryMetadata = { uvSource: "67/68", sourceKind: "reference-preprocessed", uvRange: { min: [0, 0], max: [0.5, 0.5] } };
+    bridge.entries[0].materialSlots[0].uvSource = "67/68";
+    const input = path.join(directory, "bridge.json");
+    const output = path.join(directory, "manifest.json");
+    const command = [script, "--mirror", source.root, "--commit", source.commit, "--reference-bridge", input, "--allow-diagnostic-reference-assets", "--output", output];
+    writeFileSync(input, JSON.stringify(bridge));
+    execFileSync(process.execPath, command, { stdio: "pipe" });
+    assert.equal(JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.skinId === "CrowDefault").baseModel.kind, "ready");
+    bridge.entries[0].geometryMetadata.uvRange.max = [1, 1];
+    writeFileSync(input, JSON.stringify(bridge));
+    assert.throws(() => execFileSync(process.execPath, command, { stdio: "pipe" }), /unverified half-range/);
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
+});
+
 test("allows distinct coherent asset sets across bridge entries", () => {
   const source = fixtureCsv();
   const directory = mkdtempSync(path.join(tmpdir(), "reference-bridge-multi-manifest-test-"));

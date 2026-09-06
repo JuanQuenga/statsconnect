@@ -286,15 +286,18 @@ const bridgeGeometryUvRange = (entry) => {
     if (!accessor || accessor.type !== "VEC2") continue;
     if (Array.isArray(accessor.min) && Array.isArray(accessor.max)) { ranges.push({ min: accessor.min, max: accessor.max }); continue; }
     const view = parsed.json.bufferViews?.[accessor.bufferView];
-    if (!view || accessor.componentType !== 5126) continue;
-    const componentBytes = 4;
+    const componentBytes = ({ 5121: 1, 5123: 2, 5126: 4 })[accessor.componentType];
+    if (!view || !componentBytes) continue;
     const stride = view.byteStride ?? componentBytes * 2;
     const start = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
     const min = [Infinity, Infinity];
     const max = [-Infinity, -Infinity];
     for (let index = 0; index < accessor.count; index += 1) {
       const base = start + index * stride;
-      const values = [parsed.bin.readFloatLE(base), parsed.bin.readFloatLE(base + componentBytes)];
+      const readComponent = (offset) => accessor.componentType === 5126 ? parsed.bin.readFloatLE(offset)
+        : accessor.componentType === 5123 ? parsed.bin.readUInt16LE(offset) / (accessor.normalized ? 65535 : 1)
+          : parsed.bin.readUInt8(offset) / (accessor.normalized ? 255 : 1);
+      const values = [readComponent(base), readComponent(base + componentBytes)];
       for (let axis = 0; axis < 2; axis += 1) { min[axis] = Math.min(min[axis], values[axis]); max[axis] = Math.max(max[axis], values[axis]); }
     }
     if (min.every(Number.isFinite) && max.every(Number.isFinite)) ranges.push({ min, max });
@@ -330,13 +333,14 @@ const bridgeRuntimeEntry = (entry) => {
     animationOutput[field] = { symbol: null, exported: bridgeAsset(asset, ".glb"), label: detail.label ?? animationLabels[field] ?? field, startFrame: detail.startFrame ?? 0, endFrame: detail.endFrame ?? -1, fps: detail.fps ?? 60, faceField: typeof detail.face === "string" && detail.face ? faceField(detail.face) : null };
   }
   const atlas = assets.faceAtlas;
+  const atlasForFace = (asset) => assets.faceAtlases?.[asset?.faceAtlasKey] ?? atlas;
   const faceAssets = { ...assets.faces, face: assets.face };
   const facesOutput = {};
   for (const field of faceFields) {
     const sourceKey = field.startsWith("Happy") || ["LobbyFace", "HeroScreenFace", "SignatureFace"].includes(field) ? "happy" : field.startsWith("Sad") ? "sad" : "face";
-    facesOutput[field] = bridgeFace(faceAssets[sourceKey], atlas);
+    facesOutput[field] = bridgeFace(faceAssets[sourceKey], atlasForFace(faceAssets[sourceKey]));
   }
-  for (const [sourceKey, asset] of Object.entries(faceAssets)) facesOutput[faceField(sourceKey)] = bridgeFace(asset, atlas);
+  for (const [sourceKey, asset] of Object.entries(faceAssets)) facesOutput[faceField(sourceKey)] = bridgeFace(asset, atlasForFace(asset));
   const uvSource = bridgeUvSource(entry);
   const materialSlots = Array.isArray(entry.materialSlots) ? entry.materialSlots.map((slot) => {
     const output = { ...slot };
@@ -349,6 +353,7 @@ const bridgeRuntimeEntry = (entry) => {
     brawlerId: entry.brawlerId,
     skinId: entry.skinId,
     character: entry.character,
+    displayName: entry.displayName ?? undefined,
     publicCharacter: entry.character,
     released: true,
     baseModel: bridgeAsset(assets.geometry, ".glb"),
@@ -367,9 +372,12 @@ const bridgeRuntimeEntry = (entry) => {
     unavailableReasons: [],
   };
 };
+const referenceRejections = [];
 const validateReferenceBridge = (bridge) => {
   if (!bridge || bridge.kind !== "reference-asset-bridge" || !Array.isArray(bridge.entries)) throw new Error("reference bridge must be a reference-asset-bridge manifest");
+  const accepted = [];
   for (const entry of bridge.entries) {
+    try {
     const identity = { sourceKind: null, assetSetId: null };
     if (entry.status !== "ready") throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} is unavailable`);
     if (entry.source?.contentAddressed !== true) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} is not content-addressed`);
@@ -378,7 +386,12 @@ const validateReferenceBridge = (bridge) => {
     const uvSource = bridgeUvSource(entry);
     const geometryMetadata = bridgeGeometryMetadata(entry);
     if (geometryMetadata.sourceKind && geometryMetadata.sourceKind !== entry.source?.kind) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} mixes geometry source kind and bridge source kind`);
-    if (uvSource === "67/68") throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} uses the pinned-local 67/68 UV policy`);
+    if (uvSource === "67/68") {
+      const range = bridgeGeometryUvRange(entry);
+      if (!range || range.min.some((value) => value < -0.001) || range.max.some((value) => value > 0.501)) {
+        throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} has unverified half-range 67/68 UV coordinates`);
+      }
+    }
     for (const slot of entry.materialSlots ?? []) if (slot.uvSource && slot.uvSource !== uvSource) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} has a material UV policy mismatch: ${slot.uvSource} vs ${uvSource}`);
     for (const asset of assets) {
       if (asset.sourceKind === "pinned-local" || typeof asset.sourceKind !== "string" || typeof asset.assetSetId !== "string") throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} mixes or omits asset provenance`);
@@ -394,8 +407,13 @@ const validateReferenceBridge = (bridge) => {
       if (identity.assetSetId === null) identity.assetSetId = asset.assetSetId;
       if (identity.sourceKind !== asset.sourceKind || identity.assetSetId !== asset.assetSetId) throw new Error(`reference bridge entry ${entry.skinId ?? "unknown"} mixes source kinds or asset sets`);
     }
+    accepted.push(entry);
+    } catch (error) {
+      if (!options.has("quarantine-reference-failures")) throw error;
+      referenceRejections.push({ route: entry.route ?? null, skinId: entry.skinId ?? null, reason: String(error instanceof Error ? error.message : error) });
+    }
   }
-  return bridge.entries;
+  return accepted;
 };
 const entries = confs.map((conf) => {
   const confCharacterNames = new Set((conf.Character ?? "").split(";"));
@@ -495,11 +513,13 @@ if (packageDir && composedDir && textureDir) {
   await copyFile(crowModel, path.join(packageDir, "models", "16000012.glb")); await copyFile(crowTexture, path.join(packageDir, "textures", "16000012.png"));
   manifest.pilot = { status: "diagnostic-unverified", reason: "composed-idle-visual-QA-failed", brawlerId: 16000012, skinId: "CrowDefault", package: { model: "models/16000012.glb", texture: "textures/16000012.png" }, animations: { idle: "embedded-in-diagnostic-glb", walk: unavailable("animation-export-not-run"), win: unavailable("animation-export-not-run"), lose: unavailable("animation-export-not-run"), attack: unavailable("animation-export-not-run"), ulti: unavailable("animation-export-not-run") } };
 }
+if (referenceRejections.length) manifest.referenceRejections = referenceRejections;
 if (JSON.stringify(manifest).includes("http://") || JSON.stringify(manifest).includes("https://")) throw new Error("manifest contains external URL");
 const runtimeEntry = (entry) => ({
   brawlerId: entry.brawlerId,
   skinId: entry.skinId,
   character: entry.character,
+  displayName: entry.displayName,
   publicCharacter: entry.publicCharacter,
   released: entry.released,
   assetGroup: entry.assetGroup,

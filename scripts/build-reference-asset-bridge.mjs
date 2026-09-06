@@ -98,7 +98,7 @@ function normalizeAsset(asset, role, context) {
   const declaredHash = asset.sha256 ?? asset.hash;
   if (declaredHash !== undefined && !/^[a-f0-9]{64}$/i.test(declaredHash)) return { error: `${role} has an invalid sha256` };
   const metadata = {};
-  for (const key of ["label", "startFrame", "endFrame", "fps", "face", "faceAvailable"]) if (asset[key] !== undefined) metadata[key] = asset[key];
+  for (const key of ["label", "startFrame", "endFrame", "fps", "face", "faceAvailable", "faceAtlasKey"]) if (asset[key] !== undefined) metadata[key] = asset[key];
   return { value: { role, path: asset.path, sourceKind, assetSetId, declaredHash: declaredHash?.toLowerCase() ?? null, metadata } };
 }
 
@@ -110,6 +110,7 @@ function inputAssets(entry) {
     if (assets[role] !== undefined) values.push([role, assets[role]]);
   }
   if (assets.faceAtlas !== undefined) values.push(["faceAtlas", assets.faceAtlas]);
+  for (const [name, asset] of Object.entries(assets.faceAtlases ?? {})) values.push([`faceAtlas:${name}`, asset]);
   if (assets.faces && typeof assets.faces === "object" && !Array.isArray(assets.faces)) {
     for (const [name, asset] of Object.entries(assets.faces)) values.push([`face:${name}`, asset]);
   }
@@ -135,11 +136,13 @@ function contentAddressedName(fileName, digest, role = "") {
 function resolveRuntimeReference(value, assets) {
   if (typeof value !== "string") return value;
   if (value === "texture") return assets.texture ?? null;
+  if (value === "specularTexture") return assets.specularTexture ?? null;
   if (value === "faceAtlas") return assets.faceAtlas ?? null;
   if (value === "face") return assets.face ?? null;
   const [kind, name] = value.split(":", 2);
   if (kind === "material") return assets.materials?.[name] ?? null;
   if (kind === "face") return assets.faces?.[name] ?? null;
+  if (kind === "faceAtlas") return assets.faceAtlases?.[name] ?? null;
   if (kind === "animation") return assets.animations?.[name] ?? null;
   return value;
 }
@@ -156,10 +159,11 @@ function resolveMetadataReferences(value, assets) {
  * the runtime catalog. Groups are rejected when their face/model packages do
  * not share the same source kind and asset-set identity.
  */
-export async function buildReferenceBridge({ inventory, charactersCsv = null, charactersRows = null, outputDir, publicPrefix = DEFAULT_PUBLIC_PREFIX, auditOutput = null, contentAddressed = false, storagePrefix = "" }) {
+export async function buildReferenceBridge({ inventory, charactersCsv = null, charactersRows = null, outputDir, publicPrefix = DEFAULT_PUBLIC_PREFIX, auditOutput = null, contentAddressed = false, deduplicateAssets = false, storagePrefix = "" }) {
   if (!inventory || !Array.isArray(inventory.routes ?? inventory.entries)) throw new Error("inventory must contain a routes or entries array");
   if (!charactersCsv && !Array.isArray(charactersRows)) throw new Error("charactersCsv or charactersRows is required for stable-ID mapping");
   if (!outputDir) throw new Error("outputDir is required to mirror assets into project-controlled storage");
+  if (deduplicateAssets && !contentAddressed) throw new Error("deduplicated delivery requires content-addressed assets");
   if (isExternalUrl(outputDir) || isExternalUrl(publicPrefix)) throw new Error("outputDir and publicPrefix must be local/same-origin");
   const rows = Array.isArray(charactersRows) ? charactersRows : parseCsv(await readFile(charactersCsv, "utf8"));
   const ids = stableIdMap(rows);
@@ -174,8 +178,13 @@ export async function buildReferenceBridge({ inventory, charactersCsv = null, ch
     const route = typeof entry?.route === "string" ? entry.route : null;
     const character = typeof entry?.character === "string" ? entry.character : null;
     const skinId = typeof entry?.skinId === "string" ? entry.skinId : null;
-    const brawlerId = character ? ids.get(character.toLowerCase()) ?? null : null;
+    const sourceCharacterId = character ? ids.get(character.toLowerCase()) ?? null : null;
+    const brawlerId = entry.identity?.entityKind === "pet" ? (entry.identity.ownerBrawlerIds?.length === 1 ? entry.identity.ownerBrawlerIds[0] : null) : sourceCharacterId;
     const errors = [];
+    const failedKeys = Object.keys(entry.downloadFailures ?? {});
+    const onlyOptionalAnimationsMissing = failedKeys.length > 0 && failedKeys.every((key) => key.startsWith("asset-animations-"));
+    if (entry.reason && !onlyOptionalAnimationsMissing) errors.push(`capture is incomplete: ${entry.reason}`);
+    if (entry.identity && !["matched", "reference-only"].includes(entry.identity.kind)) errors.push(`source identity is ${entry.identity.kind}`);
     if (!route) errors.push("route is required");
     if (route && seenRoutes.has(route)) errors.push("duplicate route");
     if (route) seenRoutes.add(route);
@@ -188,12 +197,18 @@ export async function buildReferenceBridge({ inventory, charactersCsv = null, ch
     if (typeof sourceKind !== "string" || !sourceKind) errors.push("sourceKind is required");
     if (typeof assetSetId !== "string" || !assetSetId) errors.push("assetSetId is required");
     const normalized = [];
+    const unavailableAnimations = [];
     for (const [role, asset] of inputAssets(entry)) {
+      if (role.startsWith("animation:") && asset?.kind === "unavailable") {
+        unavailableAnimations.push(role.slice("animation:".length));
+        continue;
+      }
       const result = normalizeAsset(asset, role, { sourceKind, assetSetId });
       if (result.error) errors.push(result.error);
       else normalized.push(result.value);
     }
     const rolesPresent = new Set(normalized.map((asset) => asset.role.split(":", 1)[0]));
+    if (Object.keys(entry.assets?.animations ?? {}).length && !rolesPresent.has("animation")) errors.push("no animation or static pose was captured");
     if (normalized.some((asset) => asset.role.startsWith("face:"))) rolesPresent.add("faces");
     for (const role of needed) if (!rolesPresent.has(role)) errors.push(`required asset missing: ${role}`);
     const sourceKinds = new Set(normalized.map((asset) => asset.sourceKind));
@@ -218,10 +233,13 @@ export async function buildReferenceBridge({ inventory, charactersCsv = null, ch
         if (asset.declaredHash && asset.declaredHash !== digest) { errors.push(`${asset.role} sha256 does not match local file`); continue; }
         const role = asset.role.startsWith("animation:") ? `animations/${safeSegment(asset.role.slice("animation:".length), "animation")}` : asset.role.startsWith("face:") ? `faces/${safeSegment(asset.role.slice("face:".length), "face")}` : asset.role.startsWith("material:") ? `materials/${safeSegment(asset.role.slice("material:".length), "material")}` : safeSegment(asset.role, "asset");
         const copiedName = contentAddressed ? contentAddressedName(safeFileName(path.basename(localPath), "asset"), digest, asset.role) : (asset.role === "face" || asset.role.startsWith("face:")) && !path.extname(path.basename(localPath)) ? `${safeFileName(path.basename(localPath), "face")}.bin` : safeFileName(path.basename(localPath), "asset");
-        const relative = path.join(...(storagePrefix ? [safeSegment(storagePrefix, "bridge")] : []), safeSegment(String(brawlerId), "unknown"), safeSegment(skinId, "skin"), role, copiedName);
+        const prefix = storagePrefix ? [safeSegment(storagePrefix, "bridge")] : [];
+        const relative = deduplicateAssets
+          ? path.join(...prefix, "objects", `${digest}${path.extname(copiedName)}`)
+          : path.join(...prefix, safeSegment(String(brawlerId), "unknown"), safeSegment(skinId, "skin"), role, copiedName);
         const destination = path.join(outputDir, relative);
         await mkdir(path.dirname(destination), { recursive: true });
-        await copyFile(localPath, destination);
+        if (!existsSync(destination) || sha256(await readFile(destination)) !== digest) await copyFile(localPath, destination);
         const url = `${publicPrefix.replace(/\/$/, "")}/${relative.split(path.sep).map(encodeURIComponent).join("/")}`;
         const value = { ...runtimeAsset(url, digest, bytes.byteLength, asset.sourceKind, asset.assetSetId), ...(asset.metadata ?? {}) };
         if (asset.role.startsWith("animation:")) {
@@ -233,6 +251,9 @@ export async function buildReferenceBridge({ inventory, charactersCsv = null, ch
         } else if (asset.role.startsWith("material:")) {
           runtimeAssets.materials ??= {};
           runtimeAssets.materials[asset.role.slice("material:".length)] = value;
+        } else if (asset.role.startsWith("faceAtlas:")) {
+          runtimeAssets.faceAtlases ??= {};
+          runtimeAssets.faceAtlases[asset.role.slice("faceAtlas:".length)] = value;
         } else if (asset.role === "faceAtlas") runtimeAssets.faceAtlas = value;
         else runtimeAssets[asset.role] = value;
         provenance.push({ role: asset.role, path: asset.path, sha256: digest, bytes: bytes.byteLength });
@@ -247,8 +268,14 @@ export async function buildReferenceBridge({ inventory, charactersCsv = null, ch
       character,
       skinId,
       route,
+      cameraScale: Number(entry.cameraScale) || 1,
+      displayName: entry.displayName ?? null,
+      identity: entry.identity ?? null,
+      sourceCharacterId,
       selection: entry.catalogRole ? { role: entry.catalogRole } : null,
       status,
+      captureComplete: !entry.reason,
+      unavailableAnimations,
       runtimeEligible: status === "ready" && legal.status === "cleared",
       activation: status === "ready" && legal.status === "cleared" ? "allowed" : "disabled-by-provenance",
       reason: errors.length ? [...new Set(errors)] : null,
@@ -261,7 +288,7 @@ export async function buildReferenceBridge({ inventory, charactersCsv = null, ch
       capabilities: status === "ready" ? resolveMetadataReferences(entry.capabilities ?? {}, runtimeAssets) : {},
     };
     entries.push(runtimeEntry);
-    auditEntries.push({ ...runtimeEntry, sourceUrl: entry.sourceUrl ?? null, sourceRoute: entry.sourceRoute ?? route, license: legal, localAssets: provenance });
+    auditEntries.push({ ...runtimeEntry, sourceUrl: entry.sourceUrl ?? null, sourceRoute: entry.sourceRoute ?? route, license: legal, localAssets: provenance, captureIssues: entry.downloadFailures ?? null });
   }
 
   const covered = entries.filter((entry) => entry.status === "ready");
@@ -297,10 +324,10 @@ async function main() {
   if (!inventoryPath || !charactersCsv || !output || !outputDir) throw new Error("--inventory, --characters-csv, --output, and --output-dir are required");
   const inventory = JSON.parse(await readFile(inventoryPath, "utf8"));
   inventory.__path = inventoryPath;
-  const result = await buildReferenceBridge({ inventory, charactersCsv, outputDir, publicPrefix: options.get("public-prefix") ?? DEFAULT_PUBLIC_PREFIX, auditOutput: options.get("audit-output") ?? null, contentAddressed: options.has("content-addressed"), storagePrefix: options.get("storage-prefix") ?? "" });
+  const result = await buildReferenceBridge({ inventory, charactersCsv, outputDir, publicPrefix: options.get("public-prefix") ?? DEFAULT_PUBLIC_PREFIX, auditOutput: options.get("audit-output") ?? null, contentAddressed: options.has("content-addressed"), deduplicateAssets: options.has("deduplicate-assets"), storagePrefix: options.get("storage-prefix") ?? "" });
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, `${JSON.stringify(result, null, 2)}\n`);
   if (result.coverage.unavailableRoutes) process.exitCode = 1;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => { console.error(error.message); process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => { console.error(error.message); process.exitCode = 1; });

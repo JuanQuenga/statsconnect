@@ -52,6 +52,15 @@ test("sanitizes source node separators without changing other names", () => {
   assert.equal(sanitizedNodeName("head_s:SSC"), "head_sSSC");
 });
 
+test("accepts an authored empty face frame without inventing geometry", () => {
+  const bytes = new ArrayBuffer(12);
+  const view = new DataView(bytes);
+  view.setUint32(0, 1, true);
+  assert.deepEqual(decodeFaceBinary(bytes), { frames: [{ vertices: [], indices: [] }] });
+  view.setUint32(8, 3, true);
+  assert.throws(() => decodeFaceBinary(bytes), /no geometry/);
+});
+
 test("decodes the native face binary header and frame payload", () => {
   const buffer = new ArrayBuffer(4 + 8 + (2 * 8) + (2 * 4) + (2 * 4) + (2 * 3) + (3 * 2));
   const view = new DataView(buffer);
