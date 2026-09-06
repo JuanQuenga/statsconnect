@@ -330,6 +330,7 @@ function pageToInventoryEntry({ html, route, displayName, cdnOrigin, characters,
   const materialsOverride = attrs["data-materials-file-override"] || null;
   if (materialsOverride) assets.materialSource = sourceAsset(sourceUrl(cdnOrigin, materialsOverride, "materialsSource"), "materialsSource");
   const atlasNames = [...new Set(Object.values(page.animations).filter((value) => Array.isArray(value) && typeof value[1] === "string" && value[1]).map((value) => value[1]))];
+  if (atlasNames.length > 1) throw new Error("multiple face atlases require per-face atlas support");
   if (atlasNames[0]) assets.faceAtlas = sourceAsset(sourceUrl(cdnOrigin, atlasNames[0], "faceAtlas"), "faceAtlas");
   const symbols = faceSymbols(page.animations);
   if (symbols.face) assets.face = sourceAsset(sourceUrl(cdnOrigin, symbols.face, "face"), "face");
@@ -338,7 +339,9 @@ function pageToInventoryEntry({ html, route, displayName, cdnOrigin, characters,
   const animationMetadata = {};
   for (const [key, value] of Object.entries(page.animations)) {
     if (!Array.isArray(value) || typeof value[0] !== "string" || !value[0]) continue;
-    const face = value[2] === symbols.happy ? "happy" : value[2] === symbols.sad ? "sad" : value[2] === symbols.face ? "face" : null;
+    const faceExport = typeof value[2] === "string" && value[2] ? value[2] : null;
+    const face = !faceExport ? null : faceExport === symbols.happy ? "happy" : faceExport === symbols.sad ? "sad" : faceExport === symbols.face ? "face" : faceExport;
+    if (face && !["face", "happy", "sad"].includes(face)) assets.faces[face] = sourceAsset(sourceUrl(cdnOrigin, faceExport, "face"), `face:${face}`);
     const timing = referenceAnimationTiming(value[0], value[3], value[4]);
     assets.animations[key] = sourceAsset(sourceUrl(cdnOrigin, value[0], "animation"), `animation:${key}`, { label: value[5] ?? key, ...timing, face });
     animationMetadata[key] = { label: value[5] ?? key, ...timing, face };

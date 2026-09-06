@@ -61,6 +61,18 @@ responses.
 Use `scripts/materialize-brawl-assets.mjs` to turn source-ready entries into
 self-hosted browser assets. It requires the pinned local converter checkout
 and the pinned `sc5-parser` environment; it never emits a source-mirror URL.
+Install the conversion dependencies from the repository's pinned requirements:
+
+```sh
+uv venv /absolute/path/to/brawl-asset-venv
+uv pip install --python /absolute/path/to/brawl-asset-venv/bin/python -r scripts/brawl-asset-tools-requirements.txt
+```
+
+Pass that Python executable to `--python`. The converter still uses NumPy
+scalar coercions that NumPy 2.4 removed, so do not replace the pinned NumPy
+version with the latest version. The SC5 parser checkout is supplied separately
+through `--parser-root` as documented in `docs/SC5_FACE_EXPORT.md`.
+
 The command is bounded for QA, or can run catalog-wide by omitting `--limit`:
 
 ```sh
@@ -89,17 +101,65 @@ pnpm materialize:brawl-assets -- \
   --report /absolute/path/to/materialization-report.json
 ```
 
+The raw conversion plan resolves each configured animation symbol through
+`csv_client/animations.csv`. It preserves the exact source filename, frame
+window, and playback speed. Source speed is a percentage; the catalog stores
+its multiplier separately from the source frame rate. Materialization reads
+the source animation's authored frame rate before conversion removes that
+metadata. Ready exports require this verified FPS; it is not assumed to be
+60. Unconfigured roles do not receive guessed animations.
+
 Before any asset is reported ready, the materializer verifies the pinned
 HalfVector2 rotation patch, requires `TEXCOORD_0` on every emitted geometry
-primitive, and validates every animation quaternion/GLB. A failed check is an
-unavailable reason; it is never replaced with a fallback or a third-party URL.
+primitive, and validates every animation quaternion/GLB. Catalog generation
+repeats the geometry check for existing exports. Animation and face metadata
+must match the pinned source commit, file, and configured symbol. Old exports
+without matching provenance remain unavailable until regenerated.
 
-The materializer converts FLA2 geometry/animations, decodes ASTC SCTX
-diffuse textures, and exports a native SC5 idle face atlas/binary. Failed
-inputs remain unavailable with a reason in the report. The older ignored
+The converter patch also handles array-backed quaternion accessors explicitly
+with `.item()`, which is required by newer NumPy versions. Run
+`python3 scripts/converter-rotation.test.py` to test the shipped decoder patch.
+
+The materializer converts FLA2 geometry and animations, decodes ASTC SCTX
+diffuse textures, and exports every configured native SC5 face role. Each
+role has its own PNG, binary, and metadata file. Roles reuse bytes only when
+their SC source file and exact export name match. Failed inputs remain
+unavailable with a reason in the report. The older ignored
 `.generated/brawl-3d/materialized-sample-distinct-3` fixture predates these
 fail-closed checks and must not be used as a release artifact; regenerate it
 with the command above.
+
+Raw material slots come from the converted geometry's used material names,
+constants, and texture references. Unsupported material-file overrides,
+custom shaders, or material effects remain explicitly unavailable. The
+viewer must not advertise those skins as complete standard-material exports.
+
+## Verify the delivered package
+
+Run the real-asset check after regenerating the catalog and shards:
+
+```sh
+node apps/brawlstats/scripts/verify-brawler-assets.mjs /absolute/path/to/converted-brawl-3d
+```
+
+The check parses the actual catalog, checks ready-file references and geometry
+UVs, validates animation quaternions, loads every selectable body and animation
+through Three.js, decodes selected face binaries, and checks finite skinned
+bounds. Failures produce a nonzero exit code. Static pose exports without an
+animation clip remain valid and are reported separately.
+
+This CPU check uses placeholder external textures. It does not prove rendered
+texture placement. Check the corresponding brawler hero in a browser, including
+skin changes, bounded animations, pause/resume, faces, outlines, and framing.
+Neither unit tests nor file existence replace that visual check.
+
+Reference packages declare face associations per animation. Those associations
+are retained for attack, super, and custom animations; a missing declaration
+does not receive an inferred face. The viewer normalizes finite, nonzero
+reference node rotations and linear quaternion keys in memory. This repairs
+non-unit rotations in mirrored reference packages without modifying their
+source bytes. Invalid rotations and unsupported non-unit cubic curves fail
+closed. Raw conversion still requires unit quaternions at publication.
 
 The converted package stays outside tracked source. The Vite server uses
 `BRAWL_3D_ASSET_DIR` when it is set; otherwise it uses the deterministic,

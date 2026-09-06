@@ -5,7 +5,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { BrawlerViewerControls } from "@/components/BrawlerViewerControls";
 import { brawlerAssetCatalogUrl, catalogEntryLabel, catalogEntryToViewerManifest, createBrawlerAssetCatalogRequestCache, loadBrawlerAssetCatalog, selectCatalogViewerEntry, type BrawlerAssetCatalog, type BrawlerAssetCatalogEntry } from "@/lib/brawler-asset-catalog";
-import { BrawlerViewerRuntime } from "@/lib/brawler-viewer-runtime";
+import { BrawlerViewerRuntime, centerModelForFraming } from "@/lib/brawler-viewer-runtime";
 import { brawlerModel3dAsset, brawlerModel3dUrl } from "@/lib/brawler-models";
 import { createOutlineCompositeMaterial, type ViewerFeature } from "@/lib/brawler-viewer-contract";
 
@@ -63,8 +63,8 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
         } else return;
         if (cancelled) return;
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas }); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.setClearAlpha(0); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
-        const root = runtime?.root ?? legacyModel!; root.updateMatrixWorld(true); const bounds = runtime?.getFramingBounds() ?? new THREE.Box3().setFromObject(root, true); const center = bounds.getCenter(new THREE.Vector3()); const size = bounds.getSize(new THREE.Vector3()); const largest = Math.max(size.x, size.y, size.z); if (!Number.isFinite(largest) || largest <= 0) throw new Error("model has invalid dimensions");
-        const wrapper = new THREE.Group(); wrapper.add(root); wrapper.position.copy(center).multiplyScalar(-1); wrapper.updateMatrixWorld(true); const centered = new THREE.Box3().setFromObject(wrapper); const scene = new THREE.Scene(); scene.add(wrapper); const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(3, 5, 4); scene.add(key); const fill = new THREE.DirectionalLight(0xb8d5ff, 0.35); fill.position.set(-4, 2, 1); scene.add(fill); scene.add(new THREE.HemisphereLight(0xffffff, 0x26364a, 0.55));
+        const root = runtime?.root ?? legacyModel!; root.updateMatrixWorld(true); const bounds = runtime?.getFramingBounds() ?? new THREE.Box3().setFromObject(root, true); const { wrapper, bounds: centered, largestDimension: largest } = centerModelForFraming(root, bounds);
+        const scene = new THREE.Scene(); scene.add(wrapper); const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(3, 5, 4); scene.add(key); const fill = new THREE.DirectionalLight(0xb8d5ff, 0.35); fill.position.set(-4, 2, 1); scene.add(fill); scene.add(new THREE.HemisphereLight(0xffffff, 0x26364a, 0.55));
         const camera = new THREE.PerspectiveCamera(runtime ? 20 : 32, 1, 0.01, largest * 20); const direction = new THREE.Vector3(0.18, 0.05, 1.18).normalize();
         // HomeScreenScale is a source-authored framing hint. Apply it relative to
         // the reference 290 value, but cap the zoom so tall/wide skins never clip.
@@ -80,9 +80,11 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
   const togglePlaying = () => { if (runtimeRef.current) { const next = !runtimeRef.current.getState().playing; runtimeRef.current.setPlaying(next); setState((current) => ({ ...current, playing: next })); return; } const action = legacyActionRef.current; if (!action) return; action.paused = !action.paused; setState((current) => ({ ...current, playing: !action.paused })); };
   const hasCatalogRuntime = Boolean(manifest && activeAnimation); const modelReady = state.model === "ready"; const selectedFaceReady = Boolean(manifest && activeAnimation && manifest.animations[activeAnimation]?.[1].kind === "ready" && manifest.animations[activeAnimation]?.[2].kind === "ready"); const featureFace = hasCatalogRuntime && selectedFaceReady ? { kind: "available" } satisfies ViewerFeature : { kind: "unavailable", reason: hasCatalogRuntime ? "not-captured" : "transform-unverified" } satisfies ViewerFeature; const featureOutline = hasCatalogRuntime ? entryFeature(selectedEntry, "outline") : { kind: "unavailable", reason: "not-captured" } satisfies ViewerFeature;
   const modelDataState = state.model === "failed" ? "failed" : state.model === "ready" ? "ready" : state.model === "loading" ? "loading" : "unavailable";
-  return <div className={`relative isolate h-full min-h-[24rem] w-full overflow-visible ${className ?? ""}`} data-idle-state={state.model} data-model-state={modelDataState}>
+  return <div className={`relative isolate flex h-full min-h-[24rem] w-full flex-col overflow-visible ${className ?? ""}`} data-idle-state={state.model} data-model-state={modelDataState}>
+    <div className="relative min-h-0 flex-1">
     <ImageWithFallback src={artworkSrc} fallbackSrc={fallbackSrc} alt={alt} data-art-kind={artworkKind} className={`absolute inset-0 h-full w-full object-contain drop-shadow-2xl transition-opacity duration-300 ${modelReady ? "opacity-0" : "opacity-100"}`} />
-    {hasCatalogRuntime || legacyAsset ? <canvas ref={canvasRef} aria-hidden="true" className={`absolute inset-x-0 -inset-y-8 h-[calc(100%+4rem)] w-full touch-none transition-opacity duration-300 ${modelReady ? "cursor-grab opacity-100 active:cursor-grabbing" : "pointer-events-none opacity-0"}`} /> : null}
+    {hasCatalogRuntime || legacyAsset ? <canvas ref={canvasRef} aria-hidden="true" className={`absolute inset-0 h-full w-full touch-none transition-opacity duration-300 ${modelReady ? "cursor-grab opacity-100 active:cursor-grabbing" : "pointer-events-none opacity-0"}`} /> : null}
+    </div>
     {hasCatalogRuntime || legacyAsset ? <BrawlerViewerControls playing={state.playing} skinOptions={entries.map((entry) => ({ id: entry.skinId, label: catalogEntryLabel(entry) }))} animationOptions={animationOptions} selectedSkin={selectedEntry?.skinId} selectedAnimation={activeAnimation} onSelectSkin={(skinId) => { if (entries.some((entry) => entry.skinId === skinId)) setSelectedSkin(skinId); }} onSelectAnimation={setSelectedAnimation} face={featureFace} outline={featureOutline} faceEnabled={state.faceEnabled} outlineEnabled={state.outlineEnabled} onTogglePlaying={togglePlaying} onToggleFace={() => { const next = !state.faceEnabled; runtimeRef.current?.setFaceEnabled(next); setState((current) => ({ ...current, faceEnabled: next })); }} onToggleOutline={() => { const next = !state.outlineEnabled; runtimeRef.current?.setOutlineEnabled(next); setState((current) => ({ ...current, outlineEnabled: next })); }} /> : null}
   </div>;
 }

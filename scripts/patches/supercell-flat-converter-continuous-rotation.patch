@@ -7,7 +7,7 @@ index dbc7f68..4279769 100644
 +    @staticmethod
 +    def decode_base_rotation_component(raw_value: int) -> float:
 +        """Decode packed uint16 quaternion bits as signed int16 / 32767."""
-+        signed_value = int(raw_value)
++        signed_value = int(raw_value.item() if hasattr(raw_value, "item") else raw_value)
 +        if signed_value >= 0x8000:
 +            signed_value -= 0x10000
 +        return max(-1.0, signed_value / 32767.0)

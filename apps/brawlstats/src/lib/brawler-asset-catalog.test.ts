@@ -92,6 +92,21 @@ test("selects the reference render-target Y flip for bridged entries", () => {
   assert.equal(manifest?.materialSlots?.[0]?.stencilUvPolicy, "flip-y");
 });
 
+test("transports source playback speed independently from body and face FPS", () => {
+  const value = fixture();
+  const entry = value.defaults[0];
+  const spedUp = { ...value, defaults: [{ ...entry, animations: {
+    IdleAnim: { ...entry.animations.IdleAnim, speed: 1.25, fps: 60, startFrame: 10, endFrame: 20 },
+  } }] };
+  const manifest = catalogEntryToViewerManifest(parseBrawlerAssetCatalog(spedUp).defaults[0]);
+  assert.deepEqual(manifest?.animations.IdleAnim?.slice(3), [10, 20, "Idle Animation", 60, 60, 1.25]);
+  assert.equal(catalogEntryToViewerManifest(parseBrawlerAssetCatalog(value).defaults[0])?.animations.IdleAnim?.[8], 1);
+  for (const speed of [0, -1, NaN, Infinity, "1.25"]) {
+    const invalid = { ...spedUp, defaults: [{ ...entry, animations: { IdleAnim: { ...entry.animations.IdleAnim, speed } } }] };
+    assert.throws(() => parseBrawlerAssetCatalog(invalid), /positive finite multiplier/);
+  }
+});
+
 test("keeps delivered catalog URLs under the unified 3D asset rewrite and preserves animation keys", () => {
   const catalog = parseBrawlerAssetCatalog(fixture());
   const entry = catalog.defaults[0];
@@ -173,6 +188,44 @@ test("requires both face atlas and binary before enabling native face rendering"
   assert.equal(missingHalf.face.kind, "unavailable");
   assert.equal(missingHalf.animations.IdleAnim?.[1].kind, "ready");
   assert.equal(missingHalf.animations.IdleAnim?.[2].kind, "unavailable");
+});
+
+test("uses source-declared face associations for attack and custom animation keys", () => {
+  const value = fixture();
+  const source = value.defaults[0];
+  const idleFace = { ...source.faces.IdleFace, ready: true, resolved: true, atlas: ready("/assets/idle.png"), binary: ready("/assets/idle.bin"), fps: 30 };
+  const customFace = { ...idleFace, atlas: ready("/assets/taunt.png"), binary: ready("/assets/taunt.bin"), fps: 24 };
+  const catalog = parseBrawlerAssetCatalog({ ...value, defaults: [{
+    ...source,
+    animations: {
+      PrimarySkillAnim: { ...source.animations.IdleAnim, faceField: "IdleFace" },
+      SecondarySkillAnim: { ...source.animations.IdleAnim, faceField: "IdleFace" },
+      "ReferenceAnim:taunt": { ...source.animations.IdleAnim, faceField: "ReferenceFace:taunt" },
+    },
+    faces: { IdleFace: idleFace, "ReferenceFace:taunt": customFace },
+  }] });
+  const manifest = catalogEntryToViewerManifest(catalog.defaults[0]);
+  assert.deepEqual(manifest?.animations.PrimarySkillAnim?.[1], idleFace.atlas);
+  assert.deepEqual(manifest?.animations.SecondarySkillAnim?.[2], idleFace.binary);
+  assert.deepEqual(manifest?.animations["ReferenceAnim:taunt"]?.[1], customFace.atlas);
+  assert.deepEqual(manifest?.animations["ReferenceAnim:taunt"]?.[2], customFace.binary);
+  assert.equal(manifest?.animations["ReferenceAnim:taunt"]?.[7], 24);
+});
+
+test("explicitly absent or missing face associations never fall back to the legacy role mapping", () => {
+  const value = fixture();
+  const source = value.defaults[0];
+  const idleFace = { ...source.faces.IdleFace, ready: true, resolved: true, atlas: ready("/assets/idle.png"), binary: ready("/assets/idle.bin") };
+  for (const faceField of [null, "MissingFace"]) {
+    const catalog = parseBrawlerAssetCatalog({ ...value, defaults: [{
+      ...source,
+      animations: { IdleAnim: { ...source.animations.IdleAnim, faceField } },
+      faces: { IdleFace: idleFace },
+    }] });
+    const manifest = catalogEntryToViewerManifest(catalog.defaults[0]);
+    assert.equal(manifest?.animations.IdleAnim?.[1].kind, "unavailable");
+    assert.equal(manifest?.animations.IdleAnim?.[2].kind, "unavailable");
+  }
 });
 
 test("indexes every local skin by stable brawler ID and only advertises complete runtime entries", () => {

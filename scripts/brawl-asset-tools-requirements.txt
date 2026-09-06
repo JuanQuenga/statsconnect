@@ -1,0 +1,8 @@
+# Shared Python environment for the pinned converter and SC5 source adapters.
+# The converter uses scalar coercions removed in NumPy 2.4.
+binary-reader==1.4.3
+flatbuffers==25.12.19
+numpy==2.2.6
+Pillow==12.1.1
+texture2ddecoder==1.0.6
+zstandard==0.25.0

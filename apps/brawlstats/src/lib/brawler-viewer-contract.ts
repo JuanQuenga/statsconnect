@@ -23,6 +23,7 @@ export type AnimationEntry = readonly [
   label: string,
   animationFps?: number,
   faceFps?: number,
+  playbackSpeed?: number,
 ];
 
 export type ViewerFeature =

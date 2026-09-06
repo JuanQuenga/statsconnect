@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Sequence
 from PIL import Image
+from sc5_export_names import read_sc5_resource_data, repair_sc5_export_names
 
 _SPEC = importlib.util.spec_from_file_location("export_sc5_face", Path(__file__).with_name("export-sc5-face.py"))
 assert _SPEC and _SPEC.loader
@@ -129,32 +130,8 @@ def decode_ktx1_astc(
 
 def _embedded_texture_data(sc_file: Path, parser_root: Path) -> bytes:
     """Read the first high-resolution inline TextureData vector from SC5."""
-    raw = sc_file.read_bytes()
-    if len(raw) < 10 or raw[:2] != b"SC" or struct.unpack_from("<I", raw, 2)[0] != 5:
-        raise EmbeddedTextureError("source is not an SC5 file")
-    sys.path.insert(0, str(parser_root / "src"))
-    try:
-        import zstandard
-        from sc5_parser._schemas.sc.flash.SC2.FileDescriptor import FileDescriptor
-        from sc5_parser._schemas.sc.flash.SC2.Textures import Textures
-    except ImportError as exc:
-        raise EmbeddedTextureError("SC5 inline extraction requires the pinned parser tool") from exc
-    descriptor_size = struct.unpack_from("<I", raw, 6)[0]
-    descriptor_end = 10 + descriptor_size
-    if descriptor_end > len(raw):
-        raise EmbeddedTextureError("SC5 descriptor is truncated")
-    descriptor = FileDescriptor.GetRootAs(raw[10:descriptor_end], 0)
-    compressed_start = descriptor_end
-    compressed_end = compressed_start + descriptor.CompressedSize()
-    if compressed_end > len(raw):
-        raise EmbeddedTextureError("SC5 compressed stream is truncated")
-    try:
-        inner = zstandard.ZstdDecompressor().decompress(
-            raw[compressed_start:compressed_end], max_output_size=100 * 1024 * 1024
-        )
-    except Exception as exc:
-        raise EmbeddedTextureError("SC5 compressed stream could not be decoded") from exc
-    position = descriptor.ResourcesOffset()
+    inner, position = read_sc5_resource_data(sc_file, parser_root)
+    from sc5_parser._schemas.sc.flash.SC2.Textures import Textures
     # Resources are size-prefixed in the same order consumed by sc5-parser.
     for _ in range(5):
         if position + 4 > len(inner):
@@ -446,6 +423,7 @@ def main():
     from sc5_parser.parser import SC5File
     from sc5_parser.render import extract_sprite_with_offset
     sc = SC5File(args.sc_file)
+    repair_sc5_export_names(sc, args.sc_file, args.parser_root)
     source, provenance = load_atlas_source(
         sc,
         args.sc_file,
@@ -469,6 +447,8 @@ def main():
         metadata.update({
             "export_mode": "vector-source-atlas",
             "selected_export": selected_export,
+            "export_object_id": sc.exports[selected_export],
+            "export_name_reference_base": 0,
             "atlas_size": list(source.size),
             "translate": [0.0, 0.0],
             "sc_file": str(args.sc_file),
@@ -509,6 +489,9 @@ def main():
         end=last,
     ).as_json()
     metadata.update({
+        "selected_export": args.export,
+        "export_object_id": sc.exports[args.export],
+        "export_name_reference_base": 0,
         "rendered_frames": len(rendered),
         "skipped_frames": skipped_frames,
         "unique_frames": len({hashlib.sha256(image.tobytes()).digest() for image, _, _ in rendered}),

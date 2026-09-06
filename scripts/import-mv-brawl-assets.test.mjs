@@ -98,6 +98,8 @@ test("crawls the canonical English inventory and mirrors Spike, Crow, Colt, and 
     assert.equal(inventory.routes[1].faceFlags.coversWholeTexture, false, "empty reference data attributes are false");
     const colt = inventory.routes.find((entry) => entry.skinId === "GunSlingerDefault");
     assert.deepEqual(colt?.animationMetadata.idle, { label: "Idle Anim", startFrame: 0, endFrame: 27, fps: 120, face: "face" });
+    assert.equal(colt?.animationMetadata.weapon.face, "face");
+    assert.equal(colt?.animationMetadata.ulti.face, "face");
     const spike = inventory.routes.find((entry) => entry.skinId === "CactusDefault");
     assert.equal(spike?.animationMetadata.idle.fps, 30);
     assert.equal(inventory.routes.every((entry) => entry.capabilities.outline.enabled === true), true, "outline is always available in the reference viewer");
@@ -118,6 +120,23 @@ test("crawls the canonical English inventory and mirrors Spike, Crow, Colt, and 
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("preserves every explicit face export bound to custom page animations", async () => {
+  const animations = {
+    idle: ["idle.glb", "characters.sc", "colt_face", "", "-1", "Idle"],
+    taunt: ["taunt.glb", "characters.sc", "colt_taunt", "", "-1", "Taunt"],
+  };
+  const html = `<canvas id="glCanvas" data-model-name="colt_redux_geo.glb" data-diffuse-texture-override="colt_redux_tex.sctx" data-animations="${JSON.stringify(animations).replaceAll('"', "&#34;")}"></canvas>`;
+  const inventoryHtml = `<div id="search-data" data-entries="${JSON.stringify([[true, "", false, "Colt (Default)"]]).replaceAll('"', "&#34;")}"></div>`;
+  const fetchImpl = async (url) => new Response(url === "https://mv.brawlstars.top/en/" ? inventoryHtml : html, { status: 200 });
+  const result = await crawlMvInventory({ ...sourceTables(), fetchImpl, requestDelayMs: 0 });
+  const colt = result.routes[0];
+  assert.equal(colt.animationMetadata.taunt.face, "colt_taunt");
+  assert.equal(colt.assets.faces.colt_taunt.url, "https://cdn.brawlbox.com.cn/faces/colt_taunt");
+  const mismatchedAtlas = html.replace("characters.sc", "other-characters.sc");
+  const mixed = await crawlMvInventory({ ...sourceTables(), fetchImpl: async (url) => new Response(url === "https://mv.brawlstars.top/en/" ? inventoryHtml : mismatchedAtlas), requestDelayMs: 0 });
+  assert.equal(mixed.routes[0].reason, "multiple face atlases require per-face atlas support");
 });
 
 test("resumes a completed route without requesting its page or CDN files", async () => {

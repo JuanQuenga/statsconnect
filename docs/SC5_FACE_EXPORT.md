@@ -66,6 +66,16 @@ once the face-state labels are confirmed.
 
 ## Catalog state resolution
 
+Both exporters use `scripts/sc5_export_names.py` to resolve serialized export
+names to their exact object IDs. The pinned parser incorrectly treats
+`ExportNames.NameRefIds` as one-based. These references are zero-based; using
+the wrong base can select an unrelated MovieClip while retaining a face name.
+The adapter corrects this lookup without modifying the parser checkout.
+
+Metadata records `export_name_reference_base: 0` and `export_object_id`.
+Catalog generation requires these fields, so older wrong-name exports must be
+regenerated even when their source commit and configured symbol still match.
+
 `export-sc5-face-raster.py` is the catalog-safe path. It calls the pinned
 parser's `extract_sprite_with_offset`, which applies SC5 MovieClip masks and
 color transforms before atlas packing. `resolve_face_exports` and
@@ -100,12 +110,16 @@ Explicit `true` values from other skin-conf rows are preserved verbatim and
 enable the corresponding shader case; the exporter does not infer or
 brawler-hardcode missing flags.
 
-Materialization is fail-closed: it exports only the catalog's exact
-`IdleFace` mapping. Profile, hero-screen, happy, and other face exports are
-not substituted for idle state because their timelines and transforms may not
-match the model. If the mapped idle export is absent or cannot be paired with
-the source atlas, the face remains unavailable until that exact source export
-is proven. This applies uniformly to all brawlers and skins.
+Materialization exports every configured face role through its exact
+`faces.csv` source filename and export name. Each role receives its own
+`<Role>.png`, `<Role>.bin`, and `<Role>.meta.json` pair. Profile, hero-screen,
+happy, and other exports never substitute for an absent idle export.
+
+Two roles may reuse bytes only when both their SC source file and export name
+match. Metadata records the source commit, file, configured symbol, export
+name, and native FPS. Catalog generation checks that provenance before marking
+the pair ready. A missing export, mismatched metadata, or failed atlas pairing
+leaves that role unavailable without enabling another face in its place.
 
 ## Atlas provenance and fail-closed pairing
 

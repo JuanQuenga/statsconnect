@@ -14,6 +14,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+from sc5_export_names import repair_sc5_export_names
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,7 @@ def main() -> int:
     args = parser.parse_args()
     SC5File = _load_parser(args.parser_root)
     sc = SC5File(args.sc_file)
+    repair_sc5_export_names(sc, args.sc_file, args.parser_root)
     frames = [frame for name in args.exports for frame in flatten_export(sc, name)]
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(encode_face_binary(frames))

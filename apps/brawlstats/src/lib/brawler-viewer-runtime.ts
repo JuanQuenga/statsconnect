@@ -24,6 +24,52 @@ export type LoadedModel = {
   readonly animations: readonly THREE.AnimationClip[];
 };
 
+/** Repair mirrored reference rotations in memory, without rewriting source assets. */
+export function normalizeReferenceModelRotations(model: LoadedModel): {
+  readonly normalizedNodeCount: number;
+  readonly normalizedSampleCount: number;
+  readonly maximumNormDeviation: number;
+} {
+  let normalizedNodeCount = 0;
+  let normalizedSampleCount = 0;
+  let maximumNormDeviation = 0;
+  const rotationNorm = (values: readonly number[], label: string): number => {
+    const norm = Math.hypot(...values);
+    if (!Number.isFinite(norm) || norm === 0) throw new Error(`reference rotation is zero or non-finite: ${label}`);
+    maximumNormDeviation = Math.max(maximumNormDeviation, Math.abs(norm - 1));
+    return norm;
+  };
+  model.scene.traverse((node) => {
+    const norm = rotationNorm(node.quaternion.toArray(), node.name);
+    if (Math.abs(norm - 1) <= 1e-6) return;
+    const { x, y, z, w } = node.quaternion;
+    node.quaternion.set(x / norm, y / norm, z / norm, w / norm);
+    node.updateMatrix();
+    normalizedNodeCount += 1;
+  });
+  for (const clip of model.animations) for (const track of clip.tracks) {
+    if (!(track instanceof THREE.QuaternionKeyframeTrack)) continue;
+    // glTF cubic rotation accessors interleave incoming tangent, value, outgoing
+    // tangent. Tangents are derivatives and must never be normalized as rotations.
+    const factory = "createInterpolant" in track ? track.createInterpolant : undefined;
+    const cubic = typeof factory === "function" && "isInterpolantFactoryMethodGLTFCubicSpline" in factory && factory.isInterpolantFactoryMethodGLTFCubicSpline === true;
+    const stride = cubic ? 12 : 4;
+    if (track.getValueSize() !== stride || track.times.length === 0) throw new Error(`reference rotation track has an invalid shape: ${track.name}`);
+    if (!Array.from(track.values).every(Number.isFinite)) throw new Error(`reference rotation is zero or non-finite: ${track.name}`);
+    for (let offset = cubic ? 4 : 0; offset < track.values.length; offset += stride) {
+      const norm = rotationNorm(Array.from(track.values.slice(offset, offset + 4)), track.name);
+      if (Math.abs(norm - 1) <= 1e-6) continue;
+      const interpolation = track.getInterpolation();
+      if (cubic || (interpolation !== THREE.InterpolateLinear && interpolation !== THREE.InterpolateDiscrete)) {
+        throw new Error(`reference non-unit rotation uses unsupported interpolation: ${track.name}`);
+      }
+      for (let component = 0; component < 4; component += 1) track.values[offset + component] /= norm;
+      normalizedSampleCount += 1;
+    }
+  }
+  return { normalizedNodeCount, normalizedSampleCount, maximumNormDeviation };
+}
+
 export type ViewerRuntimeLoader = {
   readonly loadModel: (url: string) => Promise<LoadedModel>;
   readonly loadTexture: (url: string) => Promise<THREE.Texture>;
@@ -47,6 +93,22 @@ export type ViewerRuntimeState = {
   readonly outlineEnabled: boolean;
   readonly faceFrame: number;
 };
+
+/** Center the sampled animation envelope, retaining every pose for camera fitting. */
+export function centerModelForFraming(root: THREE.Object3D, sampledBounds: THREE.Box3): {
+  readonly wrapper: THREE.Group;
+  readonly bounds: THREE.Box3;
+  readonly largestDimension: number;
+} {
+  const size = sampledBounds.getSize(new THREE.Vector3());
+  const largestDimension = Math.max(size.x, size.y, size.z);
+  if (!Number.isFinite(largestDimension) || largestDimension <= 0) throw new Error("model has invalid dimensions");
+  const wrapper = new THREE.Group();
+  wrapper.add(root);
+  wrapper.position.copy(sampledBounds.getCenter(new THREE.Vector3())).multiplyScalar(-1);
+  wrapper.updateMatrixWorld(true);
+  return { wrapper, bounds: sampledBounds.clone().applyMatrix4(wrapper.matrixWorld), largestDimension };
+}
 
 function assetUrl(asset: { readonly kind: "ready"; readonly url: string }): string {
   if (!isStrictLocalAssetUrl(asset.url)) throw new Error("viewer runtime accepts same-origin assets only");
@@ -86,7 +148,15 @@ export class BrawlerViewerRuntime {
   private faceMesh: THREE.Mesh | undefined;
   private animationRange: readonly [number, number] | undefined;
   private animationFps = 60;
+  private bodyLocalTime = 0;
+  private animationDuration = 0;
+  private playbackSpeed = 1;
   private faceFps = 60;
+  private readonly baseAttachments: {
+    readonly object: THREE.Object3D;
+    readonly parent: THREE.Object3D;
+    readonly transform: THREE.Matrix4;
+  }[] = [];
   private diffuseTexture: THREE.Texture | undefined;
   private readonly faceTarget = createFaceRenderTarget();
   private readonly outlineTarget = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: true, stencilBuffer: false });
@@ -136,23 +206,15 @@ export class BrawlerViewerRuntime {
     const frameCount = Math.max(1, endFrame - startFrame + 1);
     const sampleCount = Math.min(180, Math.max(2, Math.ceil(frameCount)));
     const originalTime = action.time;
-    const originalPaused = action.paused;
-    const originalEnabled = action.enabled;
-    action.enabled = true;
-    action.paused = false;
     for (let sample = 0; sample < sampleCount; sample += 1) {
       const progress = sampleCount === 1 ? 0 : sample / (sampleCount - 1);
       action.time = (startFrame + (endFrame - startFrame) * progress) / this.animationFps;
-      // Three's mixer does not apply a direct action.time assignment on a zero
-      // delta update. A tiny step applies the pose without visible drift.
-      this.mixer.update(1e-6);
+      this.mixer.update(0);
       this.root.updateMatrixWorld(true);
       bounds.union(boundsForObject(this.root));
     }
     action.time = originalTime;
-    action.paused = originalPaused;
-    action.enabled = originalEnabled;
-    this.mixer.update(1e-6);
+    this.mixer.update(0);
     this.root.updateMatrixWorld(true);
     return bounds;
   }
@@ -166,8 +228,15 @@ export class BrawlerViewerRuntime {
       disposeObject(baseModel.scene);
       throw new Error("viewer runtime is disposed");
     }
+    this.prepareLoadedModel(baseModel);
     this.baseModel = baseModel;
     this.root.add(this.baseModel.scene);
+    for (const name of Object.keys(this.manifest.attachments)) {
+      const object = baseModel.scene.getObjectByName(name);
+      if (!object?.parent) continue;
+      object.updateMatrix();
+      this.baseAttachments.push({ object, parent: object.parent, transform: object.matrix.clone() });
+    }
     const diffuseAsset = this.manifest.diffuseTexture;
     if (diffuseAsset.kind === "ready") {
       this.diffuseTexture = await this.loadTextureAsset(diffuseAsset, "diffuse", configureDiffuseTexture);
@@ -190,7 +259,9 @@ export class BrawlerViewerRuntime {
     if (!this.baseModel) throw new Error("base model failed to load");
 
     this.action?.stop();
+    this.restoreBaseAttachments();
     if (this.animationModel) {
+      this.mixer.uncacheRoot(this.animationModel.scene);
       this.root.remove(this.animationModel.scene);
       disposeObject(this.animationModel.scene);
     }
@@ -199,6 +270,7 @@ export class BrawlerViewerRuntime {
       disposeObject(animationModel.scene);
       throw new Error("viewer runtime is disposed");
     }
+    this.prepareLoadedModel(animationModel);
     const sourceClip = animationModel.animations[0];
     this.animationModel = animationModel;
     const nodeMap = mergeAnimationHierarchy(this.baseModel.scene, this.animationModel.scene);
@@ -206,6 +278,7 @@ export class BrawlerViewerRuntime {
     removeRenderableAnimationNodes(this.animationModel.scene).forEach(disposeObject);
     this.root.add(this.animationModel.scene);
     attachNamedObjects(this.baseModel.scene, nodeMap, this.manifest.attachments);
+    this.bodyLocalTime = 0;
     if (!sourceClip) {
       // Some mirrored packages carry no AnimationClip because the exported
       // scene itself is the authoritative static pose/skeleton. Keep that
@@ -221,9 +294,18 @@ export class BrawlerViewerRuntime {
     this.action = this.mixer.clipAction(clip, this.animationModel.scene);
     this.action.play();
     this.animationFps = entry[6] && Number.isFinite(entry[6]) && entry[6] > 0 ? entry[6] : 60;
-    const clipEnd = entry[4] < 0 ? Math.ceil(sourceClip.duration * this.animationFps) : entry[4];
+    this.playbackSpeed = entry[8] ?? 1;
+    if (!Number.isFinite(this.playbackSpeed) || this.playbackSpeed <= 0) throw new Error("animation speed must be a positive finite multiplier");
+    const lastClipFrame = sourceClip.duration * this.animationFps;
+    const clipEnd = entry[4] < 0 ? lastClipFrame : Math.min(entry[4], lastClipFrame);
+    if (entry[3] > lastClipFrame) throw new Error("animation frame range starts beyond the clip");
     this.animationRange = [Math.max(0, entry[3]), Math.max(Math.max(0, entry[3]), clipEnd)];
+    this.animationDuration = Math.max(1 / this.animationFps, Math.min(
+      (this.animationRange[1] - this.animationRange[0] + 1) / this.animationFps,
+      sourceClip.duration - this.animationRange[0] / this.animationFps,
+    ));
     this.action.time = this.animationRange[0] / this.animationFps;
+    this.mixer.update(0);
     this.state = { ...this.state, animationKey: key, playing: true };
     await this.loadFace(entry);
     this.faceFps = entry[7] && Number.isFinite(entry[7]) && entry[7] > 0 ? entry[7] : this.animationFps;
@@ -303,19 +385,20 @@ export class BrawlerViewerRuntime {
   }
 
   update(deltaSeconds: number): void {
-    this.mixer.update(deltaSeconds);
-    let bodyLocalTime = 0;
     if (this.action && this.animationRange) {
-      const [start, end] = this.animationRange;
-      const duration = Math.max(1 / this.animationFps, (end - start + 1) / this.animationFps);
-      bodyLocalTime = ((this.action.time - start / this.animationFps) % duration + duration) % duration;
-      this.action.time = start / this.animationFps + bodyLocalTime;
+      if (this.state.playing) {
+        this.bodyLocalTime = (this.bodyLocalTime + deltaSeconds * this.playbackSpeed) % this.animationDuration;
+      }
+      // Wrap the source clock before evaluating the body. Letting Three advance
+      // first renders an out-of-range pose while the face uses the wrapped time.
+      this.action.time = this.animationRange[0] / this.animationFps + this.bodyLocalTime;
+      this.mixer.update(0);
     }
     if (!this.faceMesh || !this.faceFrames || !this.state.faceEnabled) return;
     // The native viewer advances the face at its own FPS but resets it with
     // the selected body animation loop. This keeps long face exports (for
     // example Colt's) from drifting into a later closed-eye state.
-    const next = Math.floor(bodyLocalTime * this.faceFps) % this.faceFrames.frames.length;
+    const next = Math.floor(this.bodyLocalTime * this.faceFps) % this.faceFrames.frames.length;
     if (next !== this.state.faceFrame) {
       this.state = { ...this.state, faceFrame: next };
       this.applyFaceFrame(next);
@@ -327,6 +410,7 @@ export class BrawlerViewerRuntime {
     this.disposed = true;
     this.action?.stop();
     this.mixer.stopAllAction();
+    this.restoreBaseAttachments();
     if (this.baseModel) disposeObject(this.baseModel.scene);
     if (this.animationModel) disposeObject(this.animationModel.scene);
     this.clearFace();
@@ -379,6 +463,24 @@ export class BrawlerViewerRuntime {
     if (this.disposed) throw new Error("viewer runtime is disposed");
   }
 
+  private prepareLoadedModel(model: LoadedModel): void {
+    if (this.manifest.assetGroup !== "reference-bridge") return;
+    try {
+      normalizeReferenceModelRotations(model);
+    } catch (error) {
+      disposeObject(model.scene);
+      throw error;
+    }
+  }
+
+  private restoreBaseAttachments(): void {
+    for (const { object, parent, transform } of this.baseAttachments) {
+      parent.add(object);
+      transform.decompose(object.position, object.quaternion, object.scale);
+      object.updateMatrix();
+    }
+  }
+
   private async applyMaterialSpecializations(root: THREE.Object3D, slots: readonly ScMaterialSlot[]): Promise<void> {
     const textures = async (slot: ScMaterialSlot) => ({
       diffuse: slot.diffuseTexture?.kind === "ready" ? await this.loadTextureAsset(slot.diffuseTexture, "diffuse", configureDiffuseTexture) : undefined,
@@ -426,7 +528,7 @@ export class BrawlerViewerRuntime {
   private updateStencilUniforms(texture: THREE.Texture | null): void {
     const model = this.baseModel?.scene;
     if (!model) return;
-    model.traverse((object) => {
+    this.root.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       materials.forEach((material) => {

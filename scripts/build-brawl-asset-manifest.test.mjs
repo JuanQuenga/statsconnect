@@ -36,6 +36,21 @@ function animationFixtureGlb(quaternion) {
   return output;
 }
 
+function geometryFixtureGlb({ uv = true, revision = 1, specularTexture = null } = {}) {
+  const document = { asset: { version: "2.0" }, extras: { revision }, buffers: [{ byteLength: 20 }], bufferViews: [{ buffer: 0, byteLength: 20 }], accessors: [{ bufferView: 0, componentType: 5126, count: 1, type: "VEC3" }, { bufferView: 0, byteOffset: 12, componentType: 5126, count: 1, type: "VEC2" }], materials: [{ name: "actual_fixture_material", shader: "uber", constants: ["DIFFUSE"], variables: { textures: { diffuseTex2D: "sc3d/crow_tex.sctx#repeat" } } }], meshes: [{ primitives: [{ material: 0, attributes: { POSITION: 0, ...(uv ? { TEXCOORD_0: 1 } : {}) } }] }] };
+  if (specularTexture) {
+    document.materials[0].constants.push("SPECULAR");
+    document.materials[0].variables.textures.specularTex2D = specularTexture;
+  }
+  const json = Buffer.from(JSON.stringify(document));
+  const padded = Buffer.concat([json, Buffer.alloc((4 - json.length % 4) % 4, 0x20)]);
+  const bytes = Buffer.alloc(12 + 8 + padded.length + 8 + 20);
+  bytes.writeUInt32LE(0x46546c67, 0); bytes.writeUInt32LE(2, 4); bytes.writeUInt32LE(bytes.length, 8);
+  bytes.writeUInt32LE(padded.length, 12); bytes.writeUInt32LE(0x4e4f534a, 16); padded.copy(bytes, 20);
+  bytes.writeUInt32LE(20, 20 + padded.length); bytes.writeUInt32LE(0x004e4942, 24 + padded.length);
+  return bytes;
+}
+
 function bridgeFixture(faceFlags = { scaledUpTexture: true }) {
   const hash = createHash("sha256").update("bridge").digest("hex");
   const asset = (name, extension) => ({ kind: "ready", url: `/assets/brawlers/3d/reference-bridge/16000001/CrowDefault/${name}.${hash}${extension}`, sha256: hash, sourceKind: "reference-preprocessed", assetSetId: "bridge-fixture" });
@@ -96,8 +111,13 @@ function fixtureCsv() {
   );
   writeFileSync(
     path.join(versionRoot, "csv_client", "faces.csv"),
-    ["ExportName,Name", "string,string", "crow_def_face,CrowFace", "shelly_def_face,ShotgunFace", ""].join("\n"),
+    ["ExportName,Name,FileName", "string,string,string", "crow_def_face,CrowFace,characters.sc", "shelly_def_face,ShotgunFace,characters.sc", ""].join("\n"),
   );
+  writeFileSync(path.join(versionRoot, "csv_client", "animations.csv"), [
+    "Name,FileName,StartFrame,EndFrame,Speed", "string,string,int,int,int",
+    "crow_idle,crow_idle.glb,,-1,", "shelly_idle,shelly_idle.glb,,-1,",
+    "GunslingerRecoil,colt_recoil1.glb,1,10,125", "",
+  ].join("\n"));
   for (const file of [
     "shelly_geo.glb",
     "shelly_cam.glb",
@@ -117,6 +137,29 @@ function fixtureCsv() {
   const commit = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   return { root, commit };
 }
+
+test("joins configured symbols through animations.csv and preserves source playback metadata", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "source-animation-join-test-"));
+  try {
+    const confPath = path.join(source.root, "68.250/csv_logic/skin_confs.csv");
+    writeFileSync(confPath, readFileSync(confPath, "utf8").replace("FaceScaledUpTexture\n", "FaceScaledUpTexture,PrimarySkillRecoilAnim\n").replace("crow_def_face,,", "crow_def_face,,,GunslingerRecoil"));
+    for (const file of ["colt_recoil1.glb", "crow_attack.glb", "crow_walk.glb"]) writeFileSync(path.join(source.root, "68.250/sc3d", file), "fixture");
+    execFileSync("git", ["-C", source.root, "add", "."]);
+    execFileSync("git", ["-C", source.root, "commit", "-qm", "animation mapping fixture"]);
+    const output = path.join(directory, "manifest.json");
+    execFileSync(process.execPath, [script, "--mirror", source.root, "--commit", execFileSync("git", ["-C", source.root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), "--output", output], { cwd: repositoryRoot, stdio: "pipe" });
+    const crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.equal(crow.conversionPlan.animations.PrimarySkillRecoilAnim.input, "68.250/sc3d/colt_recoil1.glb");
+    assert.equal(crow.conversionPlan.animations.PrimarySkillRecoilAnim.symbol, "GunslingerRecoil");
+    assert.equal(crow.animations.PrimarySkillRecoilAnim.startFrame, 1);
+    assert.equal(crow.animations.PrimarySkillRecoilAnim.endFrame, 10);
+    assert.equal(crow.animations.PrimarySkillRecoilAnim.speed, 1.25);
+    assert.equal(crow.conversionPlan.animations.WalkAnim, undefined);
+    assert.equal(crow.conversionPlan.animations.PrimarySkillAnim, undefined);
+    assert.equal(crow.conversionPlan.faces.IdleFace.input, "68.250/sc/characters.sc");
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
+});
 
 function fixtureConverter(root) {
   const converter = path.join(root, "converter");
@@ -334,7 +377,7 @@ test("content-addresses ready asset URLs when converted bytes change", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "content-addressed-assets-test-"));
   mkdirSync(path.join(directory, "models"), { recursive: true });
   mkdirSync(path.join(directory, "textures"), { recursive: true });
-  writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), "model-v1");
+  writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), geometryFixtureGlb());
   writeFileSync(path.join(directory, "textures", "16000001-CrowDefault.png"), "texture-v1");
   try {
     const output = path.join(directory, "manifest.json");
@@ -346,7 +389,7 @@ test("content-addresses ready asset URLs when converted bytes change", () => {
     const readyUrls = [];
     (function collect(value) { if (!value || typeof value !== "object") return; for (const [key, child] of Object.entries(value)) { if (key === "url" && typeof child === "string") readyUrls.push(child); else collect(child); } })(first);
     assert.equal(readyUrls.every((url) => /\.[a-f0-9]{16}\.(?:glb|png|bin|webp)$/.test(url)), true);
-    writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), "model-v2");
+    writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), geometryFixtureGlb({ revision: 2 }));
     execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
     const second = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
     assert.notEqual(first.baseModel.url, second.baseModel.url);
@@ -387,6 +430,32 @@ test("integrates a complete reference bridge only with explicit diagnostic opt-i
     rmSync(directory, { recursive: true, force: true });
     rmSync(source.root, { recursive: true, force: true });
   }
+});
+
+test("preserves source-declared attack and custom animation face bindings", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "reference-face-binding-test-"));
+  try {
+    const bridge = bridgeFixture();
+    const entry = bridge.entries[0];
+    entry.assets.animations.weapon = entry.assets.animations.idle;
+    entry.assets.animations.ulti = entry.assets.animations.idle;
+    entry.assets.animations.taunt = entry.assets.animations.idle;
+    entry.assets.faces = { taunt_face: entry.assets.face };
+    entry.animationMetadata.weapon = { face: "face", fps: 30 };
+    entry.animationMetadata.ulti = { face: "face", fps: 30 };
+    entry.animationMetadata.taunt = { face: "taunt_face", fps: 30 };
+    const bridgePath = path.join(directory, "bridge.json");
+    const output = path.join(directory, "manifest.json");
+    writeFileSync(bridgePath, JSON.stringify(bridge));
+    execFileSync(process.execPath, [script, "--mirror", source.root, "--commit", source.commit, "--reference-bridge", bridgePath, "--allow-diagnostic-reference-assets", "--output", output], { cwd: repositoryRoot, stdio: "pipe" });
+    const crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((candidate) => candidate.character === "Crow");
+    assert.equal(crow.animations.PrimarySkillAnim.faceField, "IdleFace");
+    assert.equal(crow.animations.SecondarySkillAnim.faceField, "IdleFace");
+    assert.equal(crow.animations["ReferenceAnim:taunt"].faceField, "ReferenceFace:taunt_face");
+    assert.equal(crow.faces["ReferenceFace:taunt_face"].binary.url, entry.assets.face.url);
+    assert.equal(crow.animations.IdleAnim.faceField, null, "absent source face association stays explicit rather than inferring");
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
 });
 
 test("allows distinct coherent asset sets across bridge entries", () => {
@@ -445,7 +514,7 @@ test("converted-dir only marks assets ready when the project-owned files exist",
   const directory = mkdtempSync(path.join(tmpdir(), "converted-manifest-test-"));
   mkdirSync(path.join(directory, "models"), { recursive: true });
   mkdirSync(path.join(directory, "textures"), { recursive: true });
-  writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), "model");
+  writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), geometryFixtureGlb());
   writeFileSync(path.join(directory, "textures", "16000001-CrowDefault.png"), "texture");
   try {
     const output = path.join(directory, "manifest.json");
@@ -460,6 +529,7 @@ test("converted-dir only marks assets ready when the project-owned files exist",
     const crow = manifest.defaults.find((entry) => entry.character === "Crow");
     const shelly = manifest.defaults.find((entry) => entry.character === "ShotgunGirl");
     assert.equal(crow.baseModel.kind, "ready");
+    assert.deepEqual(crow.materialSlots.map((slot) => slot.materialName), ["actual_fixture_material"]);
     assert.equal(crow.diffuseTexture.kind, "ready");
     assert.equal(shelly.baseModel.kind, "unavailable");
     assert.equal(shelly.diffuseTexture.kind, "unavailable");
@@ -475,9 +545,10 @@ test("converted animations are rejected until every quaternion is finite and uni
   mkdirSync(path.join(directory, "models"), { recursive: true });
   mkdirSync(path.join(directory, "textures"), { recursive: true });
   mkdirSync(path.join(directory, "animations", "16000001-CrowDefault"), { recursive: true });
-  writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), "model");
+  writeFileSync(path.join(directory, "models", "16000001-CrowDefault.glb"), geometryFixtureGlb());
   writeFileSync(path.join(directory, "textures", "16000001-CrowDefault.png"), "texture");
   const animation = path.join(directory, "animations", "16000001-CrowDefault", "IdleAnim.glb");
+  writeFileSync(animation.replace(/\.glb$/, ".meta.json"), JSON.stringify({ fps: 30, source: { commit: source.commit, input: "68.250/sc3d/crow_idle.glb", symbol: "crow_idle" } }));
   try {
     const output = path.join(directory, "manifest.json");
     writeFileSync(animation, animationFixtureGlb([0, 0, 0, 32767]));
@@ -495,6 +566,124 @@ test("converted animations are rejected until every quaternion is finite and uni
     rmSync(directory, { recursive: true, force: true });
     rmSync(source.root, { recursive: true, force: true });
   }
+});
+
+test("catalog admission rejects stale UV-less geometry and wrong animation source metadata", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "stale-export-test-"));
+  try {
+    const model = path.join(directory, "models/16000001-CrowDefault.glb");
+    const animation = path.join(directory, "animations/16000001-CrowDefault/IdleAnim.glb");
+    mkdirSync(path.dirname(model), { recursive: true });
+    mkdirSync(path.dirname(animation), { recursive: true });
+    writeFileSync(model, geometryFixtureGlb({ uv: false }));
+    writeFileSync(animation, animationFixtureGlb([0, 0, 0, 1]));
+    writeFileSync(animation.replace(/\.glb$/, ".meta.json"), JSON.stringify({ source: { commit: source.commit, input: "68.250/sc3d/wrong_attack.glb", symbol: "crow_idle" } }));
+    const output = path.join(directory, "manifest.json");
+    execFileSync(process.execPath, [script, "--mirror", source.root, "--commit", source.commit, "--converted-dir", directory, "--output", output], { cwd: repositoryRoot, stdio: "pipe" });
+    const crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.deepEqual(crow.baseModel, { kind: "unavailable", reason: "model-texcoord0-missing" });
+    assert.deepEqual(crow.animations.IdleAnim.exported, { kind: "unavailable", reason: "animation-source-mismatch" });
+    assert.deepEqual(crow.materialSlots, []);
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
+});
+
+test("configured material overrides cannot silently use geometry materials", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "material-override-test-"));
+  try {
+    const skinsPath = path.join(source.root, "68.250/csv_logic/skins.csv");
+    writeFileSync(skinsPath, readFileSync(skinsPath, "utf8").replace("SpecularTexture\n", "SpecularTexture,MaterialsFile\n").replace("crow_tex.sctx,", "crow_tex.sctx,,gold_true_materials.glb"));
+    execFileSync("git", ["-C", source.root, "add", "."]);
+    execFileSync("git", ["-C", source.root, "commit", "-qm", "material override"]);
+    const model = path.join(directory, "models/16000001-CrowDefault.glb");
+    mkdirSync(path.dirname(model), { recursive: true });
+    writeFileSync(model, geometryFixtureGlb());
+    const output = path.join(directory, "manifest.json");
+    execFileSync(process.execPath, [script, "--mirror", source.root, "--commit", execFileSync("git", ["-C", source.root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), "--converted-dir", directory, "--output", output], { cwd: repositoryRoot, stdio: "pipe" });
+    const crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.equal(crow.baseModel.reason, "materials-override-not-converted");
+    assert.deepEqual(crow.materialSlots, []);
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
+});
+
+test("separate specular masks are unavailable until the runtime supports them", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "separate-specular-test-"));
+  try {
+    const model = path.join(directory, "models/16000001-CrowDefault.glb");
+    mkdirSync(path.dirname(model), { recursive: true });
+    mkdirSync(path.join(directory, "textures"), { recursive: true });
+    writeFileSync(path.join(directory, "textures/16000001-CrowDefault.png"), "diffuse-fixture");
+    writeFileSync(path.join(directory, "separate_specular.png"), "specular-fixture");
+    writeFileSync(model, geometryFixtureGlb({ specularTexture: "sc3d/separate_specular.png#repeat" }));
+    const output = path.join(directory, "manifest.json");
+    const command = [script, "--mirror", source.root, "--commit", source.commit, "--converted-dir", directory, "--output", output];
+    execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
+    let crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.deepEqual(crow.baseModel, { kind: "unavailable", reason: "separate-specular-texture-not-supported" });
+    assert.deepEqual(crow.materialSlots, []);
+    writeFileSync(model, geometryFixtureGlb({ specularTexture: "sc3d/crow_tex.sctx#repeat" }));
+    execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
+    crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.equal(crow.baseModel.kind, "ready");
+    assert.equal(crow.materialSlots[0].specular, true);
+    assert.equal("specularTexture" in crow.materialSlots[0], false);
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
+});
+
+test("source frame windows use the converted role's verified frame rate", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "animation-frame-rate-test-"));
+  try {
+    const csvPath = path.join(source.root, "68.250/csv_client/animations.csv");
+    writeFileSync(csvPath, readFileSync(csvPath, "utf8").replace("crow_idle,crow_idle.glb,,-1,", "crow_idle,crow_idle.glb,1,10,"));
+    execFileSync("git", ["-C", source.root, "add", "."]);
+    execFileSync("git", ["-C", source.root, "commit", "-qm", "bounded animation"]);
+    const commit = execFileSync("git", ["-C", source.root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const animation = path.join(directory, "animations/16000001-CrowDefault/IdleAnim.glb");
+    mkdirSync(path.dirname(animation), { recursive: true });
+    writeFileSync(animation, animationFixtureGlb([0, 0, 0, 1]));
+    const metadata = { source: { commit, input: "68.250/sc3d/crow_idle.glb", symbol: "crow_idle" } };
+    writeFileSync(animation.replace(/\.glb$/, ".meta.json"), JSON.stringify({ ...metadata, fps: 30 }));
+    const output = path.join(directory, "manifest.json");
+    const command = [script, "--mirror", source.root, "--commit", commit, "--converted-dir", directory, "--output", output];
+    execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
+    let crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.equal(crow.animations.IdleAnim.exported.kind, "ready");
+    assert.equal(crow.animations.IdleAnim.startFrame, 1);
+    assert.equal(crow.animations.IdleAnim.endFrame, 10);
+    assert.equal(crow.animations.IdleAnim.fps, 30);
+    for (const fps of [undefined, 0, -1, "30"]) {
+      writeFileSync(animation.replace(/\.glb$/, ".meta.json"), JSON.stringify({ ...metadata, fps }));
+      execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
+      crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+      assert.equal(crow.animations.IdleAnim.exported.reason, "animation-frame-rate-not-captured");
+      assert.equal(crow.animations.IdleAnim.fps, undefined);
+      assert.equal(crow.conversionPlan.animations.IdleAnim.fps, undefined);
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
+});
+
+test("raw faces require the corrected zero-based export-name identity stamp", () => {
+  const source = fixtureCsv();
+  const directory = mkdtempSync(path.join(tmpdir(), "face-export-identity-test-"));
+  try {
+    const target = path.join(directory, "faces/16000001-CrowDefault/IdleFace");
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(`${target}.png`, "atlas"); writeFileSync(`${target}.bin`, "binary");
+    const metadata = { fps: 30, source: { commit: source.commit, input: "68.250/sc/characters.sc", symbol: "crow_def_face", exportName: "crow_def_face" } };
+    writeFileSync(`${target}.meta.json`, JSON.stringify(metadata));
+    const output = path.join(directory, "manifest.json");
+    const command = [script, "--mirror", source.root, "--commit", source.commit, "--converted-dir", directory, "--output", output];
+    execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
+    let crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.equal(crow.faces.IdleFace.binary.reason, "face-export-name-mapping-unverified");
+    writeFileSync(`${target}.meta.json`, JSON.stringify({ ...metadata, export_name_reference_base: 0, export_object_id: 1994 }));
+    execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
+    crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.equal(crow.faces.IdleFace.ready, true);
+  } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
 });
 
 test("mirror is required", () => {

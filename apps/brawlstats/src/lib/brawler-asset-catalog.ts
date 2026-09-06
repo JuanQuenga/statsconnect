@@ -22,6 +22,8 @@ type CatalogAnimation = {
   readonly startFrame: number;
   readonly endFrame: number;
   readonly fps: number;
+  readonly speed?: number;
+  readonly faceField?: string | null;
 };
 
 type CatalogFace = {
@@ -198,7 +200,11 @@ function catalogEntry(value: unknown): BrawlerAssetCatalogEntry {
       const frameStart = typeof animation.startFrame === "number" && Number.isFinite(animation.startFrame) ? animation.startFrame : 0;
       const frameEnd = typeof animation.endFrame === "number" && Number.isFinite(animation.endFrame) ? animation.endFrame : -1;
       const fps = typeof animation.fps === "number" && Number.isFinite(animation.fps) && animation.fps > 0 ? animation.fps : 60;
-      return [key, { symbol: typeof animation.symbol === "string" ? animation.symbol : null, exported: catalogAsset(animation.exported), label: typeof animation.label === "string" ? animation.label : key, startFrame: frameStart, endFrame: frameEnd, fps }];
+      const speed = animation.speed === undefined ? 1 : animation.speed;
+      if (typeof speed !== "number" || !Number.isFinite(speed) || speed <= 0) throw new Error("animation speed must be a positive finite multiplier");
+      const faceField = animation.faceField;
+      if (faceField !== undefined && faceField !== null && typeof faceField !== "string") throw new Error("animation face association must be a field name or null");
+      return [key, { symbol: typeof animation.symbol === "string" ? animation.symbol : null, exported: catalogAsset(animation.exported), label: typeof animation.label === "string" ? animation.label : key, startFrame: frameStart, endFrame: frameEnd, fps, speed, faceField }];
     })),
     faces: Object.fromEntries(Object.entries(faces).map(([key, value]) => {
       const face = record(value);
@@ -301,13 +307,16 @@ export function catalogEntryToViewerManifest(entry: BrawlerAssetCatalogEntry): B
   const animations: Record<string, AnimationEntry> = {};
   for (const [key, source] of Object.entries(entry.animations)) {
     if (source.exported.kind !== "ready") continue;
-    const face = faceFieldForAnimation[key] ? entry.faces[faceFieldForAnimation[key]] : undefined;
+    // New exports declare the source association. Only older catalogs use the
+    // fixed role mapping; null explicitly opts out of any face animation.
+    const faceField = source.faceField === undefined ? faceFieldForAnimation[key] : source.faceField;
+    const face = faceField ? entry.faces[faceField] : undefined;
     const faceAtlas = face?.atlas ?? { kind: "unavailable" as const, reason: "not-captured" as const };
     const faceBinary = face?.binary ?? { kind: "unavailable" as const, reason: "not-captured" as const };
     // The body animation window controls the loop clock. Face start/end
     // metadata describes the native face export, but the reference viewer
     // resets that export when the selected body clip loops.
-    animations[key] = [viewerAsset(source.exported), viewerAsset(faceAtlas), viewerAsset(faceBinary), source.startFrame, source.endFrame, source.label, source.fps, face?.fps ?? source.fps];
+    animations[key] = [viewerAsset(source.exported), viewerAsset(faceAtlas), viewerAsset(faceBinary), source.startFrame, source.endFrame, source.label, source.fps, face?.fps ?? source.fps, source.speed ?? 1];
   }
   const faceAvailable = Object.values(entry.faces).some((face) => face.ready && face.resolved && face.atlas.kind === "ready" && face.binary.kind === "ready");
   return {

@@ -7,6 +7,7 @@ import { copyFileSync } from "node:fs";
 import { mkdir, readFile, writeFile, copyFile } from "node:fs/promises";
 import path from "node:path";
 import { validateBrawlAnimationGlb } from "./validate-brawl-animation.mjs";
+import { validateGeometryGlb } from "./materialize-brawl-assets.mjs";
 
 const DEFAULT_COMMIT = "e39b51ecd3dc7be45ac7d2b1f0210bc4cea054f0";
 const DEFAULT_VERSION = "68.250";
@@ -70,29 +71,6 @@ function modelBaseName(model) {
   return (model ?? "").split(":", 1)[0] || null;
 }
 
-function animationCandidates(model, field) {
-  const base = modelBaseName(model);
-  if (!base) return [];
-  const stem = base.replace(/(?:_redux|_base)?_geo\.glb$/i, "");
-  const stems = [...new Set([stem, stem.split("_", 1)[0]])];
-  const suffixes = {
-    IdleAnim: ["idle"], WalkAnim: ["walk"], PrimarySkillAnim: ["attack", "primary"],
-    SecondarySkillAnim: ["ulti", "swing", "secondary"], OverchargedSecondarySkillAnim: ["ulti", "swing", "secondary"],
-    PrimarySkillRecoilAnim: ["attack"], SecondarySkillRecoilAnim: ["ulti", "swing"],
-    ReloadingAnim: ["reload"], PushbackAnim: ["pushback"], ChargeMoveAnim: ["charge"], DeployAnim: ["deploy"],
-    HappyAnim: ["win", "happy"], HappyLoopAnim: ["winloop", "happyloop"], SadAnim: ["lose", "sad"], SadLoopAnim: ["loseloop", "sadloop"],
-    LobbyAnim: ["win", "lobby"], LobbyLoopAnim: ["winloop", "lobbyloop"], HeroScreenIdleAnim: ["idle"], HeroScreenAnim: ["win", "hero"], HeroScreenLoopAnim: ["winloop", "heroloop"],
-  }[field] ?? [];
-  const candidates = [];
-  for (const candidateStem of stems) {
-    for (const suffix of suffixes) candidates.push(`${candidateStem}_${suffix}.glb`);
-    if (field === "IdleAnim") {
-      candidates.push(`${candidateStem}_idle_anim.glb`, `${candidateStem}_anim_idle.glb`);
-    }
-  }
-  return [...new Set(candidates)];
-}
-
 function unavailable(reason) { return { kind: "unavailable", reason }; }
 function localAsset(file) { return file ? { kind: "ready", url: `/assets/brawlers/3d/${file}` } : unavailable("not-captured"); }
 
@@ -136,6 +114,8 @@ const characters = csv(gitShow(repo, commit, `${version}/csv_logic/characters.cs
 const skins = csv(gitShow(repo, commit, `${version}/csv_logic/skins.csv`));
 const confs = csv(gitShow(repo, commit, `${version}/csv_logic/skin_confs.csv`));
 const faces = csv(gitShow(repo, commit, `${version}/csv_client/faces.csv`));
+const animationBySymbol = new Map(csv(gitShow(repo, commit, `${version}/csv_client/animations.csv`)).map((animation) => [animation.Name, animation]));
+const faceBySymbol = new Map(faces.flatMap((face) => face.ExportName ? [[face.Name, face], [face.ExportName, face]] : []));
 const faceExportBySymbol = new Map(faces.flatMap((face) => {
   if (!face.ExportName) return [];
   return face.Name ? [[face.Name, face.ExportName], [face.ExportName, face.ExportName]] : [[face.ExportName, face.ExportName]];
@@ -166,12 +146,28 @@ const contentAddressedAsset = (relative) => {
 };
 const convertedAsset = (category, id, extension) => {
   const file = convertedPath(category, id, extension);
+  if (category === "models" && file && existsSync(file)) {
+    const validation = validateGeometryGlb(readFileSync(file));
+    if (!validation.ok) return unavailable(validation.reason);
+  }
   return file && existsSync(file) ? contentAddressedAsset(`${category}/${id}.${extension}`) : unavailable("not-captured");
 };
-const convertedAnimation = (key, field) => {
+const sourceMetadata = (relative, expected) => {
+  if (!convertedDir) return null;
+  try {
+    const metadata = JSON.parse(readFileSync(path.join(convertedDir, relative), "utf8"));
+    return Object.entries({ commit, ...expected }).every(([key, value]) => metadata.source?.[key] === value) ? metadata : null;
+  } catch { return null; }
+};
+const sourceMetadataMatches = (relative, expected) => sourceMetadata(relative, expected) !== null;
+const validFrameRate = (value) => Number.isFinite(value) && value > 0;
+const convertedAnimation = (key, field, source) => {
   const relative = `animations/${key}/${field}.glb`;
   const file = convertedDir ? path.join(convertedDir, relative) : null;
   if (!file || !existsSync(file)) return unavailable("not-captured");
+  const metadata = sourceMetadata(`animations/${key}/${field}.meta.json`, source);
+  if (!metadata) return unavailable("animation-source-mismatch");
+  if (!validFrameRate(metadata.fps)) return unavailable("animation-frame-rate-not-captured");
   const validation = validateBrawlAnimationGlb(readFileSync(file));
   return validation.ok ? contentAddressedAsset(relative) : unavailable(validation.reason);
 };
@@ -179,17 +175,17 @@ const convertedFace = (key, field) => {
   const relative = `faces/${key}/${field}.bin`;
   return convertedDir && existsSync(path.join(convertedDir, relative)) ? contentAddressedAsset(relative) : unavailable("not-captured");
 };
-const convertedFaceFps = (key) => {
+const convertedFaceFps = (key, field) => {
   if (!convertedDir) return null;
-  const metadata = path.join(convertedDir, "faces", key, "IdleFace.meta.json");
+  const metadata = path.join(convertedDir, "faces", key, `${field}.meta.json`);
   if (!existsSync(metadata)) return null;
   try {
     const fps = JSON.parse(readFileSync(metadata, "utf8")).fps;
     return Number.isFinite(fps) && fps > 0 ? fps : null;
   } catch { return null; }
 };
-const convertedFaceAtlas = (key) => {
-  const relative = `faces/${key}/atlas.png`;
+const convertedFaceAtlas = (key, field) => {
+  const relative = `faces/${key}/${field}.png`;
   return convertedDir && existsSync(path.join(convertedDir, relative)) ? contentAddressedAsset(relative) : unavailable("not-captured");
 };
 const convertedNamedAsset = (file) => convertedDir && existsSync(path.join(convertedDir, file)) ? contentAddressedAsset(file) : unavailable("not-captured");
@@ -230,6 +226,50 @@ const readGlbJsonAndBin = (file) => {
     offset += 8 + length;
   }
   return json && bin ? { json, bin } : null;
+};
+const rawMaterialSlots = (key, skin, diffuse, diffuseAsset) => {
+  if (skin?.MaterialsFile) return { slots: [], reason: "materials-override-not-converted" };
+  if (skin?.CustomShader) return { slots: [], reason: "custom-shader-not-supported" };
+  const document = readGlbJsonAndBin(convertedPath("models", key, "glb"))?.json;
+  if (!document) return { slots: [], reason: "model-materials-not-captured" };
+  const materials = document.materials ?? [];
+  const used = [...new Set((document.meshes ?? []).flatMap((mesh) => (mesh.primitives ?? []).map((primitive) => primitive.material)))];
+  if (!used.length || used.some((index) => !Number.isInteger(index) || !materials[index]?.name)) return { slots: [], reason: "model-materials-not-resolved" };
+  const textureFile = (value, field) => {
+    let file = typeof value === "string" ? value.split("#", 1)[0].replace(/^sc3d\//, "") : null;
+    if (file === ".") file = field === "specularTexture" ? skin?.SpecularTexture : diffuse;
+    return file;
+  };
+  const textureAsset = (value, field) => {
+    const file = textureFile(value, field);
+    if (file && file === diffuse) return diffuseAsset;
+    return file ? convertedNamedAsset(file) : unavailable("material-texture-not-configured");
+  };
+  const hasStencil = materials.some((material) => material.constants?.includes("STENCIL"));
+  const slots = [];
+  for (const index of used) {
+    const material = materials[index];
+    if (material.shader !== "uber" || !Array.isArray(material.constants)) return { slots: [], reason: "material-shader-not-supported" };
+    const constants = material.constants;
+    const textures = material.variables?.textures ?? {};
+    const booleans = material.variables?.booleans ?? {};
+    if (constants.some((constant) => !["CLIP_PLANE", "DIFFUSE", "LIGHTMAP", "SPECULAR", "STENCIL", "AMBIENT", "OPACITY"].includes(constant)) || Object.values(booleans).some((value) => value === true)) return { slots: [], reason: "material-effects-not-supported" };
+    const slot = { materialName: material.name, diffuse: constants.includes("DIFFUSE"), ambient: constants.includes("AMBIENT"), lightmapDiffuse: constants.includes("LIGHTMAP"), specular: constants.includes("SPECULAR"), stencil: !hasStencil || constants.includes("STENCIL"), uvSource: "67/68", stencilUvPolicy: "2x-flip-y", scConstants: constants, scBooleans: booleans, shader: material.shader, opacity: material.variables?.floats?.opacity ?? 1 };
+    if (slot.diffuse) slot.diffuseTexture = textureAsset(textures.diffuseTex2D, "diffuseTexture");
+    if (slot.specular) {
+      const specularFile = textureFile(skin?.SpecularTexture || textures.specularTex2D, "specularTexture");
+      const diffuseFile = textureFile(textures.diffuseTex2D, "diffuseTexture");
+      // The viewer samples the diffuse alpha for specular, not a second mask.
+      if (!slot.diffuse || !specularFile || specularFile !== diffuseFile) return { slots: [], reason: "separate-specular-texture-not-supported" };
+    }
+    if (slot.lightmapDiffuse) {
+      slot.diffuseLightmap = textureAsset(textures.lightmapTex2D, "diffuseLightmap");
+      slot.specularLightmap = textureAsset(textures.lightmapSpecularTex2D, "specularLightmap");
+    }
+    if (Object.values(slot).some((value) => value?.kind === "unavailable")) return { slots: [], reason: "material-texture-not-captured" };
+    slots.push(slot);
+  }
+  return { slots, reason: null };
 };
 const bridgeGeometryUvRange = (entry) => {
   const metadata = bridgeGeometryMetadata(entry);
@@ -281,20 +321,22 @@ const bridgeRuntimeEntry = (entry) => {
   const animations = assets.animations ?? {};
   const metadata = entry.animationMetadata ?? {};
   const animationMap = { idle: "IdleAnim", walking: "WalkAnim", weapon: "PrimarySkillAnim", ulti: "SecondarySkillAnim", lobby: "HappyAnim", lose: "SadAnim" };
+  const faceField = (sourceKey) => ({ face: "IdleFace", happy: "HappyFace", sad: "SadFace" })[sourceKey] ?? `ReferenceFace:${sourceKey}`;
   const animationOutput = {};
-  for (const [sourceKey, field] of Object.entries(animationMap)) {
-    const asset = animations[sourceKey];
+  for (const [sourceKey, asset] of Object.entries(animations)) {
+    const field = animationMap[sourceKey] ?? `ReferenceAnim:${sourceKey}`;
     if (!asset) continue;
     const detail = metadata[sourceKey] ?? {};
-    animationOutput[field] = { symbol: null, exported: bridgeAsset(asset, ".glb"), label: detail.label ?? animationLabels[field] ?? field, startFrame: detail.startFrame ?? 0, endFrame: detail.endFrame ?? -1, fps: detail.fps ?? 60 };
+    animationOutput[field] = { symbol: null, exported: bridgeAsset(asset, ".glb"), label: detail.label ?? animationLabels[field] ?? field, startFrame: detail.startFrame ?? 0, endFrame: detail.endFrame ?? -1, fps: detail.fps ?? 60, faceField: typeof detail.face === "string" && detail.face ? faceField(detail.face) : null };
   }
   const atlas = assets.faceAtlas;
-  const faceAssets = { face: assets.face, happy: assets.faces?.happy, sad: assets.faces?.sad };
+  const faceAssets = { ...assets.faces, face: assets.face };
   const facesOutput = {};
   for (const field of faceFields) {
     const sourceKey = field.startsWith("Happy") || ["LobbyFace", "HeroScreenFace", "SignatureFace"].includes(field) ? "happy" : field.startsWith("Sad") ? "sad" : "face";
     facesOutput[field] = bridgeFace(faceAssets[sourceKey], atlas);
   }
+  for (const [sourceKey, asset] of Object.entries(faceAssets)) facesOutput[faceField(sourceKey)] = bridgeFace(asset, atlas);
   const uvSource = bridgeUvSource(entry);
   const materialSlots = Array.isArray(entry.materialSlots) ? entry.materialSlots.map((slot) => {
     const output = { ...slot };
@@ -367,35 +409,45 @@ const entries = confs.map((conf) => {
   const modelSourcePresent = Boolean(modelSourceFile && sourceFiles.has(sourcePath(modelSourceFile)));
   const compositeModel = Boolean(conf.Model?.includes(":"));
   const diffuse = sourceTexture(skin?.DiffuseTexture);
-  const idleCandidates = animationCandidates(conf.Model, "IdleAnim");
-  const idleSource = idleCandidates.find((candidate) => sourceFiles.has(sourcePath(candidate))) ?? null;
-  const animationSources = Object.fromEntries(animationFields.map((field) => [field, animationCandidates(conf.Model, field).find((candidate) => sourceFiles.has(sourcePath(candidate))) ?? null]));
+  const animationDefinitions = Object.fromEntries(animationFields.map((field) => [field, animationBySymbol.get(animationSymbols[field]) ?? null]));
+  const animationSources = Object.fromEntries(animationFields.map((field) => {
+    const file = animationDefinitions[field]?.FileName;
+    return [field, file && sourceFiles.has(sourcePath(file)) ? file : null];
+  }));
+  const animationPlayback = (field) => {
+    const definition = animationDefinitions[field];
+    const metadata = animationSources[field] ? sourceMetadata(`animations/${key}/${field}.meta.json`, { input: sourcePath(animationSources[field]), symbol: animationSymbols[field] }) : null;
+    return { startFrame: Number(definition?.StartFrame || 0), endFrame: Number(definition?.EndFrame || -1), ...(validFrameRate(metadata?.fps) ? { fps: metadata.fps } : {}), speed: Number(definition?.Speed || 100) / 100 };
+  };
+  const idleSource = animationSources.IdleAnim;
   const id = characterId(character);
   const key = assetKey(id, conf.Name);
   const released = isReleasedCharacter(character);
   const apiCharacter = apiById.get(id) ?? apiByName.get((character?.Name ?? "").toLowerCase());
   const syntheticCharacter = Boolean(conf.Character?.includes(";"));
-  const baseModelAsset = convertedDir && model ? convertedAsset("models", key, "glb") : unavailable(model ? "not-captured" : "model-not-present-in-pinned-source");
+  let baseModelAsset = convertedDir && model ? convertedAsset("models", key, "glb") : unavailable(model ? "not-captured" : "model-not-present-in-pinned-source");
   const diffuseTextureAsset = convertedDir && diffuse ? convertedAsset("textures", key, "png") : unavailable(diffuse ? "not-captured" : "diffuse-texture-not-present-in-pinned-source");
-  const materialSlots = baseModelAsset.kind === "ready" ? [
-    { materialName: "character_metal_mat", diffuse: true, lightmapDiffuse: true, specular: true, stencil: true, uvSource: "67/68", stencilUvPolicy: "2x-flip-y", diffuseTexture: diffuseTextureAsset, diffuseLightmap: convertedNamedAsset("menu_metal_diffuse_lightmap.png"), specularLightmap: convertedNamedAsset("menu_metal_specular_lightmap.png") },
-    { materialName: "character_mat", diffuse: true, lightmapDiffuse: true, specular: true, stencil: true, uvSource: "67/68", stencilUvPolicy: "2x-flip-y", diffuseTexture: diffuseTextureAsset, diffuseLightmap: convertedNamedAsset("menu_diffuse_lightmap.png"), specularLightmap: convertedNamedAsset("menu_specular_lightmap.png") },
-  ] : [];
+  const materialResolution = baseModelAsset.kind === "ready" ? rawMaterialSlots(key, skin, diffuse, diffuseTextureAsset) : { slots: [], reason: null };
+  const materialSlots = materialResolution.slots;
+  if (materialResolution.reason) baseModelAsset = unavailable(materialResolution.reason);
   const unavailableReasons = [];
+  if (baseModelAsset.kind === "unavailable") unavailableReasons.push(baseModelAsset.reason);
   if (syntheticCharacter) unavailableReasons.push("default-source-entry-missing");
   if (!model) unavailableReasons.push(compositeModel && modelSourcePresent ? "composite-model-not-captured" : "model-not-present-in-pinned-source");
   if (!diffuse) unavailableReasons.push("diffuse-texture-not-present-in-pinned-source");
   if (!conf.PortraitCameraFile || !sourceFiles.has(`${version}/sc3d/${conf.PortraitCameraFile}`)) unavailableReasons.push("portrait-camera-not-captured");
   if (!idleSource) unavailableReasons.push("idle-animation-not-present-in-pinned-source");
-  const exportedAnimations = Object.fromEntries(animationFields.map((field) => [field, animationSymbols[field] ? convertedAnimation(key, field) : unavailable("not-configured")]));
-  const faceAtlas = convertedFaceAtlas(key);
-  const faceFps = convertedFaceFps(key) ?? 60;
+  const exportedAnimations = Object.fromEntries(animationFields.map((field) => [field, !animationSymbols[field] ? unavailable("not-configured") : !animationSources[field] ? unavailable("animation-symbol-not-resolved") : convertedAnimation(key, field, { input: sourcePath(animationSources[field]), symbol: animationSymbols[field] })]));
   const exportedFaces = Object.fromEntries(faceFields.map((field) => {
     const symbol = faceSymbols[field];
     const exportName = faceExportNames[field];
     if (!symbol) return [field, { atlas: unavailable("not-configured"), binary: unavailable("not-configured") }];
     if (!exportName) return [field, { atlas: unavailable("face-export-not-mapped"), binary: unavailable("face-export-not-mapped") }];
-    return [field, { atlas: faceAtlas, binary: convertedFace(key, field) }];
+    const input = faceBySymbol.get(symbol)?.FileName;
+    const metadata = input ? sourceMetadata(`faces/${key}/${field}.meta.json`, { input: `${version}/sc/${input}`, symbol, exportName }) : null;
+    if (!metadata) return [field, { atlas: unavailable("face-source-mismatch"), binary: unavailable("face-source-mismatch") }];
+    if (metadata.export_name_reference_base !== 0 || !Number.isInteger(metadata.export_object_id) || metadata.export_object_id < 0) return [field, { atlas: unavailable("face-export-name-mapping-unverified"), binary: unavailable("face-export-name-mapping-unverified") }];
+    return [field, { atlas: convertedFaceAtlas(key, field), binary: convertedFace(key, field) }];
   }));
   if (Object.entries(animationSymbols).some(([field, symbol]) => symbol && exportedAnimations[field].kind !== "ready")) unavailableReasons.push("animation-export-not-run");
   if (Object.values(faceSymbols).some((symbol) => symbol && !faceExportBySymbol.has(symbol))) unavailableReasons.push("face-symbol-not-mapped");
@@ -410,14 +462,14 @@ const entries = confs.map((conf) => {
     baseModel: baseModelAsset,
     diffuseTexture: diffuseTextureAsset,
     source: { model: conf.Model || null, modelFile: modelSourceFile, compositeModel, portraitCamera: conf.PortraitCameraFile || null, diffuse: skin?.DiffuseTexture || null, diffuseFile: diffuse, specular: skin?.SpecularTexture || null, materials: skin?.MaterialsFile || null, customShader: skin?.CustomShader || null, outlineShader: skin?.OutlineShader || null, animations: animationSources, idle: idleSource },
-    animations: Object.fromEntries(animationFields.map((field) => [field, { symbol: animationSymbols[field], exported: exportedAnimations[field], label: animationLabels[field] ?? field, startFrame: 0, endFrame: -1, fps: 60 }])),
-    faces: Object.fromEntries(faceFields.map((field) => { const face = exportedFaces[field]; const exportName = faceExportNames[field]; return [field, { symbol: faceSymbols[field], exportName, resolved: Boolean(exportName), ready: Boolean(exportName && face.atlas.kind === "ready" && face.binary.kind === "ready"), atlas: face.atlas, binary: face.binary, startFrame: 0, endFrame: -1, fps: faceFps }]; })),
+    animations: Object.fromEntries(animationFields.map((field) => [field, { symbol: animationSymbols[field], exported: exportedAnimations[field], label: animationLabels[field] ?? field, ...animationPlayback(field) }])),
+    faces: Object.fromEntries(faceFields.map((field) => { const face = exportedFaces[field]; const exportName = faceExportNames[field]; return [field, { symbol: faceSymbols[field], exportName, resolved: Boolean(exportName), ready: Boolean(exportName && face.atlas.kind === "ready" && face.binary.kind === "ready"), atlas: face.atlas, binary: face.binary, startFrame: 0, endFrame: -1, fps: convertedFaceFps(key, field) ?? 60 }]; })),
     capabilities: { outline: { kind: "postprocess", enabled: baseModelAsset.kind === "ready" && diffuseTextureAsset.kind === "ready" } },
     materialSlots,
     cameraScale: Number(character?.HomeScreenScale) || 1,
     orientation: { heroX: character?.HeroScreenXOffset || null, heroZ: character?.HeroScreenZOffset || null, battleX: character?.BattleIntroXOffset || null, battleZ: character?.BattleIntroZOffset || null },
     faceFlags: { faceCoversWholeTexture: explicitTrue(conf.FaceCoversWholeTexture) ? "true" : null, faceScaledUpTexture: explicitTrue(conf.FaceScaledUpTexture) ? "true" : null, disableHeadRotation: explicitTrue(conf.DisableHeadRotation) ? "true" : null },
-    conversionPlan: { key, model: model ? { input: sourcePath(model), output: `models/${key}.glb` } : null, texture: diffuse ? { input: sourcePath(diffuse), output: `textures/${key}.png` } : null, animations: Object.fromEntries(Object.entries(animationSources).filter(([, file]) => file).map(([field, file]) => [field, { input: sourcePath(file), output: `animations/${key}/${field}.glb`, label: animationLabels[field] ?? field, startFrame: 0, endFrame: -1, fps: 60 }])), faces: Object.fromEntries(Object.entries(faceSymbols).filter(([, symbol]) => symbol).map(([field, symbol]) => [field, { symbol, exportName: faceExportNames[field], atlas: `faces/${key}/atlas.png`, binary: `faces/${key}/${field}.bin`, startFrame: 0, endFrame: -1, fps: 60 }])) },
+    conversionPlan: { key, model: model ? { input: sourcePath(model), output: `models/${key}.glb` } : null, texture: diffuse ? { input: sourcePath(diffuse), output: `textures/${key}.png` } : null, animations: Object.fromEntries(Object.entries(animationSources).filter(([, file]) => file).map(([field, file]) => [field, { symbol: animationSymbols[field], input: sourcePath(file), output: `animations/${key}/${field}.glb`, label: animationLabels[field] ?? field, ...animationPlayback(field) }])), faces: Object.fromEntries(Object.entries(faceSymbols).filter(([, symbol]) => symbol).map(([field, symbol]) => [field, { symbol, exportName: faceExportNames[field], input: faceBySymbol.get(symbol)?.FileName ? `${version}/sc/${faceBySymbol.get(symbol).FileName}` : null, atlas: `faces/${key}/${field}.png`, binary: `faces/${key}/${field}.bin`, startFrame: 0, endFrame: -1, fps: 60 }])) },
     sourceReadiness: { model: Boolean(model), diffuse: Boolean(diffuse), idle: Boolean(idleSource), readyForConversion: Boolean(!syntheticCharacter && model && diffuse && idleSource) },
     sourceBytes: null,
     unavailableReasons: [...new Set(unavailableReasons)],

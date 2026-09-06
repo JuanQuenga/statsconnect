@@ -11,12 +11,10 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { validateBrawlAnimationGlb } from "./validate-brawl-animation.mjs";
-
-const SIX_ROLES = ["IdleAnim", "WalkAnim", "PrimarySkillAnim", "SecondarySkillAnim", "HappyAnim", "SadAnim"];
 
 export function resolveMaterializerPath(value, baseDirectory = process.cwd()) {
   return value ? path.resolve(baseDirectory, value) : value;
@@ -93,6 +91,63 @@ function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: "inherit", maxBuffer: 32 * 1024 * 1024 });
 }
 
+export function publishAnimation(plan, convertedAnimation, target, commit, fps) {
+  const metadata = target.replace(/\.glb$/, ".meta.json");
+  for (const file of [target, metadata]) rmSync(file, { force: true });
+  if (!Number.isFinite(fps) || fps <= 0) return { ok: false, reason: "animation-source-fps-invalid" };
+  if (!existsSync(convertedAnimation)) return { ok: false, reason: "animation-not-converted" };
+  const validation = validateBrawlAnimationGlb(readFileSync(convertedAnimation));
+  if (!validation.ok) return validation;
+  mkdirSync(path.dirname(target), { recursive: true });
+  copyFileSync(convertedAnimation, target);
+  writeFileSync(metadata, `${JSON.stringify({ fps, source: { commit, input: plan.input, symbol: plan.symbol } }, null, 2)}\n`);
+  return { ok: true };
+}
+
+/** Export every mapped role, reusing only an identical SC file and export. */
+export function materializeFaces({ key, faces, outputDir, commit, exportFace }) {
+  const faceStateReady = {};
+  const unavailable = [];
+  const exports = new Map();
+  for (const [field, plan] of Object.entries(faces ?? {})) {
+    const directory = path.join(outputDir, "faces", key);
+    const targets = {
+      atlas: path.join(directory, `${field}.png`),
+      binary: path.join(directory, `${field}.bin`),
+      metadata: path.join(directory, `${field}.meta.json`),
+    };
+    const clear = () => Object.values(targets).forEach((file) => rmSync(file, { force: true }));
+    clear();
+    faceStateReady[field] = false;
+    if (!plan?.exportName || !plan.input || !plan.symbol) {
+      unavailable.push(`native-face-not-mapped:${field}`);
+      continue;
+    }
+    const exportKey = JSON.stringify([plan.input, plan.exportName]);
+    try {
+      mkdirSync(directory, { recursive: true });
+      const previous = exports.get(exportKey);
+      if (previous) {
+        for (const kind of Object.keys(targets)) copyFileSync(previous[kind], targets[kind]);
+      } else {
+        exportFace(plan, targets);
+      }
+      if (!Object.values(targets).every(existsSync)) throw new Error("incomplete-atlas-binary-metadata-pair");
+      const metadata = JSON.parse(readFileSync(targets.metadata, "utf8"));
+      if (metadata.available !== true || metadata.selected_export !== plan.exportName) throw new Error("face-export-mismatch");
+      metadata.source = { commit, input: plan.input, symbol: plan.symbol, exportName: plan.exportName };
+      writeFileSync(targets.metadata, `${JSON.stringify(metadata, null, 2)}\n`);
+      exports.set(exportKey, targets);
+      faceStateReady[field] = true;
+    } catch (error) {
+      clear();
+      const message = error instanceof Error ? error.message.split("\n", 1)[0] : "unknown-error";
+      unavailable.push(`native-face-export-failed:${field}:${message}`);
+    }
+  }
+  return { faceStateReady, faceReady: Object.values(faceStateReady).some(Boolean), unavailable };
+}
+
 function materializeEntry(entry, options, outputDir, mirror, commit, parserRoot, converterDir, python) {
   const key = entry.conversionPlan?.key;
   if (!key) return { brawlerId: entry.brawlerId, skinId: entry.skinId, ready: false, unavailable: ["missing-conversion-key"] };
@@ -129,6 +184,7 @@ function materializeEntry(entry, options, outputDir, mirror, commit, parserRoot,
   }
 
   let modelReady = false;
+  rmSync(path.join(outputDir, "models", `${key}.glb`), { force: true });
   if (modelPlan && !sourceFailures.has(modelPlan.input)) {
     const convertedModel = path.join(converted, path.basename(modelPlan.input));
     const geometry = existsSync(convertedModel) ? validateGeometryGlb(readFileSync(convertedModel)) : { ok: false, reason: "model-converter-did-not-emit-standard-glb" };
@@ -141,31 +197,36 @@ function materializeEntry(entry, options, outputDir, mirror, commit, parserRoot,
   }
 
   const animationReady = {};
+  const animationMetadata = new Map();
   for (const [field, plan] of animationPlans) {
+    const target = path.join(outputDir, "animations", key, `${field}.glb`);
     if (sourceFailures.has(plan.input)) {
+      for (const file of [target, target.replace(/\.glb$/, ".meta.json")]) rmSync(file, { force: true });
       animationReady[field] = false;
       unavailable.push(`animation-source-missing:${field}`);
       continue;
     }
-    const convertedAnimation = path.join(converted, path.basename(plan.input));
-    if (!existsSync(convertedAnimation) || !isStandardGlb(readFileSync(convertedAnimation))) {
-      animationReady[field] = false;
-      unavailable.push(`animation-not-converted:${field}`);
-      continue;
+    if (!animationMetadata.has(plan.input)) {
+      try {
+        const script = path.join(options.get("script-dir") ?? path.dirname(new URL(import.meta.url).pathname), "read-brawl-animation-metadata.py");
+        const metadata = JSON.parse(execFileSync(python, [script, path.join(input, path.basename(plan.input)), "--converter-dir", converterDir], { encoding: "utf8" }));
+        animationMetadata.set(plan.input, metadata);
+      } catch {
+        animationMetadata.set(plan.input, { fps: null });
+      }
     }
-    const validation = validateBrawlAnimationGlb(readFileSync(convertedAnimation));
+    const convertedAnimation = path.join(converted, path.basename(plan.input));
+    const validation = publishAnimation(plan, convertedAnimation, target, commit, animationMetadata.get(plan.input).fps);
     if (!validation.ok) {
       animationReady[field] = false;
       unavailable.push(`animation-validation-failed:${field}:${validation.reason}`);
       continue;
     }
-    const target = path.join(outputDir, "animations", key, `${field}.glb`);
-    mkdirSync(path.dirname(target), { recursive: true });
-    copyFileSync(convertedAnimation, target);
     animationReady[field] = true;
   }
 
   let textureReady = false;
+  rmSync(path.join(outputDir, "textures", `${key}.png`), { force: true });
   if (texturePlan) {
     const textureSource = path.join(work, path.basename(texturePlan.input));
     try {
@@ -178,27 +239,16 @@ function materializeEntry(entry, options, outputDir, mirror, commit, parserRoot,
     }
   } else unavailable.push("diffuse-texture-not-configured");
 
-  // Exporting one native idle face gives every materialized group an actual
-  // face atlas/binary pair. Other face states remain unavailable until they
-  // can be packed against the same atlas (never silently reuse a wrong one).
-  let faceReady = false;
-  const idleFace = entry.faces?.IdleFace;
-  const scFile = path.join(work, "characters.sc");
-  if (idleFace?.exportName && parserRoot) {
-    try {
-      writeFileSync(scFile, sourceBytes(mirror, commit, `${entry.conversionPlan.model.input.split("/sc3d/")[0]}/sc/characters.sc`));
-      const atlas = path.join(outputDir, "faces", key, "atlas.png");
-      const binary = path.join(outputDir, "faces", key, "IdleFace.bin");
-      const metadata = path.join(outputDir, "faces", key, "IdleFace.meta.json");
-      mkdirSync(path.dirname(atlas), { recursive: true });
-      const faceArgs = [path.join(options.get("script-dir") ?? path.dirname(new URL(import.meta.url).pathname), "export-sc5-face-raster.py"), scFile, idleFace.exportName, atlas, binary, "--parser-root", parserRoot, "--vector", "--metadata-output", metadata];
+  const faceResult = materializeFaces({
+    key, faces: entry.conversionPlan.faces, outputDir, commit,
+    exportFace(plan, targets) {
+      const scFile = path.join(work, "face-source.sc");
+      writeFileSync(scFile, sourceBytes(mirror, commit, plan.input));
+      const faceArgs = [path.join(options.get("script-dir") ?? path.dirname(new URL(import.meta.url).pathname), "export-sc5-face-raster.py"), scFile, plan.exportName, targets.atlas, targets.binary, "--parser-root", parserRoot, "--vector", "--metadata-output", targets.metadata];
       run(python, faceArgs, work);
-      faceReady = existsSync(atlas) && existsSync(binary);
-    } catch (error) {
-      const message = error instanceof Error ? error.message.split("\n", 1)[0] : "unknown-error";
-      unavailable.push(`native-face-export-failed:${message}`);
-    }
-  } else unavailable.push("native-idle-face-not-mapped");
+    },
+  });
+  unavailable.push(...faceResult.unavailable);
 
   const ready = modelReady && textureReady && Object.values(animationReady).some(Boolean);
   if (!ready && !unavailable.includes("incomplete-runtime-assets")) unavailable.push("incomplete-runtime-assets");
@@ -209,7 +259,8 @@ function materializeEntry(entry, options, outputDir, mirror, commit, parserRoot,
     modelReady,
     textureReady,
     animationReady,
-    faceReady,
+    faceReady: faceResult.faceReady,
+    faceStateReady: faceResult.faceStateReady,
     ready,
     unavailable: [...new Set(unavailable)],
   };
