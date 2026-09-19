@@ -664,16 +664,17 @@
   .sc-nav__brand { max-width: 132px; }
   .sc-nav__brand img { max-width: 128px; max-height: 38px; }
   .sc-nav__menu-button { width: 42px; height: 42px; }
+}
 
-  /* Clash keeps the network brand and one obvious menu control in a single
-     compact row. The language, game switcher, and auth controls remain
-     available inside the accessible sheet opened by the menu button. */
+@media (min-width: 681px) and (max-width: 860px) {
+  /* Use one row between the mobile dock and full desktop navigation. */
   .sc-nav[data-site="clash-royale"] {
     --sc-nav-network-height: 56px;
     --sc-nav-site-height: 0px;
   }
   .sc-nav[data-site="clash-royale"] .sc-nav__network-inner {
     width: calc(100% - 24px);
+    padding-right: 52px;
   }
   .sc-nav[data-site="clash-royale"] .sc-nav__network-actions {
     display: none;
@@ -686,6 +687,7 @@
     height: var(--sc-nav-network-height);
     border-bottom: 0;
     background: transparent;
+    backdrop-filter: none;
     pointer-events: none;
   }
   .sc-nav[data-site="clash-royale"] .sc-nav__inner {

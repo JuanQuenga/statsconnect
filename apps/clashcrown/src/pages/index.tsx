@@ -2,7 +2,7 @@ import Image from "@/components/Image";
 import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
-import { ArrowRight, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
@@ -16,8 +16,7 @@ import { useCardLibrary } from "@/lib/useCardCatalog";
 import { errorMessage, globalTournamentsAction, isConvexConfigured, topCardsQuery, topDecksQuery } from "@/lib/convex";
 import type { Card } from "@/lib/clash/domain";
 import type { ApiTournament } from "@/lib/clash/types";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import styles from "./index.module.css";
 
@@ -31,45 +30,14 @@ export default function HomePage() {
       <ArenaHeroFrame className={`royale-hero ${styles.hero}`}>
         <div className="royale-hero-inner">
           <div className="royale-hero-copy">
-            <p className={styles.eyebrow}>Clash Royale · Player intelligence</p>
-            <h1>
-              <span className="hero-title-line">Your next win</span>
-              <span className="hero-title-line hero-title-accent">starts here.</span>
-            </h1>
-            <p className="royale-hero-description">
-              Look up a player. Read the battles. Find the deck worth taking into your next match.
-            </p>
+            <h1>Clash Royale stats</h1>
             <ProfileSearch />
-            <p className={styles.searchHint}>A player tag is the most precise way to find your profile.</p>
-            <div className="royale-hero-actions">
-              <Link href="/meta" className={cn(buttonVariants({ size: "lg" }), "gap-2")}>
-                Explore the meta <ArrowRight />
-              </Link>
-              <Link href="/decks" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "gap-2")}>
-                <BarChart3 /> Deck tools
-              </Link>
-            </div>
+            <PlayerTagGuide />
           </div>
-
-          <PlayerTagGuide />
         </div>
       </ArenaHeroFrame>
 
       <PersonalDashboard />
-
-      <section className={`page-band ${styles.reportEntry}`} aria-labelledby="player-report-heading">
-        <div>
-          <p className={styles.sectionLabel}>Inside your player report</p>
-          <h2 id="player-report-heading">Every battle tells a story.</h2>
-          <p>Open a profile to review the data behind your climb.</p>
-        </div>
-        <ul>
-          <li><span>01</span><div><strong>Recent battles</strong><p>Opponents, decks, crowns and trophy changes.</p></div></li>
-          <li><span>02</span><div><strong>Deck performance</strong><p>See how your available battle history adds up.</p></div></li>
-          <li><span>03</span><div><strong>Upcoming chests</strong><p>Check the next rewards in your chest cycle.</p></div></li>
-        </ul>
-        <Link href="/players" className="pink-button">Find a player <ArrowRight size={16} aria-hidden="true" /></Link>
-      </section>
 
       {isConvexConfigured ? <MetaTopDeck /> : <UnavailableMetaSection title="Top observed deck" />}
 
@@ -82,26 +50,10 @@ export default function HomePage() {
 
 function PlayerTagGuide() {
   return (
-    <aside className="royale-hero-showcase player-tag-guide" aria-labelledby="player-tag-guide-title">
-      <div className="player-tag-guide-heading">
-        <p className={styles.eyebrow}>New here?</p>
-        <h2 id="player-tag-guide-title">Find your player tag</h2>
-      </div>
-      <p className={styles.tagGuideCaption}>Open your in-game profile, then copy the tag beneath your name. It starts with <strong>#</strong>.</p>
-
-      <div className="player-tag-guide-screen">
-        <picture>
-          <source media="(prefers-reduced-motion: reduce)" srcSet={`${import.meta.env.BASE_URL}images/animated/hashtag-static.png`} />
-          <Image
-            src="/images/animated/hashtag.gif"
-            alt="Animation showing where to open a Clash Royale profile and copy its player tag"
-            width={720}
-            height={720}
-            priority
-          />
-        </picture>
-      </div>
-    </aside>
+    <details className={styles.tagGuide}>
+      <summary>Where is my player tag?</summary>
+      <p>Open your in-game profile and copy the tag beneath your name. It starts with #.</p>
+    </details>
   );
 }
 
@@ -172,25 +124,27 @@ function MetaTopDeck() {
         </p>
       ) : (
         <>
-          <div className="deck-row">
-            <div className="elixir-pill">
-              <Image src="/images/icons/elixir.png" alt="" width={26} height={26} />
-              <strong>
-                {elixir ? elixir.toFixed(1) : "—"} elixir<span>average cost</span>
-              </strong>
+          <div className={styles.deckPresentation}>
+            <div className={styles.deckTools}>
+              <div className={styles.elixir}>
+                <Image src="/images/icons/elixir.png" alt="" width={26} height={26} />
+                <strong>
+                  {elixir ? elixir.toFixed(1) : "—"}<span>Avg. elixir</span>
+                </strong>
+              </div>
+              {link ? (
+                <a className="copy-deck" href={link} target="_blank" rel="noopener noreferrer">
+                  <Image src="/images/icons/copy.png" alt="" width={26} height={28} />
+                  Copy Deck
+                </a>
+              ) : null}
             </div>
-            <DeckCardGrid cards={cards} evolutionIds={deck.evolutionIds} label="Top observed deck" size="compact" className="home-deck-grid" />
-            {link ? (
-              <a className="copy-deck" href={link} target="_blank" rel="noopener noreferrer">
-                <Image src="/images/icons/copy.png" alt="" width={26} height={28} />
-                Copy Deck
-              </a>
-            ) : null}
+            <DeckCardGrid cards={cards} evolutionIds={deck.evolutionIds} label="Top observed deck" className={styles.deckCards} />
           </div>
           <div className="deck-demo-copy">
             <strong>#{deck.rank} in {modeLabel(mode)}</strong>
             <span>
-              Seen {deck.uses.toLocaleString()} times in the last {HOME_WINDOW_DAYS} days of crawled battle logs.
+              Last {HOME_WINDOW_DAYS} days
             </span>
           </div>
           <dl className={styles.deckMetrics}>
@@ -280,7 +234,7 @@ function LiveEventLab() {
       ) : query.error ? (
         <HomeDataMessage message={errorMessage(query.error)} />
       ) : !tournaments.length ? (
-        <HomeDataMessage message="Clash Royale reports no Global Tournament running right now. Community tournaments remain available from the tournament search." />
+        <HomeDataMessage message="No Global Tournament is running." />
       ) : (
         <div className="event-grid">
           {tournaments.map((tournament) => (

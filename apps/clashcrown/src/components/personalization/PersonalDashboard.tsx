@@ -61,8 +61,7 @@ export function PersonalDashboard() {
     <section className={`page-band ${styles.dashboard}`} aria-labelledby="personal-dashboard-title">
       <header className={styles.dashboardHeader}>
         <div>
-          <h2 id="personal-dashboard-title">Dashboard players and clans</h2>
-          <p>Players, clans, alerts, and recent lookups saved to this browser—even when dashboard sync is offline.</p>
+          <h2 id="personal-dashboard-title">Saved profiles</h2>
         </div>
         <SyncBadge status={personalization.status} />
       </header>
@@ -85,8 +84,7 @@ export function PersonalDashboard() {
         <div className={styles.empty}>
           <UserRoundPlus size={28} />
           <div>
-            <strong>No dashboard profiles yet</strong>
-            <p>Open a player or clan and choose “Save to dashboard.” Profiles will appear here; no live stats are shown until you open and refresh them.</p>
+            <p>Save a player or clan to see it here.</p>
           </div>
           <Link href="/players" className="pink-button">Find a player</Link>
         </div>

@@ -121,7 +121,6 @@ function SiteFooter() {
           <Link href="/" aria-label="StatsConnect" className="statsconnect-game-brand">
             <strong>StatsConnect</strong>
           </Link>
-          <p>Player profiles, live meta insights, deck tools, and clan intelligence for Clash Royale.</p>
         </div>
         <div className="footer-link-groups">
           <div>

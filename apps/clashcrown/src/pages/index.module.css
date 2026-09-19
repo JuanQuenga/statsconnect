@@ -1,79 +1,33 @@
-.hero :global(.royale-hero-inner) {
-  grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr);
-  gap: clamp(28px, 5vw, 80px);
+.hero :global(.royale-hero-inner) { display: block; min-height: 0; }
+.hero :global(.royale-hero-copy) { max-width: 620px; padding: 44px 0 120px; }
+.hero :global(.royale-hero-copy h1) { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.15; letter-spacing: -.035em; }
+.hero :global(.royale-hero-copy .search-wrap) { margin-top: 22px; }
+.tagGuide { margin-top: 14px; max-width: 490px; color: #e3edf6; font: 400 13px/1.6 var(--font-ui); }
+.tagGuide summary { width: fit-content; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.tagGuide summary:focus-visible { outline: 2px solid #75c5ff; outline-offset: 4px; }
+.tagGuide p { margin: 8px 0 0; }
+
+.deckPresentation { width: min(860px, 100%); margin-inline: auto; }
+.deckTools { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.elixir { display: flex; align-items: center; gap: 8px; color: #503264; }
+.elixir strong { display: flex; align-items: baseline; gap: 8px; font: 750 18px/1.4 var(--font-ui); }
+.elixir span { color: #675272; font: 500 12px/1.4 var(--font-ui); }
+.deckPresentation .deckCards { --deck-grid-max-width: 860px; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+.deckPresentation :global(.game-card-art > img) { filter: none; }
+
+@media (max-width: 900px) {
+  .deckPresentation { max-width: 460px; }
+  .deckPresentation .deckCards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-.hero :global(.hero-title-line) { white-space: normal; }
-.hero :global(.royale-hero-copy h1) { line-height: 1.02; letter-spacing: -.045em; }
-.hero :global(.royale-hero-description) { max-width: 470px; }
-.hero :global(.player-tag-guide) { gap: 12px; }
-.hero :global(.player-tag-guide-screen) { width: min(340px, 100%); }
-.hero :global(.player-tag-guide-heading) { width: min(340px, 100%); }
-
-.eyebrow {
-  margin: 0 0 12px;
-  color: #ffe3a0;
-  font: 750 11px/1.5 var(--font-ui);
-  text-transform: uppercase;
-  letter-spacing: .14em;
-}
-
-.searchHint {
-  margin: 12px 0 0;
-  color: #dce9f3;
-  font: 500 12px/1.5 var(--font-ui);
-}
-
-.tagGuideCaption {
-  width: min(340px, 100%);
-  margin: 0;
-  color: #e0eaf4;
-  font: 500 13px/1.65 var(--font-ui);
-  text-shadow: none;
-}
-
-.reportEntry {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  gap: 24px 48px;
-  align-items: start;
-}
-
-.sectionLabel {
-  margin: 0 0 12px;
-  color: #07569f;
-  font: 800 11px/1.5 var(--font-ui);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-}
-
-.reportEntry h2 { max-width: 350px; margin: 0; font: 800 clamp(26px, 3vw, 36px)/1.12 var(--font-ui); letter-spacing: -.035em; color: #102e4a; }
-.reportEntry > div > p:last-child { margin: 14px 0 0; color: #526274; font: 400 14px/1.65 var(--font-ui); }
-.reportEntry ul { grid-column: 2; grid-row: 1 / span 2; display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
-.reportEntry li { display: flex; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #d2dce5; }
-.reportEntry li:last-child { padding-bottom: 0; border-bottom: 0; }
-.reportEntry li > span { color: #07569f; font: 800 12px/1.6 var(--font-ui); font-variant-numeric: tabular-nums; }
-.reportEntry li strong { color: #17324f; font: 750 15px/1.5 var(--font-ui); }
-.reportEntry li p { margin: 3px 0 0; color: #526274; font: 400 13px/1.5 var(--font-ui); }
-.reportEntry > a { justify-self: start; display: inline-flex; align-items: center; gap: 10px; }
-
-.deckMetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 24px 0 12px; border-block: 1px solid #c7d1db; }
-.deckMetrics > div { display: flex; flex-direction: column-reverse; gap: 7px; padding: 22px 16px; text-align: center; }
-.deckMetrics > div + div { border-left: 1px solid #c7d1db; }
-.deckMetrics dt { color: #526274; font: 650 12px/1.4 var(--font-ui); }
-.deckMetrics dd { margin: 0; color: #103452; font: 800 clamp(23px, 3vw, 36px)/1.1 var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
-
-@media (max-width: 920px) {
-  .hero :global(.royale-hero-inner) { grid-template-columns: 1fr; gap: 0; }
-  .hero :global(.royale-hero-copy) { padding: 48px 0 24px; }
-  .hero :global(.royale-hero-showcase.royale-hero-showcase) { min-height: 0; padding: 20px 0 44px; }
-  .hero :global(.player-tag-guide-heading) { text-align: left; }
-}
+.deckMetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 20px 0 8px; border-block: 1px solid #d9e1e8; }
+.deckMetrics > div { display: flex; flex-direction: column-reverse; gap: 6px; padding: 16px; text-align: center; }
+.deckMetrics > div + div { border-left: 1px solid #d9e1e8; }
+.deckMetrics dt { color: #526274; font: 500 12px/1.4 var(--font-ui); }
+.deckMetrics dd { margin: 0; color: #17324f; font: 750 clamp(22px, 3vw, 30px)/1.1 var(--font-ui); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 600px) {
-  .reportEntry { grid-template-columns: 1fr; gap: 24px; }
-  .reportEntry ul { grid-column: 1; grid-row: auto; }
-  .reportEntry h2 { max-width: none; }
-  .deckMetrics > div { padding: 18px 8px; }
+  .hero :global(.royale-hero-copy) { padding-top: 32px; }
+  .deckMetrics > div { padding: 14px 8px; }
   .deckMetrics dt { font-size: 11px; }
 }

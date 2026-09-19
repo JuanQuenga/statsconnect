@@ -613,7 +613,7 @@ export function SiteNavigation({
         {open ? (
           <div className="sc-nav__mobile-panel">
             <header className="sc-nav__mobile-heading">
-              <div><strong>Explore StatsConnect</strong><span>Search or choose a section.</span></div>
+              <div><strong>Navigation</strong></div>
               <button ref={mobileCloseRef} type="button" aria-label="Close navigation menu" onClick={close}><MenuIcon open /></button>
             </header>
             {renderSearch ? <div className="sc-nav__mobile-search">{renderSearch(close)}</div> : null}
