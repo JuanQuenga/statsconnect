@@ -1,6 +1,6 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useStatsConnectAuth } from "@statsconnect/auth";
-import { gameDestinationPath } from "@statsconnect/site-nav";
+import { gameDestinationHref } from "@statsconnect/site-nav";
 import { useEffect } from "react";
 import { ErrorState, LoadingState } from "@/components/ui-helpers";
 import { navigateToApplication } from "@/lib/application-navigation";
@@ -31,9 +31,7 @@ function LaunchGamePage() {
   useEffect(() => {
     if (!profilesReady || !profile || !isGameId(game)) return;
 
-    // Same-origin Game Destinations swap through the application shell when it
-    // is running; the document-level fallback keeps standalone launches working.
-    navigateToApplication(gameDestinationPath(game, profile.tag));
+    navigateToApplication(gameDestinationHref(game, profile.tag, window.location.origin));
   }, [game, profile, profilesReady]);
 
   if (!isGameId(game)) return <Navigate to="/connect" replace />;

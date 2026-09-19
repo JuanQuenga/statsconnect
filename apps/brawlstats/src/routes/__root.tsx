@@ -1,5 +1,6 @@
 import { createRootRoute, HeadContent, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { gameRouteBase } from "@statsconnect/site-nav";
 import { AppShell } from "@/components/layout/AppShell";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -24,7 +25,7 @@ function CanonicalUrl() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   useEffect(() => {
-    const configuredBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+    const configuredBase = gameRouteBase("brawl-stars", import.meta.env.BASE_URL, window.location.hostname);
     const localPath = configuredBase && configuredBase !== "/"
       ? pathname === configuredBase
         ? "/"

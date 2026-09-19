@@ -8,6 +8,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
+import { routePath } from "@/lib/paths";
 
 type ErrorCopy = {
   description: string;
@@ -70,7 +71,7 @@ function ErrorPage({ copy, error, reference, retry }: ErrorPageProps) {
             <RefreshCw className="size-4" aria-hidden />
             {copy.retry}
           </button>
-          <a href={import.meta.env.BASE_URL} className={buttonVariants({ size: "lg", variant: "outline" })}>
+          <a href={routePath("/")} className={buttonVariants({ size: "lg", variant: "outline" })}>
             {copy.home}
           </a>
         </div>

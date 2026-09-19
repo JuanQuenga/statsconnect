@@ -1,4 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
+import { gameRoutePath } from "@statsconnect/site-nav";
 import type { AnchorHTMLAttributes, MouseEvent } from "react";
 
 type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
@@ -11,9 +12,7 @@ function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
 
 export default function Link({ href, onClick, target, ...props }: LinkProps) {
   const router = useRouter();
-  const renderedHref = href.startsWith("/")
-    ? `${import.meta.env.BASE_URL}${href.replace(/^\/+/, "")}`
-    : href;
+  const renderedHref = gameRoutePath("clash-royale", import.meta.env.BASE_URL, window.location.hostname, href);
 
   return (
     <a
@@ -26,7 +25,7 @@ export default function Link({ href, onClick, target, ...props }: LinkProps) {
           event.defaultPrevented ||
           isModifiedClick(event) ||
           target === "_blank" ||
-          !href.startsWith("/")
+          !href.startsWith("/") || href.startsWith("//")
         ) {
           return;
         }

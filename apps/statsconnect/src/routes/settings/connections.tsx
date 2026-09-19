@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useStatsConnectAuth, type ConnectedProfile } from "@statsconnect/auth";
-import { gameDestinationPath } from "@statsconnect/site-nav";
+import { gameDestinationHref } from "@statsconnect/site-nav";
 import { ArrowRight, Link2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { PageStatus } from "@/components/ui-helpers";
@@ -69,9 +69,9 @@ function ConnectionsPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <a
-                        href={gameDestinationPath(game.id, profile.tag)}
+                        href={gameDestinationHref(game.id, profile.tag, window.location.origin)}
                         className={buttonVariants({ variant: "outline", size: "sm" })}
-                        onClick={(event) => handleGameDestinationClick(event, gameDestinationPath(game.id, profile.tag))}
+                        onClick={(event) => handleGameDestinationClick(event, gameDestinationHref(game.id, profile.tag, window.location.origin))}
                       >
                         <ArrowRight className="size-3.5" />
                         Open

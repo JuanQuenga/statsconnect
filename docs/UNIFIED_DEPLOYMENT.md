@@ -2,19 +2,21 @@
 
 One Vercel deployment serves the public application:
 
-- `/`: StatsConnect Hub
-- `/bs/*`: Brawl Stars experience
-- `/cr/*`: Clash Royale experience
+- `https://statsconnect.app`: StatsConnect Hub
+- `https://bs.statsconnect.app`: Brawl Stars experience
+- `https://cr.statsconnect.app`: Clash Royale experience
 
-`scripts/production-delivery.ts` is the executable source of truth for the ordered app builds, route prefixes, output directories, public origins, and generated application-shell manifest. `pnpm build:unified` builds three independently mountable applications into the root `dist/` directory. The root `vercel.json` hosting Adapter returns the persistent Hub document for product routes; the Hub runtime selects and mounts the experience that owns the requested path.
+`scripts/production-delivery.ts` is the executable source of truth for the ordered app builds, route prefixes, output directories, public origins, and generated application-shell manifest. `pnpm build:unified` builds three independently mountable applications into the root `dist/` directory. The root `vercel.json` hosting Adapter returns the Hub document for product routes. The shell selects the app by exact production hostname, with root-relative game router paths. Preview hosts select apps by `/bs` and `/cr` paths. Production cross-game navigation loads a new document.
 
-The previous `/brawlstars/*` and `/clashroyale/*` URLs remain supported through permanent Vercel redirects to `/bs/*` and `/cr/*`. Redirects retain deep-link suffixes and query parameters, so existing profile, player, and beta links continue to resolve.
+Old apex `/bs/*`, `/cr/*`, `/brawlstars/*`, and `/clashroyale/*` product URLs redirect to their matching game hosts. Redirects retain deep-link suffixes and query parameters. Static assets remain in `dist/bs` and `dist/cr`, served through `/bs` and `/cr` namespaces without redirects.
 
-The canonical public origin is `https://statsconnect.app`. Root `vercel.json` redirects requests from `stats.juanquenga.com` and `www.statsconnect.app` to the apex, preserving paths and query parameters. These hosts must remain attached to the same Vercel project. If the legacy `brawlstats.juanquenga.com` or `clashcrown.juanquenga.com` hostnames remain attached to another Vercel project, configure redirects to `https://statsconnect.app/bs` and `https://statsconnect.app/cr` respectively. Verify each hostname separately. This repository does not configure those other projects.
+Attach `statsconnect.app`, `bs.statsconnect.app`, and `cr.statsconnect.app` to the same root Vercel project. Root `vercel.json` redirects requests from `stats.juanquenga.com` and `www.statsconnect.app` to the apex, preserving paths and query parameters. Those compatibility hosts must also remain attached. If the legacy `brawlstats.juanquenga.com` or `clashcrown.juanquenga.com` hostnames remain attached to another Vercel project, configure redirects to `https://bs.statsconnect.app` and `https://cr.statsconnect.app` respectively. Verify each hostname separately. This repository does not configure those other projects.
 
-The shared Better Auth configuration temporarily trusts the old origins for rollout compatibility. An origin allowlist does not transfer sessions between unrelated domains. Remove the legacy origins after the redirects and DNS migration are confirmed. `/bs` and `/cr` are same-origin paths under `https://statsconnect.app` and require no separate trusted origins.
+Better Auth explicitly trusts the apex and both HTTPS game hosts, not wildcard sibling origins. Auth, profile, and locale cookies share `.statsconnect.app`. Existing apex local auth values migrate into shared cookies on read. The old origins and `.juanquenga.com` cookie support remain for rollout compatibility. An origin allowlist does not transfer sessions between unrelated domains.
 
-Users must sign in again on the new domain. Account-saved profiles remain available because the domain migration keeps the existing Convex backend. Guest profiles and preferences stored in the old domain's browser storage do not transfer automatically. Do not copy authentication tokens through redirect URLs.
+Users moving from `juanquenga.com` must sign in again on `statsconnect.app`. Account-saved profiles remain available because the migration keeps the existing Convex backend. Guest profiles and preferences stored under the old parent domain do not transfer automatically. Game-specific local storage also remains origin-specific. Do not copy authentication tokens through redirect URLs.
+
+Brawl Stars uses root-scope service-worker registration and an install manifest on `bs.statsconnect.app` through host-qualified rewrites. Icons and cached assets retain their `/bs` namespace. Preview hosts keep the path-scoped Brawl PWA.
 
 Vercel runs `pnpm build:vercel`. Production builds deploy the canonical Convex functions and inject the resulting `VITE_CONVEX_URL` while building all three frontends. Preview and development builds only build the frontends; they require a preview-scoped `VITE_CONVEX_URL` and never receive `CONVEX_DEPLOY_KEY`.
 

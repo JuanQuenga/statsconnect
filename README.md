@@ -4,7 +4,7 @@ StatsConnect brings Brawl Stars and Clash Royale statistics into one platform. S
 
 Development of [BrawlStars](https://github.com/JuanQuenga/BrawlStars) and [ClashCrown](https://github.com/JuanQuenga/ClashCrown) continues here. Both experiences share navigation, account connections, and a Convex backend.
 
-[Open StatsConnect](https://statsconnect.app/) · [Brawl Stars](https://statsconnect.app/bs/) · [Clash Royale](https://statsconnect.app/cr/)
+[Open StatsConnect](https://statsconnect.app/) · [Brawl Stars](https://bs.statsconnect.app/) · [Clash Royale](https://cr.statsconnect.app/)
 
 ## Contributing
 
@@ -23,7 +23,7 @@ Read [making and verifying changes](./CONTRIBUTING.md#making-a-change) before su
 - `packages/auth`: shared authentication and saved-profile synchronization
 - `packages/site-nav`: shared Site Navigation Module used by all three apps
 
-Each game keeps its own design, routes, and search experience. One Vercel deployment serves all three apps, and the shared Game Switcher moves between them without reloading the document. All apps use the Convex backend in `packages/backend`.
+Each game keeps its own design, routes, and search experience. One Vercel deployment serves all three apps. The shared Game Switcher loads the destination host as a new document in production. All apps use the Convex backend in `packages/backend`.
 
 `scripts/production-delivery.ts` defines route prefixes, public origins, output locations, build order, and release ownership.
 
@@ -32,13 +32,13 @@ For local setup, architecture, environment variables, contribution rules, deploy
 ## Production topology
 
 - `apps/statsconnect`: `statsconnect.app/`
-- `apps/brawlstats`: `statsconnect.app/bs/*`
-- `apps/clashcrown`: `statsconnect.app/cr/*`
+- `apps/brawlstats`: `bs.statsconnect.app/*`
+- `apps/clashcrown`: `cr.statsconnect.app/*`
 - `packages/backend`: the shared Convex production deployment
 
-The former `/brawlstars/*` and `/clashroyale/*` paths permanently redirect to `/bs/*` and `/cr/*`, preserving deep-link suffixes and query parameters.
+Old apex game paths, including `/bs/*`, `/cr/*`, `/brawlstars/*`, and `/clashroyale/*`, redirect to the matching game host. Namespaced static assets stay under `/bs` and `/cr` and do not redirect.
 
-The shared Game Switcher links directly to these same-origin paths. `/launch/:game` is retained only for old bookmarks and is not part of canonical navigation.
+The shared Game Switcher links directly to the game hosts. Preview hosts retain path-based `/bs/*` and `/cr/*` switching. `/launch/:game` is retained only for old bookmarks and is not part of canonical navigation.
 
 Production delivery uses one root Vercel project and one Convex deployment. Follow the release procedure in [CONTRIBUTING.md](./CONTRIBUTING.md#production-deployment) before releasing.
 

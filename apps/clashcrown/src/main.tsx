@@ -1,5 +1,6 @@
 import { StatsConnectAuthProvider } from "@statsconnect/auth";
 import type { MountedStatsConnectApplication } from "@statsconnect/site-nav";
+import { gameRouteBase } from "@statsconnect/site-nav";
 import {
   AppErrorBoundary,
   installGlobalErrorHandlers,
@@ -18,7 +19,7 @@ import { routeTree } from "./routeTree.gen";
 import "./styles/globals.css";
 
 const APP_NAME = "StatsConnect Clash Royale";
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "") || "/";
+const basePath = gameRouteBase("clash-royale", import.meta.env.BASE_URL, window.location.hostname);
 
 function createApplicationRouter() {
   const router = createRouter({

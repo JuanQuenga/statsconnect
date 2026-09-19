@@ -198,7 +198,7 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
   context.textAlign = "right";
   context.fillStyle = "#f8fbff";
   context.font = "700 17px ProximaNova, Inter, sans-serif";
-  context.fillText("statsconnect.app/cr", 1130, 602);
+  context.fillText("cr.statsconnect.app", 1130, 602);
   context.textAlign = "left";
 
   return canvasBlob(canvas);

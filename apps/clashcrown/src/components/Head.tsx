@@ -1,4 +1,5 @@
 import { Children, isValidElement, useEffect, type ReactNode } from "react";
+import { gameRoutePath } from "@statsconnect/site-nav";
 
 type HeadProps = { children: ReactNode };
 type HeadElementProps = {
@@ -61,7 +62,7 @@ export default function Head({ children }: HeadProps) {
         document.head.append(canonicalElement);
       }
       canonicalElement.href = new URL(
-        `${import.meta.env.BASE_URL}${canonical.replace(/^\/+/, "")}`,
+        gameRoutePath("clash-royale", import.meta.env.BASE_URL, window.location.hostname, canonical),
         window.location.origin,
       ).toString();
     }

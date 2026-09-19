@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useStatsConnectAuth } from "@statsconnect/auth";
-import { gameDestinationPath } from "@statsconnect/site-nav";
+import { gameDestinationHref } from "@statsconnect/site-nav";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
@@ -37,7 +37,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
       return preview.data.playerTag;
     },
     onSuccess: (playerTag) => {
-      navigateToApplication(gameDestinationPath(game, playerTag));
+      navigateToApplication(gameDestinationHref(game, playerTag, window.location.origin));
     },
   });
 

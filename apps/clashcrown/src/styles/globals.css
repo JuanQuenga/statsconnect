@@ -1786,10 +1786,10 @@ button { cursor: pointer; }
 }
 
 .search-error {
-  margin: 10px 0 -28px;
+  margin: 10px 0 0;
   color: #ffd2f9;
   font: 12px/1.4 var(--font-ui);
-  text-shadow: 0 2px 8px #03101c;
+  text-shadow: none;
 }
 
 .data-state {
@@ -3961,7 +3961,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .site-frame-clash .arena-route-hero-content {
   min-width: 0;
   max-width: 760px;
-  text-shadow: 0 2px 3px rgba(3, 14, 24, .56);
+  text-shadow: none;
 }
 
 .site-frame-clash .arena-route-hero-eyebrow {
@@ -4000,7 +4000,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   font-synthesis: none;
   line-height: 1.04;
   letter-spacing: -.045em;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, .28);
+  text-shadow: none;
 }
 
 .site-frame-clash .data-state h1 { text-shadow: none; }
@@ -4125,7 +4125,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   min-width: 0;
   padding: 72px 0 112px;
   max-width: 680px;
-  text-shadow: 0 2px 22px rgba(2, 7, 16, .62);
+  text-shadow: none;
 }
 
 .royale-hero-copy h1 {
@@ -5434,40 +5434,14 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .profile-story .chest-item strong { margin-top: 2px; color: var(--foreground); font-size: 13px; }
 .profile-story .table-note { color: var(--muted-foreground); font: 13px/1.55 var(--font-ui); }
 
-/* Compact search reveals context on focus; full-size search keeps it in flow. */
-.search-wrap .sc-search {
-  --sc-nav-accent: var(--primary);
-  --sc-nav-border: var(--border);
-  --sc-nav-muted: var(--muted-foreground);
-  --sc-nav-text: var(--foreground);
-}
-.search-wrap .sc-search__bar { background: color-mix(in srgb, var(--card) 92%, transparent); }
-.search-wrap .sc-search__context {
-  z-index: 101;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--popover);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, .28);
-}
+/* Search suggestions sit beneath the single integrated search control. */
 .search-wrap .search-suggestions { z-index: 100; }
 .search-suggestions-head { color: var(--muted-foreground); font: 700 12px/1.3 var(--font-ui); letter-spacing: 0; text-transform: none; }
 .search-option strong { font-family: var(--font-ui); font-size: 14px; font-weight: 750; }
 .search-option small,
 .search-option i,
 .search-note { font-size: 12px; }
-.search-wrap:has(.sc-search.is-contextual) .search-suggestions { top: calc(100% + 44px); }
-.search-wrap-compact .sc-search__context { left: auto; right: 0; }
-.search-wrap:not(.search-wrap-compact) .sc-search__context {
-  position: static;
-  justify-self: start;
-  margin-top: 6px;
-  box-shadow: none;
-}
-.search-wrap:not(.search-wrap-compact):has(.sc-search.is-contextual) .search-suggestions {
+.search-wrap .search-suggestions {
   top: calc(100% + 8px);
 }
 
@@ -5892,12 +5866,12 @@ a:hover .entity-cell strong { color: #75c5ff; }
 }
 
 .site-frame-home .royale-hero-copy {
-  text-shadow: 0 3px 4px rgba(0, 0, 0, .74), 0 9px 28px rgba(0, 0, 0, .42);
+  text-shadow: none;
 }
 
 .site-frame-home .royale-hero-copy h1 .hero-title-accent {
   color: var(--home-arena-gold);
-  text-shadow: 0 3px 0 rgba(95, 61, 6, .58), 0 9px 26px rgba(0, 0, 0, .46);
+  text-shadow: none;
 }
 
 .site-frame-home .royale-hero-description {
@@ -5960,7 +5934,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   font-weight: 800;
   letter-spacing: .015em;
   text-align: center;
-  text-shadow: 0 2px 5px rgba(0, 0, 0, .54);
+  text-shadow: none;
 }
 
 .site-frame-home [aria-labelledby="personal-dashboard-title"] > header p,
@@ -6039,7 +6013,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
   grid-template-columns: minmax(230px, 1fr) minmax(360px, 1fr);
   gap: 42px 170px;
   color: rgba(255, 255, 255, .88);
-  text-shadow: 0 2px 5px rgba(25, 22, 31, .7);
+  text-shadow: none;
 }
 
 .site-frame-clash .statsconnect-game-brand,

@@ -13,8 +13,11 @@ type SharedAuthStorageOptions = {
 
 const COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
-function usesSharedAuthCookie(hostname: string): boolean {
-  return hostname === "juanquenga.com" || hostname.endsWith(".juanquenga.com");
+export function sharedCookieDomain(hostname: string): string | null {
+  for (const domain of ["statsconnect.app", "juanquenga.com"]) {
+    if (hostname === domain || hostname.endsWith(`.${domain}`)) return `.${domain}`;
+  }
+  return null;
 }
 
 function readCookieValue(cookie: string, key: string): string | null {
@@ -32,7 +35,8 @@ function readCookieValue(cookie: string, key: string): string | null {
 }
 
 export function createSharedAuthStorage(options: SharedAuthStorageOptions): AuthStorage {
-  if (!usesSharedAuthCookie(options.hostname)) return options.legacyStorage;
+  const domain = sharedCookieDomain(options.hostname);
+  if (!domain) return options.legacyStorage;
 
   const storage: AuthStorage = {
     getItem: (key) => {
@@ -45,7 +49,7 @@ export function createSharedAuthStorage(options: SharedAuthStorageOptions): Auth
     setItem: (key, value) => {
       const secure = options.protocol === "https:" ? "; Secure" : "";
       options.writeCookie(
-        `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; Path=/; Domain=.juanquenga.com; SameSite=Lax${secure}`,
+        `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; Path=/; Domain=${domain}; SameSite=Lax${secure}`,
       );
     },
   };

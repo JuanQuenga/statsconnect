@@ -1,4 +1,8 @@
 const CANONICAL_STATS_CONNECT_ORIGIN = "https://statsconnect.app";
+const GAME_STATS_CONNECT_ORIGINS = [
+  "https://cr.statsconnect.app",
+  "https://bs.statsconnect.app",
+] as const;
 
 // Keep the old custom hosts trusted while their external permanent redirects roll out.
 // They are migration compatibility only; new links and auth callbacks use the canonical host.
@@ -12,6 +16,7 @@ export function authTrustedOrigins(siteUrl: string): string[] {
   return Array.from(new Set([
     siteUrl,
     CANONICAL_STATS_CONNECT_ORIGIN,
+    ...GAME_STATS_CONNECT_ORIGINS,
     ...LEGACY_STATS_CONNECT_ORIGINS,
   ]));
 }

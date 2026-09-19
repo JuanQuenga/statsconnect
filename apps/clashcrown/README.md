@@ -1,6 +1,6 @@
 # StatsConnect Clash Royale Game Site
 
-The Clash Royale experience is a companion Game Site under StatsConnect, built with Vite, React, TypeScript, TanStack Router, TanStack Query, Tailwind CSS, and Convex. Its server implementation lives in the Platform Backend's `clash` namespace at `packages/backend/convex`. In unified production it is mounted at `https://statsconnect.app/cr`.
+The Clash Royale experience is a companion Game Site under StatsConnect, built with Vite, React, TypeScript, TanStack Router, TanStack Query, Tailwind CSS, and Convex. Its server implementation lives in the Platform Backend's `clash` namespace at `packages/backend/convex`. Its production host is `https://cr.statsconnect.app`.
 
 ## Features
 
@@ -8,7 +8,7 @@ The Clash Royale experience is a companion Game Site under StatsConnect, built w
 - Search any clan tag and load live clan stats, weekly donations, war trophies, and the complete member roster.
 - Build an eight-card deck from the live card catalog and copy the official Clash Royale deck link.
 - Cache Clash Royale API responses in Convex, record player/clan progression snapshots, and serve stale data when the upstream API is temporarily unavailable.
-- Use `/players/CCDEMO` and `/clans/CCDEMO` without credentials for the built-in demo. In unified production these are `/cr/players/CCDEMO` and `/cr/clans/CCDEMO`.
+- Use `/players/CCDEMO` and `/clans/CCDEMO` on the Clash host without credentials for the built-in demo. Preview hosts prefix these paths with `/cr`.
 - Crawl player battle logs on a Convex cron schedule and fold them into daily deck and card aggregates, so deck win rate and usage can eventually be served from real observations rather than guessed at.
 
 ## Battle-log pipeline
@@ -24,7 +24,7 @@ The official API returns 25 battles per player. `packages/backend/convex/crons.t
 
 Battles are deduped on a side-independent fingerprint, so crawling both participants counts a battle once. Draft, mirror, and 2v2 modes are excluded because the deck is not the player's own.
 
-Visit `/cr/beta` on the unified deployed site (or `/beta` during local development) to watch queue depth, ingest counters, API failure rate, recent cron runs, and the early meta preview. The page is `noindex` and stays out of the nav.
+Visit `https://cr.statsconnect.app/beta` to watch queue depth, ingest counters, API failure rate, recent cron runs, and the early meta preview. Local standalone development uses `/beta`; unified previews use `/cr/beta`. The page is `noindex` and stays out of the nav.
 
 ## Local setup
 
@@ -70,9 +70,9 @@ pnpm --filter @statsconnect/backend typecheck
 
 See `.env-example`. The Clash Royale token belongs in the Convex environment, never in a browser-exposed variable.
 
-`VITE_STATSCONNECT_ORIGIN` controls the shared origin used by direct Hub, `/bs/*`, and `/cr/*` links in the Games switcher. It defaults to `https://statsconnect.app`.
+`VITE_STATSCONNECT_ORIGIN` identifies the Hub origin and defaults to `https://statsconnect.app`. The Games switcher uses canonical game hosts in production and loads a new document for cross-game navigation. Unified previews retain `/bs/*` and `/cr/*` paths.
 
-Legacy `/clashroyale/*` URLs permanently redirect to the matching `/cr/*` URL.
+Old apex `/cr/*` and `/clashroyale/*` product URLs redirect to `https://cr.statsconnect.app`. Assets still use the `/cr` namespace in the root Vercel build and do not redirect. Auth, profile, and locale cookies share `.statsconnect.app`, with legacy `.juanquenga.com` support retained.
 
 The Platform Backend pipeline reads these optional Convex environment variables, so it can be tuned without a redeploy:
 

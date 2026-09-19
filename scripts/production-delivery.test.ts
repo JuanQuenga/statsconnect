@@ -58,14 +58,14 @@ test("unified delivery orders apps in one collision-free output tree", () => {
   assert.equal(viteOutputDirectory("clashcrown"), "../../dist/cr");
 });
 
-test("unified public origins are derived from the public route prefixes", () => {
+test("public game origins use subdomains independently of build asset prefixes", () => {
   assert.equal(publicOrigin, "https://statsconnect.app");
   assert.deepEqual(
     deliveryApps.map((app) => publicAppOrigin(app)),
     [
       "https://statsconnect.app",
-      "https://statsconnect.app/bs",
-      "https://statsconnect.app/cr",
+      "https://bs.statsconnect.app",
+      "https://cr.statsconnect.app",
     ],
   );
   assert.deepEqual(unifiedPublicEnvironment, {
@@ -96,6 +96,20 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   assert.equal(vercel.outputDirectory, deliveryApps[0]?.outputDirectory);
 
   assert.deepEqual(vercel.redirects, [
+    ...["cr", "bs"].flatMap((game) => [
+      {
+        source: `/${game}`,
+        has: [{ type: "host", value: "statsconnect.app" }],
+        destination: `https://${game}.statsconnect.app/`,
+        permanent: true,
+      },
+      {
+        source: `/${game}/:path((?!assets/|images/|fonts/|.*\\.[^/]+$).*)`,
+        has: [{ type: "host", value: "statsconnect.app" }],
+        destination: `https://${game}.statsconnect.app/:path`,
+        permanent: true,
+      },
+    ]),
     ...["stats.juanquenga.com", "www.statsconnect.app"].map((host) => ({
       source: "/:path*",
       has: [{ type: "host", value: host }],
@@ -125,10 +139,14 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
   ]);
   assert.deepEqual(vercel.rewrites, [
+    { source: "/service-worker.js", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/service-worker.js" },
+    { source: "/manifest.webmanifest", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/subdomain.webmanifest" },
     ...expectedGameRewrites,
     { source: "/:path*", destination: "/index.html" },
   ]);
   assert.deepEqual(vercel.headers.map((header) => header.source), [
+    "/beta",
+    "/beta",
     "/index.html",
     "/application-shell-manifest.json",
     ...deliveryApps.slice(1).map((app) => `${app.routePrefix}/beta`),

@@ -1,6 +1,6 @@
 # StatsConnect Brawl Stars Game Site
 
-Live Brawl Stars statistics include players, clubs, maps, events, and official rankings. The Game Site is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS v4, and shadcn/ui Base UI. Its server implementation lives in the Platform Backend's `brawl` namespace at `packages/backend/convex`. Convex HTTP Actions keep the Supercell API token out of the browser. In unified production it is mounted at `https://statsconnect.app/bs`.
+Live Brawl Stars statistics include players, clubs, maps, events, and official rankings. The Game Site is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS v4, and shadcn/ui Base UI. Its server implementation lives in the Platform Backend's `brawl` namespace at `packages/backend/convex`. Convex HTTP Actions keep the Supercell API token out of the browser. Its production host is `https://bs.statsconnect.app`.
 
 ## What Works
 
@@ -15,7 +15,7 @@ Live Brawl Stars statistics include players, clubs, maps, events, and official r
 - Meta research dashboard with grouping, trophy brackets, sample controls, comparison, shareable filters, and CSV export
 - First-party map meta (win rate / use rate) aggregated from official battle logs; history begins prospectively when observations are ingested
 - Typed localization across seven languages: English, Spanish, German, French, Portuguese, Japanese, and Korean
-- Durable battle-log crawler with queue/run telemetry at `/beta` (served as `/bs/beta` in unified production)
+- Durable battle-log crawler with queue/run telemetry at `https://bs.statsconnect.app/beta` and `/bs/beta` on unified previews
 - Current event rotation and brawler catalog artwork
 - Loading, empty, invalid-tag, missing-configuration, and upstream-error states
 
@@ -77,7 +77,7 @@ The root unified release deploys the Platform Backend. The Brawl Stars experienc
 
 ## Routes
 
-The routes below are app-relative. In unified production, prefix them with `/bs`.
+The routes below are relative to `https://bs.statsconnect.app` in production. Unified previews prefix them with `/bs`.
 
 - `/`
 - `/players?tag=%23PLAYER_TAG`
@@ -96,9 +96,11 @@ The routes below are app-relative. In unified production, prefix them with `/bs`
 
 ## StatsConnect hub
 
-The global Games switcher links directly to this experience at `{VITE_STATSCONNECT_ORIGIN}/bs/`, and saved profiles link to `/bs/players?tag=TAG`. Set `VITE_STATSCONNECT_ORIGIN` to the shared StatsConnect origin; it defaults to `https://statsconnect.app`.
+The global Games switcher links directly to `https://bs.statsconnect.app`, and saved profiles link to `https://bs.statsconnect.app/players?tag=TAG`. Cross-game production navigation loads a new document. Unified previews retain `/bs` paths. `VITE_STATSCONNECT_ORIGIN` identifies the Hub origin and defaults to `https://statsconnect.app`.
 
-Legacy `/brawlstars/*` URLs permanently redirect to the matching `/bs/*` URL.
+Old apex `/bs/*` and `/brawlstars/*` product URLs redirect to the Brawl host. Static assets retain the `/bs` namespace in the root Vercel build without redirects. Auth, profile, and locale cookies share `.statsconnect.app`, with legacy `.juanquenga.com` support retained.
+
+The production Brawl host uses root-scope service-worker registration and an install manifest through host-qualified rewrites. Icons and cached assets retain `/bs` paths. Unified previews keep the existing path-scoped PWA.
 
 ## Map meta crawler
 

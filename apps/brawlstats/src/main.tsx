@@ -1,5 +1,6 @@
 import { StatsConnectAuthProvider } from "@statsconnect/auth";
 import type { MountedStatsConnectApplication } from "@statsconnect/site-nav";
+import { gameRouteBase } from "@statsconnect/site-nav";
 import {
   AppErrorBoundary,
   installGlobalErrorHandlers,
@@ -18,14 +19,25 @@ import { initializePwa } from "./lib/pwa";
 import { routeTree } from "./routeTree.gen";
 
 const APP_NAME = "StatsConnect Brawl Stars";
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "") || "/";
+const basePath = gameRouteBase("brawl-stars", import.meta.env.BASE_URL, window.location.hostname);
 
 initializePwa();
 
+const isBrawlSubdomain = window.location.hostname === "bs.statsconnect.app";
+if (isBrawlSubdomain) {
+  const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]') ?? document.createElement("link");
+  manifest.rel = "manifest";
+  manifest.href = "/manifest.webmanifest";
+  if (!manifest.isConnected) document.head.append(manifest);
+}
+
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}service-worker.js`, { scope: import.meta.env.BASE_URL }).catch(() => undefined);
-  });
+  const workerBase = isBrawlSubdomain ? "/" : import.meta.env.BASE_URL;
+  const registerWorker = () => {
+    void navigator.serviceWorker.register(`${workerBase}service-worker.js`, { scope: workerBase }).catch(() => undefined);
+  };
+  if (document.readyState === "complete") registerWorker();
+  else window.addEventListener("load", registerWorker, { once: true });
 }
 
 function createApplicationRouter(queryClient: QueryClient) {

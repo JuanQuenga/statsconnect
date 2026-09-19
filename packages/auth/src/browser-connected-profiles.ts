@@ -4,6 +4,7 @@ import {
   type ConnectedProfile,
   type PersistedConnectedProfile,
 } from "#connected-profiles";
+import { sharedCookieDomain } from "./shared-auth-storage.ts";
 
 type BrowserStorage = {
   getItem: (key: string) => string | null;
@@ -100,12 +101,6 @@ function parseProfiles(value: string | null, legacy: boolean): PersistedConnecte
   }
 }
 
-function sharedCookieDomain(hostname: string): string {
-  return hostname === "juanquenga.com" || hostname.endsWith(".juanquenga.com")
-    ? "; Domain=.juanquenga.com"
-    : "";
-}
-
 export function createBrowserConnectedProfilesAdapter(
   options: BrowserConnectedProfilesOptions,
 ): BrowserConnectedProfilesAdapter {
@@ -122,8 +117,9 @@ export function createBrowserConnectedProfilesAdapter(
     }
     try {
       const secure = options.protocol === "https:" ? "; Secure" : "";
+      const domain = sharedCookieDomain(options.hostname);
       options.writeCookie(
-        `${COOKIE_KEY}=${sharedCookiePayload(normalized)}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secure}${sharedCookieDomain(options.hostname)}`,
+        `${COOKIE_KEY}=${sharedCookiePayload(normalized)}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secure}${domain ? `; Domain=${domain}` : ""}`,
       );
     } catch {
       // In-memory state still updates when browser persistence is unavailable.

@@ -17,11 +17,11 @@ The shared top-level navigation experience used by the Hub and every Game Site.
 _Avoid_: Header, top nav, page shell
 
 **Game Switcher**:
-The Site Navigation control that moves users directly between the Hub and same-origin Game Site routes.
+The Site Navigation control that moves users directly between the Hub and Game Sites, using their canonical hosts in production.
 _Avoid_: App switcher, product picker
 
 **Game Destination**:
-A canonical same-origin Game Site route, optionally including a connected player profile.
+A canonical Game Site URL, optionally including a connected player profile.
 _Avoid_: External site, domain redirect
 
 **Platform Backend**:
@@ -53,7 +53,7 @@ _Avoid_: Track Profile, saved profile, recent visit
 - The unified deployment publishes one canonical **Game Destination** for each **Game Site**.
 - Every **Game Site** uses the shared **Site Navigation**.
 - The **Site Navigation** contains exactly one **Game Switcher**.
-- The **Game Switcher** links directly to canonical `/bs/*` and `/cr/*` **Game Destinations** on the current StatsConnect origin.
+- The **Game Switcher** links directly to `bs.statsconnect.app` and `cr.statsconnect.app` **Game Destinations** in production. Each cross-game choice loads a new document. Preview hosts retain `/bs/*` and `/cr/*` paths.
 - The Hub owns the shared **Profile Tracking** Interface, and both Game Sites use its Track Profile contract.
 - **Profile Tracking** membership can contribute free refresh demand, while premium **Watch Demand** remains a separate entitlement-backed request.
 - Each Game Site keeps its own **Personalization Store** for browser-local recent, dashboard, and saved convenience state.
@@ -65,7 +65,7 @@ _Avoid_: Track Profile, saved profile, recent visit
 ## Example dialogue
 
 > **Dev:** "Should the Brawl Stars Game Switcher link directly to the Clash Royale experience?"
-> **Domain expert:** "Yes. The shared Site Navigation points straight to the canonical `/cr/` route, and saved profiles point straight to `/cr/players/{tag}`."
+> **Domain expert:** "Yes. The shared Site Navigation points straight to `https://cr.statsconnect.app`, and saved profiles point to `https://cr.statsconnect.app/players/{tag}`."
 
 ## Flagged ambiguities
 

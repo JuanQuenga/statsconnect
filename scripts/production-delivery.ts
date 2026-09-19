@@ -71,7 +71,9 @@ export function deliveryApp(id: DeliveryAppId): DeliveryApp {
 }
 
 export function publicAppOrigin(app: DeliveryApp): string {
-  return app.routePrefix === "/" ? publicOrigin : `${publicOrigin}${app.routePrefix}`;
+  if (app.id === "brawlstats") return "https://bs.statsconnect.app";
+  if (app.id === "clashcrown") return "https://cr.statsconnect.app";
+  return publicOrigin;
 }
 
 export const unifiedPublicEnvironment = {

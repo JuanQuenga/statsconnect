@@ -29,7 +29,7 @@ import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { clubBadgeUrl, profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { normalizeTag, readableMode, trophies } from "@/lib/format";
-import { appPath } from "@/lib/paths";
+import { routePath } from "@/lib/paths";
 import type {
   ClubActivityEvent,
   ClubActivityType,
@@ -201,7 +201,7 @@ function ClubsPage() {
   function onSearch(event: FormEvent) {
     event.preventDefault();
     const next = normalizeTag(draft);
-    if (next) window.location.assign(appPath(`/clubs?tag=${encodeURIComponent(next)}`));
+    if (next) window.location.assign(routePath(`/clubs?tag=${encodeURIComponent(next)}`));
   }
 
   const club = clubQuery.data;

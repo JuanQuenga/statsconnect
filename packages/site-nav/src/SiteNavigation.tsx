@@ -112,7 +112,9 @@ function writeSharedLanguage(value: string) {
   document.documentElement.lang = value;
   try {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, value);
-    const sharedDomain = window.location.hostname === "juanquenga.com" || window.location.hostname.endsWith(".juanquenga.com")
+    const sharedDomain = window.location.hostname === "statsconnect.app" || window.location.hostname.endsWith(".statsconnect.app")
+      ? "; Domain=.statsconnect.app"
+      : window.location.hostname === "juanquenga.com" || window.location.hostname.endsWith(".juanquenga.com")
       ? "; Domain=.juanquenga.com"
       : "";
     document.cookie = `${LANGUAGE_COOKIE_KEY}=${encodeURIComponent(value)}; Max-Age=31536000; Path=/; SameSite=Lax${sharedDomain}`;

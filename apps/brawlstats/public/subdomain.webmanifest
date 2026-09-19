@@ -1,0 +1,14 @@
+{
+  "name": "StatsConnect · Brawl Stars statistics",
+  "short_name": "StatsConnect Brawl Stars",
+  "description": "Live Brawl Stars profiles, progression, map meta, and draft recommendations from StatsConnect.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a101a",
+  "theme_color": "#0a101a",
+  "icons": [
+    { "src": "/bs/android-chrome-192x192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/bs/android-chrome-512x512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" }
+  ]
+}

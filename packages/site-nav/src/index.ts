@@ -1,7 +1,9 @@
 export { SiteNavigation, siteNavigationLanguages } from "./SiteNavigation";
 export { SiteSearch } from "./SiteSearch";
+export { applicationForLocation, gameRouteBase, gameRoutePath } from "./application-location";
+export type { ApplicationId } from "./application-location";
 export { handleApplicationNavigation } from "./application-navigation";
-export { gameDestinationPath, gameSwitcherHref } from "./navigation-targets";
+export { gameDestinationHref, gameSwitcherHref } from "./navigation-targets";
 export type {
   MountedStatsConnectApplication,
   MountStatsConnectApplication,

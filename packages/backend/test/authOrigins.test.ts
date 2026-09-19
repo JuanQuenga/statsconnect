@@ -16,6 +16,8 @@ test("shared auth trusts the canonical host and temporary legacy host redirects"
   ]);
   assert.deepEqual(authTrustedOrigins(CANONICAL_STATS_CONNECT_ORIGIN), [
     CANONICAL_STATS_CONNECT_ORIGIN,
+    "https://cr.statsconnect.app",
+    "https://bs.statsconnect.app",
     ...LEGACY_STATS_CONNECT_ORIGINS,
   ]);
 });
@@ -24,6 +26,8 @@ test("the previous SITE_URL stays trusted during the canonical-domain rollout", 
   assert.deepEqual(authTrustedOrigins("https://stats.juanquenga.com"), [
     "https://stats.juanquenga.com",
     "https://statsconnect.app",
+    "https://cr.statsconnect.app",
+    "https://bs.statsconnect.app",
     "https://brawlstats.juanquenga.com",
     "https://clashcrown.juanquenga.com",
   ]);
@@ -34,6 +38,16 @@ test("shared auth preserves the configured Convex site URL alongside public orig
   assert.deepEqual(authTrustedOrigins(siteUrl), [
     siteUrl,
     CANONICAL_STATS_CONNECT_ORIGIN,
+    "https://cr.statsconnect.app",
+    "https://bs.statsconnect.app",
     ...LEGACY_STATS_CONNECT_ORIGINS,
   ]);
+});
+
+test("game host trust is explicit and deduplicates a game SITE_URL", () => {
+  const trusted = authTrustedOrigins("https://cr.statsconnect.app");
+  assert.equal(trusted.filter((origin) => origin === "https://cr.statsconnect.app").length, 1);
+  for (const origin of ["https://other.statsconnect.app", "https://statsconnect.app.evil", "https://evil-statsconnect.app", "http://bs.statsconnect.app", "https://*.statsconnect.app"]) {
+    assert.ok(!trusted.includes(origin));
+  }
 });

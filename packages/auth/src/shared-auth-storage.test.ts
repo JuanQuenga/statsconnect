@@ -59,17 +59,43 @@ test("non-production hosts retain ordinary local storage", () => {
   assert.equal(storage, legacyStorage);
 });
 
-test("statsconnect.app shares auth across game paths through same-origin local storage", () => {
-  const localStorage = memoryStorage();
+test("statsconnect.app migrates apex local auth into a cookie readable by both game hosts", () => {
+  const localStorage = memoryStorage({ "better-auth_cookie": "session-json" });
+  let cookie = "";
   const storage = createSharedAuthStorage({
     hostname: "statsconnect.app",
     protocol: "https:",
-    readCookie: () => "",
-    writeCookie: () => assert.fail("The new domain must not write a legacy parent-domain cookie"),
+    readCookie: () => cookie,
+    writeCookie: (value) => { cookie = value; },
     legacyStorage: localStorage,
   });
 
-  assert.equal(storage, localStorage);
-  storage.setItem("better-auth_cookie", "session-json");
   assert.equal(storage.getItem("better-auth_cookie"), "session-json");
+  assert.match(cookie, /; Domain=\.statsconnect\.app;/);
+  assert.match(cookie, /; Path=\/;/);
+  assert.match(cookie, /; SameSite=Lax; Secure$/);
+  for (const hostname of ["cr.statsconnect.app", "bs.statsconnect.app"]) {
+    const sibling = createSharedAuthStorage({
+      hostname, protocol: "https:", readCookie: () => cookie,
+      writeCookie: () => assert.fail("Existing shared auth should not be rewritten"),
+      legacyStorage: memoryStorage({ "better-auth_cookie": "stale-local" }),
+    });
+    assert.equal(sibling.getItem("better-auth_cookie"), "session-json");
+  }
+});
+
+test("all production hosts write into their exact parent domain", () => {
+  for (const hostname of ["statsconnect.app", "cr.statsconnect.app", "bs.statsconnect.app", "juanquenga.com", "stats.juanquenga.com"]) {
+    let cookie = "";
+    createSharedAuthStorage({ hostname, protocol: "https:", readCookie: () => "", writeCookie: (value) => { cookie = value; }, legacyStorage: memoryStorage() }).setItem("session", "new");
+    assert.ok(cookie.includes(`Domain=.${hostname.endsWith("statsconnect.app") ? "statsconnect.app" : "juanquenga.com"};`));
+  }
+});
+
+test("lookalike hosts cannot opt into either shared auth domain", () => {
+  for (const hostname of ["statsconnect.app.evil", "evil-statsconnect.app", "notstatsconnect.app", "juanquenga.com.evil", "notjuanquenga.com"]) {
+    const legacyStorage = memoryStorage();
+    const storage = createSharedAuthStorage({ hostname, protocol: "https:", readCookie: () => "", writeCookie: () => assert.fail(hostname), legacyStorage });
+    assert.equal(storage, legacyStorage);
+  }
 });

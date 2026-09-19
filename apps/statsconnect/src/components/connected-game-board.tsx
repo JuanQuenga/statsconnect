@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ConnectedProfile } from "@statsconnect/auth";
-import { gameDestinationPath } from "@statsconnect/site-nav";
+import { gameDestinationHref } from "@statsconnect/site-nav";
 import { Play, Plus } from "lucide-react";
 import { useStageLight } from "@/components/lobby/ambient";
 import { TileNav } from "@/components/lobby/TileNav";
@@ -81,9 +81,9 @@ function ProfileTile({ profile }: { profile: ConnectedProfile }) {
     <a
       data-tile
       data-game={profile.game}
-      href={gameDestinationPath(profile.game, profile.tag)}
+      href={gameDestinationHref(profile.game, profile.tag, window.location.origin)}
       className="tile profile-tile relative flex min-h-[280px] flex-col justify-between overflow-hidden border border-border/60 bg-card/70 p-7"
-      onClick={(event) => handleGameDestinationClick(event, gameDestinationPath(profile.game, profile.tag))}
+      onClick={(event) => handleGameDestinationClick(event, gameDestinationHref(profile.game, profile.tag, window.location.origin))}
       {...stageLight}
     >
       <img

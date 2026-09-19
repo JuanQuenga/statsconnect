@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute, useLocation } from "@tanstack/react-router";
+import { gameRouteBase } from "@statsconnect/site-nav";
 import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import Head from "@/components/Head";
 import Link from "@/components/Link";
@@ -11,7 +12,7 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const { pathname } = useLocation();
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const base = gameRouteBase("clash-royale", import.meta.env.BASE_URL, window.location.hostname);
   const canonicalPath = base && base !== "/" && (pathname === base || pathname.startsWith(`${base}/`))
     ? pathname.slice(base.length) || "/"
     : pathname || "/";

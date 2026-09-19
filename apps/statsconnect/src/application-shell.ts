@@ -3,6 +3,7 @@ import type {
   MountStatsConnectApplication,
 } from "@statsconnect/site-nav";
 import { mountApplication as mountHubApplication } from "./application";
+import { applicationForLocation } from "@statsconnect/site-nav";
 
 type ApplicationId = "statsconnect" | "brawl-stars" | "clash-royale";
 
@@ -25,9 +26,7 @@ const hubMetadata = {
 };
 
 function applicationId(pathname: string): ApplicationId {
-  if (pathname === "/bs" || pathname.startsWith("/bs/")) return "brawl-stars";
-  if (pathname === "/cr" || pathname.startsWith("/cr/")) return "clash-royale";
-  return "statsconnect";
+  return applicationForLocation(window.location.hostname, pathname);
 }
 
 function isApplicationAssetManifest(value: unknown): value is ApplicationAssetManifest {
@@ -183,6 +182,10 @@ export async function startApplicationShell(rootElement: HTMLElement): Promise<v
 
   window.__statsConnectNavigate = (href) => {
     const destination = new URL(href, window.location.href);
+    if (destination.origin !== window.location.origin) {
+      window.location.assign(destination.href);
+      return;
+    }
     const id = applicationId(destination.pathname);
 
     if (current?.id === id) {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { gameAssetHref, gameSwitcherHref } from "./navigation-targets.ts";
+import { gameAssetHref, gameDestinationHref, gameSwitcherHref } from "./navigation-targets.ts";
 
 test("the Game Switcher sends game selections straight to same-origin game routes", () => {
   assert.equal(
@@ -41,8 +41,17 @@ test("the Game Switcher returns Hub selections to the Hub", () => {
 test("the Game Switcher uses the production Hub when no origin is configured", () => {
   assert.equal(
     gameSwitcherHref("brawl-stars"),
-    "https://statsconnect.app/bs/",
+    "https://bs.statsconnect.app/",
   );
+});
+
+test("production navigation uses game subdomains and root-level player routes", () => {
+  assert.equal(gameSwitcherHref("clash-royale"), "https://cr.statsconnect.app/");
+  assert.equal(gameSwitcherHref("statsconnect", "https://cr.statsconnect.app"), "https://statsconnect.app/");
+  assert.equal(gameDestinationHref("clash-royale", "#ABC"), "https://cr.statsconnect.app/players/ABC");
+  assert.equal(gameDestinationHref("brawl-stars", "#ABC"), "https://bs.statsconnect.app/players?tag=ABC");
+  assert.equal(gameSwitcherHref("clash-royale", "https://bs.statsconnect.app"), "https://cr.statsconnect.app/");
+  assert.equal(gameAssetHref("clash-royale", { applicationOrigin: "https://cr.statsconnect.app", applicationShell: true }), "https://cr.statsconnect.app/cr/");
 });
 
 test("game assets stay local for standalone root and /cr deployments", () => {

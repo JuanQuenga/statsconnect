@@ -3,7 +3,8 @@ import { useRouter } from "@/lib/router";
 import { Clock, Search, X } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
-import { SiteSearch } from "@statsconnect/site-nav";
+import type { SiteSearchProps } from "@statsconnect/site-nav";
+import styles from "./ProfileSearch.module.css";
 import { normalizeTag } from "@/lib/clash/tag";
 import type { RecentProfile } from "@/lib/recentProfiles";
 import { useI18n } from "@/lib/i18n";
@@ -24,6 +25,21 @@ import { profileSearchDestination } from "@/lib/profileSearchRouting";
  */
 
 type SearchKind = "players" | "clans";
+
+function SearchControl({ compact, value, onValueChange, onSubmit, label, placeholder, submitLabel, submitIcon, contextLabel, contextOptions = [], contextValue, onContextChange, inputProps }: SiteSearchProps<SearchKind>) {
+  return (
+    <form className={`${styles.control} ${compact ? styles.compact : ""}`} onSubmit={onSubmit} role="search">
+      <select aria-label={contextLabel} value={contextValue} onChange={(event) => {
+        const option = contextOptions.find(({ value: optionValue }) => optionValue === event.target.value);
+        if (option) onContextChange?.(option.value);
+      }}>
+        {contextOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <input {...inputProps} type="search" aria-label={label} value={value} placeholder={placeholder} onChange={(event) => onValueChange(event.target.value)} />
+      <button type="submit" aria-label={submitLabel}><span aria-hidden="true">{submitIcon}</span></button>
+    </form>
+  );
+}
 
 /** Long enough that a stray keystroke does not fire a query, short enough to feel live. */
 const DEBOUNCE_MS = 180;
@@ -174,7 +190,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
 
   return (
     <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"} ref={wrapRef}>
-      <SiteSearch
+      <SearchControl
         compact={compact}
         value={term}
         onValueChange={(value) => {
@@ -193,7 +209,6 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
           setKind(value);
           setHighlight(-1);
         }}
-        showContext={!compact || open}
         inputProps={{
           autoComplete: "off",
           role: "combobox",
@@ -270,7 +285,6 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
   const [kind, setKind] = useState<SearchKind>("players");
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
-  const [engaged, setEngaged] = useState(false);
   const errorId = useId();
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -287,7 +301,7 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
 
   return (
     <div className={compact ? "search-wrap search-wrap-compact" : "search-wrap"}>
-      <SiteSearch
+      <SearchControl
         compact={compact}
         value={tag}
         onValueChange={setTag}
@@ -298,13 +312,12 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
         submitIcon={<Search size={compact ? 20 : 22} />}
         contextLabel={t("search.profileType")}
         contextOptions={[
-          { value: "players", label: t("search.playerTag") },
-          { value: "clans", label: t("search.clanTag") },
+          { value: "players", label: t("search.players") },
+          { value: "clans", label: t("search.clans") },
         ]}
         contextValue={kind}
         onContextChange={setKind}
-        showContext={!compact || engaged}
-        inputProps={{ onFocus: () => setEngaged(true), "aria-invalid": Boolean(error), "aria-describedby": error ? errorId : undefined }}
+        inputProps={{ "aria-invalid": Boolean(error), "aria-describedby": error ? errorId : undefined }}
       />
       {error ? (
         <p id={errorId} className="search-error" role="alert">

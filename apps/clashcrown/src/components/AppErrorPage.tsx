@@ -1,4 +1,5 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
+import { gameRouteBase } from "@statsconnect/site-nav";
 import {
   formatTechnicalError,
   getErrorReference,
@@ -55,7 +56,7 @@ function ErrorPanel({ copy, error, reference, retry }: ErrorPanelProps) {
           <RefreshCw size={16} aria-hidden />
           {copy.retry}
         </button>
-        <a href={import.meta.env.BASE_URL} className="app-error-home">
+        <a href={gameRouteBase("clash-royale", import.meta.env.BASE_URL, window.location.hostname)} className="app-error-home">
           {copy.home}
         </a>
       </div>

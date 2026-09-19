@@ -2,9 +2,8 @@ import { handleApplicationNavigation } from "@statsconnect/site-nav";
 import type { MouseEvent } from "react";
 
 /**
- * Navigates to a canonical Game Destination on this origin. Inside the shared
- * application shell the mounted application swaps in place; standalone, it
- * falls back to a full document navigation.
+ * Canonical subdomain destinations use document navigation. The application
+ * shell retains in-place switching for same-origin preview destinations.
  */
 export function navigateToApplication(href: string): void {
   if (window.__statsConnectNavigate) {

@@ -1,13 +1,18 @@
-const CACHE_NAME = "brawlstats-shell-v1";
+const CACHE_NAME = "brawlstats-shell-v2";
+const ROOT_GAME_HOST = self.location.hostname === "bs.statsconnect.app";
+const ASSET_BASE = ROOT_GAME_HOST ? "/bs/" : "./";
+const SHELL_URL = new URL("./", self.registration.scope).href;
 const APP_SHELL = [
-  "./",
-  "./manifest.webmanifest",
-  "./favicon.ico",
-  "./favicon-32x32.png",
-  "./apple-touch-icon.png",
-  "./android-chrome-192x192.png",
-  "./android-chrome-512x512.png",
-  "./assets/img/bs-stats.png",
+  SHELL_URL,
+  new URL("./manifest.webmanifest", self.registration.scope).href,
+  ...[
+    "favicon.ico",
+    "favicon-32x32.png",
+    "apple-touch-icon.png",
+    "android-chrome-192x192.png",
+    "android-chrome-512x512.png",
+    "assets/img/bs-stats.png",
+  ].map((path) => new URL(`${ASSET_BASE}${path}`, self.registration.scope).href),
 ];
 
 self.addEventListener("install", (event) => {
@@ -17,7 +22,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith("brawlstats-shell-") && key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
 });
@@ -34,7 +39,7 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || (event.request.mode === "navigate" ? caches.match("./") : undefined))),
+      .catch(() => caches.match(event.request).then((cached) => cached || (event.request.mode === "navigate" ? caches.match(SHELL_URL) : undefined))),
   );
 });
 

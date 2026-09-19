@@ -37,8 +37,8 @@ The three frontends are independently built, mountable React applications. In pr
 - **Hub**: the StatsConnect site that owns game discovery, connected profiles, and canonical game destinations.
 - **Game Site**: the Brawl Stars or Clash Royale experience under StatsConnect, each with its own routes and visual design.
 - **Site Navigation**: the shared network-level navigation from `packages/site-nav`.
-- **Game Switcher**: the control in Site Navigation that links directly to same-origin Game Site routes.
-- **Game Destination**: a canonical `/bs/*` or `/cr/*` route, optionally for a connected profile.
+- **Game Switcher**: the control in Site Navigation that links directly to canonical Game Site hosts in production.
+- **Game Destination**: a canonical `bs.statsconnect.app` or `cr.statsconnect.app` URL, optionally for a connected profile.
 - **Platform Backend**: the canonical Convex deployment in `packages/backend`.
 
 Use these names in code, issues, and documentation. See [`CONTEXT.md`](./CONTEXT.md) for the complete domain-language rules.
@@ -176,7 +176,7 @@ Anything beginning with `VITE_` is compiled into public JavaScript. It must neve
 | --- | --- | --- |
 | `VITE_CONVEX_URL` | All frontends | Canonical `.convex.cloud` client URL; required for live data |
 | `VITE_CONVEX_SITE_URL` | Brawl Stars experience | Optional explicit `.convex.site` HTTP Actions URL |
-| `VITE_STATSCONNECT_ORIGIN` | Game Sites | Shared origin used by Site Navigation for direct `/bs/*` and `/cr/*` links |
+| `VITE_STATSCONNECT_ORIGIN` | Game Sites | Hub origin used by Site Navigation; production game links use their canonical hosts, previews retain `/bs/*` and `/cr/*` paths |
 | `NEXT_PUBLIC_CONVEX_URL` | Clash Royale compatibility path | Legacy fallback for `VITE_CONVEX_URL` |
 | `NEXT_PUBLIC_STATSCONNECT_ORIGIN` | Clash Royale compatibility path | Legacy fallback for the Hub origin |
 | `STATSCONNECT_UNIFIED_BUILD` | Vite build only | Sets Game Site base paths and writes all SPAs into root `dist` |
@@ -357,15 +357,17 @@ ADR 0002 defines the architecture. `scripts/production-delivery.ts` defines the 
 | URL | Artifact |
 | --- | --- |
 | `https://statsconnect.app/` | StatsConnect Hub |
-| `https://statsconnect.app/bs/*` | Brawl Stars experience |
-| `https://statsconnect.app/cr/*` | Clash Royale experience |
+| `https://bs.statsconnect.app/*` | Brawl Stars experience |
+| `https://cr.statsconnect.app/*` | Clash Royale experience |
 | Production Convex URL | One Platform Backend for all three apps |
 
-`build:unified` writes the Hub shell to `dist/`, the Brawl Stars experience to `dist/bs`, and the Clash Royale experience to `dist/cr`, then generates `dist/application-shell-manifest.json` from the game build manifests. Root Vercel rewrites direct visits to the Hub shell, which mounts the correct Game Site from the requested path. `pnpm test:delivery` checks the Adapters against the delivery topology. The former `/brawlstars/*` and `/clashroyale/*` paths are permanent compatibility redirects to the canonical prefixes.
+`build:unified` writes the Hub shell to `dist/`, the Brawl Stars experience to `dist/bs`, and the Clash Royale experience to `dist/cr`, then generates `dist/application-shell-manifest.json` from the game build manifests. Root Vercel rewrites product visits to the Hub shell. Exact production hostnames select the app with root-relative game router paths. Preview hosts retain path-based `/bs` and `/cr` app switching. `pnpm test:delivery` checks the Adapters against the delivery topology.
+
+Production cross-game navigation loads a new document. Old apex game routes redirect to the matching game host, including `/brawlstars/*` and `/clashroyale/*` aliases. Static assets keep `/bs` and `/cr` namespaces without redirects. Auth, profile, and locale cookies share `.statsconnect.app`; legacy `.juanquenga.com` compatibility remains. Brawl's production host uses a root-scope PWA through host-qualified rewrites while previews retain path scope.
 
 The root Vercel project runs normal releases through `pnpm build:vercel`. Preview builds compile the three frontends and application shell without deploying Convex. Production builds deploy the Platform Backend, set its URL for the frontend build, and compile the same mountable applications. Use `.github/workflows/convex-production.yml` only for manual emergency recovery.
 
-Keep the production Convex deploy key out of Preview and Development. Redirect legacy domains to the unified paths or document why they remain. Never point them at another writable production backend.
+Keep the production Convex deploy key out of Preview and Development. Redirect legacy game domains to their canonical game hosts or document why they remain. Never point them at another writable production backend.
 
 ### Release flow
 
@@ -462,7 +464,7 @@ Do not run a mutation, import, or deploy just to inspect a problem.
 | Schema deploy fails | New required field conflicts with existing documents; widen, backfill, then narrow |
 | Too many reads/writes | Unbounded query or oversized batch; paginate/schedule smaller batches |
 | OCC conflict | Hot document/write contention; reduce shared writes or shard counters |
-| Crawler looks idle | `/bs/beta`, `/cr/beta` (or their legacy redirect aliases), cron registration, pipeline runs, and fetch logs |
+| Crawler looks idle | `https://bs.statsconnect.app/beta`, `https://cr.statsconnect.app/beta`, cron registration, pipeline runs, and fetch logs |
 | Costs jump | Function child calls, crawler batch changes, reactive subscriptions, DB I/O, action duration, or egress |
 
 ## Security baseline

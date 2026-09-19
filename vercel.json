@@ -5,6 +5,30 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/cr",
+      "has": [{ "type": "host", "value": "statsconnect.app" }],
+      "destination": "https://cr.statsconnect.app/",
+      "permanent": true
+    },
+    {
+      "source": "/cr/:path((?!assets/|images/|fonts/|.*\\.[^/]+$).*)",
+      "has": [{ "type": "host", "value": "statsconnect.app" }],
+      "destination": "https://cr.statsconnect.app/:path",
+      "permanent": true
+    },
+    {
+      "source": "/bs",
+      "has": [{ "type": "host", "value": "statsconnect.app" }],
+      "destination": "https://bs.statsconnect.app/",
+      "permanent": true
+    },
+    {
+      "source": "/bs/:path((?!assets/|images/|fonts/|.*\\.[^/]+$).*)",
+      "has": [{ "type": "host", "value": "statsconnect.app" }],
+      "destination": "https://bs.statsconnect.app/:path",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "stats.juanquenga.com" }],
       "destination": "https://statsconnect.app/:path*",
@@ -54,6 +78,16 @@
   ],
   "headers": [
     {
+      "source": "/beta",
+      "has": [{ "type": "host", "value": "cr.statsconnect.app" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/beta",
+      "has": [{ "type": "host", "value": "bs.statsconnect.app" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
       "source": "/index.html",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
     },
@@ -71,6 +105,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/service-worker.js", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/bs/service-worker.js" },
+    { "source": "/manifest.webmanifest", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/bs/subdomain.webmanifest" },
     { "source": "/bs", "destination": "/index.html" },
     { "source": "/bs/:path*", "destination": "/index.html" },
     { "source": "/cr", "destination": "/index.html" },
