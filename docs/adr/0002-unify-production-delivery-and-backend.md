@@ -1,6 +1,8 @@
 # Unify production delivery and backend
 
-StatsConnect ships one public Vercel deployment at `stats.juanquenga.com` and one Convex production deployment. The Hub and each Game Site remain independently built, mountable Modules within the pnpm monorepo, served at `/`, `/bs`, and `/cr`. A persistent Hub application shell owns the browser document and swaps Game Sites in place for cross-game navigation.
+StatsConnect ships one public Vercel deployment at `statsconnect.app` and one Convex production deployment. The Hub and each Game Site remain independently built, mountable Modules within the pnpm monorepo, served at `/`, `/bs`, and `/cr`. A persistent Hub application shell owns the browser document and swaps Game Sites in place for cross-game navigation.
+
+Domain migration note: the original unified host was `stats.juanquenga.com`. Moving the public origin to `statsconnect.app` keeps the same routes and backend. Old hosts remain temporary auth compatibility origins during rollout. Redirect verification and browser-data limitations are documented in [Unified StatsConnect deployment](../UNIFIED_DEPLOYMENT.md).
 
 The public game routes are owned by StatsConnect: `/bs` is the Brawl Stars experience and `/cr` is the Clash Royale experience. Each experience keeps its own design system, assets, fonts, and local route contract while sharing the Site Navigation, identity, profile tracking, Platform Backend, and delivery topology. The former `/brawlstars/*` and `/clashroyale/*` paths are permanent compatibility redirects to the canonical prefixes.
 

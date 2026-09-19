@@ -5,6 +5,18 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "stats.juanquenga.com" }],
+      "destination": "https://statsconnect.app/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.statsconnect.app" }],
+      "destination": "https://statsconnect.app/:path*",
+      "permanent": true
+    },
+    {
       "source": "/bs/assets/brawlers/3d/:path*",
       "destination": "https://statsconnect-brawl-assets.juanquenga.workers.dev/:path*",
       "permanent": false

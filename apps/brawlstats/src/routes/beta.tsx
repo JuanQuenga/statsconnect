@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageStatus } from "@/components/ui-helpers";
 import { fetchPipelineStatus, type PipelineStatus } from "@/lib/pipeline";
 
-const hubOrigin = (import.meta.env.VITE_STATSCONNECT_ORIGIN || "https://stats.juanquenga.com").replace(/\/$/, "");
+const hubOrigin = (import.meta.env.VITE_STATSCONNECT_ORIGIN || "https://statsconnect.app").replace(/\/$/, "");
 
 export const Route = createFileRoute("/beta")({
   component: PipelineBetaPage,

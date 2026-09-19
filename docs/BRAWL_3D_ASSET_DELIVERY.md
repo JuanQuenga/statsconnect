@@ -215,7 +215,7 @@ node scripts/verify-brawl-cdn.mjs \
   --local-dir .generated/brawl-3d-full/cloudflare-release
 ```
 
-Repeat with `--origin https://stats.juanquenga.com/bs/assets/brawlers/3d/`
+Repeat with `--origin https://statsconnect.app/bs/assets/brawlers/3d/`
 after Vercel promotion. The check compares every catalog shard and sample GLB,
 PNG, BIN, and WEBP bytes, including the largest file. It also checks CORS, byte
 ranges, and missing-file responses. Open a production brawler page to verify

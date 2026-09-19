@@ -10,9 +10,11 @@ One Vercel deployment serves the public application:
 
 The previous `/brawlstars/*` and `/clashroyale/*` URLs remain supported through permanent Vercel redirects to `/bs/*` and `/cr/*`. Redirects retain deep-link suffixes and query parameters, so existing profile, player, and beta links continue to resolve.
 
-If the legacy `brawlstats.juanquenga.com` or `clashcrown.juanquenga.com` hostnames remain attached to a Vercel project, configure domain-level permanent redirects to `https://stats.juanquenga.com/bs` and `https://stats.juanquenga.com/cr` respectively. Hostname redirects are an external domain setting; the root project route rules cover only path aliases on the canonical host.
+The canonical public origin is `https://statsconnect.app`. Root `vercel.json` redirects requests from `stats.juanquenga.com` and `www.statsconnect.app` to the apex, preserving paths and query parameters. These hosts must remain attached to the same Vercel project. If the legacy `brawlstats.juanquenga.com` or `clashcrown.juanquenga.com` hostnames remain attached to another Vercel project, configure redirects to `https://statsconnect.app/bs` and `https://statsconnect.app/cr` respectively. Verify each hostname separately. This repository does not configure those other projects.
 
-The shared Better Auth configuration continues to trust those two legacy origins temporarily so sessions can cross the redirect during rollout. Remove them after the external redirects and DNS migration are confirmed; `/bs` and `/cr` themselves are same-origin paths under `https://stats.juanquenga.com` and require no separate trusted origins.
+The shared Better Auth configuration temporarily trusts the old origins for rollout compatibility. An origin allowlist does not transfer sessions between unrelated domains. Remove the legacy origins after the redirects and DNS migration are confirmed. `/bs` and `/cr` are same-origin paths under `https://statsconnect.app` and require no separate trusted origins.
+
+Users must sign in again on the new domain. Account-saved profiles remain available because the domain migration keeps the existing Convex backend. Guest profiles and preferences stored in the old domain's browser storage do not transfer automatically. Do not copy authentication tokens through redirect URLs.
 
 Vercel runs `pnpm build:vercel`. Production builds deploy the canonical Convex functions and inject the resulting `VITE_CONVEX_URL` while building all three frontends. Preview and development builds only build the frontends; they require a preview-scoped `VITE_CONVEX_URL` and never receive `CONVEX_DEPLOY_KEY`.
 
@@ -69,13 +71,15 @@ The unified deployment needs these environment variable names copied from the ex
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 
-For Better Auth, set `SITE_URL=https://stats.juanquenga.com`. Register the production Convex HTTP Actions callback URL with Google as `https://<production-deployment>.convex.site/api/auth/callback/google`. Google credentials and the Better Auth secret belong only in the Convex production environment.
+For Better Auth, set `SITE_URL=https://statsconnect.app`. Register the production Convex HTTP Actions callback URL with Google as `https://<production-deployment>.convex.site/api/auth/callback/google`. Google credentials and the Better Auth secret belong only in the Convex production environment.
 
 The Brawl HTTP cache defaults are 900 seconds for player profiles and 120 seconds for battle logs. Existing deployments may keep `BRAWL_PROFILE_CACHE_TTL_SECONDS` and `BRAWL_BATTLE_LOG_CACHE_TTL_SECONDS`; both are accepted as lower-priority aliases while the documented names above are preferred.
 
 Backups do not contain deployment code, environment variables, or scheduled functions. Copy and verify them before switching traffic.
 
-## Safe data migration
+## Backend consolidation reference
+
+The following procedure applies to consolidating separate backend deployments, not to changing the public domain. Moving to `statsconnect.app` does not require a database export, import, or replacement backend.
 
 Do not import into an existing production deployment. Create a fresh target deployment and keep all three current production deployments available for rollback.
 
@@ -94,4 +98,4 @@ Do not import into an existing production deployment. Create a fresh target depl
 7. Verify Hub connections, both player searches, pipeline status, API calls, and all 11 cron registrations.
 8. Pause the old crawlers, take final exports, apply the final delta, and only then change the frontend Convex URL and public DNS.
 
-The game datasets currently contain no schema-declared cross-table document IDs. Their IDs are regenerated when they move into renamed tables. Account profiles keep their owner IDs when `savedProfiles` is imported. Old viewer-owned `connectedProfiles` rows cannot be matched to an account and have no automatic server migration. Browser profiles still migrate from the previous Site Navigation storage when that browser opens the new app.
+The game datasets currently contain no schema-declared cross-table document IDs. Their IDs are regenerated when they move into renamed tables. Account profiles keep their owner IDs when `savedProfiles` is imported. Old viewer-owned `connectedProfiles` rows cannot be matched to an account and have no automatic server migration. Browser profiles migrate from previous Site Navigation storage only when that storage is accessible on the same origin. This does not transfer guest data from `stats.juanquenga.com` to `statsconnect.app`.

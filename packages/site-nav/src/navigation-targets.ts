@@ -1,6 +1,6 @@
 import type { SiteId, SiteNavigationProfile } from "./SiteNavigation";
 
-const DEFAULT_HUB_ORIGIN = "https://stats.juanquenga.com";
+const DEFAULT_HUB_ORIGIN = "https://statsconnect.app";
 
 function normalizeOrigin(origin: string | undefined): string {
   return (origin?.trim() || DEFAULT_HUB_ORIGIN).replace(/\/$/, "");

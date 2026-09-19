@@ -29,3 +29,23 @@ test("browser Adapter migrates legacy Site Navigation storage into Hub profile s
   assert.match(cookies[0] ?? "", /statsconnect_connected_profiles=/);
   assert.match(cookies[0] ?? "", /Domain=\.juanquenga\.com/);
 });
+
+test("statsconnect.app writes secure host-only profile cookies shared by all game paths", () => {
+  const cookies: string[] = [];
+  const adapter = createBrowserConnectedProfilesAdapter({
+    hostname: "statsconnect.app",
+    protocol: "https:",
+    storage: { getItem: () => null, setItem: () => undefined },
+    readCookie: () => "",
+    writeCookie: (value) => cookies.push(value),
+    subscribeExternal: () => () => undefined,
+    notify: () => undefined,
+  });
+
+  adapter.replace([{ game: "brawl-stars", tag: "#ABC", name: "Player", updatedAt: 1 }]);
+  assert.equal(cookies.length, 1);
+  assert.match(cookies[0] ?? "", /; Path=\//);
+  assert.match(cookies[0] ?? "", /; Secure/);
+  assert.doesNotMatch(cookies[0] ?? "", /Domain=/i);
+  assert.equal(adapter.read()[0]?.tag, "ABC");
+});

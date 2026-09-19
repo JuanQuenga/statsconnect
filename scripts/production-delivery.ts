@@ -35,7 +35,7 @@ type ViteManifest = Readonly<Record<string, ViteManifestEntry>>;
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
-export const publicOrigin = "https://stats.juanquenga.com";
+export const publicOrigin = "https://statsconnect.app";
 
 export const deliveryApps = [
   {

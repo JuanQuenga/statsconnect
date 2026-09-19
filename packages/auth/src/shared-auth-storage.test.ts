@@ -58,3 +58,18 @@ test("non-production hosts retain ordinary local storage", () => {
 
   assert.equal(storage, legacyStorage);
 });
+
+test("statsconnect.app shares auth across game paths through same-origin local storage", () => {
+  const localStorage = memoryStorage();
+  const storage = createSharedAuthStorage({
+    hostname: "statsconnect.app",
+    protocol: "https:",
+    readCookie: () => "",
+    writeCookie: () => assert.fail("The new domain must not write a legacy parent-domain cookie"),
+    legacyStorage: localStorage,
+  });
+
+  assert.equal(storage, localStorage);
+  storage.setItem("better-auth_cookie", "session-json");
+  assert.equal(storage.getItem("better-auth_cookie"), "session-json");
+});

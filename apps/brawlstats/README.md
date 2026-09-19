@@ -1,6 +1,6 @@
 # StatsConnect Brawl Stars Game Site
 
-Live Brawl Stars statistics include players, clubs, maps, events, and official rankings. The Game Site is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS v4, and shadcn/ui Base UI. Its server implementation lives in the Platform Backend's `brawl` namespace at `packages/backend/convex`. Convex HTTP Actions keep the Supercell API token out of the browser. In unified production it is mounted at `https://stats.juanquenga.com/bs`.
+Live Brawl Stars statistics include players, clubs, maps, events, and official rankings. The Game Site is a React SPA built with Vite, TanStack Router and Query, Tailwind CSS v4, and shadcn/ui Base UI. Its server implementation lives in the Platform Backend's `brawl` namespace at `packages/backend/convex`. Convex HTTP Actions keep the Supercell API token out of the browser. In unified production it is mounted at `https://statsconnect.app/bs`.
 
 ## What Works
 
@@ -96,7 +96,7 @@ The routes below are app-relative. In unified production, prefix them with `/bs`
 
 ## StatsConnect hub
 
-The global Games switcher links directly to this experience at `{VITE_STATSCONNECT_ORIGIN}/bs/`, and saved profiles link to `/bs/players?tag=TAG`. Set `VITE_STATSCONNECT_ORIGIN` to the shared StatsConnect origin; it defaults to `https://stats.juanquenga.com`.
+The global Games switcher links directly to this experience at `{VITE_STATSCONNECT_ORIGIN}/bs/`, and saved profiles link to `/bs/players?tag=TAG`. Set `VITE_STATSCONNECT_ORIGIN` to the shared StatsConnect origin; it defaults to `https://statsconnect.app`.
 
 Legacy `/brawlstars/*` URLs permanently redirect to the matching `/bs/*` URL.
 

@@ -1,8 +1,9 @@
-const CANONICAL_STATS_CONNECT_ORIGIN = "https://stats.juanquenga.com";
+const CANONICAL_STATS_CONNECT_ORIGIN = "https://statsconnect.app";
 
 // Keep the old custom hosts trusted while their external permanent redirects roll out.
 // They are migration compatibility only; new links and auth callbacks use the canonical host.
 const LEGACY_STATS_CONNECT_ORIGINS = [
+  "https://stats.juanquenga.com",
   "https://brawlstats.juanquenga.com",
   "https://clashcrown.juanquenga.com",
 ] as const;

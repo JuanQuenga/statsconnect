@@ -41,7 +41,7 @@ test("the Game Switcher returns Hub selections to the Hub", () => {
 test("the Game Switcher uses the production Hub when no origin is configured", () => {
   assert.equal(
     gameSwitcherHref("brawl-stars"),
-    "https://stats.juanquenga.com/bs/",
+    "https://statsconnect.app/bs/",
   );
 });
 

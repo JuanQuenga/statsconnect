@@ -59,17 +59,17 @@ test("unified delivery orders apps in one collision-free output tree", () => {
 });
 
 test("unified public origins are derived from the public route prefixes", () => {
-  assert.equal(publicOrigin, "https://stats.juanquenga.com");
+  assert.equal(publicOrigin, "https://statsconnect.app");
   assert.deepEqual(
     deliveryApps.map((app) => publicAppOrigin(app)),
     [
-      "https://stats.juanquenga.com",
-      "https://stats.juanquenga.com/bs",
-      "https://stats.juanquenga.com/cr",
+      "https://statsconnect.app",
+      "https://statsconnect.app/bs",
+      "https://statsconnect.app/cr",
     ],
   );
   assert.deepEqual(unifiedPublicEnvironment, {
-    VITE_STATSCONNECT_ORIGIN: "https://stats.juanquenga.com",
+    VITE_STATSCONNECT_ORIGIN: "https://statsconnect.app",
   });
 });
 
@@ -96,6 +96,12 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   assert.equal(vercel.outputDirectory, deliveryApps[0]?.outputDirectory);
 
   assert.deepEqual(vercel.redirects, [
+    ...["stats.juanquenga.com", "www.statsconnect.app"].map((host) => ({
+      source: "/:path*",
+      has: [{ type: "host", value: host }],
+      destination: "https://statsconnect.app/:path*",
+      permanent: true,
+    })),
     ...["/bs/assets/brawlers/3d", "/assets/brawlers/3d", "/api/brawlers-3d"].map((prefix) => ({
       source: `${prefix}/:path*`,
       destination: "https://statsconnect-brawl-assets.juanquenga.workers.dev/:path*",

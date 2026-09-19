@@ -15,7 +15,7 @@ The Hub and Game Sites are independently built, mountable React applications in 
 
 ## Production runtime
 
-StatsConnect ships as one public Vercel deployment at `stats.juanquenga.com`:
+StatsConnect ships as one public Vercel deployment at `statsconnect.app`:
 
 | Path | Module |
 | --- | --- |

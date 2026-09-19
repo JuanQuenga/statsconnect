@@ -1,6 +1,6 @@
 # StatsConnect Clash Royale Game Site
 
-The Clash Royale experience is a companion Game Site under StatsConnect, built with Vite, React, TypeScript, TanStack Router, TanStack Query, Tailwind CSS, and Convex. Its server implementation lives in the Platform Backend's `clash` namespace at `packages/backend/convex`. In unified production it is mounted at `https://stats.juanquenga.com/cr`.
+The Clash Royale experience is a companion Game Site under StatsConnect, built with Vite, React, TypeScript, TanStack Router, TanStack Query, Tailwind CSS, and Convex. Its server implementation lives in the Platform Backend's `clash` namespace at `packages/backend/convex`. In unified production it is mounted at `https://statsconnect.app/cr`.
 
 ## Features
 
@@ -70,7 +70,7 @@ pnpm --filter @statsconnect/backend typecheck
 
 See `.env-example`. The Clash Royale token belongs in the Convex environment, never in a browser-exposed variable.
 
-`VITE_STATSCONNECT_ORIGIN` controls the shared origin used by direct Hub, `/bs/*`, and `/cr/*` links in the Games switcher. It defaults to `https://stats.juanquenga.com`.
+`VITE_STATSCONNECT_ORIGIN` controls the shared origin used by direct Hub, `/bs/*`, and `/cr/*` links in the Games switcher. It defaults to `https://statsconnect.app`.
 
 Legacy `/clashroyale/*` URLs permanently redirect to the matching `/cr/*` URL.
 

@@ -3,7 +3,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PRODUCTION = 'https://stats.juanquenga.com';
+const PRODUCTION = 'https://statsconnect.app';
 const PREFIXES = ['/bs/assets/brawlers/3d/', '/assets/brawlers/3d/'];
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 

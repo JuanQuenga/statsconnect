@@ -4,7 +4,7 @@ StatsConnect brings Brawl Stars and Clash Royale statistics into one platform. S
 
 Development of [BrawlStars](https://github.com/JuanQuenga/BrawlStars) and [ClashCrown](https://github.com/JuanQuenga/ClashCrown) continues here. Both experiences share navigation, account connections, and a Convex backend.
 
-[Open StatsConnect](https://stats.juanquenga.com/) · [Brawl Stars](https://stats.juanquenga.com/bs/) · [Clash Royale](https://stats.juanquenga.com/cr/)
+[Open StatsConnect](https://statsconnect.app/) · [Brawl Stars](https://statsconnect.app/bs/) · [Clash Royale](https://statsconnect.app/cr/)
 
 ## Contributing
 
@@ -31,9 +31,9 @@ For local setup, architecture, environment variables, contribution rules, deploy
 
 ## Production topology
 
-- `apps/statsconnect`: `stats.juanquenga.com/`
-- `apps/brawlstats`: `stats.juanquenga.com/bs/*`
-- `apps/clashcrown`: `stats.juanquenga.com/cr/*`
+- `apps/statsconnect`: `statsconnect.app/`
+- `apps/brawlstats`: `statsconnect.app/bs/*`
+- `apps/clashcrown`: `statsconnect.app/cr/*`
 - `packages/backend`: the shared Convex production deployment
 
 The former `/brawlstars/*` and `/clashroyale/*` paths permanently redirect to `/bs/*` and `/cr/*`, preserving deep-link suffixes and query parameters.

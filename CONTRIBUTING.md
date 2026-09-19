@@ -356,9 +356,9 @@ ADR 0002 defines the architecture. `scripts/production-delivery.ts` defines the 
 
 | URL | Artifact |
 | --- | --- |
-| `https://stats.juanquenga.com/` | StatsConnect Hub |
-| `https://stats.juanquenga.com/bs/*` | Brawl Stars experience |
-| `https://stats.juanquenga.com/cr/*` | Clash Royale experience |
+| `https://statsconnect.app/` | StatsConnect Hub |
+| `https://statsconnect.app/bs/*` | Brawl Stars experience |
+| `https://statsconnect.app/cr/*` | Clash Royale experience |
 | Production Convex URL | One Platform Backend for all three apps |
 
 `build:unified` writes the Hub shell to `dist/`, the Brawl Stars experience to `dist/bs`, and the Clash Royale experience to `dist/cr`, then generates `dist/application-shell-manifest.json` from the game build manifests. Root Vercel rewrites direct visits to the Hub shell, which mounts the correct Game Site from the requested path. `pnpm test:delivery` checks the Adapters against the delivery topology. The former `/brawlstars/*` and `/clashroyale/*` paths are permanent compatibility redirects to the canonical prefixes.
