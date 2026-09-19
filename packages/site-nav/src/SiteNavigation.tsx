@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type AnchorHTMLAttributes, type ComponentType, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type AnchorHTMLAttributes, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { handleApplicationNavigation } from "./application-navigation";
 import { gameAssetHref, gameSwitcherHref } from "./navigation-targets";
 import "./site-navigation.css";
@@ -495,6 +495,7 @@ export function SiteNavigation({
   renderSearch,
 }: SiteNavigationProps) {
   const [open, setOpen] = useState(false);
+  const mobileMenuId = useId();
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const close = () => setOpen(false);
@@ -510,6 +511,12 @@ export function SiteNavigation({
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
+    const desktop = window.matchMedia("(min-width: 861px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    closeOnDesktop();
 
     const focusables = () =>
       sheet
@@ -544,6 +551,7 @@ export function SiteNavigation({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      desktop.removeEventListener("change", closeOnDesktop);
       document.documentElement.style.overflow = previousOverflow;
       opener?.focus();
     };
@@ -581,6 +589,7 @@ export function SiteNavigation({
             className="sc-nav__menu-button"
             aria-label="Toggle primary navigation"
             aria-expanded={open}
+            aria-controls={mobileMenuId}
             onClick={() => setOpen((value) => !value)}
           >
             <MenuIcon open={open} />
@@ -593,6 +602,7 @@ export function SiteNavigation({
           it while open, and focus returns to the hamburger button on close. */}
       <div
         ref={sheetRef}
+        id={mobileMenuId}
         className={`sc-nav__mobile${open ? " is-open" : ""}`}
         role={open ? "dialog" : undefined}
         aria-modal={open ? true : undefined}
@@ -637,6 +647,7 @@ export function SiteNavigation({
             className="sc-nav__mobile-dock-link sc-nav__mobile-dock-more"
             aria-label="More navigation options"
             aria-expanded={open}
+            aria-controls={mobileMenuId}
             onClick={() => setOpen((value) => !value)}
           >
             <span className="sc-nav__mobile-dock-icon" aria-hidden><MenuIcon open={open} /></span>

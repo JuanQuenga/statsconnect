@@ -96,13 +96,17 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   assert.equal(vercel.outputDirectory, deliveryApps[0]?.outputDirectory);
 
   assert.deepEqual(vercel.redirects, [
+    ...["/bs/assets/brawlers/3d", "/assets/brawlers/3d", "/api/brawlers-3d"].map((prefix) => ({
+      source: `${prefix}/:path*`,
+      destination: "https://statsconnect-brawl-assets.juanquenga.workers.dev/:path*",
+      permanent: false,
+    })),
     { source: "/brawlstars", destination: "/bs", permanent: true },
     { source: "/brawlstars/:path*", destination: "/bs/:path*", permanent: true },
     { source: "/clashroyale", destination: "/cr", permanent: true },
     { source: "/clashroyale/:path*", destination: "/cr/:path*", permanent: true },
   ]);
   for (const redirect of vercel.redirects) {
-    assert.equal(redirect.permanent, true);
     // Vercel forwards the incoming query when the destination does not define one.
     assert.equal(redirect.destination.includes("?"), false);
     if (redirect.source.endsWith("/:path*")) {
@@ -114,12 +118,7 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: app.routePrefix, destination: "/index.html" },
     { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
   ]);
-  const expectedBrawlerAssetRewrites = [
-    { source: "/bs/assets/brawlers/3d/:path*", destination: "/api/brawlers-3d/:path*" },
-    { source: "/assets/brawlers/3d/:path*", destination: "/api/brawlers-3d/:path*" },
-  ];
   assert.deepEqual(vercel.rewrites, [
-    ...expectedBrawlerAssetRewrites,
     ...expectedGameRewrites,
     { source: "/:path*", destination: "/index.html" },
   ]);

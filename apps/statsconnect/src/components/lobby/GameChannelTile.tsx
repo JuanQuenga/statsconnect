@@ -20,7 +20,7 @@ export function GameChannelTile({
       data-game={id}
       to="/connect/$game"
       params={{ game: id }}
-      className="tile bevel bevel-lg relative flex items-center gap-5 overflow-hidden border border-border/60 bg-card/60 p-7 backdrop-blur-sm"
+      className="tile game-channel"
       {...stageLight}
     >
       <img
@@ -28,22 +28,19 @@ export function GameChannelTile({
         alt=""
         aria-hidden
         loading="lazy"
-        className="channel-art"
+        className="game-channel__art"
       />
-      <span className="channel-art__scrim" aria-hidden />
-      <div className="relative z-[1] min-w-0 flex-1">
-        <p className="eyebrow mb-3 text-[var(--game-accent)]">Open game site</p>
-        <h2 className="font-display text-2xl font-semibold">
+      <span className="game-channel__scrim" aria-hidden />
+      <span className="game-channel__label">{id === "clash-royale" ? "Build your next win" : "Know your roster"}</span>
+      <div className="game-channel__copy">
+        <h2 className="font-display text-3xl font-semibold sm:text-4xl">
           {name}
         </h2>
-        <p className="mt-2 max-w-[18rem] text-sm leading-relaxed text-muted-foreground sm:max-w-xs">
+        <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
           {description}
         </p>
+        <span className="game-channel__action">Connect a profile <ArrowRight className="size-4" aria-hidden /></span>
       </div>
-      <ArrowRight
-        className="relative z-[1] size-6 shrink-0 text-[var(--game-accent)]"
-        aria-hidden
-      />
     </Link>
   );
 }

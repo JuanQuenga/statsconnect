@@ -19,6 +19,7 @@ import type { ApiTournament } from "@/lib/clash/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
+import styles from "./index.module.css";
 
 function unknownCard(id: number): Card {
   return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
@@ -27,18 +28,19 @@ function unknownCard(id: number): Card {
 export default function HomePage() {
   return (
     <Layout variant="home">
-      <ArenaHeroFrame className="royale-hero">
+      <ArenaHeroFrame className={`royale-hero ${styles.hero}`}>
         <div className="royale-hero-inner">
           <div className="royale-hero-copy">
+            <p className={styles.eyebrow}>Clash Royale · Player intelligence</p>
             <h1>
-              <span className="hero-title-line">Look up a player.</span>
-              <span className="hero-title-line hero-title-accent">Review recent battles.</span>
+              <span className="hero-title-line">Your next win</span>
+              <span className="hero-title-line hero-title-accent">starts here.</span>
             </h1>
             <p className="royale-hero-description">
-              Search by player name or tag to check available battle history,
-              chest cycles, and deck performance. You can also switch the search to clans.
+              Look up a player. Read the battles. Find the deck worth taking into your next match.
             </p>
             <ProfileSearch />
+            <p className={styles.searchHint}>A player tag is the most precise way to find your profile.</p>
             <div className="royale-hero-actions">
               <Link href="/meta" className={cn(buttonVariants({ size: "lg" }), "gap-2")}>
                 Explore the meta <ArrowRight />
@@ -55,21 +57,23 @@ export default function HomePage() {
 
       <PersonalDashboard />
 
-      <PlayerSpecificDataState
-        title="Recent battles"
-        copy="Battle history belongs to a player profile. Search a tag to see current opponents, decks, crown scores, and trophy changes."
-        linkLabel="Find a player"
-      />
+      <section className={`page-band ${styles.reportEntry}`} aria-labelledby="player-report-heading">
+        <div>
+          <p className={styles.sectionLabel}>Inside your player report</p>
+          <h2 id="player-report-heading">Every battle tells a story.</h2>
+          <p>Open a profile to review the data behind your climb.</p>
+        </div>
+        <ul>
+          <li><span>01</span><div><strong>Recent battles</strong><p>Opponents, decks, crowns and trophy changes.</p></div></li>
+          <li><span>02</span><div><strong>Deck performance</strong><p>See how your available battle history adds up.</p></div></li>
+          <li><span>03</span><div><strong>Upcoming chests</strong><p>Check the next rewards in your chest cycle.</p></div></li>
+        </ul>
+        <Link href="/players" className="pink-button">Find a player <ArrowRight size={16} aria-hidden="true" /></Link>
+      </section>
 
       {isConvexConfigured ? <MetaTopDeck /> : <UnavailableMetaSection title="Top observed deck" />}
 
       {isConvexConfigured ? <LiveEventLab /> : <UnavailableMetaSection title="Live tournaments" href="/tournaments" />}
-
-      <PlayerSpecificDataState
-        title="Upcoming chests"
-        copy="Chest cycles are player-specific. Open a player profile and choose Upcoming Chests to see the current sequence."
-        linkLabel="Find a player"
-      />
 
       {isConvexConfigured ? <MetaPopularCards /> : <UnavailableMetaSection title="Most played card" href="/cards" />}
     </Layout>
@@ -80,8 +84,10 @@ function PlayerTagGuide() {
   return (
     <aside className="royale-hero-showcase player-tag-guide" aria-labelledby="player-tag-guide-title">
       <div className="player-tag-guide-heading">
-        <h2 id="player-tag-guide-title">How to get your player tag</h2>
+        <p className={styles.eyebrow}>New here?</p>
+        <h2 id="player-tag-guide-title">Find your player tag</h2>
       </div>
+      <p className={styles.tagGuideCaption}>Open your in-game profile, then copy the tag beneath your name. It starts with <strong>#</strong>.</p>
 
       <div className="player-tag-guide-screen">
         <picture>
@@ -145,6 +151,7 @@ function MetaTopDeck() {
             variant={mode === item ? "default" : "secondary"}
             size="sm"
             className={mode === item ? "active" : ""}
+            aria-pressed={mode === item}
             onClick={() => {
               setMode(item);
               setIndex(0);
@@ -186,11 +193,11 @@ function MetaTopDeck() {
               Seen {deck.uses.toLocaleString()} times in the last {HOME_WINDOW_DAYS} days of crawled battle logs.
             </span>
           </div>
-          <div className="deck-metrics">
-            <strong>{(deck.winRate * 100).toFixed(1)}%<span>deck win rate</span></strong>
-            <strong>{(deck.usageRate * 100).toFixed(1)}%<span>usage rate</span></strong>
-            <strong>{deck.uses.toLocaleString()}<span>games observed</span></strong>
-          </div>
+          <dl className={styles.deckMetrics}>
+            <div><dt>Deck win rate</dt><dd>{(deck.winRate * 100).toFixed(1)}%</dd></div>
+            <div><dt>Usage rate</dt><dd>{(deck.usageRate * 100).toFixed(1)}%</dd></div>
+            <div><dt>Games observed</dt><dd>{deck.uses.toLocaleString()}</dd></div>
+          </dl>
           <Pager onPrevious={() => step(-1)} onNext={() => step(1)} />
         </>
       )}
@@ -301,18 +308,6 @@ function LiveEventLab() {
 function humanize(value?: string) {
   if (!value) return "Status unavailable";
   return value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
-}
-
-function PlayerSpecificDataState({ title, copy, linkLabel }: { title: string; copy: string; linkLabel: string }) {
-  return (
-    <section className="home-data-state page-band">
-      <div>
-        <h2>{title}</h2>
-        <p>{copy}</p>
-      </div>
-      <Link href="/players" className="pink-button">{linkLabel}</Link>
-    </section>
-  );
 }
 
 function UnavailableMetaSection({ title, href = "/meta" }: { title: string; href?: string }) {

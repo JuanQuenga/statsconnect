@@ -55,10 +55,11 @@
   background: rgba(88, 190, 255, .13);
 }
 
-.sc-nav[data-site="clash-royale"] a:focus-visible,
-.sc-nav[data-site="clash-royale"] button:focus-visible,
-.sc-nav[data-site="clash-royale"] summary:focus-visible,
-.sc-nav[data-site="clash-royale"] select:focus-visible {
+.sc-nav a:focus-visible,
+.sc-nav button:focus-visible,
+.sc-nav summary:focus-visible,
+.sc-nav select:focus-visible,
+.sc-nav__language:has(select:focus-visible) {
   outline: 2px solid var(--sc-nav-accent);
   outline-offset: 2px;
 }
@@ -829,12 +830,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock,
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile.is-open {
-    animation: none;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link {
+  .sc-nav *,
+  .sc-search * {
+    animation: none !important;
     transition: none;
   }
 }

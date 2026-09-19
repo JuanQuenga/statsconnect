@@ -11,6 +11,7 @@ import { isConvexConfigured, searchPlayersQuery } from "@/lib/convex";
 import type { DirectoryHit } from "@/lib/clash/types";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { Button } from "@/components/ui/button";
+import { profileSearchDestination } from "@/lib/profileSearchRouting";
 
 /**
  * Profile lookup by name or by tag.
@@ -85,7 +86,6 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
-  const [error, setError] = useState("");
   const personalization = usePersonalization();
   const recents = personalization.recents;
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -126,7 +126,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
   // A click anywhere else should dismiss the list without stealing the input.
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
-      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+      if (event.target instanceof Node && !wrapRef.current?.contains(event.target)) setOpen(false);
     }
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
@@ -134,7 +134,6 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
 
   function go(href: string) {
     setOpen(false);
-    setError("");
     onNavigate?.();
     void router.push(href);
   }
@@ -143,37 +142,14 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
     event.preventDefault();
     if (!trimmed) return;
 
-    if (highlight >= 0 && rows[highlight]) {
-      go(rows[highlight].href);
-      return;
-    }
-
-    // Enter with nothing highlighted means "do the obvious thing": a tag opens
-    // the profile, a single name match opens that player, anything else lands
-    // on the results page where the ambiguity can be shown properly.
-    if (kind === "clans") {
-      try {
-        go(`/clans/${normalizeTag(trimmed)}`);
-      } catch {
-        go(`/clans/search?name=${encodeURIComponent(trimmed)}`);
-      }
-      return;
-    }
-
-    if (results?.tag && !results.players.length) {
-      go(`/players/${results.tag}`);
-      return;
-    }
-    if (!results?.tag && results?.players.length === 1) {
-      go(`/players/${results.players[0].tag}`);
-      return;
-    }
-    go(`/players?q=${encodeURIComponent(trimmed)}`);
+    go(profileSearchDestination({ term: trimmed, kind, open, highlight, rows, results }));
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
+      if (open) event.preventDefault();
       setOpen(false);
+      setHighlight(-1);
       return;
     }
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -204,7 +180,6 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
         onValueChange={(value) => {
           setTerm(value);
           setOpen(true);
-          setError("");
         }}
         onSubmit={submit}
         label={kind === "players" ? "Player name or tag" : "Clan name or tag"}
@@ -217,14 +192,15 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
         onContextChange={(value) => {
           setKind(value);
           setHighlight(-1);
-          setError("");
         }}
-        showContext={open}
+        showContext={!compact || open}
         inputProps={{
           autoComplete: "off",
           role: "combobox",
           "aria-expanded": open && rows.length > 0,
           "aria-controls": suggestionsId,
+          "aria-autocomplete": "list",
+          "aria-activedescendant": open && highlight >= 0 && rows[highlight] ? `${suggestionsId}-${highlight}` : undefined,
           onFocus: () => setOpen(true),
           onKeyDown,
         }}
@@ -252,6 +228,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
           {rows.map((row, index) => (
             <Link
               key={row.key}
+              id={`${suggestionsId}-${index}`}
               href={row.href}
               role="option"
               aria-selected={index === highlight}
@@ -271,7 +248,7 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
             </Link>
           ))}
 
-          {searching ? <p className="search-note">{t("search.searching")}</p> : null}
+          {searching ? <p className="search-note" role="status">{t("search.searching")}</p> : null}
           {noMatches ? (
             <p className="search-note">
               {t("search.noPlayer")}
@@ -280,11 +257,6 @@ function DirectorySearch({ compact, onNavigate }: { compact: boolean; onNavigate
         </div>
       ) : null}
 
-      {error ? (
-        <p className="search-error" role="alert">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -299,6 +271,7 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
   const [engaged, setEngaged] = useState(false);
+  const errorId = useId();
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -330,11 +303,11 @@ function TagOnlySearch({ compact, onNavigate }: { compact: boolean; onNavigate?:
         ]}
         contextValue={kind}
         onContextChange={setKind}
-        showContext={engaged}
-        inputProps={{ onFocus: () => setEngaged(true) }}
+        showContext={!compact || engaged}
+        inputProps={{ onFocus: () => setEngaged(true), "aria-invalid": Boolean(error), "aria-describedby": error ? errorId : undefined }}
       />
       {error ? (
-        <p className="search-error" role="alert">
+        <p id={errorId} className="search-error" role="alert">
           {error}
         </p>
       ) : null}

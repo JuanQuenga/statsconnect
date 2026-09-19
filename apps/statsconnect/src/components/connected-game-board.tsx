@@ -21,6 +21,7 @@ export function ConnectedGameBoard({
     <section className="lobby-stage space-y-10">
       <header className="boot-in flex flex-wrap items-end justify-between gap-6">
         <div>
+          <p className="eyebrow mb-4 text-[var(--ambient)]">Your lobby</p>
           <h1 className="font-display text-4xl font-semibold sm:text-5xl">
             Your connected profiles
           </h1>
@@ -28,9 +29,12 @@ export function ConnectedGameBoard({
             Open a saved player or connect another game below.
           </p>
         </div>
-        <p className="text-sm font-medium text-muted-foreground">
-          {profiles.length} connected {profiles.length === 1 ? "profile" : "profiles"}
-        </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <p className="text-sm font-medium text-muted-foreground">
+            {profiles.length} connected {profiles.length === 1 ? "profile" : "profiles"}
+          </p>
+          <Link to="/settings/connections" className={buttonVariants({ variant: "outline" })}>Manage profiles</Link>
+        </div>
       </header>
 
       <TileNav className="stagger grid gap-6 md:grid-cols-2">
@@ -78,7 +82,7 @@ function ProfileTile({ profile }: { profile: ConnectedProfile }) {
       data-tile
       data-game={profile.game}
       href={gameDestinationPath(profile.game, profile.tag)}
-      className="tile bevel bevel-lg relative flex min-h-[210px] flex-col justify-between overflow-hidden border border-border/60 bg-card/70 p-7 backdrop-blur-sm"
+      className="tile profile-tile relative flex min-h-[280px] flex-col justify-between overflow-hidden border border-border/60 bg-card/70 p-7"
       onClick={(event) => handleGameDestinationClick(event, gameDestinationPath(profile.game, profile.tag))}
       {...stageLight}
     >
@@ -104,7 +108,7 @@ function ProfileTile({ profile }: { profile: ConnectedProfile }) {
       </div>
 
       <span className={`${buttonVariants({ size: "lg" })} relative mt-8 self-start`}>
-        Launch {gameName(profile.game)}
+        View player stats
         <Play className="size-4 fill-current" aria-hidden />
       </span>
     </a>

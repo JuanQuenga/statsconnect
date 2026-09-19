@@ -11,6 +11,7 @@ import { rememberRecentProfile } from "@/lib/preferences";
 import type { PlayerDirectoryResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
+import { searchKeyAction } from "@/lib/search-keyboard";
 
 type PlayerSearchProps = {
   initialValue?: string;
@@ -90,18 +91,20 @@ export function PlayerSearch({
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (!choices.count) return;
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIndex((index) => (index + 1) % choices.count);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIndex((index) => (index <= 0 ? choices.count - 1 : index - 1));
-    } else if (event.key === "Enter" && activeIndex >= 0) {
-      event.preventDefault();
-      choose(activeIndex);
-    } else if (event.key === "Escape") {
-      setFocused(false);
+    const action = searchKeyAction({ key: event.key, count: choices.count, activeIndex, open: showResults });
+    if (action.kind === "none") return;
+    event.preventDefault();
+    switch (action.kind) {
+      case "highlight":
+        setActiveIndex(action.index);
+        break;
+      case "choose":
+        choose(action.index);
+        break;
+      case "dismiss":
+        setFocused(false);
+        setActiveIndex(-1);
+        break;
     }
   }
 
@@ -114,6 +117,7 @@ export function PlayerSearch({
         value={value}
         onValueChange={(next) => {
           setValue(next);
+          setFocused(true);
           setActiveIndex(-1);
         }}
         onSubmit={submit}
@@ -124,8 +128,12 @@ export function PlayerSearch({
         inputProps={{
           autoComplete: "off",
           role: "combobox",
+          "aria-autocomplete": "list",
           "aria-expanded": showResults,
           "aria-controls": showResults ? suggestionsId : undefined,
+          "aria-activedescendant": showResults && activeIndex >= 0 && activeIndex < choices.count
+            ? `${suggestionsId}-${activeIndex}`
+            : undefined,
           onFocus: () => setFocused(true),
           onBlur: () => window.setTimeout(() => setFocused(false), 120),
           onKeyDown,
@@ -136,7 +144,9 @@ export function PlayerSearch({
         <div
           id={suggestionsId}
           role="listbox"
-          className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-lg border border-border bg-popover shadow-xl"
+          aria-label={t("search.aria")}
+          aria-busy={searchQuery.isLoading}
+          className="absolute top-full right-0 left-0 z-50 mt-2 max-h-80 overflow-y-auto overscroll-contain rounded-lg border border-border bg-popover shadow-xl"
         >
             {searchQuery.isLoading ? (
               <p className="px-4 py-3 text-sm text-muted-foreground">{t("search.searching")}</p>
@@ -145,6 +155,10 @@ export function PlayerSearch({
               <Button
                 type="button"
                 variant="ghost"
+                id={`${suggestionsId}-0`}
+                role="option"
+                aria-selected={activeIndex === 0}
+                tabIndex={-1}
                 onMouseDown={() => choose(0)}
                 className={cn(
                   "h-auto w-full justify-start gap-3 rounded-none border-b border-border px-3 py-2.5 text-left hover:bg-secondary",
@@ -161,6 +175,7 @@ export function PlayerSearch({
             {choices.players.map((player, index) => (
               <PlayerChoice
                 key={player.tag}
+                id={`${suggestionsId}-${index + (choices.tag ? 1 : 0)}`}
                 player={player}
                 active={activeIndex === index + (choices.tag ? 1 : 0)}
                 onChoose={() => navigateToPlayer(player.tag)}
@@ -177,11 +192,13 @@ export function PlayerSearch({
 }
 
 function PlayerChoice({
+  id,
   player,
   active,
   onChoose,
   noClubLabel,
 }: {
+  id: string;
   player: PlayerDirectoryResult;
   active: boolean;
   onChoose: () => void;
@@ -191,6 +208,10 @@ function PlayerChoice({
     <Button
       type="button"
       variant="ghost"
+      id={id}
+      role="option"
+      aria-selected={active}
+      tabIndex={-1}
       onMouseDown={onChoose}
       className={cn("h-auto w-full justify-start gap-3 rounded-none px-3 py-2.5 text-left hover:bg-secondary", active && "bg-secondary")}
     >

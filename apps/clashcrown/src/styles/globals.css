@@ -5434,7 +5434,7 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .profile-story .chest-item strong { margin-top: 2px; color: var(--foreground); font-size: 13px; }
 .profile-story .table-note { color: var(--muted-foreground); font: 13px/1.55 var(--font-ui); }
 
-/* Shared search field: domain choice appears only after the field is engaged. */
+/* Compact search reveals context on focus; full-size search keeps it in flow. */
 .search-wrap .sc-search {
   --sc-nav-accent: var(--primary);
   --sc-nav-border: var(--border);
@@ -5461,6 +5461,15 @@ a:hover .entity-cell strong { color: #75c5ff; }
 .search-note { font-size: 12px; }
 .search-wrap:has(.sc-search.is-contextual) .search-suggestions { top: calc(100% + 44px); }
 .search-wrap-compact .sc-search__context { left: auto; right: 0; }
+.search-wrap:not(.search-wrap-compact) .sc-search__context {
+  position: static;
+  justify-self: start;
+  margin-top: 6px;
+  box-shadow: none;
+}
+.search-wrap:not(.search-wrap-compact):has(.sc-search.is-contextual) .search-suggestions {
+  top: calc(100% + 8px);
+}
 
 @media (max-width: 980px) {
   .profile-editorial-heading { grid-template-columns: 1fr; align-items: start; }

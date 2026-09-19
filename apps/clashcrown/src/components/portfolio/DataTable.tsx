@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { stripSupercellColorTags } from "@/lib/clash/format";
 import type { Card } from "@/lib/clash/domain";
+import { statDisplay } from "@/lib/statDisplay";
 
 /** Renders a rank with its movement since the previous ranking snapshot. */
 export function RankCell({ rank, previousRank }: { rank?: number; previousRank?: number }) {
@@ -22,7 +23,7 @@ export function TrophyCell({ value, icon = "/images/ui-icons/trophies.png" }: { 
   return (
     <span className="trophy-cell">
       <Image src={icon} alt="" width={20} height={20} />
-      {(value ?? 0).toLocaleString()}
+      {statDisplay(value)}
     </span>
   );
 }

@@ -165,6 +165,44 @@
     filter: drop-shadow(0 28px 32px rgba(0, 0, 0, 0.4));
   }
 
+  .brawl-eyebrow {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  .brawl-hero-copy > .brawl-eyebrow {
+    color: var(--foreground);
+    border-left: 3px solid var(--primary);
+    padding-left: 0.75rem;
+  }
+
+  .brawl-search-panel {
+    padding: 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+    border-radius: 1rem;
+    background: rgba(7, 12, 21, 0.85);
+    box-shadow: 0 8px 0 rgba(0, 0, 0, 0.16);
+  }
+
+  .brawler-roster-card {
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+    transition: border-color 160ms ease, transform 160ms ease;
+  }
+
+  .brawler-roster-card:is(:hover, :focus-within) {
+    border-color: var(--primary);
+    transform: translateY(-3px);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+
   .page-shell {
     @apply mx-auto w-full max-w-7xl space-y-8 px-4 py-8 md:px-6 md:py-12;
   }
@@ -251,6 +289,24 @@
 
   .activity-calendar-grid {
     grid-auto-columns: var(--activity-cell);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .brawler-roster-card:is(:hover, :focus-within) {
+    transform: none;
   }
 }
 

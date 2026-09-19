@@ -79,12 +79,12 @@ function LandingPage({
               <ArrowRight className="size-4" aria-hidden />
             </Link>
             <a href="#games" className={buttonVariants({ variant: "outline", size: "lg" })}>
-              Explore game sites
+              Find your game
             </a>
           </div>
           <ul className="hub-proof" aria-label="Platform highlights">
             <li><Check aria-hidden /> Save tags once</li>
-            <li><Check aria-hidden /> Official live data</li>
+            <li><Check aria-hidden /> Game-specific statistics</li>
             <li><Check aria-hidden /> Separate tools for each game</li>
           </ul>
           {backendUnavailable ? (
@@ -94,18 +94,17 @@ function LandingPage({
 
       </section>
 
-      <section className="hub-value-strip" aria-label="StatsConnect platform qualities">
-        <p><strong>2</strong><span>live game experiences</span></p>
-        <p><strong>1</strong><span>connected profile layer</span></p>
-        <p><strong>24/7</strong><span>statistics pipelines</span></p>
-        <p><strong>0</strong><span>repeat tag entry</span></p>
+      <section className="hub-value-strip" aria-label="Getting started">
+        <p><strong><span>01</span> Choose your game</strong><span>Clash Royale or Brawl Stars</span></p>
+        <p><strong><span>02</span> Save your player tag</strong><span>Your in-game identity, connected</span></p>
+        <p><strong><span>03</span> Get into the detail</strong><span>Player stats, battles, and more</span></p>
       </section>
 
       <section id="games" className="hub-section scroll-mt-28">
         <div className="hub-section__heading">
           <div>
             <p className="eyebrow">Choose a game</p>
-            <h2>Each game keeps the tools that fit it.</h2>
+            <h2>Two games.<br />Your home advantage.</h2>
           </div>
           <p>
             StatsConnect remembers your profiles. Its Brawl Stars and Clash Royale
@@ -117,7 +116,7 @@ function LandingPage({
             <GameChannelTile
               key={game.id}
               id={game.id}
-              name={game.id === "brawl-stars" ? "StatsConnect · Brawl Stars statistics" : "StatsConnect · Clash Royale statistics"}
+              name={game.name}
               description={game.description}
             />
           ))}
