@@ -265,7 +265,7 @@ function PlayerProfilePage({
                 alt={signature.name}
                 className={signatureFeatureArt
                   ? "absolute inset-0 h-full w-full rounded-2xl object-cover object-center opacity-90"
-                  : "absolute right-0 bottom-0 max-h-[25rem] w-full object-contain object-bottom drop-shadow-[0_24px_28px_rgba(0,0,0,.55)]"}
+                  : "absolute inset-0 h-full w-full object-contain object-bottom drop-shadow-[0_24px_28px_rgba(0,0,0,.55)]"}
               />
               {signatureFeatureArt ? <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-background/60 via-transparent to-transparent" aria-hidden /> : null}
               <Card className="absolute right-2 bottom-1 z-10 w-48 gap-1 border border-white/10 bg-background/80 p-3 py-3 backdrop-blur-md">

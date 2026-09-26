@@ -392,7 +392,11 @@ export function selectCatalogViewerEntry(
   selectedAnimation: string | undefined,
 ): CatalogViewerSelection {
   const entries = catalog ? catalogEntriesForBrawler(catalog, brawlerId).filter(catalogEntryHasRuntime) : [];
-  const selectedEntry = entries.find((entry) => entry.skinId === selectedSkin) ?? entries[0];
+  // Some source defaults are unavailable while a verified reference capture of
+  // that same default appears later among released skins (Mortis, for example).
+  const selectedEntry = entries.find((entry) => entry.skinId === selectedSkin)
+    ?? entries.find((entry) => catalogEntryLabel(entry).endsWith(" (Default)"))
+    ?? entries[0];
   const animationOptions = selectedEntry ? catalogAnimationOptions(selectedEntry) : [];
   const activeAnimation = animationOptions.some((option) => option.key === selectedAnimation)
     ? selectedAnimation

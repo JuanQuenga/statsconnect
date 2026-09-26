@@ -252,19 +252,20 @@ const rawMaterialSlots = (key, skin, diffuse, diffuseAsset) => {
     if (material.shader !== "uber" || !Array.isArray(material.constants)) return { slots: [], reason: "material-shader-not-supported" };
     const constants = material.constants;
     const textures = material.variables?.textures ?? {};
+    const texture = (legacy, current) => textures[legacy] ?? textures[current];
     const booleans = material.variables?.booleans ?? {};
     if (constants.some((constant) => !["CLIP_PLANE", "DIFFUSE", "LIGHTMAP", "SPECULAR", "STENCIL", "AMBIENT", "OPACITY"].includes(constant)) || Object.values(booleans).some((value) => value === true)) return { slots: [], reason: "material-effects-not-supported" };
     const slot = { materialName: material.name, diffuse: constants.includes("DIFFUSE"), ambient: constants.includes("AMBIENT"), lightmapDiffuse: constants.includes("LIGHTMAP"), specular: constants.includes("SPECULAR"), stencil: !hasStencil || constants.includes("STENCIL"), uvSource: "67/68", stencilUvPolicy: "2x-flip-y", scConstants: constants, scBooleans: booleans, shader: material.shader, opacity: material.variables?.floats?.opacity ?? 1 };
-    if (slot.diffuse) slot.diffuseTexture = textureAsset(textures.diffuseTex2D, "diffuseTexture");
+    if (slot.diffuse) slot.diffuseTexture = textureAsset(texture("diffuseTex2D", "diffuseTex"), "diffuseTexture");
     if (slot.specular) {
-      const specularFile = textureFile(skin?.SpecularTexture || textures.specularTex2D, "specularTexture");
-      const diffuseFile = textureFile(textures.diffuseTex2D, "diffuseTexture");
+      const specularFile = textureFile(skin?.SpecularTexture || texture("specularTex2D", "specularTex"), "specularTexture");
+      const diffuseFile = textureFile(texture("diffuseTex2D", "diffuseTex"), "diffuseTexture");
       // The viewer samples the diffuse alpha for specular, not a second mask.
       if (!slot.diffuse || !specularFile || specularFile !== diffuseFile) return { slots: [], reason: "separate-specular-texture-not-supported" };
     }
     if (slot.lightmapDiffuse) {
-      slot.diffuseLightmap = textureAsset(textures.lightmapTex2D, "diffuseLightmap");
-      slot.specularLightmap = textureAsset(textures.lightmapSpecularTex2D, "specularLightmap");
+      slot.diffuseLightmap = textureAsset(texture("lightmapTex2D", "lightmapDiffuse"), "diffuseLightmap");
+      slot.specularLightmap = textureAsset(texture("lightmapSpecularTex2D", "lightmapSpecular"), "specularLightmap");
     }
     if (Object.values(slot).some((value) => value?.kind === "unavailable")) return { slots: [], reason: "material-texture-not-captured" };
     slots.push(slot);

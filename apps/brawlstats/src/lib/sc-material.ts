@@ -40,11 +40,19 @@ export function stencilUvTransform(metadata: Pick<ScMaterialMetadata, "stencilUv
   }
 }
 
+/** The face is drawn into a WebGL render target, whose vertical origin is opposite image atlases. */
+export function faceRenderTargetUvTransform(metadata: Pick<ScMaterialMetadata, "stencilUvPolicy">): readonly [number, number, number, number] {
+  const [scaleX, scaleY, offsetX, offsetY] = stencilUvTransform(metadata);
+  return [scaleX, -scaleY, offsetX, 1 - offsetY];
+}
+
 export function createScMaterial(metadata: ScMaterialMetadata, textures: ScMaterialTextures = {}, skinned = false): THREE.ShaderMaterial {
   void skinned;
   const transform = diffuseUvTransform(metadata);
-  const stencilTransform = stencilUvTransform(metadata);
-  const opacity = metadata.opacity ?? 1;
+  const stencilTransform = faceRenderTargetUvTransform(metadata);
+  // Source material opacity 0 is an unanimated fade-in state in some mirrored
+  // skins. The viewer has no material-opacity track, so render their body opaque.
+  const opacity = metadata.opacity === 0 ? 1 : metadata.opacity ?? 1;
   // Stencil is an in-place colour overlay. The reference uber material keeps
   // depth testing/writes enabled while applying it; treating stencil as
   // transparency lets overlapping double-sided triangles blend independently

@@ -2,6 +2,7 @@ import type { ViewerFeature } from "@/lib/brawler-viewer-contract";
 
 type BrawlerViewerControlsProps = {
   readonly playing: boolean;
+  readonly playbackAvailable?: boolean;
   readonly skinOptions?: readonly { readonly id: string; readonly label: string }[];
   readonly animationOptions?: readonly { readonly key: string; readonly label: string }[];
   readonly selectedSkin?: string;
@@ -17,12 +18,12 @@ type BrawlerViewerControlsProps = {
   readonly onToggleOutline?: () => void;
 };
 
-export function BrawlerViewerControls({ playing, skinOptions = [], animationOptions = [], selectedSkin, selectedAnimation, onSelectSkin, onSelectAnimation, face, outline, faceEnabled = false, outlineEnabled = false, onTogglePlaying, onToggleFace, onToggleOutline }: BrawlerViewerControlsProps) {
+export function BrawlerViewerControls({ playing, playbackAvailable = true, skinOptions = [], animationOptions = [], selectedSkin, selectedAnimation, onSelectSkin, onSelectAnimation, face, outline, faceEnabled = false, outlineEnabled = false, onTogglePlaying, onToggleFace, onToggleOutline }: BrawlerViewerControlsProps) {
   const availability = (feature: ViewerFeature): string => feature.kind === "available" ? "available" : "unavailable";
   return (
     <div className="pointer-events-auto relative z-20 mx-3 mb-3 mt-2 flex shrink-0 flex-wrap items-center gap-2 rounded-lg bg-background/80 p-2 text-xs backdrop-blur">
-      <button type="button" className="rounded-md border border-border px-2 py-1 hover:bg-muted" onClick={onTogglePlaying} aria-label={playing ? "Pause animation" : "Play animation"}>
-        {playing ? "Pause" : "Play"}
+      <button type="button" className="rounded-md border border-border px-2 py-1 hover:bg-muted disabled:cursor-default disabled:opacity-60" onClick={onTogglePlaying} disabled={!playbackAvailable} aria-label={playbackAvailable ? (playing ? "Pause animation" : "Play animation") : "Static pose"}>
+        {playbackAvailable ? (playing ? "Pause" : "Play") : "Static"}
       </button>
       {skinOptions.length > 1 ? <select className="min-w-0 max-w-full flex-1" aria-label="Skin" value={selectedSkin} onChange={(event) => onSelectSkin?.(event.target.value)}>{skinOptions.map((skin) => <option key={skin.id} value={skin.id}>{skin.label}</option>)}</select> : null}
       {animationOptions.length > 0 ? <select className="min-w-0 max-w-full flex-1" aria-label="Animation" value={selectedAnimation} onChange={(event) => onSelectAnimation?.(event.target.value)}>{animationOptions.map((animation) => <option key={animation.key} value={animation.key}>{animation.label}</option>)}</select> : null}

@@ -36,11 +36,18 @@ function animationFixtureGlb(quaternion) {
   return output;
 }
 
-function geometryFixtureGlb({ uv = true, revision = 1, specularTexture = null } = {}) {
-  const document = { asset: { version: "2.0" }, extras: { revision }, buffers: [{ byteLength: 20 }], bufferViews: [{ buffer: 0, byteLength: 20 }], accessors: [{ bufferView: 0, componentType: 5126, count: 1, type: "VEC3" }, { bufferView: 0, byteOffset: 12, componentType: 5126, count: 1, type: "VEC2" }], materials: [{ name: "actual_fixture_material", shader: "uber", constants: ["DIFFUSE"], variables: { textures: { diffuseTex2D: "sc3d/crow_tex.sctx#repeat" } } }], meshes: [{ primitives: [{ material: 0, attributes: { POSITION: 0, ...(uv ? { TEXCOORD_0: 1 } : {}) } }] }] };
+function geometryFixtureGlb({ uv = true, revision = 1, specularTexture = null, currentTextureKeys = false, lightmaps = false } = {}) {
+  const diffuseKey = currentTextureKeys ? "diffuseTex" : "diffuseTex2D";
+  const specularKey = currentTextureKeys ? "specularTex" : "specularTex2D";
+  const document = { asset: { version: "2.0" }, extras: { revision }, buffers: [{ byteLength: 20 }], bufferViews: [{ buffer: 0, byteLength: 20 }], accessors: [{ bufferView: 0, componentType: 5126, count: 1, type: "VEC3" }, { bufferView: 0, byteOffset: 12, componentType: 5126, count: 1, type: "VEC2" }], materials: [{ name: "actual_fixture_material", shader: "uber", constants: ["DIFFUSE"], variables: { textures: { [diffuseKey]: "sc3d/crow_tex.sctx#repeat" } } }], meshes: [{ primitives: [{ material: 0, attributes: { POSITION: 0, ...(uv ? { TEXCOORD_0: 1 } : {}) } }] }] };
   if (specularTexture) {
     document.materials[0].constants.push("SPECULAR");
-    document.materials[0].variables.textures.specularTex2D = specularTexture;
+    document.materials[0].variables.textures[specularKey] = specularTexture;
+  }
+  if (lightmaps) {
+    document.materials[0].constants.push("LIGHTMAP");
+    document.materials[0].variables.textures[currentTextureKeys ? "lightmapDiffuse" : "lightmapTex2D"] = "menu_diffuse_lightmap.png#repeat";
+    document.materials[0].variables.textures[currentTextureKeys ? "lightmapSpecular" : "lightmapSpecularTex2D"] = "menu_specular_lightmap.png#repeat";
   }
   const json = Buffer.from(JSON.stringify(document));
   const padded = Buffer.concat([json, Buffer.alloc((4 - json.length % 4) % 4, 0x20)]);
@@ -668,6 +675,15 @@ test("separate specular masks are unavailable until the runtime supports them", 
     assert.equal(crow.baseModel.kind, "ready");
     assert.equal(crow.materialSlots[0].specular, true);
     assert.equal("specularTexture" in crow.materialSlots[0], false);
+    writeFileSync(path.join(directory, "menu_diffuse_lightmap.png"), "lightmap-fixture");
+    writeFileSync(path.join(directory, "menu_specular_lightmap.png"), "lightmap-fixture");
+    writeFileSync(model, geometryFixtureGlb({ specularTexture: "sc3d/crow_tex.sctx#repeat", currentTextureKeys: true, lightmaps: true }));
+    execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
+    crow = JSON.parse(readFileSync(output, "utf8")).defaults.find((entry) => entry.character === "Crow");
+    assert.equal(crow.baseModel.kind, "ready");
+    assert.equal(crow.materialSlots[0].specular, true);
+    assert.equal(crow.materialSlots[0].diffuseLightmap.kind, "ready");
+    assert.equal(crow.materialSlots[0].specularLightmap.kind, "ready");
   } finally { rmSync(directory, { recursive: true, force: true }); rmSync(source.root, { recursive: true, force: true }); }
 });
 

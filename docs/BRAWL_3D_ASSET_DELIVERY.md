@@ -179,6 +179,198 @@ without falling through to the SPA shell.
 
 ## Cloudflare production delivery
 
+### Version 69 hero animation overlay
+
+The September 2026 source refresh adds Cosmo (16000109), Vince (16000110),
+and each source-ready default's exact `HeroScreenAnim` then
+`HeroScreenLoopAnim`. The existing release contains many skins absent from the
+newer source mirror. Keep that release as the base and merge only validated
+default hero roles. The merge script retains every existing ready skin, adds
+the two new defaults, rejects asset URL collisions with different bytes, and
+checks that every ready asset URL resolves in the candidate.
+
+Create the version 69 build manifest against the pinned
+`cc307ffd36678ac463cc2ca9373a08b0a2d2b0b7` mirror commit and the current
+released API catalog. The extraction script selects each released brawler's
+source-ready default skin and keeps only the two HeroScreen animation and
+face roles:
+
+```sh
+mkdir -p .generated/brawl-3d/import-v69
+curl -fLsS https://capable-guineapig-391.convex.site/api/brawlers \
+  -o .generated/brawl-3d/import-v69/live-brawlers.json
+node scripts/build-brawl-asset-manifest.mjs \
+  --mirror /absolute/path/to/brawl-stars-assets-cache.git \
+  --commit cc307ffd36678ac463cc2ca9373a08b0a2d2b0b7 \
+  --version 69.230 \
+  --api-catalog .generated/brawl-3d/import-v69/live-brawlers.json \
+  --output .generated/brawl-3d/import-v69/catalog.build.json
+node scripts/extract-brawl-hero-batch.mjs \
+  .generated/brawl-3d/import-v69/catalog.build.json \
+  .generated/brawl-3d/import-v69/hero-batch.build.json
+```
+
+Materialize `hero-batch.build.json` with the pinned converter and SC5 parser;
+keep the original release untouched. Build its runtime audit and shards, then
+materialize Cosmo and Vince in a separate package with their full conversion
+plans so the ordinary animation controls also work. The generated directories
+stay outside tracked source:
+
+```sh
+node scripts/materialize-brawl-assets.mjs \
+  --manifest .generated/brawl-3d/import-v69/hero-batch.build.json \
+  --mirror /absolute/path/to/brawl-stars-assets-cache.git \
+  --converter-dir /absolute/path/to/Supercell-Flat-Converter \
+  --converter-commit a0ac5f47b8e2088c088b0043f49508611f7bc660 \
+  --parser-root /absolute/path/to/sc5-parser \
+  --python /absolute/path/to/brawl-asset-venv/bin/python \
+  --output-dir .generated/brawl-3d/import-v69/hero-batch-converted \
+  --report .generated/brawl-3d/import-v69/hero-batch-report.json
+node scripts/build-brawl-asset-manifest.mjs \
+  --mirror /absolute/path/to/brawl-stars-assets-cache.git \
+  --commit cc307ffd36678ac463cc2ca9373a08b0a2d2b0b7 \
+  --version 69.230 \
+  --api-catalog .generated/brawl-3d/import-v69/live-brawlers.json \
+  --converted-dir .generated/brawl-3d/import-v69/hero-batch-converted \
+  --output .generated/brawl-3d/import-v69/hero-batch.catalog.json \
+  --audit-output .generated/brawl-3d/import-v69/hero-batch.audit.json \
+  --shards-dir .generated/brawl-3d/import-v69/hero-batch-catalog
+```
+
+Run the full conversion plan for only the two new defaults into the same
+output directory, using a distinct report for each:
+
+```sh
+while read -r brawler_id skin_id brawler_name; do
+  node scripts/materialize-brawl-assets.mjs \
+    --manifest .generated/brawl-3d/import-v69/catalog.build.json \
+    --mirror /absolute/path/to/brawl-stars-assets-cache.git \
+    --converter-dir /absolute/path/to/Supercell-Flat-Converter \
+    --converter-commit a0ac5f47b8e2088c088b0043f49508611f7bc660 \
+    --parser-root /absolute/path/to/sc5-parser \
+    --python /absolute/path/to/brawl-asset-venv/bin/python \
+    --brawler-id "$brawler_id" --skin-id "$skin_id" \
+    --output-dir .generated/brawl-3d/import-v69/converted \
+    --report ".generated/brawl-3d/import-v69/materialization-$brawler_name.json"
+done <<'BRAWLERS'
+16000109 AttractorDefault cosmo
+16000110 StackerDefault vince
+BRAWLERS
+node scripts/build-brawl-asset-manifest.mjs \
+  --mirror /absolute/path/to/brawl-stars-assets-cache.git \
+  --commit cc307ffd36678ac463cc2ca9373a08b0a2d2b0b7 \
+  --version 69.230 \
+  --api-catalog .generated/brawl-3d/import-v69/live-brawlers.json \
+  --converted-dir .generated/brawl-3d/import-v69/converted \
+  --output .generated/brawl-3d/import-v69/catalog.json \
+  --audit-output .generated/brawl-3d/import-v69/catalog.audit.json \
+  --shards-dir .generated/brawl-3d/import-v69/catalog
+```
+
+Check that the Cosmo and Vince shards have ready model, diffuse texture, and
+both hero roles before merging.
+
+Merge the completed packages into a fresh candidate:
+
+```sh
+node scripts/merge-brawl-hero-package.mjs \
+  --source-dir .generated/brawl-3d-full/cloudflare-release \
+  --hero-audit .generated/brawl-3d/import-v69/hero-batch.audit.json \
+  --hero-assets-dir .generated/brawl-3d/import-v69/hero-batch-converted \
+  --new-catalog-dir .generated/brawl-3d/import-v69 \
+  --new-assets-dir .generated/brawl-3d/import-v69/converted \
+  --output-dir .generated/brawl-3d/import-v69/candidate-merged \
+  --report .generated/brawl-3d/import-v69/merge-report.json
+node apps/brawlstats/scripts/verify-brawler-assets.mjs \
+  .generated/brawl-3d/import-v69/candidate-merged \
+  --report .generated/brawl-3d/import-v69/candidate-full-verification.json
+```
+
+Review `merge-report.json`: `patched` lists defaults with both hero clips,
+`skipped` explains defaults left on the existing animation set, and `added`
+must contain Cosmo and Vince. `baselineReadySkins` must be preserved and
+`candidateReadySkins` must increase by two. The CPU verifier must report zero
+failures; browser QA must check the opening, settled loop, face, weapon,
+texture, and framing. The Cloudflare free tier permits at most 20,000 files
+and 25 MiB per file. Check the exact candidate before promotion:
+
+```sh
+find .generated/brawl-3d/import-v69/candidate-merged -type f | wc -l
+find .generated/brawl-3d/import-v69/candidate-merged -type f -size +25M -print
+```
+
+Prepare the verified candidate into a separate release directory:
+
+```sh
+node scripts/prepare-brawl-cloudflare-assets.mjs \
+  --source-dir .generated/brawl-3d/import-v69/candidate-merged \
+  --verification-report .generated/brawl-3d/import-v69/candidate-full-verification.json \
+  --output-dir .generated/brawl-3d/import-v69/cloudflare-release-candidate
+```
+
+The checked-in `wrangler.brawl-assets.jsonc` points at
+`.generated/brawl-3d-full/cloudflare-release`. Only after the CPU and browser
+checks pass, change `assets.directory` to the separate prepared candidate for
+the promotion, deploy, then run the hosted-byte verification below against
+that same candidate path. Keep the prior release until the hosted catalog and
+model pages pass.
+
+### Optional nine-default hero overlay
+
+The version 69 mirror declares hero clips for nine more defaults but lacks
+complete default model or diffuse inputs for them. The separate overlay plan
+converts only those native hero clips and faces and attaches them to the
+existing ready default models. Mortis uses the ready
+`Reference-Mortis_-Default-` model. Lola's converter adds `:SSC` to animation
+node names; the overlay removes that suffix only when checking and publishing
+Lola's two clips. Keep the verified base candidate intact:
+
+```sh
+node scripts/extract-brawl-nine-hero-overlay.mjs \
+  .generated/brawl-3d/import-v69/catalog.build.json \
+  .generated/brawl-3d/import-v69/nine-hero.build.json
+node scripts/materialize-brawl-assets.mjs \
+  --manifest .generated/brawl-3d/import-v69/nine-hero.build.json \
+  --mirror /absolute/path/to/brawl-stars-assets-cache.git \
+  --converter-dir /absolute/path/to/Supercell-Flat-Converter \
+  --converter-commit a0ac5f47b8e2088c088b0043f49508611f7bc660 \
+  --parser-root /absolute/path/to/sc5-parser \
+  --python /absolute/path/to/brawl-asset-venv/bin/python \
+  --output-dir .generated/brawl-3d/import-v69/nine-hero-converted \
+  --report .generated/brawl-3d/import-v69/nine-hero-materialization.json
+node scripts/build-brawl-asset-manifest.mjs \
+  --mirror /absolute/path/to/brawl-stars-assets-cache.git \
+  --commit cc307ffd36678ac463cc2ca9373a08b0a2d2b0b7 \
+  --version 69.230 \
+  --api-catalog .generated/brawl-3d/import-v69/live-brawlers.json \
+  --converted-dir .generated/brawl-3d/import-v69/nine-hero-converted \
+  --output .generated/brawl-3d/import-v69/nine-hero.catalog.json \
+  --audit-output .generated/brawl-3d/import-v69/nine-hero.audit.json \
+  --shards-dir .generated/brawl-3d/import-v69/nine-hero-catalog
+node scripts/overlay-brawl-nine-hero-clips.mjs \
+  --source-dir .generated/brawl-3d/import-v69/candidate-merged \
+  --audit .generated/brawl-3d/import-v69/nine-hero.audit.json \
+  --assets-dir .generated/brawl-3d/import-v69/nine-hero-converted \
+  --output-dir .generated/brawl-3d/import-v69/candidate-v2 \
+  --report .generated/brawl-3d/import-v69/overlay-nine-report.json
+node apps/brawlstats/scripts/verify-brawler-assets.mjs \
+  .generated/brawl-3d/import-v69/candidate-v2 \
+  --report .generated/brawl-3d/import-v69/candidate-v2-full-verification.json
+```
+
+Inspect all nine defaults in the browser after the CPU check. If they pass,
+prepare a separate v2 release:
+
+```sh
+node scripts/prepare-brawl-cloudflare-assets.mjs \
+  --source-dir .generated/brawl-3d/import-v69/candidate-v2 \
+  --verification-report .generated/brawl-3d/import-v69/candidate-v2-full-verification.json \
+  --output-dir .generated/brawl-3d/import-v69/cloudflare-release-v2-candidate
+```
+
+Use that prepared directory for the eventual Worker promotion. The original
+prepared candidate remains a fallback.
+
 Production uses the asset-only Worker configured in `wrangler.brawl-assets.jsonc`.
 Vercel sends temporary redirects from both public asset prefixes and the old API
 prefix to `https://statsconnect-brawl-assets.juanquenga.workers.dev/`.

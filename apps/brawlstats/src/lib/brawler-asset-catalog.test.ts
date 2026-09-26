@@ -298,6 +298,21 @@ test("selects complete skins and animation keys by stable IDs across brawlers", 
   assert.equal(selectCatalogViewerEntry(parsed, 16000099, undefined, undefined).selectedEntry, undefined);
 });
 
+test("opens a verified reference default before another skin when the source default is unavailable", () => {
+  const value = fixture();
+  const sourceDefault = value.defaults[0];
+  const catalog = parseBrawlerAssetCatalog({
+    ...value,
+    defaults: [{ ...sourceDefault, baseModel: unavailable }],
+    releasedSkins: [
+      { ...sourceDefault, skinId: "CrowRockabilly", displayName: "Rockabilly Crow" },
+      { ...sourceDefault, skinId: "Reference-Crow_-Default-", displayName: "Crow (Default)" },
+    ],
+  });
+  assert.equal(selectCatalogViewerEntry(catalog, 16000012, undefined, undefined).selectedEntry?.skinId, "Reference-Crow_-Default-");
+  assert.equal(selectCatalogViewerEntry(catalog, 16000012, "CrowRockabilly", undefined).selectedEntry?.skinId, "CrowRockabilly");
+});
+
 test("evicts rejected catalog requests so a later load can retry", async () => {
   let attempts = 0;
   const cache = createBrawlerAssetCatalogRequestCache(async () => {

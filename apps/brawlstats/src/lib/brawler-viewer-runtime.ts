@@ -17,7 +17,7 @@ import {
   retargetAnimationClip,
   isStrictLocalAssetUrl,
 } from "./brawler-viewer-contract.ts";
-import { createScMaterial, stencilUvTransform } from "./sc-material.ts";
+import { createScMaterial, faceRenderTargetUvTransform } from "./sc-material.ts";
 
 export type LoadedModel = {
   readonly scene: THREE.Object3D;
@@ -156,6 +156,13 @@ export type ViewerRuntimeState = {
   readonly faceFrame: number;
 };
 
+/** Use the game's hero-screen pair when captured; older packages only have a win and idle pair. */
+export function selectHomeAnimationSequence(animations: Readonly<Record<string, AnimationEntry>>): { readonly start: string; readonly loop: string } | undefined {
+  if (animations.HeroScreenAnim?.[0].kind === "ready" && animations.HeroScreenLoopAnim?.[0].kind === "ready") return { start: "HeroScreenAnim", loop: "HeroScreenLoopAnim" };
+  if (animations.HappyAnim?.[0].kind === "ready" && animations.IdleAnim?.[0].kind === "ready") return { start: "HappyAnim", loop: "IdleAnim" };
+  return undefined;
+}
+
 /** Center the sampled animation envelope, retaining every pose for camera fitting. */
 export function centerModelForFraming(root: THREE.Object3D, sampledBounds: THREE.Box3): {
   readonly wrapper: THREE.Group;
@@ -170,6 +177,31 @@ export function centerModelForFraming(root: THREE.Object3D, sampledBounds: THREE
   wrapper.position.copy(sampledBounds.getCenter(new THREE.Vector3())).multiplyScalar(-1);
   wrapper.updateMatrixWorld(true);
   return { wrapper, bounds: sampledBounds.clone().applyMatrix4(wrapper.matrixWorld), largestDimension };
+}
+
+/** Measure a perspective fit without moving the camera that is rendering the current frame. */
+export function fitPerspectiveCameraDistance(camera: THREE.PerspectiveCamera, bounds: THREE.Box3, direction: THREE.Vector3): number {
+  const corners: THREE.Vector3[] = [];
+  for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z));
+  const probe = camera.clone();
+  probe.position.copy(direction);
+  probe.lookAt(0, 0, 0);
+  probe.updateMatrixWorld(true);
+  const vertical = Math.tan(THREE.MathUtils.degToRad(probe.fov / 2));
+  const horizontal = vertical * probe.aspect;
+  return corners.reduce((required, corner) => {
+    const view = probe.worldToLocal(corner.clone());
+    return Math.max(required, 1 + view.z + Math.abs(view.y) / vertical, 1 + view.z + Math.abs(view.x) / horizontal);
+  }, 1) * 1.08;
+}
+
+/** Include normal intro motion, but do not let a distant staged prop shrink the character. */
+export function startupFramingBounds(loopBounds: THREE.Box3, introBounds: THREE.Box3): THREE.Box3 {
+  const combined = loopBounds.clone().union(introBounds);
+  const loopSize = loopBounds.getSize(new THREE.Vector3());
+  const combinedSize = combined.getSize(new THREE.Vector3());
+  if (combinedSize.x > loopSize.x * 1.8 || combinedSize.y > loopSize.y * 1.8 || combinedSize.z > loopSize.z * 1.8) return loopBounds.clone();
+  return combined;
 }
 
 function assetUrl(asset: { readonly kind: "ready"; readonly url: string }): string {
@@ -198,6 +230,45 @@ function boundsForObject(root: THREE.Object3D): THREE.Box3 {
   }
 }
 
+function framingMeshes(root: THREE.Object3D): readonly THREE.Mesh[] {
+  const meshes: THREE.Mesh[] = [];
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh) || !object.visible) return;
+    for (let parent = object.parent; parent; parent = parent.parent) if (!parent.visible) return;
+    meshes.push(object);
+  });
+  if (meshes.length < 3) return meshes;
+  const samples = meshes.map((mesh) => {
+    const bounds = boundsForObject(mesh);
+    return { mesh, bounds, center: bounds.getCenter(new THREE.Vector3()), extent: bounds.getSize(new THREE.Vector3()).length() };
+  });
+  const median = (values: readonly number[]) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  };
+  // Tiny staged props must not pull the cluster center away from the body.
+  // Chester has more offstage candy pieces than substantial body meshes.
+  const largestExtent = Math.max(...samples.map((sample) => sample.extent));
+  const substantial = samples.filter((sample) => sample.extent >= largestExtent * 0.1);
+  const core = substantial.length >= 2 ? substantial : samples;
+  const center = new THREE.Vector3(median(core.map((sample) => sample.center.x)), median(core.map((sample) => sample.center.y)), median(core.map((sample) => sample.center.z)));
+  const extents = core.map((sample) => sample.extent).sort((a, b) => a - b);
+  const characterExtent = extents[Math.floor((extents.length - 1) * 0.75)];
+  const focusedCore = core.filter((sample) => Math.max(Math.abs(sample.center.x - center.x), Math.abs(sample.center.y - center.y), Math.abs(sample.center.z - center.z)) <= characterExtent * 1.75);
+  const bodyBounds = new THREE.Box3();
+  for (const sample of focusedCore) bodyBounds.union(sample.bounds);
+  const margin = bodyBounds.getSize(new THREE.Vector3()).length() * 0.1;
+  const nearby = bodyBounds.clone().expandByScalar(margin);
+  const focused = samples.filter((sample) => focusedCore.includes(sample) || (!core.includes(sample) && nearby.containsPoint(sample.center))).map((sample) => sample.mesh);
+  return focused.length ? focused : meshes;
+}
+
+function boundsForMeshes(meshes: readonly THREE.Mesh[]): THREE.Box3 {
+  const bounds = new THREE.Box3();
+  for (const mesh of meshes) bounds.union(boundsForObject(mesh));
+  return bounds;
+}
+
 export class BrawlerViewerRuntime {
   readonly root = new THREE.Group();
   private readonly mixer: THREE.AnimationMixer;
@@ -211,6 +282,7 @@ export class BrawlerViewerRuntime {
   private animationRange: readonly [number, number] | undefined;
   private animationFps = 60;
   private bodyLocalTime = 0;
+  private completedAnimationCycles = 0;
   private animationDuration = 0;
   private playbackSpeed = 1;
   private faceFps = 60;
@@ -253,13 +325,28 @@ export class BrawlerViewerRuntime {
     return this.state;
   }
 
+  getCompletedAnimationCycles(): number {
+    return this.completedAnimationCycles;
+  }
+
+  hasAnimationClip(): boolean {
+    return this.action !== undefined && this.animationRange !== undefined;
+  }
+
+  getCurrentPoseBounds(): THREE.Box3 {
+    this.root.updateMatrixWorld(true);
+    return boundsForObject(this.root);
+  }
+
   /**
    * Return bounds that include the selected animation's sampled poses. This is
    * used once during viewer setup so a moving limb or body does not get clipped
    * by a camera fitted only to the bind pose.
    */
   getFramingBounds(): THREE.Box3 {
-    const bounds = boundsForObject(this.root);
+    this.root.updateMatrixWorld(true);
+    const meshes = framingMeshes(this.root);
+    const bounds = meshes.length ? boundsForMeshes(meshes) : boundsForObject(this.root);
     const action = this.action;
     const range = this.animationRange;
     if (!action || !range || !Number.isFinite(this.animationFps) || this.animationFps <= 0) return bounds;
@@ -273,7 +360,7 @@ export class BrawlerViewerRuntime {
       action.time = (startFrame + (endFrame - startFrame) * progress) / this.animationFps;
       this.mixer.update(0);
       this.root.updateMatrixWorld(true);
-      bounds.union(boundsForObject(this.root));
+      bounds.union(meshes.length ? boundsForMeshes(meshes) : boundsForObject(this.root));
     }
     action.time = originalTime;
     this.mixer.update(0);
@@ -341,6 +428,7 @@ export class BrawlerViewerRuntime {
     this.root.add(this.animationModel.scene);
     attachNamedObjects(this.baseModel.scene, nodeMap, this.manifest.attachments);
     this.bodyLocalTime = 0;
+    this.completedAnimationCycles = 0;
     if (!sourceClip) {
       // Some mirrored packages carry no AnimationClip because the exported
       // scene itself is the authoritative static pose/skeleton. Keep that
@@ -449,7 +537,9 @@ export class BrawlerViewerRuntime {
   update(deltaSeconds: number): void {
     if (this.action && this.animationRange) {
       if (this.state.playing) {
-        this.bodyLocalTime = (this.bodyLocalTime + deltaSeconds * this.playbackSpeed) % this.animationDuration;
+        const elapsed = this.bodyLocalTime + deltaSeconds * this.playbackSpeed;
+        this.completedAnimationCycles += Math.floor(elapsed / this.animationDuration);
+        this.bodyLocalTime = elapsed % this.animationDuration;
       }
       // Wrap the source clock before evaluating the body. Letting Three advance
       // first renders an out-of-range pose while the face uses the wrapped time.
@@ -526,10 +616,13 @@ export class BrawlerViewerRuntime {
   }
 
   private prepareLoadedModel(model: LoadedModel): void {
-    if (this.manifest.assetGroup !== "reference-bridge") return;
     try {
       compactReferenceGeometry(model);
-      normalizeReferenceModelRotations(model);
+      // Animated bones can move beyond the converter's rest-pose bounds (Buster disappears otherwise).
+      model.scene.traverse((object) => {
+        if (object instanceof THREE.SkinnedMesh) object.frustumCulled = false;
+      });
+      if (this.manifest.assetGroup === "reference-bridge") normalizeReferenceModelRotations(model);
     } catch (error) {
       disposeObject(model.scene);
       throw error;
@@ -607,7 +700,7 @@ export class BrawlerViewerRuntime {
         }
         const uniform = { value: texture };
         this.stencilBindings.set(material, { uniform });
-        const [scaleX, scaleY, offsetX, offsetY] = stencilUvTransform({ stencilUvPolicy: this.stencilUvPolicyForMaterial(material) });
+        const [scaleX, scaleY, offsetX, offsetY] = faceRenderTargetUvTransform({ stencilUvPolicy: this.stencilUvPolicyForMaterial(material) });
         const previous = material.onBeforeCompile;
         material.onBeforeCompile = (shader, renderer) => {
           previous(shader, renderer);

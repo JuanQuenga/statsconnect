@@ -17,8 +17,13 @@ export function brawlerBorderUrl(id: number) {
 }
 
 export function brawlerModelUrl(id: number) {
-  return cdnImage(`brawlers/model/${id}.png`);
+  return BRAWLER_MODEL_ART[id] || cdnImage(`brawlers/model/${id}.png`);
 }
+
+const BRAWLER_MODEL_ART: Readonly<Record<number, string>> = {
+  16000109: "https://support.supercell.com/images/BS-Cosmo.png?v=1787919511",
+  16000110: "https://support.supercell.com/images/BS-Vince.png?v=1787919601",
+};
 
 type BrawlerHeroArtMetadata = Readonly<{
   imageUrl?: string;
@@ -30,7 +35,7 @@ export function brawlerHeroArtwork(id: number, metadata: BrawlerHeroArtMetadata)
   const featureArt = brawlerFeatureArtUrl(id);
   return {
     fallbackSrc: metadata.imageUrl2 || metadata.imageUrl || metadata.imageUrl3 || brawlerBorderUrl(id),
-    kind: featureArt ? "feature" as const : "model" as const,
+    kind: "model" as const,
     src: featureArt || brawlerModelUrl(id),
   };
 }

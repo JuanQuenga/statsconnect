@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BrawlerModelViewer } from "@/components/BrawlerModelViewer";
-import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
@@ -113,23 +112,15 @@ function BrawlerDetailPage() {
                 <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">{brawler.description}</p>
                 <p className="mt-4 text-xs text-muted-foreground">{t("brawler.catalogRevision", { version: brawler.version || t("brawler.unversioned") })}</p>
               </div>
-              {heroArtwork && heroArtwork.kind !== "feature" ? (
+              {heroArtwork ? (
                 <BrawlerModelViewer
+                  key={brawler.id}
                   brawlerId={brawler.id}
                   alt={brawler.name}
                   artworkSrc={heroArtwork.src}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   artworkKind={heroArtwork.kind}
                   className="relative z-10 mx-auto -my-8 h-[420px] w-full max-w-none md:h-[520px]"
-                />
-              ) : null}
-              {heroArtwork?.kind === "feature" ? (
-                <ImageWithFallback
-                  src={heroArtwork.src}
-                  fallbackSrc={heroArtwork.fallbackSrc}
-                  alt={brawler.name}
-                  data-art-kind={heroArtwork.kind}
-                  className="mx-auto max-h-72 w-full rounded-xl object-cover drop-shadow-2xl"
                 />
               ) : null}
             </div>

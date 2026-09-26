@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blendStencilColor, diffuseUvTransform, stencilUvTransform, createScMaterial } from "./sc-material.ts";
+import { blendStencilColor, diffuseUvTransform, stencilUvTransform, faceRenderTargetUvTransform, createScMaterial } from "./sc-material.ts";
 
 test("uses the proven version-specific diffuse UV transforms", () => {
   assert.deepEqual(diffuseUvTransform({ uvSource: "KHR_texture_transform" }), [1 / 4096, 1 / 4096, 0, 0]);
@@ -15,6 +15,14 @@ test("keeps stencil UV policy explicit per asset group", () => {
   assert.deepEqual(stencilUvTransform({ stencilUvPolicy: "2x-flip-y" }), [2, -2, 0, 1]);
   assert.deepEqual(stencilUvTransform({ stencilUvPolicy: "2x-identity" }), [2, 2, 0, 0]);
   assert.deepEqual(stencilUvTransform({}), [1, -1, 0, 1]);
+});
+
+test("maps source stencil UVs into the face render target's opposite vertical origin", () => {
+  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "flip-y" }), [1, 1, 0, 0]);
+  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "2x-flip-y" }), [2, 2, 0, 0]);
+  const material = createScMaterial({ stencil: true, stencilUvPolicy: "flip-y" });
+  assert.deepEqual(material.uniforms.stencilUvTransform.value.toArray(), [1, 1, 0, 0]);
+  material.dispose();
 });
 
 test("specializes diffuse/lightmap/specular/stencil and opacity paths", () => {
@@ -46,6 +54,14 @@ test("keeps stencil UVs independent from the diffuse UV transform", () => {
 
 test("keeps stencil overlays opaque for stable depth composition", () => {
   const material = createScMaterial({ diffuse: true, stencil: true, opacity: 1 }, {}, false);
+  assert.equal(material.transparent, false);
+  assert.equal(material.depthWrite, true);
+  material.dispose();
+});
+
+test("renders mirrored zero-opacity body slots when no material fade track is available", () => {
+  const material = createScMaterial({ diffuse: true, stencil: true, opacity: 0 });
+  assert.equal(material.uniforms.opacity.value, 1);
   assert.equal(material.transparent, false);
   assert.equal(material.depthWrite, true);
   material.dispose();

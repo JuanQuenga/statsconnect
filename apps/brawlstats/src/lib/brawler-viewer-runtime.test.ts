@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import type { BrawlerSkinManifest } from "./brawler-viewer-contract.ts";
-import { BrawlerViewerRuntime, centerModelForFraming, normalizeReferenceModelRotations, compactReferenceGeometry, type LoadedModel } from "./brawler-viewer-runtime.ts";
+import type { AnimationEntry, BrawlerSkinManifest } from "./brawler-viewer-contract.ts";
+import { BrawlerViewerRuntime, centerModelForFraming, fitPerspectiveCameraDistance, normalizeReferenceModelRotations, compactReferenceGeometry, selectHomeAnimationSequence, startupFramingBounds, type LoadedModel } from "./brawler-viewer-runtime.ts";
 
 function fixtureManifest(customReady = true): BrawlerSkinManifest {
   const unavailable = { kind: "unavailable" as const, reason: "not-captured" as const };
@@ -23,6 +23,126 @@ function fixtureManifest(customReady = true): BrawlerSkinManifest {
     attachments: { weapon: "handSSC" },
   };
 }
+
+test("prefers captured hero-screen intro and loop, with win and idle fallback", () => {
+  const source = fixtureManifest().animations;
+  const idle = source.idle!;
+  const unavailable = [{ kind: "unavailable" as const, reason: "not-captured" as const }, idle[1], idle[2], idle[3], idle[4], idle[5]] satisfies AnimationEntry;
+  assert.deepEqual(selectHomeAnimationSequence({ HappyAnim: idle, IdleAnim: idle }), { start: "HappyAnim", loop: "IdleAnim" });
+  assert.deepEqual(selectHomeAnimationSequence({ HappyAnim: idle, IdleAnim: idle, HeroScreenAnim: idle, HeroScreenLoopAnim: idle }), { start: "HeroScreenAnim", loop: "HeroScreenLoopAnim" });
+  assert.deepEqual(selectHomeAnimationSequence({ HappyAnim: idle, IdleAnim: idle, HeroScreenAnim: unavailable, HeroScreenLoopAnim: idle }), { start: "HappyAnim", loop: "IdleAnim" });
+  assert.equal(selectHomeAnimationSequence({ HeroScreenAnim: idle, IdleAnim: idle }), undefined);
+});
+
+test("camera distance measurement preserves the live camera pose", () => {
+  const camera = new THREE.PerspectiveCamera(20, 1.5, 0.01, 100);
+  camera.position.set(4, 3, 24);
+  camera.lookAt(2, 1, 0);
+  camera.updateMatrixWorld(true);
+  const position = camera.position.clone();
+  const rotation = camera.quaternion.clone();
+  const distance = fitPerspectiveCameraDistance(camera, new THREE.Box3(new THREE.Vector3(-4, -6, -3), new THREE.Vector3(4, 6, 3)), new THREE.Vector3(0.2, 0.1, 1).normalize());
+  assert.ok(distance > 0 && Number.isFinite(distance));
+  assert.deepEqual(camera.position, position);
+  assert.deepEqual(camera.quaternion.toArray(), rotation.toArray());
+});
+
+test("startup framing includes nearby intro poses but ignores a distant staged prop", () => {
+  const loop = new THREE.Box3(new THREE.Vector3(-5, 0, -3), new THREE.Vector3(5, 10, 3));
+  const normalIntro = new THREE.Box3(new THREE.Vector3(-6, -1, -3), new THREE.Vector3(6, 13, 4));
+  const detachedIntro = new THREE.Box3(new THREE.Vector3(-6, -60, -3), new THREE.Vector3(6, 13, 4));
+  assert.deepEqual(startupFramingBounds(loop, normalIntro), normalIntro);
+  assert.deepEqual(startupFramingBounds(loop, detachedIntro), loop);
+});
+
+test("framing ignores meshes staged far from the visible character", async () => {
+  const scene = new THREE.Group();
+  for (const y of [0, 1, -60]) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+    mesh.position.y = y;
+    scene.add(mesh);
+  }
+  const runtime = new BrawlerViewerRuntime(fixtureManifest(), {
+    loadModel: async () => ({ scene, animations: [] }),
+    loadTexture: async () => new THREE.Texture(),
+    loadBinary: async () => new ArrayBuffer(0),
+  });
+  await runtime.loadBase();
+  const bounds = runtime.getFramingBounds();
+  assert.ok(bounds.min.y > -2);
+  assert.ok(bounds.max.y < 3);
+  runtime.dispose();
+});
+
+test("framing ignores a microscopic offstage prop near the character cluster", async () => {
+  const scene = new THREE.Group();
+  for (const x of [-1, 0, 1]) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(4, 6, 2), new THREE.MeshBasicMaterial());
+    mesh.position.x = x;
+    scene.add(mesh);
+  }
+  const prop = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.02), new THREE.MeshBasicMaterial());
+  prop.position.set(14, -3, 0);
+  scene.add(prop);
+  const runtime = new BrawlerViewerRuntime(fixtureManifest(), {
+    loadModel: async () => ({ scene, animations: [] }),
+    loadTexture: async () => new THREE.Texture(),
+    loadBinary: async () => new ArrayBuffer(0),
+  });
+  await runtime.loadBase();
+  const bounds = runtime.getFramingBounds();
+  assert.ok(bounds.max.x < 5);
+  assert.ok(bounds.min.y > -4);
+  runtime.dispose();
+});
+
+test("offstage prop count does not pull framing away from the head", async () => {
+  const scene = new THREE.Group();
+  for (const y of [3, 7, 11]) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(4, 6, 3), new THREE.MeshBasicMaterial());
+    mesh.position.y = y;
+    scene.add(mesh);
+  }
+  for (let index = 0; index < 8; index += 1) {
+    const prop = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.03), new THREE.MeshBasicMaterial());
+    prop.position.set(index * 0.5, -3, 0);
+    scene.add(prop);
+  }
+  const runtime = new BrawlerViewerRuntime(fixtureManifest(), {
+    loadModel: async () => ({ scene, animations: [] }),
+    loadTexture: async () => new THREE.Texture(),
+    loadBinary: async () => new ArrayBuffer(0),
+  });
+  await runtime.loadBase();
+  const bounds = runtime.getFramingBounds();
+  assert.ok(bounds.max.y >= 14);
+  assert.ok(bounds.min.y > -1);
+  runtime.dispose();
+});
+
+test("substantial staged props below a character do not shrink the character in frame", async () => {
+  const scene = new THREE.Group();
+  for (const y of [2, 4, 6, 8, 10, 11]) {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 3), new THREE.MeshBasicMaterial());
+    body.position.y = y;
+    scene.add(body);
+  }
+  for (const y of [-15, -18]) {
+    const prop = new THREE.Mesh(new THREE.BoxGeometry(2, 9, 2), new THREE.MeshBasicMaterial());
+    prop.position.y = y;
+    scene.add(prop);
+  }
+  const runtime = new BrawlerViewerRuntime(fixtureManifest(), {
+    loadModel: async () => ({ scene, animations: [] }),
+    loadTexture: async () => new THREE.Texture(),
+    loadBinary: async () => new ArrayBuffer(0),
+  });
+  await runtime.loadBase();
+  const bounds = runtime.getFramingBounds();
+  assert.ok(bounds.max.y >= 13);
+  assert.ok(bounds.min.y > -1);
+  runtime.dispose();
+});
 
 test("shared vertex buffers do not bind unused vertices to the wrong primitive skeleton", () => {
   const geometry = new THREE.BufferGeometry();
@@ -281,15 +401,22 @@ test("runtime selects custom animation keys and advances the selected clip", asy
   await runtime.selectAnimation("custom_pose");
   assert.equal(runtime.getState().animationKey, "custom_pose");
   assert.equal(runtime.getState().playing, true);
+  assert.equal(runtime.getCompletedAnimationCycles(), 0);
   runtime.update(0.5);
   assert.ok(Math.abs(animationBone.position.x - 0.6) < 1e-6);
+  runtime.update(0.6);
+  const completedCycles = runtime.getCompletedAnimationCycles();
+  assert.ok(completedCycles > 0);
   runtime.setPlaying(false);
+  runtime.update(2);
+  assert.equal(runtime.getCompletedAnimationCycles(), completedCycles);
   assert.equal(runtime.getState().playing, false);
   runtime.setOutlineEnabled(true);
   assert.equal(runtime.getState().outlineEnabled, true);
   await runtime.selectAnimation("idle");
   assert.equal(runtime.getState().animationKey, "idle");
   assert.equal(runtime.getState().playing, true);
+  assert.equal(runtime.getCompletedAnimationCycles(), 0);
   runtime.dispose();
 });
 
@@ -327,7 +454,9 @@ test("framing bounds include the selected animation poses", async () => {
   runtime.update(0.25);
   runtime.setPlaying(false);
   const originalPosition = animationBone.position.clone();
+  const currentPose = runtime.getCurrentPoseBounds();
   const bounds = runtime.getFramingBounds();
+  assert.ok(bounds.max.x > currentPose.max.x);
   assert.ok(bounds.max.x >= 5.5, `expected final sampled pose to extend bounds, got ${bounds.max.x}`);
   assert.deepEqual(animationBone.position, originalPosition);
   assert.equal(runtime.getState().playing, false);
@@ -336,6 +465,9 @@ test("framing bounds include the selected animation poses", async () => {
   assert.ok(framed.bounds.containsBox(bounds.clone().translate(framed.wrapper.position)));
   assert.ok(!new THREE.Box3().setFromObject(framed.wrapper, true).containsBox(framed.bounds));
   assert.deepEqual(framed.bounds.getCenter(new THREE.Vector3()), new THREE.Vector3());
+  const parentedBounds = runtime.getFramingBounds();
+  assert.deepEqual(parentedBounds.min.toArray(), framed.bounds.min.toArray());
+  assert.deepEqual(parentedBounds.max.toArray(), framed.bounds.max.toArray());
   runtime.dispose();
 });
 
@@ -604,7 +736,7 @@ test("face targets stay bound to base materials reparented onto animation socket
   runtime.dispose();
 });
 
-test("fallback stencil materials use the asset-group UV policy", async () => {
+test("fallback stencil materials account for the face render target's vertical origin", async () => {
   const scene = new THREE.Group();
   const material = new THREE.MeshBasicMaterial();
   material.name = "character_mat";
@@ -627,7 +759,7 @@ test("fallback stencil materials use the asset-group UV policy", async () => {
   type CompileParameters = Parameters<THREE.Material["onBeforeCompile"]>[0];
   const shader = { uniforms: {}, vertexShader: "#include <common>\n#include <uv_vertex>", fragmentShader: "#include <common>\n#include <map_fragment>" } as unknown as CompileParameters;
   material.onBeforeCompile(shader, undefined as unknown as THREE.WebGLRenderer);
-  assert.match(shader.vertexShader, /vMapUv \* vec2\(1\.0, -1\.0\) \+ vec2\(0\.0, 1\.0\)/);
+  assert.match(shader.vertexShader, /vMapUv \* vec2\(1\.0, 1\.0\) \+ vec2\(0\.0, 0\.0\)/);
   runtime.dispose();
 });
 
