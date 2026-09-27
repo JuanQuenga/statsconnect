@@ -87,6 +87,9 @@ export const discover = internalAction({
   args: {},
   returns: v.object({ discovered: v.number(), added: v.number(), failures: v.number() }),
   handler: async (ctx) => {
+    if (!backgroundCronEnabled(process.env)) {
+      return { discovered: 0, added: 0, failures: 0 };
+    }
     const runId = await ctx.runMutation(internal.brawl.pipeline.beginPipelineRun, {
       job: "discover",
     });
@@ -336,6 +339,7 @@ export const prune = internalAction({
   args: {},
   returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
+    if (!backgroundCronEnabled(process.env)) return { deleted: 0 };
     const runId = await ctx.runMutation(internal.brawl.pipeline.beginPipelineRun, {
       job: "prune",
     });

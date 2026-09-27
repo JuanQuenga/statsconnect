@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
+import { backgroundCronEnabled } from "../cronPolicy";
 import { isProfileSummary } from "./adapters/guards";
 import { getAdapter } from "./adapters/registry";
 import {
@@ -12,6 +13,8 @@ import {
 
 type Resource = "summary";
 type Source = "direct" | "service" | "stub";
+
+declare const process: { env: Record<string, string | undefined> };
 
 const REFRESH_BUDGET = 10;
 const PRUNE_BUDGET = 200;
@@ -133,6 +136,9 @@ export const refreshDueWatchTargets = internalAction({
     refreshedTargets: number;
     failedTargets: number;
   }> => {
+    if (!backgroundCronEnabled(process.env)) {
+      return { attemptedTargets: 0, refreshedTargets: 0, failedTargets: 0 };
+    }
     const now = Date.now();
     const targets = await ctx.runMutation(internal.hub.internal.watchTargets.claimDuePlayerTargets, {
       now,
@@ -185,6 +191,9 @@ export const refreshExpiredConnected = internalAction({
     refreshedResources: number;
     failedResources: number;
   }> => {
+    if (!backgroundCronEnabled(process.env)) {
+      return { attemptedProfiles: 0, refreshedResources: 0, failedResources: 0 };
+    }
     const candidates = await ctx.runQuery(internal.hub.internal.profileCache.listExpiredConnected, {
       now: Date.now(),
       limit: REFRESH_BUDGET,
@@ -230,6 +239,9 @@ export const pruneExpired = internalAction({
     refreshBudgetRows: number;
     failedBranches: number;
   }> => {
+    if (!backgroundCronEnabled(process.env)) {
+      return { profileCacheRows: 0, connectThrottleRows: 0, refreshBudgetRows: 0, failedBranches: 0 };
+    }
     const now = Date.now();
     let profileCacheRows = 0;
     let connectThrottleRows = 0;

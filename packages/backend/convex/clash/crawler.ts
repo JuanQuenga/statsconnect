@@ -152,6 +152,8 @@ async function materializeCardSummaries(ctx: ActionCtx) {
 export const discover = internalAction({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const disabled = cronDisabled();
+    if (disabled) return disabled;
     const upstream = clashUpstream(ctx);
     const limit = Math.min(args.limit ?? envNumber("CLASH_DISCOVER_LIMIT", 200), 1000);
     const configuredClanCount = Math.min(envNumber("CLASH_CLAN_SEED", 20), 100);
@@ -586,6 +588,8 @@ export const rollup = internalAction({
 export const prune = internalAction({
   args: {},
   handler: async (ctx) => {
+    const disabled = cronDisabled();
+    if (disabled) return disabled;
     return run(ctx, "prune", async (): Promise<RunResult> => {
       let deleted = 0;
       // Bounded so a backlog cannot turn one cron tick into an endless loop;

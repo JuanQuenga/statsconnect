@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
+import { backgroundCronEnabled } from "../../cronPolicy";
 import { gameIdValidator, refreshCadenceValidator } from "../schema";
 import {
   completeTargetPoll,
@@ -12,6 +13,8 @@ const BACKFILL_BATCH = 100;
 const EXPIRY_BATCH = 100;
 const LEASE_MS = 10 * 60_000;
 const DAY_MS = 24 * 60 * 60_000;
+
+declare const process: { env: Record<string, string | undefined> };
 
 export const claimDuePlayerTargets = internalMutation({
   args: { now: v.number(), limit: v.number(), dailyLimit: v.number() },
@@ -102,6 +105,7 @@ export const backfillConnectedProfiles = internalMutation({
   args: {},
   returns: v.object({ migrated: v.number(), remaining: v.boolean() }),
   handler: async (ctx) => {
+    if (!backgroundCronEnabled(process.env)) return { migrated: 0, remaining: false };
     const profiles = await ctx.db
       .query("savedProfiles")
       .withIndex("by_refresh_target_key", (query) =>
@@ -130,6 +134,7 @@ export const expireWatchDemands = internalMutation({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
+    if (!backgroundCronEnabled(process.env)) return 0;
     const now = Date.now();
     const demands = await ctx.db
       .query("watchDemands")

@@ -3,6 +3,7 @@
 import { anyApi } from "convex/server";
 import { v } from "convex/values";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
+import { backgroundCronEnabled } from "../cronPolicy";
 import {
   clashData,
   clashUpstream,
@@ -211,7 +212,7 @@ export const pollTrackedClans = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    if (!envEnabled("CLASH_CRAWLER_ENABLED") || !envEnabled("CLASH_CLAN_WATCH_ENABLED")) {
+    if (!backgroundCronEnabled(process.env) || !envEnabled("CLASH_CRAWLER_ENABLED") || !envEnabled("CLASH_CLAN_WATCH_ENABLED")) {
       return null;
     }
     const due = await ctx.runQuery(managementApi.dueTrackedClans, { now: Date.now(), limit: 3 }) as Array<{ tag: string }>;
@@ -235,6 +236,7 @@ export const pruneHistory = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
+    if (!backgroundCronEnabled(process.env)) return null;
     for (let batch = 0; batch < 4; batch += 1) {
       const result = await ctx.runMutation(managementApi.pruneSnapshots, { now: Date.now() }) as { hasMore: boolean };
       if (!result.hasMore) break;

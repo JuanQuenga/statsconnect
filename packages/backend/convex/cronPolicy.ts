@@ -2,10 +2,9 @@
  * Shared, dependency-free policy for the heavy background pipeline crons.
  *
  * Crons run on every deployment that pushes this tree, including short-lived
- * dev deployments. The crawl/rollup jobs are the expensive ones, so they check
- * this policy at the top of each action and become a no-op when disabled. The
- * default is enabled so production never needs an env change; dev deployments
- * opt out with BACKGROUND_CRON_ENABLED=0.
+ * dev deployments. Each cron target checks this policy before doing work and
+ * becomes a no-op when disabled. The default is enabled so production never
+ * needs an env change; dev deployments opt out with BACKGROUND_CRON_ENABLED=0.
  */
 
 export const BACKGROUND_CRON_ENV = "BACKGROUND_CRON_ENABLED";
