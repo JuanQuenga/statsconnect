@@ -15,7 +15,7 @@ test("owns endpoint construction, response normalization, freshness, and cache i
           name: "<c1>Shelly</c>",
           rarity: { name: "Starting Brawler", color: "not-a-color" },
           class: { name: "Damage Dealer" },
-          gadgets: [{ id: 23000255, name: "Fast Forward", description: "Dash <!distance>." }],
+          gadgets: [{ id: 23000255, name: "Fast Forward", description: "Dash <!distance>.", imageUrl: "https://cdn.brawlify.com/gadgets/borderless/23000255.png" }],
           starPowers: [],
         }],
       });
@@ -48,7 +48,7 @@ test("owns endpoint construction, response normalization, freshness, and cache i
       id: 23000255,
       name: "Fast Forward",
       description: "Dash a scaling amount.",
-      imageUrl: undefined,
+      imageUrl: "https://cdn.brawlify.com/gadgets/regular/23000255.png",
       released: true,
     }],
     starPowers: [],

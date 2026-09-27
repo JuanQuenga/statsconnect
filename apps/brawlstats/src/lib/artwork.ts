@@ -4,6 +4,10 @@ function cdnImage(path: string) {
   return `${CDN}/${path.replace(/^\//, "")}`;
 }
 
+function localImage(path: string) {
+  return `${import.meta.env?.BASE_URL ?? "/"}${path.replace(/^\//, "")}`;
+}
+
 export function profileIconUrl(id?: number | null) {
   return cdnImage(`profile-icons/regular/${Number(id) || 28000000}.png`);
 }
@@ -13,38 +17,40 @@ export function clubBadgeUrl(id?: number | null) {
 }
 
 export function brawlerBorderUrl(id: number) {
-  return cdnImage(`brawlers/borders/${id}.png`);
+  return BRAWLER_OFFICIAL_ART[id] || cdnImage(`brawlers/borders/${id}.png`);
 }
 
 export function brawlerModelUrl(id: number) {
-  return BRAWLER_MODEL_ART[id] || cdnImage(`brawlers/model/${id}.png`);
+  const officialArt = BRAWLER_OFFICIAL_ART[id];
+  if (officialArt) return officialArt;
+  if (id === 16000107 || id === 16000108) return brawlerPortraitUrl(id);
+  return cdnImage(`brawlers/model/${id}.png`);
 }
 
-const BRAWLER_MODEL_ART: Readonly<Record<number, string>> = {
-  16000109: "https://support.supercell.com/images/BS-Cosmo.png?v=1787919511",
-  16000110: "https://support.supercell.com/images/BS-Vince.png?v=1787919601",
+export function brawlerPortraitUrl(id: number) {
+  return BRAWLER_OFFICIAL_ART[id] || cdnImage(`brawlers/portraits/${id}.png`);
+}
+
+const BRAWLER_OFFICIAL_ART: Readonly<Partial<Record<number, string>>> = {
+  16000109: localImage("assets/brawlers/portraits/16000109.png"),
+  16000110: localImage("assets/brawlers/portraits/16000110.png"),
 };
 
-type BrawlerHeroArtMetadata = Readonly<{
-  imageUrl?: string;
-  imageUrl2?: string;
-  imageUrl3?: string;
-}>;
-
-export function brawlerCardFallbackUrl(id: number, metadata: BrawlerHeroArtMetadata = {}) {
-  return BRAWLER_MODEL_ART[id] || metadata.imageUrl2 || metadata.imageUrl3 || brawlerModelUrl(id);
-}
-
-export function brawlerHeroArtwork(id: number, metadata: BrawlerHeroArtMetadata) {
+export function brawlerHeroArtwork(id: number) {
   const featureArt = brawlerFeatureArtUrl(id);
   return {
-    fallbackSrc: metadata.imageUrl2 || metadata.imageUrl || metadata.imageUrl3 || brawlerBorderUrl(id),
+    artworkMaxWidth: BRAWLER_OFFICIAL_ART[id] ? 250 : undefined,
+    fallbackSrc: brawlerPortraitUrl(id),
     kind: "model" as const,
     src: featureArt || brawlerModelUrl(id),
   };
 }
 
-const BRAWLER_FEATURE_ART: Readonly<Record<number, string>> = {
+export function abilityImageUrl(kind: "gadgets" | "star-powers", id: number) {
+  return cdnImage(`${kind}/regular/${id}.png`);
+}
+
+const BRAWLER_FEATURE_ART: Readonly<Partial<Record<number, string>>> = {
   16000107: "https://brawlstars.inbox.supercell.com/xdjcscmv3zo3/4CF9yj49X04L66kRTG2ZyI/5410496b3d48d6c65fec7072099e4f2e/800x433.png",
 };
 

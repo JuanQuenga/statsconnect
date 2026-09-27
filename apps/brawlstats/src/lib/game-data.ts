@@ -1,4 +1,5 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import { abilityImageUrl } from "./artwork.ts";
 import type {
   BattleLogItem,
   BrawlerCatalogItem,
@@ -324,8 +325,8 @@ function normalizeCatalog(payload: unknown): BrawlerCatalogItem[] {
     .map((item) => {
       const rarity = record(item.rarity);
       const brawlerClass = record(item.class);
-      const gadgets = normalizeAbilities(item.gadgets);
-      const starPowers = normalizeAbilities(item.starPowers);
+      const gadgets = normalizeAbilities(item.gadgets, "gadgets");
+      const starPowers = normalizeAbilities(item.starPowers, "star-powers");
       return {
         id: Number(item.id) || 0,
         name: stringValue(item.name) || "Unknown",
@@ -348,7 +349,7 @@ function normalizeCatalog(payload: unknown): BrawlerCatalogItem[] {
     .filter((item) => item.id > 0);
 }
 
-function normalizeAbilities(value: unknown) {
+function normalizeAbilities(value: unknown, kind: "gadgets" | "star-powers") {
   if (!Array.isArray(value)) return [];
   return value
     .map((entry) => {
@@ -357,7 +358,7 @@ function normalizeAbilities(value: unknown) {
         id: Number(item.id) || 0,
         name: stringValue(item.name) || "Unknown ability",
         description: cleanDescription(stringValue(item.description) || "No description is available."),
-        imageUrl: stringValue(item.imageUrl) || undefined,
+        imageUrl: stringValue(item.imageUrl) ? abilityImageUrl(kind, Number(item.id)) : undefined,
         released: item.released !== false,
       };
     })

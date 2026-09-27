@@ -42,7 +42,7 @@ function BrawlerDetailPage() {
     enabled: Number.isInteger(brawlerId) && brawlerId > 0,
   });
   const brawler = catalogQuery.data?.find((item) => item.id === brawlerId);
-  const heroArtwork = brawler ? brawlerHeroArtwork(brawler.id, brawler) : undefined;
+  const heroArtwork = brawler ? brawlerHeroArtwork(brawler.id) : undefined;
   const maps = useMemo(() => new Map((mapsQuery.data || []).map((map) => [map.id, map])), [mapsQuery.data]);
   const eligibleMaps = useMemo(() => (trendQuery.data?.current.stats || []).filter((row) => row.picks >= (trendQuery.data?.minPicks || 25)), [trendQuery.data]);
   const bestMaps = useMemo(() => [...eligibleMaps].sort((a, b) => b.winRate - a.winRate || b.picks - a.picks).slice(0, 8), [eligibleMaps]);
@@ -118,6 +118,7 @@ function BrawlerDetailPage() {
                   brawlerId={brawler.id}
                   alt={brawler.name}
                   artworkSrc={heroArtwork.src}
+                  artworkMaxWidth={heroArtwork.artworkMaxWidth}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   artworkKind={heroArtwork.kind}
                   className="relative z-10 mx-auto -my-8 h-[420px] w-full max-w-none md:h-[520px]"

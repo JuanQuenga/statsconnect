@@ -21,7 +21,7 @@ import { PlayerSearch as PlayerSearchBox } from "@/components/PlayerSearch";
 import { ProfileActions } from "@/components/ProfileActions";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { brawlerBorderUrl, brawlerCardFallbackUrl, brawlerFeatureArtUrl, brawlerModelUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlerBorderUrl, brawlerFeatureArtUrl, brawlerModelUrl, brawlerPortraitUrl, profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { formatPercent, normalizeTag, readableMode, trophies } from "@/lib/format";
 import { rememberRecentProfile } from "@/lib/preferences";
@@ -261,7 +261,7 @@ function PlayerProfilePage({
               <div className="absolute inset-x-8 bottom-0 h-24 rounded-[50%] bg-[var(--player-accent)]/25 blur-3xl" aria-hidden />
               <ImageWithFallback
                 src={signatureFeatureArt || brawlerModelUrl(signature.id)}
-                fallbackSrc={signatureMeta?.imageUrl2 || signatureMeta?.imageUrl || brawlerBorderUrl(signature.id)}
+                fallbackSrc={brawlerPortraitUrl(signature.id)}
                 alt={signature.name}
                 className={signatureFeatureArt
                   ? "absolute inset-0 h-full w-full rounded-2xl object-cover object-center opacity-90"
@@ -406,7 +406,7 @@ function PlayerRoster({
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,color-mix(in_srgb,var(--player-accent)_22%,transparent),transparent_50%)]" aria-hidden />
                 <ImageWithFallback
                   src={featureArt || brawlerModelUrl(item.id)}
-                  fallbackSrc={meta?.imageUrl2 || meta?.imageUrl || brawlerBorderUrl(item.id)}
+                  fallbackSrc={brawlerPortraitUrl(item.id)}
                   alt={item.name}
                   className={featureArt
                     ? "absolute inset-0 h-full w-full object-cover object-center opacity-75 transition duration-300 group-hover:scale-105 group-hover:opacity-90"
@@ -438,7 +438,7 @@ function PlayerRoster({
                 <Card className="h-full flex-row items-center gap-3 border border-white/5 bg-card/70 p-3 py-3 transition group-hover:border-[var(--player-accent)]/35 group-hover:bg-card">
                   <ImageWithFallback
                     src={brawlerBorderUrl(item.id)}
-                    fallbackSrc={brawlerCardFallbackUrl(item.id, meta || {})}
+                    fallbackSrc={brawlerPortraitUrl(item.id)}
                     alt=""
                     className="size-14 shrink-0 rounded-lg object-cover"
                   />

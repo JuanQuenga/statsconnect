@@ -11,11 +11,22 @@ This site uses local game-specific assets plus current Brawl Stars assets served
 Useful folders:
 
 - `brawlers/borders/{id}.png`
+- `brawlers/portraits/{id}.png` for the larger roster cards
 - `brawlers/model/{id}.png`
+- `gadgets/regular/{id}.png` and `star-powers/regular/{id}.png`
 - `club-badges/regular/{id}.png`
 - `game-modes/regular/{id}.png`
 - `maps/regular/{id}.png`
 - `profile-icons/regular/{id}.png`
+
+BrawlAPI currently advertises `borderless` gadget and Star Power URLs that
+return 404 for newer abilities. The frontend uses the ability ID with Brawlify's
+working `regular` folders instead. Vince and Cosmo are also absent from the
+current Brawlify brawler image folders. Their unmodified 250 × 154 PNGs from
+Supercell Support are stored under `public/assets/brawlers/portraits/` and used
+across roster, player, and detail pages until larger official portraits exist.
+Sources: `https://support.supercell.com/images/BS-Cosmo.png?v=1787919511`
+and `https://support.supercell.com/images/BS-Vince.png?v=1787919601`.
 
 ## Metadata APIs
 

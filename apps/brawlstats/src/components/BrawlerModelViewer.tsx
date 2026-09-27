@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle } from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -9,7 +10,7 @@ import { BrawlerViewerRuntime, centerModelForFraming, fitPerspectiveCameraDistan
 import { brawlerModel3dAsset, brawlerModel3dUrl } from "@/lib/brawler-models";
 import { createOutlineCompositeMaterial, type ViewerFeature } from "@/lib/brawler-viewer-contract";
 
-type BrawlerModelViewerProps = { brawlerId: number; alt: string; artworkSrc: string; fallbackSrc?: string; artworkKind: "model"; className?: string };
+type BrawlerModelViewerProps = { brawlerId: number; alt: string; artworkSrc: string; fallbackSrc?: string; artworkMaxWidth?: number; artworkKind: "model"; className?: string };
 type ViewerState = { model: "unavailable" | "loading" | "ready" | "failed"; playing: boolean; playbackAvailable: boolean; faceEnabled: boolean; outlineEnabled: boolean; animationKey?: string };
 const requestCatalog = createBrawlerAssetCatalogRequestCache((brawlerId) => loadBrawlerAssetCatalog(brawlerAssetCatalogUrl(), brawlerId));
 
@@ -31,10 +32,11 @@ function entryFeature(entry: BrawlerAssetCatalogEntry | undefined, feature: "fac
   return { kind: "unavailable", reason: "not-captured" };
 }
 
-export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, artworkKind, className }: BrawlerModelViewerProps) {
+export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, artworkMaxWidth, artworkKind, className }: BrawlerModelViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null); const runtimeRef = useRef<BrawlerViewerRuntime | undefined>(undefined); const legacyActionRef = useRef<THREE.AnimationAction | null>(null);
   const lastReadySelection = useRef<{ readonly brawlerId: number; readonly skinId: string | undefined } | undefined>(undefined);
   const [catalog, setCatalog] = useState<BrawlerAssetCatalog>(); const [selectedSkin, setSelectedSkin] = useState<string>(); const [selectedAnimation, setSelectedAnimation] = useState<string>();
+  const [catalogPending, setCatalogPending] = useState(true);
   const [state, setState] = useState<ViewerState>({ model: "unavailable", playing: false, playbackAvailable: false, faceEnabled: false, outlineEnabled: false });
   const legacyAsset = brawlerModel3dAsset(brawlerId); const legacyUrl = brawlerModel3dUrl(brawlerId);
   const selection = useMemo(() => selectCatalogViewerEntry(catalog, brawlerId, selectedSkin, selectedAnimation), [catalog, brawlerId, selectedSkin, selectedAnimation]);
@@ -43,13 +45,22 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
   const homeSequence = manifest && selectedAnimation === undefined ? selectHomeAnimationSequence(manifest.animations) : undefined;
   const playbackAnimation = homeSequence?.start ?? activeAnimation;
 
-  useEffect(() => { let cancelled = false; setCatalog(undefined); void requestCatalog(brawlerId).then((value) => { if (!cancelled) setCatalog(value); }).catch(() => { /* PNG/legacy fallback is intentional when catalog is absent. */ }); return () => { cancelled = true; }; }, [brawlerId]);
+  useEffect(() => {
+    let cancelled = false;
+    setCatalog(undefined);
+    setCatalogPending(true);
+    void requestCatalog(brawlerId)
+      .then((value) => { if (!cancelled) setCatalog(value); })
+      .catch(() => { /* Static artwork or a legacy model remains available. */ })
+      .finally(() => { if (!cancelled) setCatalogPending(false); });
+    return () => { cancelled = true; };
+  }, [brawlerId]);
   useEffect(() => { if (selectedEntry) setSelectedSkin(selectedEntry.skinId); }, [selectedEntry]);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return; let cancelled = false; let frame = 0; let renderer: THREE.WebGLRenderer | undefined; let controls: OrbitControls | undefined; let resizeObserver: ResizeObserver | undefined; let legacyModel: THREE.Object3D | undefined; let legacyMixer: THREE.AnimationMixer | undefined; let runtime: BrawlerViewerRuntime | undefined; let introTransitionStarted = false;
     const outlineScene = new THREE.Scene(); const outlineCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); const outlineMaterial = createOutlineCompositeMaterial(); const outlineQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), outlineMaterial); outlineScene.add(outlineQuad);
-    runtimeRef.current = undefined; legacyActionRef.current = null; setState({ model: manifest ? "loading" : legacyUrl ? "loading" : "unavailable", playing: false, playbackAvailable: false, faceEnabled: false, outlineEnabled: false, animationKey: playbackAnimation });
+    runtimeRef.current = undefined; legacyActionRef.current = null; setState({ model: manifest && playbackAnimation ? "loading" : legacyUrl ? "loading" : "unavailable", playing: false, playbackAvailable: false, faceEnabled: false, outlineEnabled: false, animationKey: playbackAnimation });
     const automaticIntro = homeSequence !== undefined;
     const load = async () => {
       try {
@@ -99,12 +110,23 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
 
   const togglePlaying = () => { if (runtimeRef.current) { const next = !runtimeRef.current.getState().playing; runtimeRef.current.setPlaying(next); setState((current) => ({ ...current, playing: next })); return; } const action = legacyActionRef.current; if (!action) return; action.paused = !action.paused; setState((current) => ({ ...current, playing: !action.paused })); };
   const hasCatalogRuntime = Boolean(manifest && playbackAnimation); const modelReady = state.model === "ready"; const showModelFrame = modelReady || (state.model === "loading" && lastReadySelection.current?.brawlerId === brawlerId && lastReadySelection.current.skinId === selectedEntry?.skinId); const selectedFaceReady = Boolean(manifest && state.animationKey && manifest.animations[state.animationKey]?.[1].kind === "ready" && manifest.animations[state.animationKey]?.[2].kind === "ready"); const featureFace = hasCatalogRuntime && selectedFaceReady ? { kind: "available" } satisfies ViewerFeature : { kind: "unavailable", reason: hasCatalogRuntime ? "not-captured" : "transform-unverified" } satisfies ViewerFeature; const featureOutline = hasCatalogRuntime ? entryFeature(selectedEntry, "outline") : { kind: "unavailable", reason: "not-captured" } satisfies ViewerFeature;
-  const modelDataState = state.model === "failed" ? "failed" : state.model === "ready" ? "ready" : state.model === "loading" ? "loading" : "unavailable";
+  const showLoading = !showModelFrame && (catalogPending || state.model === "loading" || (state.model === "unavailable" && (hasCatalogRuntime || Boolean(legacyUrl))));
+  const modelDataState = showLoading ? "loading" : state.model;
   return <div className={`relative isolate flex h-full min-h-[24rem] w-full flex-col overflow-visible ${className ?? ""}`} data-idle-state={state.model} data-model-state={modelDataState}>
     <div className="relative min-h-0 flex-1">
-    <ImageWithFallback src={artworkSrc} fallbackSrc={fallbackSrc} alt={alt} data-art-kind={artworkKind} className={`absolute inset-0 h-full w-full object-contain drop-shadow-2xl transition-opacity duration-300 ${showModelFrame ? "opacity-0" : "opacity-100"}`} />
+    {showLoading ? <div className="absolute inset-0 grid place-items-center rounded-xl bg-[radial-gradient(circle_at_center,rgba(245,200,91,0.14),transparent_60%)]" role="status" aria-label={`Loading ${alt} 3D model`}>
+      <div className="flex flex-col items-center gap-4 text-center">
+        <span className="grid size-16 place-items-center rounded-full border border-primary/40 bg-primary/10 text-primary shadow-[0_0_50px_rgba(245,200,91,0.14)]"><LoaderCircle className="size-8 motion-safe:animate-spin" aria-hidden="true" /></span>
+        <span className="font-display text-2xl text-foreground">{alt}</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Loading 3D model</span>
+      </div>
+    </div> : null}
+    {!showLoading && !showModelFrame ? <div className="absolute inset-0 grid place-items-center overflow-hidden rounded-xl bg-[radial-gradient(circle_at_center,rgba(245,200,91,0.12),transparent_65%)]">
+      {artworkMaxWidth ? <div className="pointer-events-none absolute size-72 rounded-full border border-primary/20 shadow-[0_0_90px_rgba(245,200,91,0.12)]" aria-hidden="true" /> : null}
+      <ImageWithFallback src={artworkSrc} fallbackSrc={fallbackSrc} alt={alt} data-art-kind={artworkKind} style={artworkMaxWidth ? { maxWidth: artworkMaxWidth } : undefined} className="relative z-10 max-h-full w-full object-contain drop-shadow-2xl" />
+    </div> : null}
     {hasCatalogRuntime || legacyAsset ? <canvas ref={canvasRef} aria-hidden="true" className={`absolute inset-0 h-full w-full touch-none transition-opacity duration-300 ${showModelFrame ? "cursor-grab opacity-100 active:cursor-grabbing" : "pointer-events-none opacity-0"}`} /> : null}
     </div>
-    {hasCatalogRuntime || legacyAsset ? <BrawlerViewerControls playing={state.playing} playbackAvailable={state.playbackAvailable} skinOptions={entries.map((entry) => ({ id: entry.skinId, label: catalogEntryLabel(entry) }))} animationOptions={animationOptions} selectedSkin={selectedEntry?.skinId} selectedAnimation={state.animationKey ?? playbackAnimation} onSelectSkin={(skinId) => { if (entries.some((entry) => entry.skinId === skinId)) { setSelectedAnimation(undefined); setSelectedSkin(skinId); } }} onSelectAnimation={setSelectedAnimation} face={featureFace} outline={featureOutline} faceEnabled={state.faceEnabled} outlineEnabled={state.outlineEnabled} onTogglePlaying={togglePlaying} onToggleFace={() => { const next = !state.faceEnabled; runtimeRef.current?.setFaceEnabled(next); setState((current) => ({ ...current, faceEnabled: next })); }} onToggleOutline={() => { const next = !state.outlineEnabled; runtimeRef.current?.setOutlineEnabled(next); setState((current) => ({ ...current, outlineEnabled: next })); }} /> : null}
+    {(hasCatalogRuntime || legacyAsset) && showModelFrame ? <BrawlerViewerControls playing={state.playing} playbackAvailable={state.playbackAvailable} skinOptions={entries.map((entry) => ({ id: entry.skinId, label: catalogEntryLabel(entry) }))} animationOptions={animationOptions} selectedSkin={selectedEntry?.skinId} selectedAnimation={state.animationKey ?? playbackAnimation} onSelectSkin={(skinId) => { if (entries.some((entry) => entry.skinId === skinId)) { setSelectedAnimation(undefined); setSelectedSkin(skinId); } }} onSelectAnimation={setSelectedAnimation} face={featureFace} outline={featureOutline} faceEnabled={state.faceEnabled} outlineEnabled={state.outlineEnabled} onTogglePlaying={togglePlaying} onToggleFace={() => { const next = !state.faceEnabled; runtimeRef.current?.setFaceEnabled(next); setState((current) => ({ ...current, faceEnabled: next })); }} onToggleOutline={() => { const next = !state.outlineEnabled; runtimeRef.current?.setOutlineEnabled(next); setState((current) => ({ ...current, outlineEnabled: next })); }} /> : null}
   </div>;
 }

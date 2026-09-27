@@ -10,6 +10,7 @@ import { Table, TableBody, TableCaption, TableCell, TableRow } from "@/component
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import {
   brawlerBorderUrl,
+  brawlerPortraitUrl,
   clubBadgeUrl,
   eventModeId,
   gameModeImageUrl,
@@ -99,10 +100,11 @@ function HomePage() {
               >
                 <Link to="/brawlers/$brawlerId" params={{ brawlerId: String(brawler.id) }} className="block h-full">
                   <ImageWithFallback
-                    src={brawlerBorderUrl(brawler.id)}
+                    src={brawlerPortraitUrl(brawler.id)}
+                    fallbackSrc={brawlerBorderUrl(brawler.id)}
                     alt=""
                     loading="lazy"
-                    className="aspect-square w-full object-cover"
+                    className="aspect-[3/2] w-full bg-secondary object-cover object-center"
                   />
                   <CardContent className="space-y-2 p-3">
                     <Badge className="max-w-full whitespace-normal" style={{ background: brawler.color, color: "#141414" }}>{brawler.rarity}</Badge>

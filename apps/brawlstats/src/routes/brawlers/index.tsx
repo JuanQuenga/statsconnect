@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
-import { brawlerBorderUrl, brawlerCardFallbackUrl } from "@/lib/artwork";
+import { brawlerBorderUrl, brawlerPortraitUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -106,8 +106,8 @@ function BrawlersPage() {
           return (
             <Link key={brawler.id} to="/brawlers/$brawlerId" params={{ brawlerId: String(brawler.id) }} className="group block">
               <Card className="h-full gap-0 overflow-hidden py-0 transition group-hover:ring-primary/60">
-                <div className="relative aspect-[4/3] overflow-hidden" style={{ background: `linear-gradient(145deg, ${brawler.color}55, #101926 72%)` }}>
-                  <ImageWithFallback src={brawler.imageUrl || brawlerBorderUrl(brawler.id)} fallbackSrc={brawlerCardFallbackUrl(brawler.id, brawler)} alt={brawler.name} className="h-full w-full object-contain transition group-hover:scale-[1.03]" loading="lazy" />
+                <div className="relative aspect-[3/2] overflow-hidden" style={{ background: `linear-gradient(145deg, ${brawler.color}55, #101926 72%)` }}>
+                  <ImageWithFallback src={brawlerPortraitUrl(brawler.id)} fallbackSrc={brawlerBorderUrl(brawler.id)} alt={brawler.name} className="h-full w-full object-cover object-center transition group-hover:scale-[1.03]" loading="lazy" />
                   <Badge className="absolute top-3 left-3" style={{ background: brawler.color, color: "#08101a" }}>{brawler.rarity}</Badge>
                 </div>
                 <div className="p-3 sm:p-4">
