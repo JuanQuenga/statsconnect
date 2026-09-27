@@ -70,6 +70,9 @@ test("public game origins use subdomains independently of build asset prefixes",
   );
   assert.deepEqual(unifiedPublicEnvironment, {
     VITE_STATSCONNECT_ORIGIN: "https://statsconnect.app",
+    VITE_ADSENSE_CLIENT_ID: "ca-pub-4485799997262487",
+    VITE_ADSENSE_BRAWL_HOME_SLOT: "1866622105",
+    VITE_ADSENSE_CLASH_HOME_SLOT: "7993046756",
   });
 });
 

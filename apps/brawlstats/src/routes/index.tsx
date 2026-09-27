@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { AdSenseUnit } from "@statsconnect/monetization";
 import { ArrowUpRight, Trophy } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +120,13 @@ function HomePage() {
             ))}
           </div> : null}
         </section>
+
+        <AdSenseUnit
+          clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+          slotId={import.meta.env.VITE_ADSENSE_BRAWL_HOME_SLOT}
+          serveAds={import.meta.env.PROD}
+          className="mx-auto max-w-4xl px-4 text-muted-foreground sm:px-6"
+        />
 
         <section className="grid gap-8 lg:grid-cols-2">
           <div>

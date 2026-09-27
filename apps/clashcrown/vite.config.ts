@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
+import { adsensePlugin } from "../../scripts/adsense-vite.ts";
 import {
   deliveryApp,
   viteBasePath,
@@ -24,6 +25,7 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    adsensePlugin(),
   ],
   resolve: {
     alias: {

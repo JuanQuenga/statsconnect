@@ -292,6 +292,10 @@
   }
 }
 
+.statsconnect-ad:has(.adsbygoogle[data-ad-status="unfilled"]) {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

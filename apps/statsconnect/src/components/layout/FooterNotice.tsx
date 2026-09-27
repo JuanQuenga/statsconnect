@@ -12,6 +12,7 @@ export function FooterNotice() {
         <nav aria-label="Footer navigation">
           <Link to="/connect">Connect</Link>
           <Link to="/settings/connections">Connections</Link>
+          <Link to="/privacy">Privacy</Link>
           <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">Fan content policy</a>
         </nav>
         <p>

@@ -1,5 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 
+const creatorCode = import.meta.env.VITE_SUPERCELL_CREATOR_CODE?.trim();
+
 export function FooterNotice() {
   const { t } = useI18n();
   const policy = t("footer.policy");
@@ -12,8 +14,11 @@ export function FooterNotice() {
           <p className="mt-3 max-w-xl">
             {t("footer.description")}
           </p>
+          {creatorCode ? <p className="mt-3 text-xs text-muted-foreground">Support this site in the Brawl Stars Shop with creator code <strong className="font-semibold text-foreground">{creatorCode}</strong>.</p> : null}
         </div>
-        <p className="text-xs leading-relaxed md:max-w-sm md:text-right">
+        <div className="text-xs leading-relaxed md:max-w-sm md:text-right">
+          <a className="text-accent underline-offset-2 hover:underline" href="https://statsconnect.app/privacy">Privacy policy</a>
+          <p className="mt-2">
           {t("footer.legal", { policy }).split(policy)[0]}
           <a
             className="text-accent underline-offset-2 hover:underline"
@@ -24,7 +29,8 @@ export function FooterNotice() {
             {policy}
           </a>
           {t("footer.legal", { policy }).split(policy)[1]}
-        </p>
+          </p>
+        </div>
       </div>
     </footer>
   );

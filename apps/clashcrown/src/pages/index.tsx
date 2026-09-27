@@ -5,6 +5,7 @@ import Link from "@/components/Link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AdSenseUnit } from "@statsconnect/monetization";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
@@ -40,6 +41,13 @@ export default function HomePage() {
       <PersonalDashboard />
 
       {isConvexConfigured ? <MetaTopDeck /> : <UnavailableMetaSection title="Top observed deck" />}
+
+      <AdSenseUnit
+        clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+        slotId={import.meta.env.VITE_ADSENSE_CLASH_HOME_SLOT}
+        serveAds={import.meta.env.PROD}
+        className="home-ad-unit"
+      />
 
       {isConvexConfigured ? <LiveEventLab /> : <UnavailableMetaSection title="Live tournaments" href="/tournaments" />}
 

@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { defineConfig, loadEnv } from "vite";
 import { brawler3dAssetsPlugin } from "./brawl-3d-assets-plugin";
+import { adsensePlugin } from "../../scripts/adsense-vite.ts";
 import {
   deliveryApp,
   viteBasePath,
@@ -28,6 +29,7 @@ export default defineConfig(({ mode }) => {
       }),
       react(),
       tailwindcss(),
+      adsensePlugin(),
       brawler3dAssetsPlugin(localAssetDirectory),
     ],
     resolve: {

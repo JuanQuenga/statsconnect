@@ -78,6 +78,9 @@ export function publicAppOrigin(app: DeliveryApp): string {
 
 export const unifiedPublicEnvironment = {
   VITE_STATSCONNECT_ORIGIN: publicAppOrigin(deliveryApp("statsconnect")),
+  VITE_ADSENSE_CLIENT_ID: "ca-pub-4485799997262487",
+  VITE_ADSENSE_BRAWL_HOME_SLOT: "1866622105",
+  VITE_ADSENSE_CLASH_HOME_SLOT: "7993046756",
 } as const;
 
 export const applicationShellManifestPath = "dist/application-shell-manifest.json";

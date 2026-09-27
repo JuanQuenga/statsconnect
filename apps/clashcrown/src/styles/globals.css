@@ -541,6 +541,16 @@ button { cursor: pointer; }
   padding-top: 28px;
 }
 
+.home-ad-unit {
+  width: min(850px, calc(100% - 48px));
+  margin: 38px auto 0;
+  color: var(--muted-foreground);
+}
+
+.statsconnect-ad:has(.adsbygoogle[data-ad-status="unfilled"]) {
+  display: none;
+}
+
 .section-title-row {
   display: grid;
   grid-template-columns: 150px 1fr 150px;

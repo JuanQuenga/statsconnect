@@ -56,6 +56,9 @@ importers:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.1(@types/node@26.2.0)(esbuild@0.27.0)(jiti@2.7.0)
 
   apps/brawlstats:
     dependencies:
@@ -65,6 +68,9 @@ importers:
       '@statsconnect/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@statsconnect/monetization':
+        specifier: workspace:*
+        version: link:../../packages/monetization
       '@statsconnect/site-errors':
         specifier: workspace:*
         version: link:../../packages/site-errors
@@ -147,6 +153,9 @@ importers:
       '@statsconnect/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@statsconnect/monetization':
+        specifier: workspace:*
+        version: link:../../packages/monetization
       '@statsconnect/site-errors':
         specifier: workspace:*
         version: link:../../packages/site-errors
@@ -337,6 +346,18 @@ importers:
         specifier: ^1.43.0
         version: 1.43.0(react@19.2.8)
     devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/monetization:
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

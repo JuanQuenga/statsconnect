@@ -14,6 +14,7 @@ const statsConnectOrigin = (
   import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim() ||
   import.meta.env.NEXT_PUBLIC_STATSCONNECT_ORIGIN?.trim()
 );
+const creatorCode = import.meta.env.VITE_SUPERCELL_CREATOR_CODE?.trim();
 let arenaRouteState: { pathname: string | null; transitionClass: string } = {
   pathname: null,
   transitionClass: "",
@@ -139,9 +140,11 @@ function SiteFooter() {
             <strong>Discover</strong>
             <Link href="/clans/search">Clan Search</Link>
             <Link href="/news">{t("nav.news")}</Link>
+            <a href="https://statsconnect.app/privacy">Privacy policy</a>
           </div>
         </div>
         <div className="footer-legal">
+          {creatorCode ? <p>Support this site in the Clash Royale Shop with creator code <strong>{creatorCode}</strong>.</p> : null}
           <p>
             {t("footer.disclaimer")} See Supercell&rsquo;s{" "}
             <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
