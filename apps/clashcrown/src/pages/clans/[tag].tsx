@@ -10,6 +10,7 @@ import { isConvexConfigured } from "@/lib/convex";
 import { useClanAcquisition } from "@/lib/clash/profileAcquisition";
 import { DashboardSaveControls } from "@/components/personalization/PersonalDashboard";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 export default function ClanPage() {
   const router = useRouter();
@@ -47,6 +48,12 @@ function ClanDashboard({ clan, isRefreshing = false, onRefresh = () => undefined
         <ClanProfile clan={clan} />
         <DashboardSaveControls profile={{ kind: "clans", tag: clan.tag, name: clan.name }} />
         <ClanChestProgress clan={clan} />
+        <AdSenseUnit
+          clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+          slotId={import.meta.env.VITE_ADSENSE_CLASH_HOME_SLOT}
+          serveAds={import.meta.env.PROD}
+          className="home-ad-unit"
+        />
         <MemberTable clan={clan} onRefresh={onRefresh} isRefreshing={isRefreshing} />
       </div>
     </Layout>

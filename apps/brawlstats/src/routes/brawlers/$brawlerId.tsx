@@ -15,6 +15,7 @@ import { useI18n, type Translator } from "@/lib/i18n";
 import { routePath } from "@/lib/paths";
 import type { BrawlerMetaResponse, CatalogAbility, MapListItem, MetaDailyPoint, MetaTrendWindow } from "@/lib/types";
 import type { TrophyBucket } from "@/lib/meta";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 export const Route = createFileRoute("/brawlers/$brawlerId")({ component: BrawlerDetailPage });
 
@@ -126,6 +127,13 @@ function BrawlerDetailPage() {
               ) : null}
             </div>
           </section>
+
+          <AdSenseUnit
+            clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+            slotId={import.meta.env.VITE_ADSENSE_BRAWL_HOME_SLOT}
+            serveAds={import.meta.env.PROD}
+            className="mx-auto max-w-4xl px-4 text-muted-foreground sm:px-6"
+          />
 
           <div className="flex flex-wrap gap-2">
             {trophyBuckets.map((value) => <Button key={value} size="sm" variant={bucket === value ? "default" : "outline"} onClick={() => setBucket(value)}>{value === "all" ? t("common.allTrophies") : t("common.trophyRange", { range: value })}</Button>)}

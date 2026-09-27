@@ -1,16 +1,18 @@
 # Ads and creator codes
 
-The game sites each have one manually placed AdSense unit on the home page,
-between content sections. There are no overlays or anchors. Auto ads are off
-in the AdSense account. Unfilled units collapse after Google marks them as
-unfilled. With no configured client and slot IDs, no ad container appears.
+The game sites use manually placed AdSense units at natural content breaks on
+their home, catalog, leaderboard, and profile pages. Clash Royale also has units
+on the decks, meta, and clan pages. There are no overlays or anchors. Auto ads
+are off in the AdSense account. Unfilled units collapse after Google marks them
+as unfilled. With no configured client and slot IDs, no ad container appears.
 
 ## AdSense setup
 
 1. The AdSense account has client `ca-pub-4485799997262487` and two responsive
-   display units: Brawl Stars home `1866622105` and Clash Royale home
-   `7993046756`. The site `statsconnect.app` still requires ownership
-   verification and review. Google must approve it before ads can serve.
+   display units: Brawl Stars `1866622105` and Clash Royale `7993046756`.
+   The same responsive unit is used across each game's pages. Ownership was
+   verified and `statsconnect.app` was submitted for review on September 27,
+   2026. Google must approve it before ads can serve.
 2. The unified production build uses those client and slot IDs for the Hub,
    Brawl Stars, and Clash Royale. For a standalone game build, set
    `VITE_ADSENSE_CLIENT_ID` and that game's `VITE_ADSENSE_*_HOME_SLOT`.
@@ -23,9 +25,10 @@ unfilled. With no configured client and slot IDs, no ad container appears.
    sensational, and get-rich-quick ad categories. Category controls do not
    catch every advertiser; review actual ads after approval for Supercell
    policy conflicts, including unauthorized merchandise and cryptocurrency.
-4. The European consent message is saved as a draft with a visible decline
-   choice. It needs a site logo and a live privacy page before publication.
-   Review regional consent settings when the site is live.
+4. The European consent message is published with Consent, Do not consent,
+   and Manage options choices. It uses the public StatsConnect icon and the
+   live privacy page. Google says publication can take up to an hour to appear
+   through the AdSense tag. Review regional consent settings as traffic grows.
 5. Check `https://statsconnect.app/ads.txt`, the game home pages, and the
    AdSense dashboard after deployment. The `ads.txt` seller line is emitted
    only when a valid client ID is configured.

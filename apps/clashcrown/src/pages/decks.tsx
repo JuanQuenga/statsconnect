@@ -13,6 +13,7 @@ import { useRouter } from "@/lib/router";
 import type { Card } from "@/lib/clash/domain";
 import { cards as localCards } from "@/lib/mock-data";
 import { useI18n } from "@/lib/i18n";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 type DeckSurface = "discover" | "war" | "builder";
 
@@ -103,6 +104,14 @@ function DeckExperienceShell({ surface, setSurface, children }: { surface: DeckS
           }
         />
         <div role="tabpanel">{children}</div>
+        {surface !== "builder" ? (
+          <AdSenseUnit
+            clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+            slotId={import.meta.env.VITE_ADSENSE_CLASH_HOME_SLOT}
+            serveAds={import.meta.env.PROD && isConvexConfigured}
+            className="home-ad-unit"
+          />
+        ) : null}
       </div>
     </Layout>
   );

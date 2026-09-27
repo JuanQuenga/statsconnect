@@ -17,6 +17,7 @@ import { useCardCatalog } from "@/lib/useCardCatalog";
 import type { Card } from "@/lib/clash/domain";
 import { isConvexConfigured, topCardsQuery, topDecksQuery, topTowerTroopsQuery } from "@/lib/convex";
 import { useI18n } from "@/lib/i18n";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 function unknownCard(id: number): Card {
   return { id, name: "Unknown Card", elixir: 0, rarity: "Common", image: UNKNOWN_CARD_IMAGE };
@@ -113,6 +114,12 @@ function MetaReport() {
         </div>
 
         <TopDecks decks={decks?.decks} byId={byId} mode={mode} windowDays={windowDays} />
+        <AdSenseUnit
+          clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+          slotId={import.meta.env.VITE_ADSENSE_CLASH_HOME_SLOT}
+          serveAds={import.meta.env.PROD}
+          className="home-ad-unit"
+        />
         <TopCards cards={cards?.cards} sample={sample} byId={byId} mode={mode} windowDays={windowDays} />
         <TopTowerTroops
           towerTroops={towerTroops?.towerTroops}

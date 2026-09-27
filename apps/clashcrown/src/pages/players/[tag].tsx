@@ -16,6 +16,7 @@ import { TrackingControls } from "@/components/personalization/PersonalDashboard
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { useI18n } from "@/lib/i18n";
 import { PlayerActivity } from "@/components/portfolio/PlayerActivity";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 export default function PlayerPage() {
   const router = useRouter();
@@ -99,6 +100,14 @@ function PlayerDashboard({
           <div className="profile-story">
             <PlayerStats player={player} catalogCards={catalogCards} onRefresh={onRefresh} isRefreshing={isRefreshing} />
             <PlayerActivity player={player} isDemo={isDemo} />
+            {!isDemo ? (
+              <AdSenseUnit
+                clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+                slotId={import.meta.env.VITE_ADSENSE_CLASH_HOME_SLOT}
+                serveAds={import.meta.env.PROD}
+                className="home-ad-unit"
+              />
+            ) : null}
             <PerformanceSection battles={player.battles} />
             <PlayerProfileDetails player={player} />
             <ProgressionChart player={player} />

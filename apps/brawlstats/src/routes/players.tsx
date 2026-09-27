@@ -27,6 +27,7 @@ import { formatPercent, normalizeTag, readableMode, trophies } from "@/lib/forma
 import { rememberRecentProfile } from "@/lib/preferences";
 import type { BattleLogItem, BrawlerCatalogItem, PlayerAnalytics, PlayerBattle, PlayerProfile, PlayerSearchResponse, PlayerSnapshot } from "@/lib/types";
 import { useI18n, type Translator } from "@/lib/i18n";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 type PlayerSearch = { tag?: string; q?: string };
 
@@ -288,6 +289,13 @@ function PlayerProfilePage({
           <ProfileStat icon={Target} label={t("player.soloDuoWins")} value={`${trophies(player.soloVictories || 0)} / ${trophies(player.duoVictories || 0)}`} />
           <ProfileStat icon={Sparkles} label={t("common.brawlers")} value={number(brawlers.length)} />
         </section>
+
+        <AdSenseUnit
+          clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+          slotId={import.meta.env.VITE_ADSENSE_BRAWL_HOME_SLOT}
+          serveAds={import.meta.env.PROD}
+          className="mx-auto max-w-4xl px-4 text-muted-foreground sm:px-6"
+        />
 
         <Card className="gap-4 border border-white/5 bg-card/80 p-4 py-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 flex-1">

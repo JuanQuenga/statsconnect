@@ -10,6 +10,7 @@ import { brawlerBorderUrl, clubBadgeUrl, profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { trophies } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 const regions = [
   ["Global", "global"],
@@ -144,6 +145,13 @@ function LeaderboardsPage() {
           />
         </TabsContent>
       </Tabs>
+
+      <AdSenseUnit
+        clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+        slotId={import.meta.env.VITE_ADSENSE_BRAWL_HOME_SLOT}
+        serveAds={import.meta.env.PROD}
+        className="mx-auto max-w-4xl px-4 text-muted-foreground sm:px-6"
+      />
     </div>
   );
 }

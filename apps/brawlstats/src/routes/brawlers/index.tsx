@@ -13,6 +13,7 @@ import { brawlData } from "@/lib/game-data";
 import { formatPercent, trophies } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { aggregateMeta, type TrophyBucket } from "@/lib/meta";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 type BrawlersSearch = {
   q?: string;
@@ -98,6 +99,13 @@ function BrawlersPage() {
         <p>{t("brawlers.released", { count: rows.length })}</p>
         <p>{t("brawlers.observed", { samples: trophies(metaQuery.data?.sampleSize || 0), minimum: metaQuery.data?.minPicks || 25 })}</p>
       </div>
+
+      <AdSenseUnit
+        clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+        slotId={import.meta.env.VITE_ADSENSE_BRAWL_HOME_SLOT}
+        serveAds={import.meta.env.PROD}
+        className="mx-auto max-w-4xl px-4 text-muted-foreground sm:px-6"
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {visibleRows.map((brawler) => {

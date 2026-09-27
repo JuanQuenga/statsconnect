@@ -32,6 +32,7 @@ import { useAction, useConvex } from "convex/react";
 import { ArrowUpRight, ChevronRight, Crown, Globe2, History, Search, Swords, TrendingUp, Trophy, Users } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
 import styles from "./leaderboards.module.css";
+import { AdSenseUnit } from "@statsconnect/monetization";
 
 type LeaderboardView = RankingKind | "history";
 type RankingDataMode = "live" | "demo";
@@ -354,6 +355,12 @@ function Leaderboards() {
         {activeQuery.error && !rows.length ? <ErrorState message={errorMessage(activeQuery.error)} /> : null}
         {rows.length ? <>
           <Podium rows={podium} kind={kind} archived={isArchiveFallback} />
+          <AdSenseUnit
+            clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
+            slotId={import.meta.env.VITE_ADSENSE_CLASH_HOME_SLOT}
+            serveAds={import.meta.env.PROD}
+            className="home-ad-unit"
+          />
           <div className={styles.contentGrid}>
             <RankingList rows={visibleRows} total={filteredRows.length} sourceTotal={rows.length} kind={kind} query={search} pageSize={pageSize} setPageSize={setPageSize} archived={isArchiveFallback} liveError={activeQuery.error ? errorMessage(activeQuery.error) : undefined} />
             <Insights detail={historyQuery.data} loading={snapshotsQuery.isLoading || historyQuery.isLoading} kind={kind} mode="live" />
