@@ -17,11 +17,23 @@ test("keeps stencil UV policy explicit per asset group", () => {
   assert.deepEqual(stencilUvTransform({}), [1, -1, 0, 1]);
 });
 
-test("maps source stencil UVs into the face render target's opposite vertical origin", () => {
-  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "flip-y" }), [1, 1, 0, 0]);
-  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "2x-flip-y" }), [2, 2, 0, 0]);
+test("preserves the reference viewer's source stencil transform", () => {
+  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "flip-y" }), [1, -1, 0, 1]);
+  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "flip-y", uvSource: "67/68" }), [2, -2, 0, 1]);
+  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "flip-y", uvSource: "COLLADA2GLTF" }), [1, 1, 0, 0]);
+  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "flip-y", uvSource: "KHR_texture_transform" }), [1 / 4096, -1 / 4096, 0, 1]);
   const material = createScMaterial({ stencil: true, stencilUvPolicy: "flip-y" });
-  assert.deepEqual(material.uniforms.stencilUvTransform.value.toArray(), [1, 1, 0, 0]);
+  assert.deepEqual(material.uniforms.stencilUvTransform.value.toArray(), [1, -1, 0, 1]);
+  material.dispose();
+  const newerMaterial = createScMaterial({ stencil: true, stencilUvPolicy: "flip-y", uvSource: "67/68" });
+  assert.deepEqual(newerMaterial.uniforms.stencilUvTransform.value.toArray(), [2, -2, 0, 1]);
+  newerMaterial.dispose();
+});
+
+test("keeps locally converted stencil UVs aligned with the face target", () => {
+  assert.deepEqual(faceRenderTargetUvTransform({ stencilUvPolicy: "2x-flip-y" }), [2, -2, 0, 1]);
+  const material = createScMaterial({ stencil: true, stencilUvPolicy: "2x-flip-y" });
+  assert.deepEqual(material.uniforms.stencilUvTransform.value.toArray(), [2, -2, 0, 1]);
   material.dispose();
 });
 
@@ -44,11 +56,12 @@ test("specializes diffuse/lightmap/specular/stencil and opacity paths", () => {
   material.dispose();
 });
 
-test("keeps stencil UVs independent from the diffuse UV transform", () => {
+test("composes reference stencil UVs from the diffuse transform without a second vertex transform", () => {
   const material = createScMaterial({ diffuse: true, stencil: true, uvSource: "67/68", stencilUvPolicy: "flip-y" }, {}, false);
   assert.match(material.vertexShader, /vDiffuseUv=uv\*diffuseUvTransform\.xy/);
   assert.match(material.vertexShader, /vStencilUv=uv\*stencilUvTransform\.xy/);
   assert.doesNotMatch(material.vertexShader, /vStencilUv=vDiffuseUv/);
+  assert.deepEqual(material.uniforms.stencilUvTransform.value.toArray(), [2, -2, 0, 1]);
   material.dispose();
 });
 

@@ -40,10 +40,20 @@ export function stencilUvTransform(metadata: Pick<ScMaterialMetadata, "stencilUv
   }
 }
 
-/** The face is drawn into a WebGL render target, whose vertical origin is opposite image atlases. */
-export function faceRenderTargetUvTransform(metadata: Pick<ScMaterialMetadata, "stencilUvPolicy">): readonly [number, number, number, number] {
-  const [scaleX, scaleY, offsetX, offsetY] = stencilUvTransform(metadata);
-  return [scaleX, -scaleY, offsetX, 1 - offsetY];
+/** Match the source viewer's diffuse-then-stencil sampler coordinates. */
+export function faceRenderTargetUvTransform(metadata: Pick<ScMaterialMetadata, "stencilUvPolicy" | "uvSource">): readonly [number, number, number, number] {
+  // Reference models use v_texCoordStencil = v_texCoord * (1,-1) + (0,1),
+  // where v_texCoord already includes the diffuse UV transform. Reversing
+  // the flip moves Chester's eye to his hat; omitting the v67/68 diffuse scale
+  // leaves Nori's eyes outside the face region.
+  if (metadata.stencilUvPolicy === "flip-y") {
+    const [diffuseX, diffuseY, diffuseOffsetX, diffuseOffsetY] = diffuseUvTransform(metadata);
+    const [stencilX, stencilY, stencilOffsetX, stencilOffsetY] = stencilUvTransform(metadata);
+    return [diffuseX * stencilX, diffuseY * stencilY, diffuseOffsetX * stencilX + stencilOffsetX, diffuseOffsetY * stencilY + stencilOffsetY];
+  }
+  // Locally converted targets have the same WebGL vertical origin as the
+  // reference targets. A second flip samples blank pixels instead of the eye.
+  return stencilUvTransform(metadata);
 }
 
 export function createScMaterial(metadata: ScMaterialMetadata, textures: ScMaterialTextures = {}, skinned = false): THREE.ShaderMaterial {
@@ -97,9 +107,8 @@ void main(){
   vSkinnedNormal = normalize(objectNormal);
   vDiffuseUv=uv*diffuseUvTransform.xy+diffuseUvTransform.zw;
   vLightUv=normalize(mat3(modelViewMatrix)*vSkinnedNormal).xy*vec2(0.5,-0.5)+vec2(0.5);
-  // Diffuse and stencil atlases use different coordinate spaces for pinned
-  // local assets. The stencil mask always starts from raw mesh UVs; applying
-  // the diffuse 67/68 scale here samples the wrong face region.
+  // The reference viewer composes its diffuse and stencil UV transforms;
+  // pinned-local assets retain their separate face-target policy.
   vStencilUv=uv*stencilUvTransform.xy+stencilUvTransform.zw;
   gl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.0);
 }`,

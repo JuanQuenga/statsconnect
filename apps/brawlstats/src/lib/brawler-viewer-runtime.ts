@@ -2,8 +2,8 @@ import * as THREE from "three";
 import {
   type AnimationEntry,
   type BrawlerSkinManifest,
+  type ScMaterialMetadata,
   type ScMaterialSlot,
-  type StencilUvPolicy,
   attachNamedObjects,
   configureDiffuseTexture,
   configureFaceTexture,
@@ -195,13 +195,24 @@ export function fitPerspectiveCameraDistance(camera: THREE.PerspectiveCamera, bo
   }, 1) * 1.08;
 }
 
-/** Include normal intro motion, but do not let a distant staged prop shrink the character. */
+/** Include ordinary intro motion while rescuing a jump from a distant staged prop. */
 export function startupFramingBounds(loopBounds: THREE.Box3, introBounds: THREE.Box3): THREE.Box3 {
   const combined = loopBounds.clone().union(introBounds);
   const loopSize = loopBounds.getSize(new THREE.Vector3());
   const combinedSize = combined.getSize(new THREE.Vector3());
-  if (combinedSize.x > loopSize.x * 1.8 || combinedSize.y > loopSize.y * 1.8 || combinedSize.z > loopSize.z * 1.8) return loopBounds.clone();
-  return combined;
+  if (combinedSize.x <= loopSize.x * 1.8 && combinedSize.y <= loopSize.y * 1.8 && combinedSize.z <= loopSize.z * 1.8) return combined;
+  // A high jump can be real even when a thrown prop makes the lateral envelope
+  // unusable. Keep only that upward motion; the rest of the camera fit stays
+  // anchored to the resting character instead of the distant prop.
+  const upward = introBounds.max.y - loopBounds.max.y;
+  if (upward > loopSize.y * 0.65 && upward <= loopSize.y) {
+    const fitted = loopBounds.clone();
+    // A thrown prop can approach the camera while rising. Leave extra room
+    // above its sampled world-space height for that perspective projection.
+    fitted.max.y = introBounds.max.y + loopSize.y * 0.3;
+    return fitted;
+  }
+  return loopBounds.clone();
 }
 
 function assetUrl(asset: { readonly kind: "ready"; readonly url: string }): string {
@@ -269,6 +280,16 @@ function boundsForMeshes(meshes: readonly THREE.Mesh[]): THREE.Box3 {
   return bounds;
 }
 
+// Jester's source hero clips park unused candy, sad-ball, and surprise-box
+// parts below the character at 0.1 scale. Our closer viewer camera exposes
+// those storage meshes as specks along the bottom edge.
+const JESTER_HERO_STAGED_MESHES = new Set([
+  "mesh_0", "mesh_0_1",
+  "goodCandy1_GEO", "goodCandy2_GEO", "goodCandy3_GEO",
+  "badCandy1_GEO", "badCandy2_GEO", "badCandy3_GEO",
+  "glove_GEO", "box_lid_GEO", "mesh_13", "mesh_13_1", "arm_GEO",
+]);
+
 export class BrawlerViewerRuntime {
   readonly root = new THREE.Group();
   private readonly mixer: THREE.AnimationMixer;
@@ -301,6 +322,7 @@ export class BrawlerViewerRuntime {
   private readonly stencilBindings = new Map<THREE.Material, { readonly uniform: { value: THREE.Texture | null } }>();
   private readonly textureCache = new Map<string, Promise<THREE.Texture>>();
   private readonly ownedTextures = new Set<THREE.Texture>();
+  private readonly suppressedMeshes = new Map<THREE.Mesh, boolean>();
   private state: ViewerRuntimeState = {
     animationKey: undefined,
     playing: false,
@@ -407,6 +429,8 @@ export class BrawlerViewerRuntime {
     if (!this.baseModel) await this.loadBase();
     if (!this.baseModel) throw new Error("base model failed to load");
 
+    for (const [mesh, visible] of this.suppressedMeshes) mesh.visible = visible;
+    this.suppressedMeshes.clear();
     this.action?.stop();
     this.restoreBaseAttachments();
     if (this.animationModel) {
@@ -427,6 +451,13 @@ export class BrawlerViewerRuntime {
     removeRenderableAnimationNodes(this.animationModel.scene).forEach(disposeObject);
     this.root.add(this.animationModel.scene);
     attachNamedObjects(this.baseModel.scene, nodeMap, this.manifest.attachments);
+    if (this.manifest.brawlerId === 16000063 && this.manifest.skinId === "JesterDefault" && (key === "HeroScreenAnim" || key === "HeroScreenLoopAnim")) {
+      this.baseModel.scene.traverse((object) => {
+        if (!(object instanceof THREE.Mesh) || !JESTER_HERO_STAGED_MESHES.has(object.name)) return;
+        this.suppressedMeshes.set(object, object.visible);
+        object.visible = false;
+      });
+    }
     this.bodyLocalTime = 0;
     this.completedAnimationCycles = 0;
     if (!sourceClip) {
@@ -700,13 +731,14 @@ export class BrawlerViewerRuntime {
         }
         const uniform = { value: texture };
         this.stencilBindings.set(material, { uniform });
-        const [scaleX, scaleY, offsetX, offsetY] = faceRenderTargetUvTransform({ stencilUvPolicy: this.stencilUvPolicyForMaterial(material) });
+        const [scaleX, scaleY, offsetX, offsetY] = faceRenderTargetUvTransform(this.stencilMetadataForMaterial(material));
+        const glslFloat = (value: number) => Number.isInteger(value) ? value.toFixed(1) : String(value);
         const previous = material.onBeforeCompile;
         material.onBeforeCompile = (shader, renderer) => {
           previous(shader, renderer);
           shader.uniforms.stencilTex = uniform;
           shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 viewerStencilUv;");
-          shader.vertexShader = shader.vertexShader.replace("#include <uv_vertex>", `#include <uv_vertex>\nviewerStencilUv = vMapUv * vec2(${scaleX.toFixed(1)}, ${scaleY.toFixed(1)}) + vec2(${offsetX.toFixed(1)}, ${offsetY.toFixed(1)});`);
+          shader.vertexShader = shader.vertexShader.replace("#include <uv_vertex>", `#include <uv_vertex>\nviewerStencilUv = vMapUv * vec2(${glslFloat(scaleX)}, ${glslFloat(scaleY)}) + vec2(${glslFloat(offsetX)}, ${glslFloat(offsetY)});`);
           shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform sampler2D stencilTex; varying vec2 viewerStencilUv;");
           shader.fragmentShader = shader.fragmentShader.replace("#include <map_fragment>", "#include <map_fragment>\nvec4 viewerStencil = texture2D(stencilTex, viewerStencilUv); diffuseColor.rgb = mix(diffuseColor.rgb, viewerStencil.rgb, viewerStencil.a);");
         };
@@ -715,10 +747,12 @@ export class BrawlerViewerRuntime {
     });
   }
 
-  private stencilUvPolicyForMaterial(material: THREE.Material): StencilUvPolicy {
+  private stencilMetadataForMaterial(material: THREE.Material): Pick<ScMaterialMetadata, "stencilUvPolicy" | "uvSource"> {
     const slot = this.manifest.materialSlots?.find((candidate) => candidate.materialName === material.name);
-    if (slot?.stencilUvPolicy) return slot.stencilUvPolicy;
-    return this.manifest.assetGroup === "reference-bridge" ? "flip-y" : "2x-flip-y";
+    return {
+      stencilUvPolicy: slot?.stencilUvPolicy ?? (this.manifest.assetGroup === "reference-bridge" ? "flip-y" : "2x-flip-y"),
+      uvSource: slot?.uvSource ?? this.manifest.material?.uvSource,
+    };
   }
 
   private createFaceMesh(): THREE.Mesh {

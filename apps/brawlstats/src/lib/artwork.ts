@@ -31,6 +31,10 @@ type BrawlerHeroArtMetadata = Readonly<{
   imageUrl3?: string;
 }>;
 
+export function brawlerCardFallbackUrl(id: number, metadata: BrawlerHeroArtMetadata = {}) {
+  return BRAWLER_MODEL_ART[id] || metadata.imageUrl2 || metadata.imageUrl3 || brawlerModelUrl(id);
+}
+
 export function brawlerHeroArtwork(id: number, metadata: BrawlerHeroArtMetadata) {
   const featureArt = brawlerFeatureArtUrl(id);
   return {

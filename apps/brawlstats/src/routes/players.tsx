@@ -21,7 +21,7 @@ import { PlayerSearch as PlayerSearchBox } from "@/components/PlayerSearch";
 import { ProfileActions } from "@/components/ProfileActions";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
-import { brawlerBorderUrl, brawlerFeatureArtUrl, brawlerModelUrl, profileIconUrl } from "@/lib/artwork";
+import { brawlerBorderUrl, brawlerCardFallbackUrl, brawlerFeatureArtUrl, brawlerModelUrl, profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { formatPercent, normalizeTag, readableMode, trophies } from "@/lib/format";
 import { rememberRecentProfile } from "@/lib/preferences";
@@ -438,7 +438,7 @@ function PlayerRoster({
                 <Card className="h-full flex-row items-center gap-3 border border-white/5 bg-card/70 p-3 py-3 transition group-hover:border-[var(--player-accent)]/35 group-hover:bg-card">
                   <ImageWithFallback
                     src={brawlerBorderUrl(item.id)}
-                    fallbackSrc={meta?.imageUrl2 || meta?.imageUrl3}
+                    fallbackSrc={brawlerCardFallbackUrl(item.id, meta || {})}
                     alt=""
                     className="size-14 shrink-0 rounded-lg object-cover"
                   />

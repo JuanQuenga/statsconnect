@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { brawlerHeroArtwork } from "./artwork.ts";
+import { brawlerCardFallbackUrl, brawlerHeroArtwork } from "./artwork.ts";
 
 test("brawler detail heroes prefer full model art over catalog icons", () => {
   const artwork = brawlerHeroArtwork(16000095, {
@@ -35,4 +35,9 @@ test("new brawlers use official art while their Brawlify images are unavailable"
     assert.equal(artwork.kind, "model");
     assert.equal(artwork.src, `https://support.supercell.com/images/${image}`);
   }
+});
+
+test("card fallback uses official art for new brawlers and catalog images for others", () => {
+  assert.match(brawlerCardFallbackUrl(16000109, { imageUrl2: "https://cdn.example/stale.png" }), /BS-Cosmo\.png/);
+  assert.equal(brawlerCardFallbackUrl(16000000, { imageUrl2: "https://cdn.example/shelly.png" }), "https://cdn.example/shelly.png");
 });

@@ -53,6 +53,10 @@ test("startup framing includes nearby intro poses but ignores a distant staged p
   const detachedIntro = new THREE.Box3(new THREE.Vector3(-6, -60, -3), new THREE.Vector3(6, 13, 4));
   assert.deepEqual(startupFramingBounds(loop, normalIntro), normalIntro);
   assert.deepEqual(startupFramingBounds(loop, detachedIntro), loop);
+  const jumpingIntro = new THREE.Box3(new THREE.Vector3(-19, -10, -14), new THREE.Vector3(13, 18, 48));
+  assert.deepEqual(startupFramingBounds(loop, jumpingIntro), new THREE.Box3(new THREE.Vector3(-5, 0, -3), new THREE.Vector3(5, 21, 3)));
+  const thrownPropIntro = new THREE.Box3(new THREE.Vector3(-8, -2, -6), new THREE.Vector3(17, 15, 6));
+  assert.deepEqual(startupFramingBounds(loop, thrownPropIntro), loop);
 });
 
 test("framing ignores meshes staged far from the visible character", async () => {
@@ -141,6 +145,34 @@ test("substantial staged props below a character do not shrink the character in 
   const bounds = runtime.getFramingBounds();
   assert.ok(bounds.max.y >= 13);
   assert.ok(bounds.min.y > -1);
+  runtime.dispose();
+});
+
+test("Chester hides source-staged hero props and restores them for other animations", async () => {
+  const base = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 2), new THREE.MeshBasicMaterial());
+  body.name = "body_GEO";
+  const glove = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+  glove.name = "glove_GEO";
+  const candy = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+  candy.name = "goodCandy1_GEO";
+  base.add(body, glove, candy);
+  const unavailable = { kind: "unavailable" as const, reason: "not-captured" as const };
+  const hero = [{ kind: "ready" as const, url: "/assets/fixture/hero.glb" }, unavailable, unavailable, 0, -1, "Hero"] as const;
+  const manifest = { ...fixtureManifest(), brawlerId: 16000063, skinId: "JesterDefault", animations: { ...fixtureManifest().animations, HeroScreenLoopAnim: hero } };
+  const runtime = new BrawlerViewerRuntime(manifest, {
+    loadModel: async (url) => ({ scene: url.endsWith("base.glb") ? base : new THREE.Group(), animations: [] }),
+    loadTexture: async () => new THREE.Texture(),
+    loadBinary: async () => new ArrayBuffer(0),
+  });
+  await runtime.loadBase();
+  await runtime.selectAnimation("HeroScreenLoopAnim");
+  assert.equal(body.visible, true);
+  assert.equal(glove.visible, false);
+  assert.equal(candy.visible, false);
+  await runtime.selectAnimation("idle");
+  assert.equal(glove.visible, true);
+  assert.equal(candy.visible, true);
   runtime.dispose();
 });
 
@@ -736,31 +768,36 @@ test("face targets stay bound to base materials reparented onto animation socket
   runtime.dispose();
 });
 
-test("fallback stencil materials account for the face render target's vertical origin", async () => {
-  const scene = new THREE.Group();
-  const material = new THREE.MeshBasicMaterial();
-  material.name = "character_mat";
-  scene.add(new THREE.Mesh(new THREE.BufferGeometry(), material));
-  const manifest = { ...fixtureManifest(), assetGroup: "reference-bridge" as const };
-  const runtime = new BrawlerViewerRuntime(manifest, {
-    loadModel: async () => ({ scene, animations: [] }),
-    loadTexture: async () => new THREE.Texture(),
-    loadBinary: async () => new ArrayBuffer(0),
-  });
-  await runtime.loadBase();
-  runtime.renderFace({
-    domElement: { width: 512, height: 512 },
-    setRenderTarget: () => undefined,
-    setClearAlpha: () => undefined,
-    getClearAlpha: () => 1,
-    clear: () => undefined,
-    render: () => undefined,
-  });
-  type CompileParameters = Parameters<THREE.Material["onBeforeCompile"]>[0];
-  const shader = { uniforms: {}, vertexShader: "#include <common>\n#include <uv_vertex>", fragmentShader: "#include <common>\n#include <map_fragment>" } as unknown as CompileParameters;
-  material.onBeforeCompile(shader, undefined as unknown as THREE.WebGLRenderer);
-  assert.match(shader.vertexShader, /vMapUv \* vec2\(1\.0, 1\.0\) \+ vec2\(0\.0, 0\.0\)/);
-  runtime.dispose();
+test("fallback stencil materials preserve source UV scale and precision", async () => {
+  for (const [uvSource, expected] of [
+    ["default", /vMapUv \* vec2\(1\.0, -1\.0\) \+ vec2\(0\.0, 1\.0\)/],
+    ["KHR_texture_transform", /vMapUv \* vec2\(0\.000244140625, -0\.000244140625\) \+ vec2\(0\.0, 1\.0\)/],
+  ] as const) {
+    const scene = new THREE.Group();
+    const material = new THREE.MeshBasicMaterial();
+    material.name = "character_mat";
+    scene.add(new THREE.Mesh(new THREE.BufferGeometry(), material));
+    const manifest = { ...fixtureManifest(), assetGroup: "reference-bridge" as const, material: { uvSource } };
+    const runtime = new BrawlerViewerRuntime(manifest, {
+      loadModel: async () => ({ scene, animations: [] }),
+      loadTexture: async () => new THREE.Texture(),
+      loadBinary: async () => new ArrayBuffer(0),
+    });
+    await runtime.loadBase();
+    runtime.renderFace({
+      domElement: { width: 512, height: 512 },
+      setRenderTarget: () => undefined,
+      setClearAlpha: () => undefined,
+      getClearAlpha: () => 1,
+      clear: () => undefined,
+      render: () => undefined,
+    });
+    type CompileParameters = Parameters<THREE.Material["onBeforeCompile"]>[0];
+    const shader = { uniforms: {}, vertexShader: "#include <common>\n#include <uv_vertex>", fragmentShader: "#include <common>\n#include <map_fragment>" } as unknown as CompileParameters;
+    material.onBeforeCompile(shader, undefined as unknown as THREE.WebGLRenderer);
+    assert.match(shader.vertexShader, expected);
+    runtime.dispose();
+  }
 });
 
 test("reference imports normalize the real Shelly and Spike non-unit rotation values before playback", async () => {
