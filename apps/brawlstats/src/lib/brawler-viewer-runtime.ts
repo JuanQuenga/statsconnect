@@ -18,6 +18,7 @@ import {
   isStrictLocalAssetUrl,
 } from "./brawler-viewer-contract.ts";
 import { createScMaterial, faceRenderTargetUvTransform } from "./sc-material.ts";
+import { appPath } from "./paths.ts";
 
 export type LoadedModel = {
   readonly scene: THREE.Object3D;
@@ -290,6 +291,52 @@ const JESTER_HERO_STAGED_MESHES = new Set([
   "glove_GEO", "box_lid_GEO", "mesh_13", "mesh_13_1", "arm_GEO",
 ]);
 
+type BoneEffectFrame = { readonly x: number; readonly y: number; readonly width: number; readonly height: number; readonly offsetX: number; readonly offsetY: number } | null;
+type BoneEffectAtlas = { readonly fps: number; readonly atlasWidth: number; readonly atlasHeight: number; readonly frames: readonly BoneEffectFrame[] };
+type BoneEffectSpec = { readonly bone: string; readonly atlas: string; readonly frames: string; readonly worldUnitsPerPixel: number; readonly localOffset: readonly [number, number, number] };
+
+// BoneEffect1/BoneEffectUse1=always in the pinned v69 skin configuration.
+// Other skins can supply the same source-backed fields after their FX exports
+// have been checked; do not infer effects from the presence of a bone alone.
+const ALWAYS_BONE_EFFECTS: Readonly<Record<string, BoneEffectSpec>> = {
+  "16000109:AttractorDefault": {
+    bone: "hand_fx_s",
+    atlas: "/images/brawl-effects/cosmo-hand.png",
+    frames: "/images/brawl-effects/cosmo-hand.json",
+    worldUnitsPerPixel: 0.09,
+    // SC's effect pixels are screen-space; this maps the orbit above the palm
+    // in the 3D hand socket while retaining the source frame offsets.
+    localOffset: [-0.8, -1.3, 0],
+  },
+};
+
+function parseBoneEffectAtlas(data: ArrayBuffer): BoneEffectAtlas {
+  const value: unknown = JSON.parse(new TextDecoder().decode(data));
+  if (typeof value !== "object" || value === null) throw new Error("bone effect atlas is invalid");
+  const atlas = value as Partial<BoneEffectAtlas>;
+  if (!Number.isFinite(atlas.fps) || !Number.isFinite(atlas.atlasWidth) || !Number.isFinite(atlas.atlasHeight) || !Array.isArray(atlas.frames) || atlas.frames.length === 0) throw new Error("bone effect atlas dimensions are invalid");
+  if (atlas.fps! <= 0 || atlas.atlasWidth! <= 0 || atlas.atlasHeight! <= 0) throw new Error("bone effect atlas dimensions are invalid");
+  for (const frame of atlas.frames) {
+    if (frame === null) continue;
+    if (typeof frame !== "object" || ![frame.x, frame.y, frame.width, frame.height, frame.offsetX, frame.offsetY].every(Number.isFinite)) throw new Error("bone effect frame is invalid");
+    if (frame.width <= 0 || frame.height <= 0 || frame.x < 0 || frame.y < 0 || frame.x + frame.width > atlas.atlasWidth! || frame.y + frame.height > atlas.atlasHeight!) throw new Error("bone effect frame exceeds its atlas");
+  }
+  return atlas as BoneEffectAtlas;
+}
+
+export function applyBoneEffectFrame(sprite: THREE.Sprite, atlas: BoneEffectAtlas, frameIndex: number, worldUnitsPerPixel: number, localOffset: readonly [number, number, number] = [0, 0, 0]): void {
+  const frame = atlas.frames[((frameIndex % atlas.frames.length) + atlas.frames.length) % atlas.frames.length];
+  sprite.visible = frame !== null;
+  if (!frame) return;
+  const texture = (sprite.material as THREE.SpriteMaterial).map;
+  if (!texture) throw new Error("bone effect sprite has no atlas texture");
+  texture.repeat.set(frame.width / atlas.atlasWidth, frame.height / atlas.atlasHeight);
+  texture.offset.set(frame.x / atlas.atlasWidth, 1 - (frame.y + frame.height) / atlas.atlasHeight);
+  texture.updateMatrix();
+  sprite.position.set((frame.offsetX + frame.width / 2) * worldUnitsPerPixel + localOffset[0], -(frame.offsetY + frame.height / 2) * worldUnitsPerPixel + localOffset[1], localOffset[2]);
+  sprite.scale.set(frame.width * worldUnitsPerPixel, frame.height * worldUnitsPerPixel, 1);
+}
+
 export class BrawlerViewerRuntime {
   readonly root = new THREE.Group();
   private readonly mixer: THREE.AnimationMixer;
@@ -323,6 +370,8 @@ export class BrawlerViewerRuntime {
   private readonly textureCache = new Map<string, Promise<THREE.Texture>>();
   private readonly ownedTextures = new Set<THREE.Texture>();
   private readonly suppressedMeshes = new Map<THREE.Mesh, boolean>();
+  private boneEffect: { readonly spec: BoneEffectSpec; readonly atlas: BoneEffectAtlas; readonly sprite: THREE.Sprite } | undefined;
+  private boneEffectTime = 0;
   private state: ViewerRuntimeState = {
     animationKey: undefined,
     playing: false,
@@ -402,6 +451,34 @@ export class BrawlerViewerRuntime {
     this.prepareLoadedModel(baseModel);
     this.baseModel = baseModel;
     this.root.add(this.baseModel.scene);
+    const effectSpec = ALWAYS_BONE_EFFECTS[`${this.manifest.brawlerId}:${this.manifest.skinId}`];
+    if (effectSpec) {
+      const [textureResult, dataResult] = await Promise.allSettled([
+        this.loader.loadTexture(appPath(effectSpec.atlas)),
+        this.loader.loadBinary(appPath(effectSpec.frames)),
+      ]);
+      const texture = textureResult.status === "fulfilled" ? textureResult.value : undefined;
+      if (this.disposed) { texture?.dispose(); throw new Error("viewer runtime is disposed"); }
+      try {
+        if (textureResult.status === "rejected") throw textureResult.reason;
+        if (dataResult.status === "rejected") throw dataResult.reason;
+        const atlas = parseBoneEffectAtlas(dataResult.value);
+        const effectTexture = textureResult.value;
+        effectTexture.colorSpace = THREE.SRGBColorSpace;
+        effectTexture.generateMipmaps = false;
+        effectTexture.minFilter = THREE.LinearFilter;
+        effectTexture.magFilter = THREE.LinearFilter;
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: effectTexture, transparent: true, depthTest: false, depthWrite: false }));
+        sprite.name = `BoneEffect:${effectSpec.bone}`;
+        sprite.renderOrder = 10;
+        applyBoneEffectFrame(sprite, atlas, 0, effectSpec.worldUnitsPerPixel, effectSpec.localOffset);
+        this.ownedTextures.add(effectTexture);
+        this.boneEffect = { spec: effectSpec, atlas, sprite };
+      } catch (error) {
+        texture?.dispose();
+        console.warn(`[BrawlerViewerRuntime] ${this.manifest.brawlerId} bone effect unavailable`, error);
+      }
+    }
     for (const name of Object.keys(this.manifest.attachments)) {
       const object = baseModel.scene.getObjectByName(name);
       if (!object?.parent) continue;
@@ -433,6 +510,7 @@ export class BrawlerViewerRuntime {
     this.suppressedMeshes.clear();
     this.action?.stop();
     this.restoreBaseAttachments();
+    this.boneEffect?.sprite.parent?.remove(this.boneEffect.sprite);
     if (this.animationModel) {
       this.mixer.uncacheRoot(this.animationModel.scene);
       this.root.remove(this.animationModel.scene);
@@ -451,6 +529,11 @@ export class BrawlerViewerRuntime {
     removeRenderableAnimationNodes(this.animationModel.scene).forEach(disposeObject);
     this.root.add(this.animationModel.scene);
     attachNamedObjects(this.baseModel.scene, nodeMap, this.manifest.attachments);
+    if (this.boneEffect) {
+      const anchor = nodeMap.get(this.boneEffect.spec.bone);
+      if (!anchor) throw new Error(`bone effect anchor is missing: ${this.boneEffect.spec.bone}`);
+      anchor.add(this.boneEffect.sprite);
+    }
     if (this.manifest.brawlerId === 16000063 && this.manifest.skinId === "JesterDefault" && (key === "HeroScreenAnim" || key === "HeroScreenLoopAnim")) {
       this.baseModel.scene.traverse((object) => {
         if (!(object instanceof THREE.Mesh) || !JESTER_HERO_STAGED_MESHES.has(object.name)) return;
@@ -566,6 +649,11 @@ export class BrawlerViewerRuntime {
   }
 
   update(deltaSeconds: number): void {
+    if (this.boneEffect && (this.state.playing || !this.hasAnimationClip())) {
+      this.boneEffectTime += deltaSeconds;
+      const frame = Math.floor(this.boneEffectTime * this.boneEffect.atlas.fps);
+      applyBoneEffectFrame(this.boneEffect.sprite, this.boneEffect.atlas, frame, this.boneEffect.spec.worldUnitsPerPixel, this.boneEffect.spec.localOffset);
+    }
     if (this.action && this.animationRange) {
       if (this.state.playing) {
         const elapsed = this.bodyLocalTime + deltaSeconds * this.playbackSpeed;
@@ -592,6 +680,11 @@ export class BrawlerViewerRuntime {
     if (this.disposed) return;
     this.disposed = true;
     this.action?.stop();
+    if (this.boneEffect) {
+      this.boneEffect.sprite.parent?.remove(this.boneEffect.sprite);
+      this.boneEffect.sprite.material.dispose();
+      this.boneEffect = undefined;
+    }
     this.mixer.stopAllAction();
     this.restoreBaseAttachments();
     if (this.baseModel) disposeObject(this.baseModel.scene);

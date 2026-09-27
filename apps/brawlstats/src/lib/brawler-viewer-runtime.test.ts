@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
 import type { AnimationEntry, BrawlerSkinManifest } from "./brawler-viewer-contract.ts";
-import { BrawlerViewerRuntime, centerModelForFraming, fitPerspectiveCameraDistance, normalizeReferenceModelRotations, compactReferenceGeometry, selectHomeAnimationSequence, startupFramingBounds, type LoadedModel } from "./brawler-viewer-runtime.ts";
+import { BrawlerViewerRuntime, applyBoneEffectFrame, centerModelForFraming, fitPerspectiveCameraDistance, normalizeReferenceModelRotations, compactReferenceGeometry, selectHomeAnimationSequence, startupFramingBounds, type LoadedModel } from "./brawler-viewer-runtime.ts";
 
 function fixtureManifest(customReady = true): BrawlerSkinManifest {
   const unavailable = { kind: "unavailable" as const, reason: "not-captured" as const };
@@ -32,6 +32,85 @@ test("prefers captured hero-screen intro and loop, with win and idle fallback", 
   assert.deepEqual(selectHomeAnimationSequence({ HappyAnim: idle, IdleAnim: idle, HeroScreenAnim: idle, HeroScreenLoopAnim: idle }), { start: "HeroScreenAnim", loop: "HeroScreenLoopAnim" });
   assert.deepEqual(selectHomeAnimationSequence({ HappyAnim: idle, IdleAnim: idle, HeroScreenAnim: unavailable, HeroScreenLoopAnim: idle }), { start: "HappyAnim", loop: "IdleAnim" });
   assert.equal(selectHomeAnimationSequence({ HeroScreenAnim: idle, IdleAnim: idle }), undefined);
+});
+
+test("bone effect atlas frames preserve source offsets and transparent gaps", () => {
+  const texture = new THREE.Texture();
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+  const atlas = { fps: 30, atlasWidth: 200, atlasHeight: 100, frames: [
+    { x: 40, y: 20, width: 50, height: 30, offsetX: -20, offsetY: -25 }, null,
+  ] };
+  applyBoneEffectFrame(sprite, atlas, 0, 0.02);
+  assert.deepEqual(texture.repeat.toArray(), [0.25, 0.3]);
+  assert.deepEqual(texture.offset.toArray(), [0.2, 0.5]);
+  assert.deepEqual(sprite.position.toArray(), [0.1, 0.2, 0]);
+  assert.deepEqual(sprite.scale.toArray(), [1, 0.6, 1]);
+  applyBoneEffectFrame(sprite, atlas, 1, 0.02);
+  assert.equal(sprite.visible, false);
+  applyBoneEffectFrame(sprite, atlas, 2, 0.02);
+  assert.equal(sprite.visible, true);
+  applyBoneEffectFrame(sprite, atlas, 0, 0.02, [-0.8, -1.3, 0.2]);
+  assert.ok(Math.abs(sprite.position.x + 0.7) < 1e-9);
+  assert.ok(Math.abs(sprite.position.y + 1.1) < 1e-9);
+  assert.equal(sprite.position.z, 0.2);
+  sprite.material.dispose();
+  texture.dispose();
+});
+
+test("Cosmo's always-on hand effect follows the selected skeleton and advances on a static pose", async () => {
+  const manifest = { ...fixtureManifest(), brawlerId: 16000109, skinId: "AttractorDefault" };
+  const urls: string[] = [];
+  const bytes = new TextEncoder().encode(JSON.stringify({ fps: 2, atlasWidth: 100, atlasHeight: 100, frames: [
+    { x: 0, y: 0, width: 20, height: 20, offsetX: -10, offsetY: -10 },
+    { x: 20, y: 0, width: 30, height: 20, offsetX: -15, offsetY: -10 },
+  ] }));
+  const runtime = new BrawlerViewerRuntime(manifest, {
+    loadModel: async () => { const scene = new THREE.Group(); const bone = new THREE.Bone(); bone.name = "hand_fx_s"; scene.add(bone); return { scene, animations: [] }; },
+    loadTexture: async (url) => { urls.push(url); return new THREE.Texture(); },
+    loadBinary: async (url) => { urls.push(url); return bytes.buffer as ArrayBuffer; },
+  });
+  await runtime.selectAnimation("idle");
+  const sprite = runtime.root.getObjectByName("BoneEffect:hand_fx_s");
+  assert.ok(sprite instanceof THREE.Sprite);
+  assert.equal(sprite.parent?.name, "hand_fx_s");
+  assert.equal(runtime.getState().playing, false);
+  assert.ok(urls.some((url) => url.endsWith("/images/brawl-effects/cosmo-hand.png")));
+  assert.ok(urls.some((url) => url.endsWith("/images/brawl-effects/cosmo-hand.json")));
+  assert.deepEqual(sprite.position.toArray(), [-0.8, -1.3, 0]);
+  runtime.update(0.6);
+  assert.ok(Math.abs(sprite.scale.x - 2.7) < 1e-9);
+  assert.ok(Math.abs(sprite.scale.y - 1.8) < 1e-9);
+  assert.equal(sprite.scale.z, 1);
+  await runtime.selectAnimation("idle");
+  assert.equal(runtime.root.getObjectByName("BoneEffect:hand_fx_s"), sprite);
+  assert.equal(sprite.parent?.name, "hand_fx_s");
+  runtime.dispose();
+});
+
+test("an unavailable Cosmo hand effect leaves the 3D model usable and disposes its texture", async () => {
+  const manifest = { ...fixtureManifest(), brawlerId: 16000109, skinId: "AttractorDefault" };
+  const texture = new THREE.Texture();
+  let textureDisposals = 0;
+  texture.addEventListener("dispose", () => { textureDisposals += 1; });
+  const warnings: unknown[][] = [];
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => { warnings.push(args); };
+  try {
+    const runtime = new BrawlerViewerRuntime(manifest, {
+      loadModel: async () => { const scene = new THREE.Group(); const bone = new THREE.Bone(); bone.name = "hand_fx_s"; scene.add(bone); return { scene, animations: [] }; },
+      loadTexture: async () => texture,
+      loadBinary: async () => new TextEncoder().encode("invalid JSON").buffer as ArrayBuffer,
+    });
+    await runtime.selectAnimation("idle");
+    assert.equal(runtime.getState().animationKey, "idle");
+    assert.equal(runtime.root.getObjectByName("BoneEffect:hand_fx_s"), undefined);
+    assert.equal(textureDisposals, 1);
+    assert.equal(warnings.length, 1);
+    runtime.dispose();
+    assert.equal(textureDisposals, 1);
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test("camera distance measurement preserves the live camera pose", () => {
