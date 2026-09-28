@@ -98,15 +98,10 @@
 .sc-nav__network-mark {
   width: 25px;
   height: 25px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  color: #08070b;
-  background: var(--sc-nav-accent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--sc-nav-accent) 24%, transparent);
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: -.04em;
+  display: block;
+  flex: none;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(38, 153, 255, .18));
 }
 
 .sc-nav__network-sites {
@@ -191,6 +186,7 @@
 .sc-nav__game-icon-fallback { display: none; font-size: 9px; font-weight: 850; letter-spacing: -.02em; }
 .sc-nav__network-game-icon img[hidden] + .sc-nav__game-icon-fallback,
 .sc-nav__game-icon img[hidden] + .sc-nav__game-icon-fallback { display: grid; place-items: center; }
+.sc-nav__game-icon[data-site="statsconnect"] { background: transparent; }
 
 .sc-nav__network-menu { display: none; }
 
@@ -566,9 +562,9 @@
   background: rgba(10, 24, 43, .72);
 }
 .sc-nav__menu-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.sc-nav__mobile-bar,
 .sc-nav__mobile,
-.sc-nav__mobile-backdrop,
-.sc-nav__mobile-dock { display: none; }
+.sc-nav__mobile-backdrop { display: none; }
 
 @media (max-width: 1100px) {
   .sc-nav__search { display: none; }
@@ -577,436 +573,274 @@
 }
 
 @media (max-width: 860px) {
-  .sc-nav__links,
-  .sc-nav__end { display: none; }
-  .sc-nav__menu-button { display: grid; }
+  :root {
+    --sc-nav-network-height: 60px;
+    --sc-nav-site-height: 0px;
+    --sc-nav-sticky-height: 60px;
+  }
+
+  .sc-nav {
+    --sc-nav-network-height: 60px;
+    --sc-nav-site-height: 0px;
+    background: var(--sc-nav-network-bg);
+    box-shadow: 0 1px 0 var(--sc-nav-border);
+  }
+
+  .sc-nav__network,
+  .sc-nav__site { display: none; }
+
+  .sc-nav__mobile-bar {
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+    border-bottom: 2px solid color-mix(in srgb, var(--sc-nav-accent) 72%, transparent);
+    background: linear-gradient(110deg, color-mix(in srgb, var(--sc-nav-accent) 11%, var(--sc-nav-network-bg)), var(--sc-nav-network-bg) 58%);
+  }
+
+  .sc-nav__mobile-bar .sc-nav__network-brand {
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    flex: none;
+    justify-content: flex-start;
+    border: 0;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .sc-nav__mobile-bar .sc-nav__network-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-bar .sc-nav__network-brand {
+    min-width: 0;
+    flex: 1;
+    gap: 10px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-bar .sc-nav__network-brand strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sc-nav:not([data-site="statsconnect"]) .sc-nav__mobile-bar .sc-nav__network-brand strong { display: none; }
+
+  .sc-nav__mobile-identity {
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    color: var(--sc-nav-text);
+    background: transparent;
+    font: 800 15px/1.1 ProximaNova, "Proxima Nova", ui-sans-serif, system-ui, sans-serif;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .sc-nav__mobile-identity .sc-nav__game-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+  }
+
+  .sc-nav__mobile-identity span:not(.sc-nav__game-icon):not(.sc-nav__game-icon-fallback) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sc-nav__mobile-identity > svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: var(--sc-nav-muted);
+    stroke-width: 2;
+  }
+
+  .sc-nav__mobile-action {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 9px;
+    color: var(--sc-nav-text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .sc-nav__mobile-action:hover,
+  .sc-nav__mobile-action[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--sc-nav-accent) 16%, transparent);
+  }
+
+  .sc-nav__mobile-action svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
   .sc-nav__mobile-backdrop {
     display: block;
     position: fixed;
     inset: 0;
     z-index: 80;
     border: 0;
-    background: rgba(2, 8, 16, .72);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, .5);
   }
+
   .sc-nav__mobile {
-    width: min(390px, calc(100% - 36px));
+    width: 100%;
+    height: 100dvh;
     position: fixed;
     z-index: 81;
-    inset: 0 0 0 auto;
-    margin: 0;
+    inset: 0;
     overflow: hidden;
-    border-left: 1px solid var(--sc-nav-border);
     color: var(--sc-nav-text);
-    background: #0b1729;
-    box-shadow: -24px 0 70px rgba(0, 0, 0, .48);
+    background: radial-gradient(ellipse 90% 46% at 15% 0%, color-mix(in srgb, var(--sc-nav-accent) 15%, transparent), transparent 72%), var(--sc-nav-panel);
   }
 
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile {
-    background: linear-gradient(180deg, #0a2b51 0%, #061d3a 100%);
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-links {
-    border-color: rgba(130, 211, 255, .18);
-    background: rgba(5, 24, 48, .56);
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-link {
-    color: #c4dff1;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-link:hover,
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-link[aria-current="page"] {
-    background: rgba(88, 190, 255, .16);
-  }
   .sc-nav__mobile.is-open { display: block; animation: sc-nav-sheet-in .2s ease-out both; }
-  .sc-nav__mobile-panel { height: 100%; display: flex; flex-direction: column; padding: max(18px, env(safe-area-inset-top, 0px)) 16px max(18px, env(safe-area-inset-bottom, 0px)); }
-  .sc-nav__mobile-heading { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 2px 14px; border-bottom: 1px solid var(--sc-nav-border); }
-  .sc-nav__mobile-heading > div { min-width: 0; display: grid; gap: 4px; }
-  .sc-nav__mobile-heading strong { font-size: 18px; line-height: 1.15; }
-  .sc-nav__mobile-heading span { color: var(--sc-nav-muted); font-size: 13px; line-height: 1.3; }
-  .sc-nav__mobile-heading button { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border: 1px solid var(--sc-nav-border); border-radius: 10px; color: var(--sc-nav-text); background: rgba(255, 255, 255, .05); }
-  .sc-nav__mobile-heading svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
-  .sc-nav__mobile-search { position: relative; z-index: 2; padding: 16px 0 10px; }
-  .sc-nav__mobile-tools { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
-  .sc-nav__mobile-tools .sc-nav__games { display: block; position: relative; }
-  .sc-nav__mobile-tools .sc-nav__games summary { height: 36px; }
-  .sc-nav__mobile-tools .sc-nav__game-menu { right: auto; left: 0; width: min(250px, calc(100vw - 68px)); max-width: calc(100vw - 68px); }
-  .sc-nav__mobile-tools .sc-nav__account { width: auto; max-width: 190px; height: 36px; padding: 3px 8px 3px 3px; }
-  .sc-nav__mobile-tools .sc-nav__account-copy { display: block; }
-  .sc-nav__mobile-tools .sc-nav__sign-in { width: auto; height: 36px; padding: 0 12px; overflow: visible; font-size: 12px; }
-  .sc-nav__mobile-tools .sc-nav__sign-in::before { content: none; }
-  .sc-nav__mobile-links { min-height: 0; display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 6px; padding: 6px; overflow-y: auto; border: 1px solid rgba(230, 226, 244, .1); border-radius: 14px; background: rgba(255, 255, 255, .025); }
-  .sc-nav__mobile-link { min-height: 48px; padding: 13px 14px; display: flex; align-items: center; border-radius: 9px; color: #c2ccdc; background: transparent; font-size: 15px; font-weight: 650; }
-  .sc-nav__mobile-link:hover,
-  .sc-nav__mobile-link[aria-current="page"] { color: var(--sc-nav-text); background: color-mix(in srgb, var(--sc-nav-accent) 14%, transparent); }
-  .sc-nav__mobile-games { display: none; padding-top: 10px; }
-}
 
-@keyframes sc-nav-sheet-in {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@media (max-width: 640px) {
-  :root { --sc-nav-site-height: 58px; }
-  .sc-nav__network-inner,
-  .sc-nav__inner { width: calc(100% - 24px); }
-  .sc-nav__network-brand { min-width: 0; padding-right: 8px; border-right: 0; }
-  .sc-nav__network-brand strong { font-size: 13px; }
-  .sc-nav__network-mark { width: 23px; height: 23px; }
-  .sc-nav__network-sites { display: none; }
-  .sc-nav__network-actions { gap: 3px; }
-  .sc-nav__network-menu { display: flex; align-items: center; }
-  .sc-nav__language { height: 36px; padding-inline: 7px; }
-  .sc-nav__account { width: 36px; height: 36px; padding: 3px; }
-  .sc-nav__account > img,
-  .sc-nav__account > span:first-child { width: 28px; height: 28px; }
-  .sc-nav__sign-in { width: 36px; height: 36px; padding: 0; overflow: hidden; font-size: 0; }
-  .sc-nav__sign-in::before { content: "G"; font-size: 14px; font-weight: 850; }
-  .sc-nav__network-menu .sc-nav__games summary { min-width: 76px; height: 36px; padding-inline: 8px; border: 0; background: transparent; }
-  .sc-nav__network-menu .sc-nav__game-menu { right: 0; left: auto; }
-  .sc-nav__brand { max-width: 132px; }
-  .sc-nav__brand img { max-width: 128px; max-height: 38px; }
-  .sc-nav__menu-button { width: 42px; height: 42px; }
-}
-
-@media (min-width: 681px) and (max-width: 860px) {
-  /* Use one row between the mobile dock and full desktop navigation. */
-  .sc-nav[data-site="clash-royale"] {
-    --sc-nav-network-height: 56px;
-    --sc-nav-site-height: 0px;
-  }
-  .sc-nav[data-site="clash-royale"] .sc-nav__network-inner {
-    width: calc(100% - 24px);
-    padding-right: 52px;
-  }
-  .sc-nav[data-site="clash-royale"] .sc-nav__network-actions {
-    display: none;
-  }
-  .sc-nav[data-site="clash-royale"] .sc-nav__site {
-    position: absolute;
-    top: 0;
-    right: 12px;
-    left: 12px;
-    height: var(--sc-nav-network-height);
-    border-bottom: 0;
-    background: transparent;
-    backdrop-filter: none;
-    pointer-events: none;
-  }
-  .sc-nav[data-site="clash-royale"] .sc-nav__inner {
-    width: 100%;
-    min-height: var(--sc-nav-network-height);
-    justify-content: flex-end;
-  }
-  .sc-nav[data-site="clash-royale"] .sc-nav__menu-button {
-    width: 40px;
-    height: 40px;
-    pointer-events: auto;
-    border-color: rgba(130, 211, 255, .28);
-    background: rgba(5, 28, 55, .88);
-  }
-}
-
-@media (max-width: 680px) {
-  :root {
-    --sc-nav-mobile-dock-height: 70px;
-    --sc-nav-mobile-dock-offset: calc(var(--sc-nav-mobile-dock-height) + env(safe-area-inset-bottom, 0px));
-  }
-
-  .sc-nav[data-site="clash-royale"] {
-    height: 0;
-    position: static;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__network,
-  .sc-nav[data-site="clash-royale"] .sc-nav__site {
-    display: none;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock {
-    min-width: 0;
-    height: var(--sc-nav-mobile-dock-offset);
-    box-sizing: border-box;
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 83;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 4px;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
-    border: 0;
-    border-top: 1px solid rgba(130, 211, 255, .25);
-    background: linear-gradient(180deg, rgba(7, 30, 58, .97), rgba(3, 16, 32, .99));
-    box-shadow: 0 -14px 38px rgba(0, 0, 0, .42);
-    backdrop-filter: blur(20px);
-    animation: sc-nav-dock-up .3s cubic-bezier(.22, 1, .36, 1) both;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link {
-    min-width: 0;
-    min-height: 50px;
-    padding: 4px 2px 3px;
+  .sc-nav__mobile-panel {
+    width: min(100%, 560px);
+    height: 100%;
+    margin: 0 auto;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 20px max(24px, env(safe-area-inset-bottom, 0px));
     display: flex;
-    align-items: center;
-    justify-content: center;
     flex-direction: column;
-    gap: 2px;
-    border: 0;
-    border-radius: 13px;
-    color: #9eb9d2;
-    background: transparent;
-    font: 750 10px/1 var(--font-ui, Inter, ui-sans-serif, system-ui, sans-serif);
-    letter-spacing: .01em;
-    white-space: nowrap;
-    transition: color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .2s cubic-bezier(.22, 1, .36, 1);
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link:active {
-    transform: scale(.96);
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link:hover,
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-link[aria-current="page"],
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-more[aria-expanded="true"] {
-    color: white;
-    background: linear-gradient(180deg, #167bd0 0%, #075ca9 100%);
-    box-shadow: 0 7px 18px rgba(0, 100, 190, .34);
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-icon {
-    width: 27px;
-    height: 27px;
-    display: grid;
-    place-items: center;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-icon img {
-    width: 27px;
-    height: 27px;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .42));
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-dock-icon svg {
-    width: 23px;
-    height: 23px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile {
-    width: 100%;
-    max-height: calc(100dvh - var(--sc-nav-mobile-dock-offset));
-    inset: auto 0 var(--sc-nav-mobile-dock-offset);
-    border: 1px solid var(--sc-nav-border);
-    border-radius: 22px 22px 0 0;
-    box-shadow: 0 -22px 70px rgba(0, 0, 0, .52);
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile.is-open {
-    animation: sc-nav-sheet-up .22s ease-out both;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-panel {
-    height: auto;
-    max-height: calc(100dvh - var(--sc-nav-mobile-dock-offset));
-    padding: 16px;
-  }
-
-  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-links {
-    flex: 1 1 auto;
-  }
-}
-
-@media (max-width: 860px) {
-  .sc-nav[data-site="statsconnect"] {
-    --sc-nav-network-height: 64px;
-    --sc-nav-site-height: 0px;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__network-inner {
-    width: calc(100% - 32px);
-    padding-right: 56px;
-    align-items: center;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__network-brand {
-    min-width: 0;
-    height: 64px;
-    padding: 0;
-    border: 0;
-    gap: 10px;
-    font-size: 16px;
-    letter-spacing: -.025em;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__network-mark {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    font-size: 11px;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__network-sites,
-  .sc-nav[data-site="statsconnect"] .sc-nav__network-actions,
-  .sc-nav[data-site="statsconnect"] .sc-nav__brand { display: none; }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__site {
-    position: absolute;
-    top: 0;
-    right: 16px;
-    left: 16px;
-    height: 64px;
-    border: 0;
-    background: transparent;
-    backdrop-filter: none;
-    pointer-events: none;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__inner {
-    width: 100%;
-    min-height: 64px;
-    justify-content: flex-end;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__menu-button {
-    width: 44px;
-    height: 44px;
-    margin: 0;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, .055);
-    pointer-events: auto;
-    cursor: pointer;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile {
-    background: #101019;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-panel {
     overflow-y: auto;
-    gap: 18px;
-    padding: max(20px, env(safe-area-inset-top, 0px)) 20px max(28px, env(safe-area-inset-bottom, 0px));
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-heading {
-    padding-bottom: 16px;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-links {
-    flex: none;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    overflow: visible;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-link {
-    min-height: 54px;
-    padding: 0 6px;
-    border-bottom: 1px solid var(--sc-nav-border);
-    border-radius: 0;
-    color: var(--sc-nav-text);
-    font-size: 17px;
-    font-weight: 650;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-link[aria-current="page"] {
-    color: var(--sc-nav-accent);
-    background: transparent;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-games {
-    display: grid;
-    padding: 0;
-    gap: 0;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-section-title {
-    padding: 0 6px 8px;
-    color: var(--sc-nav-muted);
-    font-size: 12px;
-    font-weight: 750;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-game {
+  .sc-nav__mobile-heading {
     min-height: 58px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--sc-nav-border);
+  }
+
+  .sc-nav__mobile-heading > div { min-width: 0; display: grid; gap: 3px; }
+  .sc-nav__mobile-heading strong { font-size: 21px; font-weight: 800; line-height: 1; letter-spacing: -.025em; }
+  .sc-nav__mobile-heading span { color: var(--sc-nav-muted); font-size: 12px; }
+  .sc-nav__mobile-heading button {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    border: 1px solid var(--sc-nav-border);
+    border-radius: 9px;
+    color: var(--sc-nav-text);
+    background: rgba(255, 255, 255, .04);
+    cursor: pointer;
+  }
+  .sc-nav__mobile-heading svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+
+  .sc-nav__mobile-search { padding: 20px 0 8px; }
+  .sc-nav__mobile-section-title {
+    margin: 22px 0 4px;
+    padding: 0 2px;
+    color: var(--sc-nav-muted);
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.4;
+    letter-spacing: .045em;
+  }
+  .sc-nav__mobile-section-title:focus { outline: none; }
+
+  .sc-nav__mobile-links,
+  .sc-nav__mobile-games { display: grid; }
+
+  .sc-nav__mobile-link,
+  .sc-nav__mobile-game {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
     gap: 12px;
-    padding: 0 6px;
+    padding: 7px 3px;
     border-bottom: 1px solid var(--sc-nav-border);
     color: var(--sc-nav-text);
-    font-size: 16px;
-    font-weight: 650;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-game .sc-nav__game-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-game-arrow {
-    margin-left: auto;
-    color: var(--sc-nav-muted);
     font-size: 17px;
-    font-weight: 450;
+    font-weight: 650;
+    line-height: 1.2;
   }
 
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools {
-    margin-top: auto;
-    padding: 4px 0 0;
+  .sc-nav__mobile-link:hover,
+  .sc-nav__mobile-game:hover { color: var(--sc-nav-accent); }
+  .sc-nav__mobile-link[aria-current="page"],
+  .sc-nav__mobile-game[aria-current="page"] { color: var(--sc-nav-accent); }
+
+  .sc-nav__mobile-game .sc-nav__game-icon {
+    width: 31px;
+    height: 31px;
+    border-radius: 7px;
+  }
+  .sc-nav__mobile-game-arrow { margin-left: auto; color: var(--sc-nav-muted); font-size: 18px; font-weight: 400; }
+  .sc-nav__mobile-profile {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
+    padding: 0 3px 0 45px;
+    border-bottom: 1px solid var(--sc-nav-border);
+    color: var(--sc-nav-muted) !important;
+    font-size: 14px;
   }
+  .sc-nav__mobile-profile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__language {
-    min-width: 88px;
-    height: 42px;
-    padding: 0 12px;
+  .sc-nav__mobile-tools {
+    display: grid;
+    gap: 12px;
+    margin-top: 24px;
+    padding: 18px 0 0;
+    border-top: 1px solid var(--sc-nav-border);
   }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__account {
-    width: auto;
-    max-width: 230px;
-    height: 42px;
-    padding: 4px 11px 4px 4px;
+  .sc-nav__mobile-tools .sc-nav__account-menu { width: 100%; }
+  .sc-nav__mobile-tools .sc-nav__account,
+  .sc-nav__mobile-tools .sc-nav__language,
+  .sc-nav__mobile-tools .sc-nav__sign-in {
+    width: 100%;
+    max-width: none;
+    min-height: 44px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 14px;
   }
+  .sc-nav__mobile-tools .sc-nav__account-copy { display: block; }
+  .sc-nav__mobile-tools .sc-nav__account > img,
+  .sc-nav__mobile-tools .sc-nav__account > span:first-child { width: 30px; height: 30px; }
+  .sc-nav__mobile-tools .sc-nav__account-popover { top: auto; bottom: calc(100% + 8px); }
+  .sc-nav__mobile-tools .sc-nav__language { justify-content: flex-start; gap: 10px; }
+  .sc-nav__mobile-tools .sc-nav__language > svg:first-of-type { width: 18px; height: 18px; }
+  .sc-nav__mobile-tools .sc-nav__language-chevron { margin-left: auto; }
+  .sc-nav__mobile-tools .sc-nav__sign-in { cursor: pointer; }
 
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__account-copy { display: block; }
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__account-popover { top: auto; bottom: calc(100% + 8px); }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__sign-in {
-    width: auto;
-    height: 42px;
-    padding: 0 14px;
-    overflow: visible;
-    font-size: 13px;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__sign-in::before { content: none; }
 }
 
-@keyframes sc-nav-dock-up {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes sc-nav-sheet-up {
-  from { opacity: 0; transform: translateY(24px); }
+@keyframes sc-nav-sheet-in {
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 

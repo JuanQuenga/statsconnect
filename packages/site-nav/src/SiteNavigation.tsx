@@ -74,10 +74,11 @@ export type SiteNavigationProps = {
 };
 
 const sites = [
-  { id: "statsconnect", label: "StatsConnect", detail: "Game hub", icon: "⌂" },
+  { id: "statsconnect", label: "StatsConnect", detail: "Game hub" },
   { id: "brawl-stars", label: "Brawl Stars", detail: "Open Brawl Stars statistics" },
   { id: "clash-royale", label: "Clash Royale", detail: "Open Clash Royale statistics" },
 ] as const;
+const networkMarkUrl = "/brand/statsconnect-mark.png?v=2";
 
 export const siteNavigationLanguages = [
   { value: "en", shortLabel: "EN", label: "English" },
@@ -183,6 +184,10 @@ function MenuIcon({ open }: { open: boolean }) {
   );
 }
 
+function SearchIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>;
+}
+
 function GamepadIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden>
@@ -213,7 +218,7 @@ function NetworkBrand({ currentSite, hubOrigin }: { currentSite: SiteId; hubOrig
       aria-label="StatsConnect hub"
       aria-current={currentSite === "statsconnect" ? "page" : undefined}
     >
-      <span className="sc-nav__network-mark" aria-hidden>SC</span>
+      <img className="sc-nav__network-mark" src={networkMarkUrl} alt="" aria-hidden />
       <strong>StatsConnect</strong>
     </ApplicationLink>
   );
@@ -249,7 +254,7 @@ function SiteIcon({
   return (
     <span className={className} data-site={site.id} aria-hidden>
       {site.id === "statsconnect"
-        ? site.icon
+        ? <img src={networkMarkUrl} alt="" />
         : <>
             <img src={`${iconBase}${iconFile}`} alt="" onError={(event) => { event.currentTarget.hidden = true; }} />
             <span className="sc-nav__game-icon-fallback">{site.id === "brawl-stars" ? "BS" : "CR"}</span>
@@ -500,15 +505,23 @@ export function SiteNavigation({
   renderSearch,
 }: SiteNavigationProps) {
   const [open, setOpen] = useState(false);
+  const [openedSection, setOpenedSection] = useState<"menu" | "search" | "games">("menu");
   const mobileMenuId = useId();
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const gamesHeadingRef = useRef<HTMLHeadingElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const close = () => setOpen(false);
+  const openSheet = (section: "menu" | "search" | "games") => {
+    setOpenedSection(section);
+    setOpen(true);
+  };
   const style: NavigationStyle = { "--sc-nav-accent": accentColor };
   const applicationShell = typeof window !== "undefined" && Boolean(window.__statsConnectApplicationShell);
   const applicationOrigin = applicationShell && typeof window !== "undefined" ? window.location.origin : hubOrigin;
   const currentPathname = typeof window !== "undefined" ? window.location.pathname : undefined;
-  const dockLinks = (mobileLinks ?? links).slice(0, 4);
+  const sheetLinks = mobileLinks ?? links;
+  const currentGame = sites.find((site) => site.id === currentSite);
 
   useEffect(() => {
     if (!open) return;
@@ -516,6 +529,9 @@ export function SiteNavigation({
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
+    const siblings = Array.from(headerRef.current?.parentElement?.children ?? []).filter((element) => element !== headerRef.current);
+    const previousInert = siblings.map((element) => element instanceof HTMLElement ? element.inert : false);
+    siblings.forEach((element) => { if (element instanceof HTMLElement) element.inert = true; });
     const desktop = window.matchMedia("(min-width: 861px)");
     const closeOnDesktop = () => {
       if (desktop.matches) setOpen(false);
@@ -529,7 +545,14 @@ export function SiteNavigation({
             sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), summary:not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
           )
         : [];
-    mobileCloseRef.current?.focus();
+    if (openedSection === "search") {
+      const searchInput = sheet?.querySelector<HTMLInputElement>(".sc-nav__mobile-search input");
+      (searchInput ?? mobileCloseRef.current)?.focus();
+    } else if (openedSection === "games") {
+      gamesHeadingRef.current?.focus();
+    } else {
+      mobileCloseRef.current?.focus();
+    }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -558,12 +581,35 @@ export function SiteNavigation({
       document.removeEventListener("keydown", onKeyDown);
       desktop.removeEventListener("change", closeOnDesktop);
       document.documentElement.style.overflow = previousOverflow;
+      siblings.forEach((element, index) => { if (element instanceof HTMLElement) element.inert = previousInert[index] ?? false; });
       opener?.focus();
     };
-  }, [open]);
+  }, [open, openedSection]);
+
+  const gameSection = (
+    <section>
+      <h2 ref={gamesHeadingRef} tabIndex={-1} className="sc-nav__mobile-section-title">Games</h2>
+      <nav className="sc-nav__mobile-games" aria-label="StatsConnect games">
+        {sites.map((site) => (
+          <div className="sc-nav__mobile-game-group" key={site.id}>
+            <ApplicationLink className="sc-nav__mobile-game" href={gameSwitcherHref(site.id, applicationOrigin)} aria-current={site.id === currentSite ? "page" : undefined} onClick={close}>
+              <SiteIcon applicationOrigin={applicationOrigin} applicationShell={applicationShell} className="sc-nav__game-icon" currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} site={site} />
+              <span>{site.label}</span>
+              <span className="sc-nav__mobile-game-arrow" aria-hidden>↗</span>
+            </ApplicationLink>
+            {site.id !== "statsconnect" ? gameProfiles(profiles, site.id).map((profile) => (
+              <ApplicationLink className="sc-nav__mobile-profile" href={gameSwitcherHref(profile, applicationOrigin)} key={`${profile.game}:${profile.tag}`} onClick={close}>
+                <span>{profile.name}</span><small>#{profile.tag}</small>
+              </ApplicationLink>
+            )) : null}
+          </div>
+        ))}
+      </nav>
+    </section>
+  );
 
   return (
-    <header className="sc-nav" data-site={currentSite} style={style}>
+    <header ref={headerRef} className="sc-nav" data-site={currentSite} style={style}>
       <div className="sc-nav__network">
         <div className="sc-nav__network-inner">
           <NetworkBrand currentSite={currentSite} hubOrigin={applicationOrigin} />
@@ -575,6 +621,19 @@ export function SiteNavigation({
             {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
           </div>
         </div>
+      </div>
+
+      <div className="sc-nav__mobile-bar">
+        <NetworkBrand currentSite={currentSite} hubOrigin={applicationOrigin} />
+        {currentSite !== "statsconnect" && currentGame ? (
+          <button type="button" className="sc-nav__mobile-identity" aria-label={`Switch game. Current game: ${currentGame.label}`} aria-expanded={open && openedSection === "games"} aria-controls={mobileMenuId} onClick={() => openSheet("games")}>
+            <SiteIcon applicationOrigin={applicationOrigin} applicationShell={applicationShell} className="sc-nav__game-icon" currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} site={currentGame} />
+            <span>{currentGame.label}</span>
+            <svg viewBox="0 0 24 24" aria-hidden><path d="m7 10 5 5 5-5" /></svg>
+          </button>
+        ) : null}
+        {renderSearch ? <button type="button" className="sc-nav__mobile-action" aria-label="Search" aria-expanded={open && openedSection === "search"} aria-controls={mobileMenuId} onClick={() => openSheet("search")}><SearchIcon /></button> : null}
+        <button type="button" className="sc-nav__mobile-action" aria-label="Open navigation menu" aria-expanded={open} aria-controls={mobileMenuId} onClick={() => openSheet("menu")}><MenuIcon open={false} /></button>
       </div>
 
       <div className="sc-nav__site">
@@ -604,7 +663,7 @@ export function SiteNavigation({
 
       {open ? <button type="button" className="sc-nav__mobile-backdrop" aria-label="Close navigation menu" onClick={close} /> : null}
       {/* The mobile sheet is a dialog: focus enters it on open, Tab cycles inside
-          it while open, and focus returns to the hamburger button on close. */}
+          it while open, and focus returns to the opening control on close. */}
       <div
         ref={sheetRef}
         id={mobileMenuId}
@@ -615,70 +674,29 @@ export function SiteNavigation({
       >
         {open ? (
           <div className="sc-nav__mobile-panel">
-            <header className="sc-nav__mobile-heading">
-              <div><strong>Navigation</strong></div>
+            <div className="sc-nav__mobile-heading">
+              <div><strong>{currentGame?.label}</strong><span>{currentSite === "statsconnect" ? "Game hub" : "StatsConnect"}</span></div>
               <button ref={mobileCloseRef} type="button" aria-label="Close navigation menu" onClick={close}><MenuIcon open /></button>
-            </header>
+            </div>
+            {openedSection === "games" ? gameSection : null}
             {renderSearch ? <div className="sc-nav__mobile-search">{renderSearch(close)}</div> : null}
-            {currentSite === "clash-royale" ? (
-              <div className="sc-nav__mobile-tools" aria-label="Site preferences">
-                {language ? <LanguageSelector language={language} /> : null}
-                <GamesMenu applicationOrigin={applicationOrigin} applicationShell={applicationShell} currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} profiles={profiles} />
-                {account ? <AccountChip account={account} /> : null}
-                {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
-              </div>
-            ) : null}
+            <h2 className="sc-nav__mobile-section-title">Explore</h2>
             <nav className="sc-nav__mobile-links" aria-label="Mobile primary navigation">
-              {links.map((link) => (
+              {sheetLinks.map((link) => (
                 <LinkAdapter key={link.href} href={link.href} className="sc-nav__mobile-link" onNavigate={close}>
                   {link.label}
                 </LinkAdapter>
               ))}
             </nav>
-            {currentSite === "statsconnect" ? (
-              <>
-                <nav className="sc-nav__mobile-games" aria-label="StatsConnect games">
-                  <span className="sc-nav__mobile-section-title">Games</span>
-                  {sites.slice(1).map((site) => (
-                    <ApplicationLink className="sc-nav__mobile-game" href={gameSwitcherHref(site.id, applicationOrigin)} key={site.id} onClick={close}>
-                      <SiteIcon applicationOrigin={applicationOrigin} applicationShell={applicationShell} className="sc-nav__game-icon" currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} site={site} />
-                      <span>{site.label}</span>
-                      <span className="sc-nav__mobile-game-arrow" aria-hidden>↗</span>
-                    </ApplicationLink>
-                  ))}
-                </nav>
-                <div className="sc-nav__mobile-tools" aria-label="Account and language">
-                  <LanguageSelector language={language} />
-                  {account ? <AccountChip account={account} /> : null}
-                  {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
-                </div>
-              </>
-            ) : null}
+            {openedSection !== "games" ? gameSection : null}
+            <div className="sc-nav__mobile-tools" aria-label="Account and language">
+              {account ? <AccountChip account={account} /> : null}
+              {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={() => { close(); authAction.onClick(); }}>{authAction.label}</button> : null}
+              <LanguageSelector language={language} />
+            </div>
           </div>
         ) : null}
       </div>
-
-      {currentSite === "clash-royale" ? (
-        <nav className="sc-nav__mobile-dock" aria-label="Primary mobile navigation">
-          {dockLinks.map((link) => (
-            <LinkAdapter key={link.href} href={link.href} className="sc-nav__mobile-dock-link" onNavigate={close}>
-              <span className="sc-nav__mobile-dock-icon" aria-hidden>{link.icon}</span>
-              <span>{link.mobileLabel ?? link.label}</span>
-            </LinkAdapter>
-          ))}
-          <button
-            type="button"
-            className="sc-nav__mobile-dock-link sc-nav__mobile-dock-more"
-            aria-label="More navigation options"
-            aria-expanded={open}
-            aria-controls={mobileMenuId}
-            onClick={() => setOpen((value) => !value)}
-          >
-            <span className="sc-nav__mobile-dock-icon" aria-hidden><MenuIcon open={open} /></span>
-            <span>More</span>
-          </button>
-        </nav>
-      ) : null}
     </header>
   );
 }

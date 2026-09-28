@@ -1691,7 +1691,6 @@ button { cursor: pointer; }
 }
 
 @media (max-width: 680px) {
-  .site-frame-clash { padding-bottom: var(--sc-nav-mobile-dock-offset, 0px); }
   .site-frame:not(.site-frame-home) main:has(.profile-page) { padding-top: 18px; }
   .home-hero,
   .page-band,
@@ -1703,7 +1702,6 @@ button { cursor: pointer; }
   .search-box { grid-template-columns: 112px 1fr 46px; }
   .hero-cards { margin-top: 62px; }
   .profile-page { padding-top: 20px; }
-  .profile-page:has(.profile-tabs) { padding-bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 88px); }
   .profile-hero { grid-template-columns: 1fr; gap: 22px; padding: 26px 20px; text-align: center; }
   .profile-identity-art { margin: 0 auto; }
   .profile-identity-meta,
@@ -1722,7 +1720,7 @@ button { cursor: pointer; }
     position: fixed;
     inset-inline: 16px;
     top: auto;
-    bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 8px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
     justify-content: stretch;
     margin: 0 auto;
     padding: 5px;
@@ -1756,7 +1754,7 @@ button { cursor: pointer; }
   .profile-hero-metrics { grid-template-columns: 1fr; }
   .profile-hero-metric:nth-child(even) { border-left: 0; }
   .profile-hero-actions .player-share-actions { grid-template-columns: 1fr; }
-  .profile-tabs { inset-inline: 10px; bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 8px); }
+  .profile-tabs { inset-inline: 10px; }
   .profile-tabs button { min-width: 98px; flex-basis: 98px; padding-inline: 6px; }
   .stat-matrix { grid-template-columns: 1fr; }
 }
@@ -6502,12 +6500,11 @@ a:hover .entity-cell strong { color: #75c5ff; }
   .profile-hero-freshness > span { max-width: 76px; text-align: right; }
 }
 
-/* On phones, page-level navigation forms a second dock above the persistent
- * primary navigation. The same controls remain in the document so state,
- * keyboard behavior, and accessible names stay aligned with desktop. */
+/* Page tabs sit above the phone safe area, below the shared navigation sheet.
+ * Reserve space only on routes that actually render these controls. */
 @media (max-width: 680px) {
   .site-frame-clash:has(.mobile-page-tabs) {
-    padding-bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 74px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
   }
 
   .site-frame-clash .arena-route-hero-actions:has(> .mobile-page-tabs) {
@@ -6526,8 +6523,8 @@ a:hover .entity-cell strong { color: #75c5ff; }
     position: fixed;
     inset-inline: 10px;
     top: auto;
-    bottom: calc(var(--sc-nav-mobile-dock-offset, 0px) + 8px);
-    z-index: 79;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    z-index: 60;
     display: flex;
     align-items: stretch;
     justify-content: stretch;

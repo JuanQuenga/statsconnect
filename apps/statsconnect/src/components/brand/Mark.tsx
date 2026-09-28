@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 export function Mark({ className }: { className?: string }) {
   return (
     <img
-      src="/brand/statsconnect-mark.png"
+      src="/brand/statsconnect-mark.png?v=2"
       alt=""
       aria-hidden
       className={cn(
-        "size-8 object-contain drop-shadow-[0_0_14px_rgba(113,92,255,0.28)]",
+        "size-8 object-contain drop-shadow-[0_0_14px_rgba(38,153,255,0.2)]",
         className,
       )}
     />

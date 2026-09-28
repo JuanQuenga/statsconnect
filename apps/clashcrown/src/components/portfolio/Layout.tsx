@@ -66,7 +66,6 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
     { href: "/news", label: t("nav.news") },
     { href: "/tools", label: t("nav.tools") },
   ];
-  const mobileNavItems = navItems.filter((item) => ["/", "/leaderboards", "/cards", "/decks"].includes(item.href));
 
   return (
     <div className={`site-frame site-frame-clash ${variant === "home" ? "site-frame-home" : ""} ${arenaTransitionClass}`}>
@@ -94,7 +93,6 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         profiles={auth.profiles}
         linkAdapter={ClashRoyaleLink}
         links={navItems}
-        mobileLinks={mobileNavItems}
         language={{
           label: t("locale.label"),
           value: locale,
