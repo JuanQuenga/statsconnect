@@ -68,11 +68,11 @@ function LandingPage({
           </div>
         </div>
 
-        <div className="hub-hero__poster boot-in" role="img" aria-label="Clash Royale inspired castle arena beside a Brawl Stars inspired desert showdown">
+        <div className="hub-hero__poster boot-in" role="img" aria-label="Clash Royale King and Hog Rider face Brawl Stars Shelly, Colt, and Spike across two arenas">
           <picture>
-            <source media="(max-width: 640px)" srcSet="/games/generated/hub-worlds-mobile.webp" />
+            <source media="(max-width: 640px)" srcSet="/games/generated/hub-worlds-mobile-v2.webp" />
             <img
-              src="/games/generated/hub-worlds-wide.webp"
+              src="/games/generated/hub-worlds-wide-v2.webp"
               alt=""
               fetchPriority="high"
             />
