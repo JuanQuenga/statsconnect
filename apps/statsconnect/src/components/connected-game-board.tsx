@@ -19,13 +19,12 @@ export function ConnectedGameBoard({
 
   return (
     <section className="lobby-stage space-y-10">
-      <header className="boot-in flex flex-wrap items-end justify-between gap-6">
+      <header className="lobby-stage__header boot-in flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="eyebrow mb-4 text-[var(--ambient)]">Your lobby</p>
-          <h1 className="font-display text-4xl font-semibold sm:text-5xl">
+          <h1>
             Your connected profiles
           </h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="lobby-stage__lede">
             Open a saved player or connect another game below.
           </p>
         </div>
@@ -51,7 +50,7 @@ export function ConnectedGameBoard({
             data-game={game.id}
             to="/connect/$game"
             params={{ game: game.id }}
-            className="tile bevel bevel-lg relative flex min-h-[210px] flex-col justify-center gap-3 overflow-hidden border border-dashed border-border/70 bg-white/[0.015] p-8 text-center"
+            className="tile lobby-add-game"
           >
             <img
               src={`/games/generated/${game.id}-channel.webp`}
@@ -61,13 +60,11 @@ export function ConnectedGameBoard({
               className="channel-art channel-art--faded"
             />
             <span className="channel-art__scrim" aria-hidden />
-            <Plus className="relative mx-auto size-8 text-muted-foreground" aria-hidden />
-            <p className="relative font-display text-lg font-semibold">
-              Connect {game.name}
-            </p>
-            <p className="relative mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground">
-              {game.description}
-            </p>
+            <div className="lobby-add-game__content">
+              <Plus className="size-7" aria-hidden />
+              <h2>Connect {game.name}</h2>
+              <p>{game.description}</p>
+            </div>
           </Link>
         ))}
       </TileNav>
@@ -98,7 +95,7 @@ function ProfileTile({ profile }: { profile: ConnectedProfile }) {
       />
 
       <div className="relative min-w-0">
-        <p className="eyebrow text-[var(--game-accent)]">{gameName(profile.game)}</p>
+        <p className="profile-tile__game">{gameName(profile.game)}</p>
         <h2 className="mt-2 truncate font-display text-3xl font-bold tracking-tight">
           {profile.name}
         </h2>

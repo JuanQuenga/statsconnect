@@ -1,19 +1,9 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useStatsConnectAuth } from "@statsconnect/auth";
-import type { ReactNode } from "react";
-import {
-  ArrowRight,
-  BarChart3,
-  Check,
-  Layers3,
-  Link2,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { ArrowDownRight, ArrowRight } from "lucide-react";
 import { ConnectedGameBoard } from "@/components/connected-game-board";
 import { GameChannelTile } from "@/components/lobby/GameChannelTile";
 import { TileNav } from "@/components/lobby/TileNav";
-import { buttonVariants } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui-helpers";
 import { games, type StatsConnectPlusOffer } from "@/lib/contracts";
 
@@ -21,10 +11,10 @@ export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "StatsConnect — every game, one profile" },
+      { title: "StatsConnect — your games, one home" },
       {
         name: "description",
-        content: "Connect your player profiles and move between live game statistics from one calm, unified home.",
+        content: "Connect your Clash Royale and Brawl Stars player profiles, then find the stats and tools made for each game.",
       },
     ],
   }),
@@ -56,62 +46,53 @@ function LandingPage({
 }) {
   return (
     <div className="hub-landing">
-      <section className="hub-hero">
-        <div className="hub-hero__media" aria-hidden>
-          <img
-            src="/games/generated/brawl-stars-channel.webp"
-            alt=""
-          />
-        </div>
-        <div className="hub-hero__copy boot-in">
-          <p className="hub-kicker">Brawl Stars and Clash Royale</p>
-          <h1>
-            Your player profiles,
-            <span>connected.</span>
+      <section className="hub-hero" aria-labelledby="hub-title">
+        <div className="hub-hero__intro boot-in">
+          <h1 id="hub-title">
+            Your games.
+            <span>One place to start.</span>
           </h1>
-          <p className="hub-hero__lede">
-            Save each player tag once, then jump straight to the stats, battles,
-            decks, and rankings for that game.
-          </p>
-          <div className="hub-hero__actions">
-            <Link to="/connect" className={buttonVariants({ size: "lg" })}>
-              Connect a profile
-              <ArrowRight className="size-4" aria-hidden />
-            </Link>
-            <a href="#games" className={buttonVariants({ variant: "outline", size: "lg" })}>
-              Find your game
-            </a>
+          <div className="hub-hero__aside">
+            <p>
+              Save your Clash Royale and Brawl Stars player tags. Get straight to
+              the battles, rankings, and player details you came for.
+            </p>
+            <div className="hub-hero__actions">
+              <Link to="/connect" className="hub-primary-action">
+                Connect a profile <ArrowRight aria-hidden />
+              </Link>
+              <a href="#games" className="hub-text-action">
+                Explore the games <ArrowDownRight aria-hidden />
+              </a>
+            </div>
           </div>
-          <ul className="hub-proof" aria-label="Platform highlights">
-            <li><Check aria-hidden /> Save tags once</li>
-            <li><Check aria-hidden /> Game-specific statistics</li>
-            <li><Check aria-hidden /> Separate tools for each game</li>
-          </ul>
-          {backendUnavailable ? (
-            <p className="hub-config-note">Profile connections are temporarily unavailable. The game sites remain open.</p>
-          ) : null}
         </div>
 
+        <div className="hub-hero__poster boot-in" role="img" aria-label="Clash Royale inspired castle arena beside a Brawl Stars inspired desert showdown">
+          <picture>
+            <source media="(max-width: 640px)" srcSet="/games/generated/hub-worlds-mobile.webp" />
+            <img
+              src="/games/generated/hub-worlds-wide.webp"
+              alt=""
+              fetchPriority="high"
+            />
+          </picture>
+          <div className="hub-hero__poster-names" aria-hidden>
+            <span>Clash Royale</span>
+            <span>Brawl Stars</span>
+          </div>
+        </div>
+        {backendUnavailable ? (
+          <p className="hub-config-note">Profile connections are temporarily unavailable. You can still open each game site.</p>
+        ) : null}
       </section>
 
-      <section className="hub-value-strip" aria-label="Getting started">
-        <p><strong><span>01</span> Choose your game</strong><span>Clash Royale or Brawl Stars</span></p>
-        <p><strong><span>02</span> Save your player tag</strong><span>Your in-game identity, connected</span></p>
-        <p><strong><span>03</span> Get into the detail</strong><span>Player stats, battles, and more</span></p>
-      </section>
-
-      <section id="games" className="hub-section scroll-mt-28">
+      <section id="games" className="hub-section hub-games scroll-mt-28" aria-labelledby="hub-games-title">
         <div className="hub-section__heading">
-          <div>
-            <p className="eyebrow">Choose a game</p>
-            <h2>Two games.<br />Your home advantage.</h2>
-          </div>
-          <p>
-            StatsConnect remembers your profiles. Its Brawl Stars and Clash Royale
-            experiences keep the game-specific detail.
-          </p>
+          <h2 id="hub-games-title">Pick your arena.</h2>
+          <p>Each game has its own stats, tools, and ways to get ahead. Start with the one you play.</p>
         </div>
-        <TileNav className="stagger grid gap-5 md:grid-cols-2">
+        <TileNav className="stagger hub-game-grid">
           {games.map((game) => (
             <GameChannelTile
               key={game.id}
@@ -123,73 +104,32 @@ function LandingPage({
         </TileNav>
       </section>
 
-      {plusOffer ? <PlusOffer offer={plusOffer} /> : null}
-
-      <section className="hub-section hub-section--platform">
-        <div className="hub-section__heading">
-          <div>
-            <p className="eyebrow">How it works</p>
-            <h2>Your profiles stay connected.</h2>
-          </div>
+      <section className="hub-flow" aria-labelledby="hub-flow-title">
+        <div className="hub-flow__lead">
+          <h2 id="hub-flow-title">Your tag is the ticket in.</h2>
+          <p>Connect once for each game. Your player profile is ready the next time you visit.</p>
         </div>
-        <div className="hub-feature-grid">
-          <Feature
-            icon={<Link2 />}
-            title="Connect once"
-            copy="Save each player profile once and launch the right game experience without re-entering tags."
-          />
-          <Feature
-            icon={<BarChart3 />}
-            title="Current game data"
-            copy="Open rankings, player history, battles, and meta views without leaving the game site."
-          />
-          <Feature
-            icon={<Layers3 />}
-            title="Easy game switching"
-            copy="Move between games from the same navigation while each site keeps its own look and tools."
-          />
-          <Feature
-            icon={<ShieldCheck />}
-            title="Ready for another game"
-            copy="New games can join the same profile hub without changing the profiles you already saved."
-          />
-        </div>
+        <ol>
+          <li><span>01</span><strong>Choose a game</strong><p>Pick Clash Royale or Brawl Stars.</p></li>
+          <li><span>02</span><strong>Enter your tag</strong><p>Save the player profile you want to follow.</p></li>
+          <li><span>03</span><strong>Get to the good stuff</strong><p>Open the game site with your profile ready.</p></li>
+        </ol>
       </section>
+
+      {plusOffer ? <PlusOffer offer={plusOffer} /> : null}
     </div>
   );
 }
 
 function PlusOffer({ offer }: { offer: StatsConnectPlusOffer }) {
   return (
-    <section className="hub-section" aria-labelledby="statsconnect-plus-title">
-      <div className="hub-section__heading">
-        <div>
-          <p className="eyebrow">{offer.name} · foundation preview</p>
-          <h2 id="statsconnect-plus-title">One upgrade for every game site.</h2>
-        </div>
-        <p>{offer.scope}. No checkout is presented while verified account and billing integrations are unfinished.</p>
+    <section className="hub-plus" aria-labelledby="statsconnect-plus-title">
+      <div>
+        <h2 id="statsconnect-plus-title">{offer.name}, across the network.</h2>
+        <p>{offer.scope}. Membership is not available yet.</p>
       </div>
-      <div className="hub-feature-grid">
-        {offer.features.map((feature) => (
-          <Feature
-            key={feature}
-            icon={<Sparkles />}
-            title={feature}
-            copy="Included in the shared premium entitlement when this capability is integrated on a game site."
-          />
-        ))}
-      </div>
-      <p className="hub-config-note mt-6">{offer.notice}</p>
+      <ul>{offer.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
+      <p className="hub-config-note">{offer.notice}</p>
     </section>
-  );
-}
-
-function Feature({ icon, title, copy }: { icon: ReactNode; title: string; copy: string }) {
-  return (
-    <article className="hub-feature">
-      <div className="hub-feature__icon" aria-hidden>{icon}</div>
-      <h3>{title}</h3>
-      <p>{copy}</p>
-    </article>
   );
 }

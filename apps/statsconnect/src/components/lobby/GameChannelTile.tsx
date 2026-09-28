@@ -31,15 +31,15 @@ export function GameChannelTile({
         className="game-channel__art"
       />
       <span className="game-channel__scrim" aria-hidden />
-      <span className="game-channel__label">{id === "clash-royale" ? "Build your next win" : "Know your roster"}</span>
+      <span className="game-channel__index" aria-hidden>{id === "clash-royale" ? "01" : "02"}</span>
       <div className="game-channel__copy">
-        <h2 className="font-display text-3xl font-semibold sm:text-4xl">
+        <h3>
           {name}
-        </h2>
-        <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+        </h3>
+        <p>
           {description}
         </p>
-        <span className="game-channel__action">Connect a profile <ArrowRight className="size-4" aria-hidden /></span>
+        <span className="game-channel__action">Connect a profile <ArrowRight aria-hidden /></span>
       </div>
     </Link>
   );

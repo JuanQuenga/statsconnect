@@ -4,7 +4,6 @@ import {
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 import { useStatsConnectAuth } from "@statsconnect/auth";
-import { useMemo } from "react";
 import { Mark, Wordmark } from "@/components/brand/Mark";
 
 const links = [
@@ -61,22 +60,6 @@ export function SiteNav() {
           <Wordmark className="hidden sm:inline" />
         </Link>
       }
-      endContent={<LiveDataStatus />}
     />
-  );
-}
-
-// Formatted once per mount; the status marker is decorative and does not need a
-// timer to refresh its tooltip.
-function LiveDataStatus() {
-  const updatedAt = useMemo(
-    () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    [],
-  );
-
-  return (
-    <span className="hub-nav-status" title={`Updated ${updatedAt}`}>
-      <i aria-hidden /> Live data
-    </span>
   );
 }
