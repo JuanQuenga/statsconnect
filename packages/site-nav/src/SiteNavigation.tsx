@@ -78,7 +78,7 @@ const sites = [
   { id: "brawl-stars", label: "Brawl Stars", detail: "Open Brawl Stars statistics" },
   { id: "clash-royale", label: "Clash Royale", detail: "Open Clash Royale statistics" },
 ] as const;
-const networkMarkUrl = "/brand/statsconnect-mark.png?v=2";
+const networkMarkUrl = "/brand/nav/portal-frame.png";
 
 export const siteNavigationLanguages = [
   { value: "en", shortLabel: "EN", label: "English" },
@@ -522,6 +522,12 @@ export function SiteNavigation({
   const currentPathname = typeof window !== "undefined" ? window.location.pathname : undefined;
   const sheetLinks = mobileLinks ?? links;
   const currentGame = sites.find((site) => site.id === currentSite);
+  const currentGameLabel = currentGame?.id === "statsconnect" ? "Game hub" : currentGame?.label ?? "Game hub";
+  const currentCharacter = currentSite === "brawl-stars"
+    ? "/brand/nav/cosmo-bust.png"
+    : currentSite === "clash-royale"
+      ? "/brand/nav/ronin-bust.png"
+      : null;
 
   useEffect(() => {
     if (!open) return;
@@ -624,14 +630,26 @@ export function SiteNavigation({
       </div>
 
       <div className="sc-nav__mobile-bar">
-        <NetworkBrand currentSite={currentSite} hubOrigin={applicationOrigin} />
-        {currentSite !== "statsconnect" && currentGame ? (
-          <button type="button" className="sc-nav__mobile-identity" aria-label={`Switch game. Current game: ${currentGame.label}`} aria-expanded={open && openedSection === "games"} aria-controls={mobileMenuId} onClick={() => openSheet("games")}>
-            <SiteIcon applicationOrigin={applicationOrigin} applicationShell={applicationShell} className="sc-nav__game-icon" currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} site={currentGame} />
-            <span>{currentGame.label}</span>
-            <svg viewBox="0 0 24 24" aria-hidden><path d="m7 10 5 5 5-5" /></svg>
-          </button>
-        ) : null}
+        <button type="button" className="sc-nav__mobile-identity" data-site={currentSite} aria-label={`Switch game. Current site: ${currentGame?.label ?? "StatsConnect"}. ${currentGameLabel}`} aria-expanded={open && openedSection === "games"} aria-controls={mobileMenuId} onClick={() => openSheet("games")}>
+          <span className="sc-nav__mobile-portal" aria-hidden="true">
+            <img className="sc-nav__mobile-portal-frame" src="/brand/nav/portal-frame.png" alt="" />
+            {currentSite === "statsconnect" ? (
+              <span className="sc-nav__mobile-portal-well">
+                <span className="sc-nav__mobile-portal-core-window">
+                  <img className="sc-nav__mobile-portal-core" src="/brand/nav/portal-frame.png" alt="" />
+                </span>
+              </span>
+            ) : null}
+            {currentCharacter ? <img className="sc-nav__mobile-portal-character" src={currentCharacter} alt="" /> : null}
+          </span>
+          <span className="sc-nav__mobile-identity-copy">
+            <strong>StatsConnect</strong>
+            <span className="sc-nav__mobile-identity-label" key={currentSite} data-site={currentSite}>{currentGameLabel}</span>
+          </span>
+          <span className="sc-nav__mobile-identity-chevron" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg>
+          </span>
+        </button>
         {renderSearch ? <button type="button" className="sc-nav__mobile-action" aria-label="Search" aria-expanded={open && openedSection === "search"} aria-controls={mobileMenuId} onClick={() => openSheet("search")}><SearchIcon /></button> : null}
         <button type="button" className="sc-nav__mobile-action" aria-label="Open navigation menu" aria-expanded={open} aria-controls={mobileMenuId} onClick={() => openSheet("menu")}><MenuIcon open={false} /></button>
       </div>

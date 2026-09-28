@@ -5,6 +5,22 @@
   --sc-nav-sticky-height: calc(var(--sc-nav-network-height) + var(--sc-nav-site-height));
 }
 
+@font-face {
+  font-family: "SC Nav TotalBlack";
+  src: url("/brand/nav/TotalBlackVF.otf") format("opentype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SC Nav Supercell";
+  src: url("/brand/nav/supercell-webfont.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 .sc-nav {
   --sc-nav-accent: #f5c85b;
   --sc-nav-width: 1280px;
@@ -590,48 +606,53 @@
   .sc-nav__site { display: none; }
 
   .sc-nav__mobile-bar {
+    position: relative;
+    isolation: isolate;
     min-height: 60px;
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 0 max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
     border-bottom: 2px solid color-mix(in srgb, var(--sc-nav-accent) 72%, transparent);
-    background: linear-gradient(110deg, color-mix(in srgb, var(--sc-nav-accent) 11%, var(--sc-nav-network-bg)), var(--sc-nav-network-bg) 58%);
-  }
-
-  .sc-nav__mobile-bar .sc-nav__network-brand {
-    min-width: 44px;
-    height: 44px;
-    padding: 0;
-    flex: none;
-    justify-content: flex-start;
-    border: 0;
-    font-size: 16px;
-    font-weight: 800;
-  }
-
-  .sc-nav__mobile-bar .sc-nav__network-mark {
-    width: 34px;
-    height: 34px;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-bar .sc-nav__network-brand {
-    min-width: 0;
-    flex: 1;
-    gap: 10px;
-  }
-
-  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-bar .sc-nav__network-brand strong {
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    background: var(--sc-nav-network-bg);
   }
 
-  .sc-nav:not([data-site="statsconnect"]) .sc-nav__mobile-bar .sc-nav__network-brand strong { display: none; }
+  .sc-nav__mobile-bar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-bar::before {
+    background-image: linear-gradient(90deg, rgba(8, 11, 26, .90), rgba(9, 14, 30, .67) 55%, rgba(8, 11, 26, .87)), url("/brand/nav/hub-nav-scene.webp");
+    background-position: center, center 42%;
+  }
+
+  .sc-nav[data-site="brawl-stars"] .sc-nav__mobile-bar::before {
+    background-image: linear-gradient(90deg, rgba(10, 10, 27, .91), rgba(13, 14, 32, .72) 55%, rgba(8, 11, 27, .89)), url("/brand/nav/brawl-nav-scene.webp");
+    background-size: cover, 145% auto;
+    background-position: center, left 28%;
+  }
+
+  .sc-nav[data-site="clash-royale"] .sc-nav__mobile-bar::before {
+    background-image: linear-gradient(90deg, rgba(6, 16, 32, .90), rgba(8, 20, 39, .69) 55%, rgba(6, 15, 31, .88)), url("/brand/nav/clash-nav-scene.webp");
+    background-position: center, center 32%;
+  }
+
+  .sc-nav__mobile-bar > * {
+    position: relative;
+    z-index: 1;
+  }
 
   .sc-nav__mobile-identity {
     min-width: 0;
-    min-height: 44px;
+    min-height: 60px;
     padding: 0;
     flex: 1;
     display: flex;
@@ -640,31 +661,140 @@
     border: 0;
     color: var(--sc-nav-text);
     background: transparent;
-    font: 800 15px/1.1 ProximaNova, "Proxima Nova", ui-sans-serif, system-ui, sans-serif;
     text-align: left;
     cursor: pointer;
   }
 
-  .sc-nav__mobile-identity .sc-nav__game-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 7px;
+  .sc-nav__mobile-portal {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    flex: none;
+    display: block;
+    filter: drop-shadow(0 0 9px rgba(21, 141, 255, .4));
   }
 
-  .sc-nav__mobile-identity span:not(.sc-nav__game-icon):not(.sc-nav__game-icon-fallback) {
+  .sc-nav__mobile-portal-frame,
+  .sc-nav__mobile-portal-core,
+  .sc-nav__mobile-portal-character {
+    position: absolute;
+    display: block;
+    object-fit: contain;
+    max-width: none;
+  }
+
+  .sc-nav__mobile-portal-well {
+    position: absolute;
+    inset: 15%;
+    z-index: 2;
+    display: block;
+    overflow: visible;
+  }
+
+  .sc-nav__mobile-portal-core-window {
+    position: absolute;
+    inset: 0;
+    display: block;
+    clip-path: circle(31% at center);
+  }
+
+  .sc-nav__mobile-portal-frame {
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    height: 100%;
+    -webkit-mask-image: radial-gradient(circle at center, transparent 0 27.4%, #000 28.8%);
+    mask-image: radial-gradient(circle at center, transparent 0 27.4%, #000 28.8%);
+  }
+
+  .sc-nav__mobile-portal-core {
+    left: 50%;
+    top: 52%;
+    width: 142.86%;
+    height: 142.86%;
+    transform: translate(-50%, -50%);
+  }
+
+  .sc-nav__mobile-portal-character {
+    left: 10%;
+    top: 7%;
+    z-index: 4;
+    width: 80%;
+    height: 80%;
+    clip-path: inset(0 0 19% 0);
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .6));
+    animation: sc-nav-character-rise .34s cubic-bezier(.2, .8, .2, 1) both;
+  }
+
+  .sc-nav__mobile-identity-copy {
     min-width: 0;
+    display: grid;
+    gap: 2px;
+    padding: 2px 0;
+  }
+
+  .sc-nav__mobile-identity-copy strong {
     overflow: hidden;
+    color: #fff;
+    font: 800 16px/1.05 ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -.035em;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .sc-nav__mobile-identity > svg {
+  .sc-nav__mobile-identity-label {
+    overflow: hidden;
+    color: #c2c9d8;
+    font: 650 11px/1.2 ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: .02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    animation: sc-nav-label-rise .28s ease-out both;
+  }
+
+  .sc-nav__mobile-identity-label[data-site="brawl-stars"] {
+    color: #f8d875;
+    font: 400 12px/1.2 "SC Nav TotalBlack", "TotalBlack VF", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: .01em;
+  }
+
+  .sc-nav__mobile-identity-label[data-site="clash-royale"] {
+    color: #f8d875;
+    font: 400 10px/1.35 "SC Nav Supercell", "Supercell Magic", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -.015em;
+  }
+
+  .sc-nav__mobile-identity-chevron {
+    width: 14px;
+    height: 18px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    margin-left: 1px;
+    color: rgba(255, 255, 255, .72);
+  }
+
+  .sc-nav__mobile-identity-chevron svg {
     width: 14px;
     height: 14px;
-    flex: none;
     fill: none;
-    stroke: var(--sc-nav-muted);
+    stroke: currentColor;
     stroke-width: 2;
+    transition: transform .2s ease;
+  }
+
+  .sc-nav__mobile-identity[aria-expanded="true"] .sc-nav__mobile-identity-chevron svg {
+    transform: rotate(180deg);
+  }
+
+  .sc-nav__mobile-identity:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .sc-nav__mobile-game .sc-nav__game-icon {
+    width: 27px;
+    height: 27px;
+    border-radius: 6px;
   }
 
   .sc-nav__mobile-action {
@@ -841,6 +971,16 @@
 
 @keyframes sc-nav-sheet-in {
   from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sc-nav-character-rise {
+  from { opacity: .5; transform: translateY(7px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sc-nav-label-rise {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
