@@ -186,6 +186,11 @@
   display: block;
   object-fit: cover;
 }
+.sc-nav__network-game-icon img[hidden],
+.sc-nav__game-icon img[hidden] { display: none; }
+.sc-nav__game-icon-fallback { display: none; font-size: 9px; font-weight: 850; letter-spacing: -.02em; }
+.sc-nav__network-game-icon img[hidden] + .sc-nav__game-icon-fallback,
+.sc-nav__game-icon img[hidden] + .sc-nav__game-icon-fallback { display: grid; place-items: center; }
 
 .sc-nav__network-menu { display: none; }
 
@@ -819,6 +824,180 @@
   .sc-nav[data-site="clash-royale"] .sc-nav__mobile-links {
     flex: 1 1 auto;
   }
+}
+
+@media (max-width: 860px) {
+  .sc-nav[data-site="statsconnect"] {
+    --sc-nav-network-height: 64px;
+    --sc-nav-site-height: 0px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__network-inner {
+    width: calc(100% - 32px);
+    padding-right: 56px;
+    align-items: center;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__network-brand {
+    min-width: 0;
+    height: 64px;
+    padding: 0;
+    border: 0;
+    gap: 10px;
+    font-size: 16px;
+    letter-spacing: -.025em;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__network-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__network-sites,
+  .sc-nav[data-site="statsconnect"] .sc-nav__network-actions,
+  .sc-nav[data-site="statsconnect"] .sc-nav__brand { display: none; }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__site {
+    position: absolute;
+    top: 0;
+    right: 16px;
+    left: 16px;
+    height: 64px;
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__inner {
+    width: 100%;
+    min-height: 64px;
+    justify-content: flex-end;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__menu-button {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .055);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile {
+    background: #101019;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-panel {
+    overflow-y: auto;
+    gap: 18px;
+    padding: max(20px, env(safe-area-inset-top, 0px)) 20px max(28px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-heading {
+    padding-bottom: 16px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-links {
+    flex: none;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-link {
+    min-height: 54px;
+    padding: 0 6px;
+    border-bottom: 1px solid var(--sc-nav-border);
+    border-radius: 0;
+    color: var(--sc-nav-text);
+    font-size: 17px;
+    font-weight: 650;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-link[aria-current="page"] {
+    color: var(--sc-nav-accent);
+    background: transparent;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-games {
+    display: grid;
+    padding: 0;
+    gap: 0;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-section-title {
+    padding: 0 6px 8px;
+    color: var(--sc-nav-muted);
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-game {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 6px;
+    border-bottom: 1px solid var(--sc-nav-border);
+    color: var(--sc-nav-text);
+    font-size: 16px;
+    font-weight: 650;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-game .sc-nav__game-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-game-arrow {
+    margin-left: auto;
+    color: var(--sc-nav-muted);
+    font-size: 17px;
+    font-weight: 450;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools {
+    margin-top: auto;
+    padding: 4px 0 0;
+    gap: 10px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__language {
+    min-width: 88px;
+    height: 42px;
+    padding: 0 12px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__account {
+    width: auto;
+    max-width: 230px;
+    height: 42px;
+    padding: 4px 11px 4px 4px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__account-copy { display: block; }
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__account-popover { top: auto; bottom: calc(100% + 8px); }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__sign-in {
+    width: auto;
+    height: 42px;
+    padding: 0 14px;
+    overflow: visible;
+    font-size: 13px;
+  }
+
+  .sc-nav[data-site="statsconnect"] .sc-nav__mobile-tools .sc-nav__sign-in::before { content: none; }
 }
 
 @keyframes sc-nav-dock-up {

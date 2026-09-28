@@ -250,7 +250,10 @@ function SiteIcon({
     <span className={className} data-site={site.id} aria-hidden>
       {site.id === "statsconnect"
         ? site.icon
-        : <img src={`${iconBase}${iconFile}`} alt="" />}
+        : <>
+            <img src={`${iconBase}${iconFile}`} alt="" onError={(event) => { event.currentTarget.hidden = true; }} />
+            <span className="sc-nav__game-icon-fallback">{site.id === "brawl-stars" ? "BS" : "CR"}</span>
+          </>}
     </span>
   );
 }
@@ -632,6 +635,25 @@ export function SiteNavigation({
                 </LinkAdapter>
               ))}
             </nav>
+            {currentSite === "statsconnect" ? (
+              <>
+                <nav className="sc-nav__mobile-games" aria-label="StatsConnect games">
+                  <span className="sc-nav__mobile-section-title">Games</span>
+                  {sites.slice(1).map((site) => (
+                    <ApplicationLink className="sc-nav__mobile-game" href={gameSwitcherHref(site.id, applicationOrigin)} key={site.id} onClick={close}>
+                      <SiteIcon applicationOrigin={applicationOrigin} applicationShell={applicationShell} className="sc-nav__game-icon" currentPathname={currentPathname} currentSite={currentSite} hubOrigin={applicationOrigin} site={site} />
+                      <span>{site.label}</span>
+                      <span className="sc-nav__mobile-game-arrow" aria-hidden>↗</span>
+                    </ApplicationLink>
+                  ))}
+                </nav>
+                <div className="sc-nav__mobile-tools" aria-label="Account and language">
+                  <LanguageSelector language={language} />
+                  {account ? <AccountChip account={account} /> : null}
+                  {!account && authAction ? <button className="sc-nav__sign-in" type="button" onClick={authAction.onClick}>{authAction.label}</button> : null}
+                </div>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>

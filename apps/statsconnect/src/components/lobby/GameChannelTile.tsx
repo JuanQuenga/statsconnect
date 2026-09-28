@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { useStageLight } from "@/components/lobby/ambient";
 import type { GameId } from "@/lib/contracts";
 
-/** A game that is not connected yet — an unclaimed slot on the lobby wall. */
+/** Opens the connection flow for one game. */
 export function GameChannelTile({
   id,
   name,
@@ -20,18 +20,21 @@ export function GameChannelTile({
       data-game={id}
       to="/connect/$game"
       params={{ game: id }}
-      className="tile game-channel"
+      className="game-channel"
       {...stageLight}
     >
-      <img
-        src={`/games/generated/${id}-channel.webp`}
-        alt=""
-        aria-hidden
-        loading="lazy"
-        className="game-channel__art"
-      />
-      <span className="game-channel__scrim" aria-hidden />
-      <span className="game-channel__index" aria-hidden>{id === "clash-royale" ? "01" : "02"}</span>
+      <div className="game-channel__scene">
+        <span className="game-channel__wordmark" aria-hidden>{id === "clash-royale" ? "ROYALE" : "BRAWL"}</span>
+        <img
+          src={`/games/generated/${id}-2026-feature.webp`}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          className="game-channel__art"
+        />
+        <span className="game-channel__scrim" aria-hidden />
+        <span className="game-channel__entry" aria-hidden><ArrowRight /></span>
+      </div>
       <div className="game-channel__copy">
         <h3>
           {name}
@@ -39,7 +42,7 @@ export function GameChannelTile({
         <p>
           {description}
         </p>
-        <span className="game-channel__action">Connect a profile <ArrowRight aria-hidden /></span>
+        <span className="game-channel__action">Connect your player <ArrowRight aria-hidden /></span>
       </div>
     </Link>
   );
