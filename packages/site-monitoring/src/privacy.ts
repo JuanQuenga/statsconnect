@@ -7,6 +7,36 @@ const routeSegments = new Set([
   "beta", "tournaments", "guides", "decks", "tools", "cards", "news",
 ]);
 
+// Exact public hosts only: arbitrary subdomains and registrable domains can carry identifiers.
+const appHosts = new Set([
+  "statsconnect.app", "bs.statsconnect.app", "cr.statsconnect.app", "www.statsconnect.app",
+  "stats.juanquenga.com", "brawlstats.juanquenga.com", "clashcrown.juanquenga.com",
+]);
+const attributionHosts = new Set([
+  ...appHosts,
+  "google.com", "www.google.com", "bing.com", "www.bing.com",
+  "duckduckgo.com", "www.duckduckgo.com",
+]);
+
+function normalizedHostname(hostname: string): string {
+  return hostname.toLowerCase().replace(/\.$/, "");
+}
+
+function safeOrigin(parsed: URL): string {
+  const hostname = normalizedHostname(parsed.hostname);
+  // Never retain credentials, arbitrary ports, preview names, IPs, or unknown hosts.
+  return appHosts.has(hostname) ? `${parsed.protocol}//${hostname}` : "https://redacted.invalid";
+}
+
+function safeReferringDomain(hostname: string): string | undefined {
+  const normalized = normalizedHostname(hostname);
+  return attributionHosts.has(normalized) ? normalized : undefined;
+}
+
+function isWebUrl(parsed: URL): boolean {
+  return parsed.protocol === "https:" || parsed.protocol === "http:";
+}
+
 export function safePathname(pathname: string): string {
   return pathname.split("/").map((segment) => {
     if (!segment) return "";
@@ -17,7 +47,8 @@ export function safePathname(pathname: string): string {
 export function safeUrl(value: string): string {
   try {
     const parsed = new URL(value, "https://statsconnect.app");
-    return `${parsed.origin}${safePathname(parsed.pathname)}`;
+    if (!isWebUrl(parsed)) return "[redacted URL]";
+    return `${safeOrigin(parsed)}${safePathname(parsed.pathname)}`;
   } catch {
     return "[redacted URL]";
   }
@@ -27,8 +58,9 @@ export function safeUrl(value: string): string {
 export function safeSourceUrl(value: string): string {
   try {
     const parsed = new URL(value, "https://statsconnect.app");
+    if (!isWebUrl(parsed)) return "[redacted URL]";
     if (/^\/(?:bs\/|cr\/)?(?:assets|_assets)\/[a-zA-Z0-9_.-]+\.[cm]?js$/i.test(parsed.pathname)) {
-      return `${parsed.origin}${parsed.pathname}`;
+      return `${safeOrigin(parsed)}${parsed.pathname}`;
     }
   } catch { /* Fall through to conservative route redaction. */ }
   return safeUrl(value);
@@ -51,15 +83,17 @@ export function safeAnalyticsProperties(properties: Record<string, unknown>): Re
   if (typeof properties.$current_url === "string") safe.$current_url = safeUrl(properties.$current_url);
   if (typeof properties.$pathname === "string") safe.$pathname = safePathname(properties.$pathname);
   if (typeof properties.$referring_domain === "string") {
-    try {
-      const domain = new URL(`https://${properties.$referring_domain}`);
-      if (domain.host === properties.$referring_domain && domain.pathname === "/" && !domain.username && !domain.password && !domain.search && !domain.hash) {
-        safe.$referring_domain = domain.hostname;
-      }
-    } catch { /* Preserve only a bare referring hostname. */ }
+    const domain = safeReferringDomain(properties.$referring_domain);
+    if (domain) safe.$referring_domain = domain;
   }
   if (typeof properties.$referrer === "string") {
-    try { safe.$referring_domain = new URL(properties.$referrer).hostname; } catch { /* No external referrer. */ }
+    // The original referrer takes precedence over any SDK-provided copy, even when omitted.
+    delete safe.$referring_domain;
+    try {
+      const referrer = new URL(properties.$referrer);
+      const domain = isWebUrl(referrer) ? safeReferringDomain(referrer.hostname) : undefined;
+      if (domain) safe.$referring_domain = domain;
+    } catch { /* No supported referrer. */ }
   }
   if (properties.game === "brawl-stars" || properties.game === "clash-royale") safe.game = properties.game;
   if (properties.stage === "preview" || properties.stage === "save") safe.stage = properties.stage;
