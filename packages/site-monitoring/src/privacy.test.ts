@@ -27,6 +27,19 @@ test("analytics sends only supported product dimensions and anonymous SDK metada
   assert.deepEqual(safeAnalyticsProperties({ game: "private", reason: "person@example.com", stage: "tag" }), {});
 });
 
+test("referrer attribution survives capture and before_send sanitation without accepting URLs or credentials", () => {
+  const captured = safeAnalyticsProperties({
+    $referrer: "https://www.google.com/search?q=private+player",
+    $current_url: "https://statsconnect.app/cr/players/P0Y89?token=secret",
+    environment: "production",
+  });
+  assert.deepEqual(safeAnalyticsProperties(captured), captured);
+  assert.equal(captured.$referring_domain, "www.google.com");
+  for (const value of ["https://google.com/search?q=secret", "person@example.com", "google.com/private", "google.com?token=secret", "google.com#secret"]) {
+    assert.deepEqual(safeAnalyticsProperties({ $referring_domain: value }), {});
+  }
+});
+
 test("Sentry strips account data and arbitrary error text while keeping actionable source positions", () => {
   const event = sanitizeSentryEvent({
     user: { email: "person@example.com" }, extra: { tag: "P0Y89" },

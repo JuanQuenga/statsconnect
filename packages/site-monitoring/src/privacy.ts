@@ -50,6 +50,14 @@ export function safeAnalyticsProperties(properties: Record<string, unknown>): Re
   }
   if (typeof properties.$current_url === "string") safe.$current_url = safeUrl(properties.$current_url);
   if (typeof properties.$pathname === "string") safe.$pathname = safePathname(properties.$pathname);
+  if (typeof properties.$referring_domain === "string") {
+    try {
+      const domain = new URL(`https://${properties.$referring_domain}`);
+      if (domain.host === properties.$referring_domain && domain.pathname === "/" && !domain.username && !domain.password && !domain.search && !domain.hash) {
+        safe.$referring_domain = domain.hostname;
+      }
+    } catch { /* Preserve only a bare referring hostname. */ }
+  }
   if (typeof properties.$referrer === "string") {
     try { safe.$referring_domain = new URL(properties.$referrer).hostname; } catch { /* No external referrer. */ }
   }
