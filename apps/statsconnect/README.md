@@ -26,3 +26,29 @@ pnpm --filter statsconnect build
 ```
 
 The root unified release deploys the Hub. The app has no Convex or Vercel deployment command.
+
+## PostHog and Sentry
+
+All three frontends use `@statsconnect/site-monitoring`. Set the following public ingestion values in each app’s `.env.local`, or in the environment used by the unified Vercel build:
+
+- `VITE_POSTHOG_KEY`: the StatsConnect PostHog project token.
+- `VITE_POSTHOG_HOST`: `https://us.i.posthog.com`, or `https://eu.i.posthog.com` for an EU project.
+- `VITE_SENTRY_DSN`: the StatsConnect Sentry project DSN.
+- `VITE_MONITORING_ENVIRONMENT`: `production`, `preview`, `development`, or `test`.
+- `VITE_SENTRY_RELEASE`: the deployed commit SHA, when available.
+
+Monitoring runs in production builds. For local verification, set `VITE_MONITORING_ENABLED=1` and `VITE_MONITORING_ENVIRONMENT=development` before starting Vite. Missing ingestion keys disable the corresponding service. Use the same keys for all three apps so game switches share one monitoring destination. Keep personal API keys and authentication tokens out of `VITE_*` variables.
+
+PostHog captures page views on pathname changes and six connection events: `player_lookup_submitted`, `player_lookup_succeeded`, `player_lookup_failed`, `profile_save_submitted`, `profile_save_succeeded`, and `profile_save_failed`. Connection events include the game, not the player tag or name. Analytics use an anonymous identifier in local storage. Automatic form capture, session replay, surveys, feature flags, and user identification are disabled. Both integrations respect Do Not Track.
+
+Sentry receives existing render, route, root, promise, and application-shell error reports. Reports retain error type, source positions, and the on-screen error reference. Arbitrary error messages, account data, request bodies, query parameters, and component state are omitted. Tracing and replay are disabled.
+
+### Readable production stack traces
+
+For private source-map uploads, set `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` in the build environment. For the created project, the organization is `piggies` and the project is `statsconnect`. The Vite plugin generates hidden source maps only when all three values are present, uploads them, and deletes the `.map` files from the deployment output. Upload errors fail the build. Never prefix the upload token with `VITE_`.
+
+### Verify data collection
+
+Open the local site with monitoring enabled. Navigate to Connect, check a player tag, and confirm a profile. In PostHog Activity, verify the page views and connection events, filtering `environment=development`. In Sentry, confirm a deliberate local test error appears with its source position and error reference. Do not leave a test-error button in production.
+
+Run `pnpm --filter @statsconnect/site-monitoring test`, the frontend typechecks, and `pnpm typecheck:delivery` before shipping changes.

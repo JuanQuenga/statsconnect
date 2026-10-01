@@ -11,7 +11,7 @@ function PrivacyPage() {
       <header className="space-y-3 border-b border-border pb-8">
         <p className="eyebrow text-[var(--ambient)]">StatsConnect</p>
         <h1 className="font-display text-4xl font-semibold text-foreground sm:text-5xl">Privacy</h1>
-        <p>Last updated September 27, 2026.</p>
+        <p>Last updated October 1, 2026.</p>
       </header>
 
       <section className="space-y-3">
@@ -23,6 +23,12 @@ function PrivacyPage() {
         <h2 className="text-xl font-semibold text-foreground">Accounts and site use</h2>
         <p>When you sign in with Google, our authentication provider may receive your name, email address, and profile image. We store the game tags you connect to your account and the information needed to refresh them. The site uses browser storage for preferences, recent profiles, and notification settings. Authentication uses cookies or similar session storage.</p>
         <p>We use this information to provide statistics, remember your settings, refresh connected profiles, prevent misuse, and diagnose errors. Vercel Analytics may collect limited usage information so we can understand site performance.</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-foreground">Analytics and error monitoring</h2>
+        <p>When configured, PostHog measures page visits and player-connection steps using an anonymous browser identifier. Sentry receives technical error reports to help us fix failures. We do not intentionally send account emails, player names, player tags, or URL query parameters to these services. Automatic form capture and session recordings are disabled.</p>
+        <p>PostHog uses browser storage to recognize repeat visits. These integrations respect your browser’s Do Not Track preference. Their services may receive your IP address and browser information when a report is sent.</p>
       </section>
 
       <section className="space-y-3">

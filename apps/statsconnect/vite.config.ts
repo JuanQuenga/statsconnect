@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 import { adsensePlugin } from "../../scripts/adsense-vite.ts";
+import { sentryViteIntegration } from "../../scripts/sentry-vite.ts";
 import {
   deliveryApp,
   viteBasePath,
@@ -14,6 +15,12 @@ import {
 const unifiedBuild = process.env.STATSCONNECT_UNIFIED_BUILD === "1";
 const mobileDev = process.env.STATSCONNECT_MOBILE_DEV === "1";
 const delivery = deliveryApp("statsconnect");
+const sentry = sentryViteIntegration(
+  path.resolve(
+    import.meta.dirname,
+    unifiedBuild ? viteOutputDirectory(delivery.id) : "dist",
+  ),
+);
 
 function requiredMobileDevValue(name: string): string {
   const value = process.env[name]?.trim();
@@ -33,6 +40,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     adsensePlugin(),
+    ...(sentry.plugin ? [sentry.plugin] : []),
   ],
   resolve: {
     alias: {
@@ -60,10 +68,13 @@ export default defineConfig({
         },
       }
     : undefined,
-  build: unifiedBuild
-    ? {
+  build: {
+    ...(unifiedBuild
+      ? {
         outDir: viteOutputDirectory(delivery.id),
         emptyOutDir: delivery.clearsUnifiedOutput,
       }
-    : undefined,
+      : {}),
+    ...sentry.build,
+  },
 });

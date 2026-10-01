@@ -1,3 +1,4 @@
+import { reportClientError } from "@statsconnect/site-errors";
 import type {
   MountedStatsConnectApplication,
   MountStatsConnectApplication,
@@ -176,6 +177,7 @@ export async function startApplicationShell(rootElement: HTMLElement): Promise<v
       if (request !== transition) return;
       previous?.application.unmount();
       current = null;
+      reportClientError({ app: "StatsConnect Shell", error, source: "uncaught" });
       showShellError(rootElement, error);
     }
   }

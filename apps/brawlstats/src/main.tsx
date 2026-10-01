@@ -1,3 +1,4 @@
+import "./instrumentation";
 import { StatsConnectAuthProvider } from "@statsconnect/auth";
 import type { MountedStatsConnectApplication } from "@statsconnect/site-nav";
 import { gameRouteBase } from "@statsconnect/site-nav";

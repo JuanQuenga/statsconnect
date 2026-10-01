@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useStatsConnectAuth } from "@statsconnect/auth";
 import { gameDestinationHref } from "@statsconnect/site-nav";
+import { captureSiteEvent } from "@statsconnect/site-monitoring";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
@@ -24,7 +25,11 @@ export function ConnectTagForm({ game }: { game: GameId }) {
   const validation = tag.length > 0 ? tagError(tag) : null;
   const previewMutation = useMutation({
     mutationFn: () => dataClient.preview(game, tag),
-    onSuccess: setPreview,
+    onSuccess: (result) => {
+      captureSiteEvent("player_lookup_succeeded", { game });
+      setPreview(result);
+    },
+    onError: () => captureSiteEvent("player_lookup_failed", { game }),
   });
   const connectMutation = useMutation({
     mutationFn: async () => {
@@ -37,13 +42,16 @@ export function ConnectTagForm({ game }: { game: GameId }) {
       return preview.data.playerTag;
     },
     onSuccess: (playerTag) => {
+      captureSiteEvent("profile_save_succeeded", { game });
       navigateToApplication(gameDestinationHref(game, playerTag, window.location.origin));
     },
+    onError: () => captureSiteEvent("profile_save_failed", { game }),
   });
 
   function submitPreview(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!tag || validation) return;
+    captureSiteEvent("player_lookup_submitted", { game });
     previewMutation.mutate();
   }
 
@@ -65,7 +73,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
         {connectMutation.isError ? <PageStatus tone="error">{errorMessage(connectMutation.error)}</PageStatus> : null}
         <div className="flex flex-wrap gap-3">
           <Button variant="secondary" onClick={() => { setPreview(null); previewMutation.reset(); connectMutation.reset(); }}><ArrowLeft className="size-4" />Use another tag</Button>
-          <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : `Save & launch ${gameName(game)}`}<ArrowRight className="size-4" /></Button>
+          <Button onClick={() => { captureSiteEvent("profile_save_submitted", { game }); connectMutation.mutate(); }} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : `Save & launch ${gameName(game)}`}<ArrowRight className="size-4" /></Button>
         </div>
       </div>
     );

@@ -1,3 +1,4 @@
+import "./instrumentation";
 import "./index.css";
 import { inject } from "@vercel/analytics";
 import { mountApplication } from "./application";

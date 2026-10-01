@@ -18,6 +18,17 @@ export type ClientErrorReport = {
 
 export type ClientErrorReporter = (report: ClientErrorReport) => void;
 
+declare global {
+  interface Window {
+    __statsconnectClientErrorReporter?: ClientErrorReporter;
+  }
+}
+
+// Each game bundle has its own module graph; the document owns the configured sink.
+export function setClientErrorReporter(reporter: ClientErrorReporter | undefined): void {
+  if (typeof window !== "undefined") window.__statsconnectClientErrorReporter = reporter;
+}
+
 export type AppErrorFallbackProps = {
   error: unknown;
   reference: string;
@@ -80,7 +91,7 @@ export function reportClientError({
   reference,
   source,
   componentStack,
-  reporter = defaultReporter,
+  reporter,
 }: {
   app: string;
   error: unknown;
@@ -101,7 +112,8 @@ export function reportClientError({
   };
 
   try {
-    reporter(report);
+    const configuredReporter = reporter ?? (typeof window !== "undefined" ? window.__statsconnectClientErrorReporter : undefined);
+    (configuredReporter ?? defaultReporter)(report);
   } catch (reportingError) {
     defaultReporter(report);
     console.error(`[${app}] Error reporter failed`, reportingError);
