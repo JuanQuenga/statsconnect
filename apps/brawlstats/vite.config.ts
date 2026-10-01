@@ -5,6 +5,7 @@ import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { defineConfig, loadEnv } from "vite";
 import { brawler3dAssetsPlugin } from "./brawl-3d-assets-plugin";
 import { adsensePlugin } from "../../scripts/adsense-vite.ts";
+import { sentryViteIntegration } from "../../scripts/sentry-vite.ts";
 import {
   deliveryApp,
   viteBasePath,
@@ -13,6 +14,12 @@ import {
 
 const unifiedBuild = process.env.STATSCONNECT_UNIFIED_BUILD === "1";
 const delivery = deliveryApp("brawlstats");
+const sentry = sentryViteIntegration(
+  path.resolve(
+    import.meta.dirname,
+    unifiedBuild ? viteOutputDirectory(delivery.id) : "dist",
+  ),
+);
 
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), "");
@@ -31,6 +38,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       adsensePlugin(),
       brawler3dAssetsPlugin(localAssetDirectory),
+      ...(sentry.plugin ? [sentry.plugin] : []),
     ],
     resolve: {
       alias: {
@@ -38,12 +46,15 @@ export default defineConfig(({ mode }) => {
       },
     },
     publicDir: "public",
-    build: unifiedBuild
-      ? {
+    build: {
+      ...(unifiedBuild
+        ? {
           outDir: viteOutputDirectory(delivery.id),
           emptyOutDir: delivery.clearsUnifiedOutput,
           manifest: true,
         }
-      : undefined,
+        : {}),
+      ...sentry.build,
+    },
   };
 });

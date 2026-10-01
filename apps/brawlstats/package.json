@@ -23,6 +23,7 @@
     "@statsconnect/monetization": "workspace:*",
     "@statsconnect/site-errors": "workspace:*",
     "@statsconnect/site-format": "workspace:*",
+    "@statsconnect/site-monitoring": "workspace:*",
     "@statsconnect/site-nav": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",

@@ -152,6 +152,8 @@ export function runUnifiedBuild(): void {
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
     ...unifiedPublicEnvironment,
+    VITE_MONITORING_ENVIRONMENT: process.env.VITE_MONITORING_ENVIRONMENT ?? process.env.VERCEL_ENV ?? "production",
+    VITE_SENTRY_RELEASE: process.env.VITE_SENTRY_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA,
     STATSCONNECT_UNIFIED_BUILD: "1",
   };
 
