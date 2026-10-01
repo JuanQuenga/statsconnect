@@ -1,9 +1,11 @@
-import { buildCardUpgradePlan } from "@/lib/clash/upgradeCosts";
 import type { Card, Player } from "@/lib/clash/domain";
 
-const WIDTH = 1200;
-const HEIGHT = 630;
-const CARD_LIMIT = 8;
+const WIDTH = 1600;
+const HEIGHT = 1000;
+const INK = "#f6f3ec";
+const MUTED = "#9eafc5";
+const GOLD = "#ffd777";
+const FONT = '"Share Royale", "Supercell Magic", sans-serif';
 
 function assetUrl(source: string): string {
   if (!source.startsWith("/")) return source;
@@ -11,196 +13,156 @@ function assetUrl(source: string): string {
   return new URL(`${base}${source}`, window.location.origin).toString();
 }
 
-function roundedRect(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-) {
-  const safeRadius = Math.min(radius, width / 2, height / 2);
-  context.beginPath();
-  context.moveTo(x + safeRadius, y);
-  context.arcTo(x + width, y, x + width, y + height, safeRadius);
-  context.arcTo(x + width, y + height, x, y + height, safeRadius);
-  context.arcTo(x, y + height, x, y, safeRadius);
-  context.arcTo(x, y, x + width, y, safeRadius);
-  context.closePath();
-}
-
-function fillRoundedRect(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-  fill: string
-) {
-  roundedRect(context, x, y, width, height, radius);
-  context.fillStyle = fill;
-  context.fill();
-}
-
 async function loadImage(source: string): Promise<HTMLImageElement | undefined> {
-  const image = new window.Image();
-  image.crossOrigin = "anonymous";
-  image.decoding = "async";
-  image.src = assetUrl(source);
-  try {
-    await image.decode();
-    return image;
-  } catch {
-    return undefined;
-  }
-}
-
-function drawMetric(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  label: string,
-  value: string
-) {
-  fillRoundedRect(context, x, y, width, 86, 18, "rgba(16, 45, 78, .88)");
-  context.fillStyle = "#f8fbff";
-  context.font = "700 29px ProximaNova, Inter, sans-serif";
-  context.fillText(value, x + 20, y + 38, width - 40);
-  context.fillStyle = "#8ea2c4";
-  context.font = "600 15px ProximaNova, Inter, sans-serif";
-  context.fillText(label.toUpperCase(), x + 20, y + 66, width - 40);
-}
-
-function cardKey(card: Card): string {
-  return typeof card.id === "number" ? `id:${card.id}` : `name:${card.name.toLowerCase()}`;
-}
-
-function featuredCards(player: Player): Card[] {
-  const unique = new Map<string, Card>();
-  for (const card of [player.favoriteCard, ...player.deck, ...player.cards].filter((card): card is Card => Boolean(card))) {
-    if (!unique.has(cardKey(card))) unique.set(cardKey(card), card);
-  }
-  return [...unique.values()]
-    .sort((a, b) => (b.level ?? -1) - (a.level ?? -1) || a.name.localeCompare(b.name))
-    .slice(0, CARD_LIMIT);
-}
-
-async function drawCards(context: CanvasRenderingContext2D, cards: Card[]) {
-  const images = await Promise.all(cards.map((card) => loadImage(card.image)));
-  const startX = 70;
-  const gap = 12;
-  const tileWidth = 122;
-  const tileHeight = 76;
-  const rowGap = 8;
-
-  cards.forEach((card, index) => {
-    const column = index % 4;
-    const row = Math.floor(index / 4);
-    const x = startX + column * (tileWidth + gap);
-    const y = 412 + row * (tileHeight + rowGap);
-    fillRoundedRect(context, x, y, tileWidth, tileHeight, 16, "rgba(8, 24, 44, .9)");
-    const image = images[index];
-    if (image) {
-      const scale = Math.min(86 / image.width, 45 / image.height);
-      const width = image.width * scale;
-      const height = image.height * scale;
-      context.drawImage(image, x + (tileWidth - width) / 2, y + 5 + (45 - height) / 2, width, height);
-    } else {
-      fillRoundedRect(context, x + 28, y + 5, 66, 42, 10, "rgba(72, 96, 137, .4)");
-      context.fillStyle = "#cbd8ef";
-      context.font = "700 28px ProximaNova, Inter, sans-serif";
-      context.textAlign = "center";
-      context.fillText(card.name.slice(0, 1).toUpperCase(), x + tileWidth / 2, y + 35);
-      context.textAlign = "left";
-    }
-    context.fillStyle = "#f8fbff";
-    context.font = "700 13px ProximaNova, Inter, sans-serif";
-    context.textAlign = "center";
-    context.fillText(card.name, x + tileWidth / 2, y + 59, tileWidth - 14);
-    context.fillStyle = "#8ea2c4";
-    context.font = "600 11px ProximaNova, Inter, sans-serif";
-    context.fillText(card.level !== undefined ? `LEVEL ${card.level}` : card.rarity.toUpperCase(), x + tileWidth / 2, y + 72);
-    context.textAlign = "left";
+  if (!source) return undefined;
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    const finish = (result: HTMLImageElement | undefined) => {
+      window.clearTimeout(timeout);
+      image.onload = null;
+      image.onerror = null;
+      resolve(result);
+    };
+    const timeout = window.setTimeout(() => finish(undefined), 8000);
+    image.onload = () => finish(image);
+    image.onerror = () => finish(undefined);
+    image.src = assetUrl(source);
   });
+}
+
+async function loadFont() {
+  try {
+    const font = new FontFace("Share Royale", `url("${assetUrl("/fonts/supercell-webfont.ttf")}")`);
+    document.fonts.add(await font.load());
+  } catch { /* System fonts keep the export available when the game font is unavailable. */ }
+}
+
+function text(context: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, color = INK, maxWidth?: number, gameFont = false) {
+  context.fillStyle = color;
+  context.font = gameFont ? `${size}px ${FONT}` : `600 ${size}px system-ui, sans-serif`;
+  // Fit names by font size, rather than distorting the letters horizontally.
+  while (maxWidth && context.measureText(value).width > maxWidth && size > 12) {
+    size -= 1;
+    context.font = gameFont ? `${size}px ${FONT}` : `600 ${size}px system-ui, sans-serif`;
+  }
+  context.fillText(value, x, y);
+}
+
+function line(context: CanvasRenderingContext2D, x: number, y: number, width: number, color = "#ffffff20") {
+  context.fillStyle = color;
+  context.fillRect(x, y, width, 1);
+}
+
+function imageContain(context: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number) {
+  const scale = Math.min(width / image.width, height / image.height);
+  const w = image.width * scale;
+  const h = image.height * scale;
+  context.drawImage(image, x + (width - w) / 2, y + (height - h) / 2, w, h);
 }
 
 function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    try {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("The browser could not create the share image."));
-      }, "image/png");
-    } catch {
-      reject(new Error("One or more card images could not be included in the share image."));
-    }
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("The browser could not create the share image.")), "image/png");
   });
 }
 
 export async function createPlayerShareImage(player: Player): Promise<Blob> {
+  const cards = player.deck.slice(0, 8);
+  const [arena, trophy, cardImages] = await Promise.all([
+    loadImage(player.arenaImage),
+    loadImage("/images/ui-icons/trophies.png"),
+    Promise.all(cards.map((card) => loadImage(card.variant === "Evolution" ? card.evolutionImage ?? card.image : card.variant === "Hero" ? card.heroImage ?? card.image : card.image))),
+    loadFont(),
+  ]);
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("This browser does not support local image rendering.");
+  const c = canvas.getContext("2d");
+  if (!c) throw new Error("This browser does not support local image rendering.");
 
-  const background = context.createLinearGradient(0, 0, WIDTH, HEIGHT);
-  background.addColorStop(0, "#061b31");
-  background.addColorStop(0.58, "#102a4d");
-  background.addColorStop(1, "#07569f");
-  context.fillStyle = background;
-  context.fillRect(0, 0, WIDTH, HEIGHT);
+  const background = c.createLinearGradient(0, 0, WIDTH, HEIGHT);
+  background.addColorStop(0, "#101b2e");
+  background.addColorStop(1, "#050c18");
+  c.fillStyle = background;
+  c.fillRect(0, 0, WIDTH, HEIGHT);
+  const glow = c.createRadialGradient(1230, 270, 0, 1230, 270, 570);
+  glow.addColorStop(0, "#24578b90");
+  glow.addColorStop(1, "#24578b00");
+  c.fillStyle = glow;
+  c.fillRect(0, 0, WIDTH, HEIGHT);
+  // Quiet arena geometry gives the illustration a stage, without hiding the stats.
+  c.save();
+  c.strokeStyle = "#8fcfff10";
+  c.lineWidth = 2;
+  for (const radius of [195, 270, 345]) {
+    c.beginPath(); c.arc(1230, 275, radius, 0, Math.PI * 2); c.stroke();
+  }
+  c.restore();
+  c.fillStyle = GOLD;
+  c.fillRect(64, 55, 5, 24);
+  text(c, "CLASH ROYALE", 85, 76, 20, GOLD);
+  c.textAlign = "right";
+  text(c, "STATSCONNECT", 1536, 76, 18, MUTED);
+  c.textAlign = "left";
+  text(c, player.name, 64, 163, 58, INK, 930, true);
+  text(c, `#${player.tag.replace(/^#/, "")}  ·  ${player.clan}`, 66, 207, 23, MUTED, 900);
 
-  const glow = context.createRadialGradient(980, 70, 10, 980, 70, 500);
-  glow.addColorStop(0, "rgba(31, 147, 255, .34)");
-  glow.addColorStop(1, "rgba(31, 147, 255, 0)");
-  context.fillStyle = glow;
-  context.fillRect(0, 0, WIDTH, HEIGHT);
+  if (arena) {
+    c.save();
+    c.shadowColor = "#00000070"; c.shadowBlur = 32; c.shadowOffsetY = 22;
+    imageContain(c, arena, 1030, 108, 425, 330);
+    c.restore();
+  }
+  c.textAlign = "center";
+  text(c, player.arena, 1235, 474, 22, INK, 510, true);
+  c.textAlign = "left";
+  if (trophy) imageContain(c, trophy, 64, 252, 79, 88);
+  text(c, player.trophies?.toLocaleString("en-US") ?? "Unreported", trophy ? 163 : 64, 348, player.trophies === undefined ? 58 : 108, GOLD, 785, true);
+  text(c, "TROPHIES", 68, 394, 19, MUTED);
 
-  context.fillStyle = "#75c5ff";
-  context.font = "700 18px ProximaNova, Inter, sans-serif";
-  context.fillText("STATSCONNECT · CLASH ROYALE COLLECTION SNAPSHOT", 70, 62);
-  context.fillStyle = "#ffffff";
-  context.font = "700 54px ProximaNova, Inter, sans-serif";
-  context.fillText(player.name, 70, 125, 760);
-  context.fillStyle = "#a8bbd8";
-  context.font = "600 20px ProximaNova, Inter, sans-serif";
-  context.fillText(`#${player.tag}  ·  ${player.clan}  ·  ${player.arena}`, 72, 160, 850);
-
-  const ownedCards = player.cards.filter((card) => card.owned !== false);
-  const readyCards = ownedCards.filter((card) => buildCardUpgradePlan(card).ready).length;
-  const evolutionCards = ownedCards.filter((card) => card.canEvolve).length;
-  const collectionAvailable = player.cardCollectionAvailable ?? player.cards.length > 0;
+  const owned = player.cards.filter((card) => card.owned !== false).length;
   const metrics = [
-    ["Trophies", player.trophies?.toLocaleString() ?? "Not reported"],
-    ["Best trophies", player.bestTrophies?.toLocaleString() ?? "Not reported"],
-    ["Cards owned", collectionAvailable ? ownedCards.length.toLocaleString() : "Not reported"],
-    ["Ready / Evolution", collectionAvailable ? `${readyCards} / ${evolutionCards}` : "Not reported"]
-  ] as const;
-  metrics.forEach(([label, value], index) => drawMetric(context, 70 + index * 266, 205, 246, label, value));
+    ["PERSONAL BEST", player.bestTrophies?.toLocaleString("en-US") ?? "Unreported"],
+    ["CAREER WINS", player.stats.Wins ?? "Unreported"],
+    ["KING LEVEL", player.level?.toString() ?? "Unreported"],
+    ["CARDS OWNED", (player.cardCollectionAvailable ?? player.cards.length > 0) ? String(owned) : "Unreported"],
+  ];
+  metrics.forEach(([label, value], i) => {
+    const x = 66 + i * 242;
+    text(c, value, x, 474, 34, INK, 215);
+    text(c, label, x, 509, 16, MUTED);
+  });
+  line(c, 64, 546, 1472);
+  text(c, "CURRENT DECK", 64, 590, 19, GOLD);
+  const average = cards.length ? (cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length).toFixed(1) : undefined;
+  c.textAlign = "right";
+  text(c, average ? `${average} AVG ELIXIR` : "Deck not reported", 1536, 590, 18, MUTED);
+  c.textAlign = "left";
 
-  context.fillStyle = "#f8fbff";
-  context.font = "700 24px ProximaNova, Inter, sans-serif";
-  context.fillText("Collection highlights", 70, 378);
-  context.fillStyle = "#8ea2c4";
-  context.font = "500 15px ProximaNova, Inter, sans-serif";
-  context.fillText("Highest-level cards, with the current deck and favorite card prioritized", 70, 400);
-  await drawCards(context, featuredCards(player));
-
-  context.fillStyle = "#8ea2c4";
-  context.font = "500 14px ProximaNova, Inter, sans-serif";
-  const freshness = player.fetchedAt
-    ? `Live API snapshot · ${new Date(player.fetchedAt).toLocaleString()}`
-    : "Demo profile · not live API data";
-  context.fillText(freshness, 70, 602);
-  context.textAlign = "right";
-  context.fillStyle = "#f8fbff";
-  context.font = "700 17px ProximaNova, Inter, sans-serif";
-  context.fillText("cr.statsconnect.app", 1130, 602);
-  context.textAlign = "left";
-
+  cards.forEach((card: Card, i) => {
+    const x = 64 + i * 186;
+    const image = cardImages[i];
+    if (image) {
+      c.save(); c.shadowColor = "#00000080"; c.shadowBlur = 16; c.shadowOffsetY = 12;
+      imageContain(c, image, x, 620, 164, 226);
+      c.restore();
+    } else {
+      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 8, 628, 148, 205, 12); c.fill();
+      c.textAlign = "center"; text(c, "?", x + 82, 754, 56, MUTED, undefined, true); c.textAlign = "left";
+    }
+    c.textAlign = "center";
+    text(c, card.name, x + 82, 876, 17, INK, 173);
+    const variant = card.variant ?? (card.isEvolution ? "Evolution" : undefined);
+    text(c, [card.level === undefined ? card.rarity : `LVL ${card.level}`, variant?.toUpperCase()].filter(Boolean).join(" · "), x + 82, 903, 14, variant ? "#c9a5ff" : MUTED, 170);
+    c.textAlign = "left";
+  });
+  if (!cards.length) text(c, "This player has no current deck available.", 64, 742, 28, MUTED);
+  line(c, 64, 932, 1472);
+  const date = player.fetchedAt ? new Date(player.fetchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined;
+  text(c, date ? `PROFILE SNAPSHOT  ·  ${date}` : "DEMO PROFILE", 64, 968, 16, MUTED);
+  c.textAlign = "right";
+  text(c, "cr.statsconnect.app", 1536, 968, 18, INK);
   return canvasBlob(canvas);
 }
 

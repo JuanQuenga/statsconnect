@@ -11,7 +11,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { useEffect, useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,7 +26,8 @@ import { brawlData } from "@/lib/game-data";
 import { formatPercent, normalizeTag, readableMode, trophies } from "@/lib/format";
 import { rememberRecentProfile } from "@/lib/preferences";
 import type { BattleLogItem, BrawlerCatalogItem, PlayerAnalytics, PlayerBattle, PlayerProfile, PlayerSearchResponse, PlayerSnapshot } from "@/lib/types";
-import { useI18n, type Translator } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
+import { downloadBrawlProfileCard } from "@/lib/profile-card";
 import { AdSenseUnit } from "@statsconnect/monetization";
 
 type PlayerSearch = { tag?: string; q?: string };
@@ -171,6 +172,19 @@ function PlayerProfilePage({
   onLoadMore: () => void;
 }) {
   const { t, number } = useI18n();
+  const [downloadingCard, setDownloadingCard] = useState(false);
+  const [cardDownloadError, setCardDownloadError] = useState(false);
+  async function downloadCard() {
+    setDownloadingCard(true);
+    setCardDownloadError(false);
+    try {
+      await downloadBrawlProfileCard({ player, analytics, t, number });
+    } catch {
+      setCardDownloadError(true);
+    } finally {
+      setDownloadingCard(false);
+    }
+  }
   const brawlers = [...(player.brawlers || [])].sort((a, b) => b.trophies - a.trophies);
   const signature = brawlers[0];
   const signatureMeta = signature ? catalog.get(signature.id) : undefined;
@@ -249,12 +263,13 @@ function PlayerProfilePage({
             </div>
 
             <div className="mt-7 flex flex-wrap gap-2">
-              <Button size="lg" onClick={() => downloadProfileCard(player, analytics, t, number)}>
+              <Button size="lg" disabled={downloadingCard} onClick={downloadCard}>
                 <Download />
-                {t("player.downloadCard")}
+                {t(downloadingCard ? "common.loading" : "player.downloadCard")}
               </Button>
               <ProfileActions size="lg" profile={{ tag: player.tag, name: player.name, iconId: player.icon?.id, trophies: player.trophies }} />
             </div>
+            {cardDownloadError ? <p role="alert" className="mt-3 text-sm text-destructive">{t("player.cardDownloadFailed")}</p> : null}
           </div>
 
           {signature ? (
@@ -694,21 +709,6 @@ function RankedPanel({ player, snapshots }: { player: PlayerProfile; snapshots: 
     ].map(([label, name, value]) => <div key={String(label)} className="border-t border-border pt-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-display text-xl text-primary">{name || (value === undefined ? t("player.notExposed") : value)}</p>{name && value !== undefined ? <p className="text-xs text-muted-foreground">{t("player.tierValue", { value })}</p> : null}</div>)}</div>
     {rankedHistory.length > 1 ? <div className="flex h-20 items-end gap-1">{rankedHistory.slice(-90).map((snapshot) => <div key={snapshot.day} title={`${snapshot.day}: ${snapshot.rankedCurrentName || snapshot.rankedCurrent}`} className="min-w-1 flex-1 rounded-t bg-accent" style={{ height: `${Math.max(10, ((snapshot.rankedCurrent || 0) / Math.max(...rankedHistory.map((row) => row.rankedCurrent || 1))) * 100)}%` }} />)}</div> : <p className="text-sm text-muted-foreground">{t("player.rankedHistoryEmpty")}</p>}
   </Card>;
-}
-
-function profileCardSvg(player: PlayerProfile, analytics: PlayerAnalytics | undefined, t: Translator, number: (value: number) => string) {
-  const summary = analytics?.summaries.find((row) => row.days === 30);
-  const safe = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character] || character);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#111827"/><stop offset="1" stop-color="#172554"/></linearGradient></defs><rect width="1200" height="630" rx="40" fill="url(#g)"/><text x="80" y="105" fill="#60a5fa" font-family="system-ui" font-size="30" font-weight="700">${safe(t("player.cardTitle"))}</text><text x="80" y="210" fill="white" font-family="system-ui" font-size="72" font-weight="800">${safe(player.name)}</text><text x="80" y="260" fill="#94a3b8" font-family="system-ui" font-size="32">${safe(player.tag)}</text><text x="80" y="380" fill="white" font-family="system-ui" font-size="30">${safe(t("common.trophies"))}</text><text x="80" y="440" fill="#facc15" font-family="system-ui" font-size="58" font-weight="800">${number(player.trophies)}</text><text x="440" y="380" fill="white" font-family="system-ui" font-size="30">${safe(t("player.record30"))}</text><text x="440" y="440" fill="#4ade80" font-family="system-ui" font-size="50" font-weight="800">${summary ? `${summary.wins}W ${summary.losses}L` : safe(t("player.cardTracking"))}</text><text x="850" y="380" fill="white" font-family="system-ui" font-size="30">${safe(t("player.cardBest"))}</text><text x="850" y="440" fill="#facc15" font-family="system-ui" font-size="50" font-weight="800">${number(player.highestTrophies)}</text><text x="80" y="560" fill="#94a3b8" font-family="system-ui" font-size="24">${safe(t("player.cardFooter"))}</text></svg>`;
-}
-
-function downloadProfileCard(player: PlayerProfile, analytics: PlayerAnalytics | undefined, t: Translator, number: (value: number) => string) {
-  const url = URL.createObjectURL(new Blob([profileCardSvg(player, analytics, t, number)], { type: "image/svg+xml" }));
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${player.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-statsconnect-brawl-stars.svg`;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }
 
 function PlayerResults({ query, results }: { query: string; results: PlayerSearchResponse }) {

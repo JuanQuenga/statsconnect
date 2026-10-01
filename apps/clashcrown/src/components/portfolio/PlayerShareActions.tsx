@@ -41,7 +41,7 @@ export function PlayerShareActions({ player, compact = false }: { player: Player
         const file = new File([blob], filename, { type: "image/png" });
         await navigator.share({
           title: `${player.name} · StatsConnect Clash Royale statistics`,
-          text: `${player.name}'s Clash Royale profile and card collection`,
+          text: `${player.name}'s Clash Royale profile and current deck`,
           files: [file]
         });
         setMessage("Share sheet opened.");
