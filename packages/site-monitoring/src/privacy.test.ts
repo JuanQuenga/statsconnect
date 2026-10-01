@@ -148,3 +148,19 @@ test("Sentry sanitizes hostname identifiers in requests, both navigation URLs an
   assert.equal(event.exception.values[0]?.stacktrace.frames[0]?.lineno, 42);
   assert.equal(event.exception.values[0]?.stacktrace.frames[0]?.colno, 7);
 });
+
+test("Sentry sanitizes every debug image URL field and preserves debug IDs", () => {
+  const event = sanitizeSentryEvent({
+    debug_meta: { images: [
+      { type: "sourcemap", code_file: "https://P0Y89.example.test/assets/index.js", debug_id: "source-debug-id" },
+      { type: "wasm", code_file: "https://P0Y89.vercel.app/assets/code.wasm", debug_file: "https://P0Y89.google.com/assets/debug.wasm", debug_id: "wasm-debug-id" },
+      { type: "macho", code_file: "https://P0Y89.statsconnect.app/code", image_addr: "0x1000", debug_id: "native-debug-id" },
+    ] },
+  });
+  assert.doesNotMatch(JSON.stringify(event), /p0y89|example\.test|vercel\.app|google\.com/i);
+  assert.deepEqual(event.debug_meta.images, [
+    { type: "sourcemap", code_file: "https://redacted.invalid/assets/index.js", debug_id: "source-debug-id" },
+    { type: "wasm", code_file: "https://redacted.invalid/:id/:id", debug_file: "https://redacted.invalid/:id/:id", debug_id: "wasm-debug-id" },
+    { type: "macho", code_file: "https://redacted.invalid/:id", image_addr: "0x1000", debug_id: "native-debug-id" },
+  ]);
+});
