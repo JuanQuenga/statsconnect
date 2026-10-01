@@ -29,6 +29,10 @@ The root unified release deploys the Hub. The app has no Convex or Vercel deploy
 
 ## PostHog and Sentry
 
+The PostHog organization and project are both named `StatsConnect`. The US Cloud project ID is `640201`, on the capped Free plan with no card attached. Its [Activity page](https://us.posthog.com/project/640201/activity/events) is separate from the existing Piggies project.
+
+The `statsconnect` Vercel project has `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, and `VITE_SENTRY_DSN` configured for Preview on `feat/posthog-sentry`. These settings apply to subsequent branch deployments. Production activation still requires setting those variables for Production and deploying the branch's changes.
+
 All three frontends use `@statsconnect/site-monitoring`. Set the following public ingestion values in each app’s `.env.local`, or in the environment used by the unified Vercel build:
 
 - `VITE_POSTHOG_KEY`: the StatsConnect PostHog project token.
