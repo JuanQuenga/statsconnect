@@ -95,12 +95,6 @@ release. No payment, subscription, or portal login email was submitted during
 verification. Monthly support uses standard Stripe Billing and Payments fees;
 there is no claim that processing is free.
 
-The account's existing Stripe Climate contribution is enabled at 1% of revenue,
-confirmed in its contribution settings and both public checkouts. That allocates
-$0.05 from a $5 payment to carbon removal, in addition to normal processing fees.
-No fixed contribution or revenue threshold was shown in the current settings.
-This account-wide enrollment was not changed as part of support setup.
-
 Clerk Billing is designed for recurring application subscriptions. StatsConnect
 currently uses Better Auth and does not need a Clerk migration to link to hosted
 Stripe checkout. Existing subscriptions, customers, prices, and entitlements
