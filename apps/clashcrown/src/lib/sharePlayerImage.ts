@@ -1,3 +1,4 @@
+import { cardArtFallbacks, selectCardArt } from "@/lib/clash/assets";
 import type { Card, Player } from "@/lib/clash/domain";
 
 const WIDTH = 1600;
@@ -58,7 +59,35 @@ function imageContain(context: CanvasRenderingContext2D, image: HTMLImageElement
   const scale = Math.min(width / image.width, height / image.height);
   const w = image.width * scale;
   const h = image.height * scale;
-  context.drawImage(image, x + (width - w) / 2, y + (height - h) / 2, w, h);
+  const bounds = { x: x + (width - w) / 2, y: y + (height - h) / 2, width: w, height: h };
+  context.drawImage(image, bounds.x, bounds.y, w, h);
+  return bounds;
+}
+
+/** Match the deck UI's thick dark outlines without stretching the game font. */
+function outlinedText(context: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, width: number, fill: string | CanvasGradient = INK) {
+  context.save();
+  context.font = `${size}px ${FONT}`;
+  while (context.measureText(value).width > width && size > 12) {
+    size -= 1;
+    context.font = `${size}px ${FONT}`;
+  }
+  context.lineJoin = "round";
+  context.strokeStyle = "#08101d";
+  context.lineWidth = Math.max(3, size * 0.16);
+  context.strokeText(value, x, y);
+  context.fillStyle = fill;
+  context.fillText(value, x, y);
+  context.restore();
+}
+
+async function loadCardImage(card: Card) {
+  const selected = selectCardArt(card);
+  for (const source of [selected.src, ...cardArtFallbacks({ name: card.name, variant: selected.variant })]) {
+    const image = await loadImage(source);
+    if (image) return image;
+  }
+  return undefined;
 }
 
 function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -69,12 +98,13 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 
 export async function createPlayerShareImage(player: Player): Promise<Blob> {
   const cards = player.deck.slice(0, 8);
-  const [arena, trophy, king, clanBadge, cardImages] = await Promise.all([
+  const [arena, trophy, king, clanBadge, elixir, cardImages] = await Promise.all([
     loadImage(player.arenaImage),
     loadImage("/images/share/trophy.png"),
     loadImage("/images/icons/level.png"),
     loadImage(player.clanBadge ?? ""),
-    Promise.all(cards.map((card) => loadImage(card.variant === "Evolution" ? card.evolutionImage ?? card.image : card.variant === "Hero" ? card.heroImage ?? card.image : card.image))),
+    loadImage("/images/icons/elixir.png"),
+    Promise.all(cards.map(loadCardImage)),
     loadFont(),
   ]);
   const canvas = document.createElement("canvas");
@@ -144,24 +174,46 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
   text(c, "CURRENT DECK", 818, 224, 24, INK, 450, true);
   const average = cards.length ? (cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length).toFixed(1) : undefined;
   c.textAlign = "right";
-  text(c, average ? `${average} AVG ELIXIR` : "Deck not reported", 1536, 224, 18, "#cfacff", 260);
+  if (average && elixir) {
+    imageContain(c, elixir, 1370, 190, 27, 33);
+    outlinedText(c, average, 1466, 219, 26, 65);
+    text(c, "AVG", 1536, 217, 14, MUTED, 65);
+  } else {
+    text(c, average ? `${average} AVG ELIXIR` : "Deck not reported", 1536, 224, 18, "#cfacff", 260);
+  }
   c.textAlign = "left";
   cards.forEach((card: Card, i) => {
-    const x = 814 + (i % 4) * 184;
-    const y = 260 + Math.floor(i / 4) * 326;
+    const x = 808 + (i % 4) * 184;
+    const y = 270 + Math.floor(i / 4) * 320;
     const image = cardImages[i];
+    let bounds = { x, y, width: 174, height: 250 };
     if (image) {
       c.save(); c.shadowColor = "#00000070"; c.shadowBlur = 14; c.shadowOffsetY = 10;
-      imageContain(c, image, x, y, 162, 230);
+      // The supplied PNG owns the rarity frame and its silhouette.
+      bounds = imageContain(c, image, x, y, 174, 250);
       c.restore();
     } else {
       c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 7, y + 8, 148, 214, 12); c.fill();
       c.textAlign = "center"; text(c, "?", x + 81, y + 142, 56, MUTED, undefined, true); c.textAlign = "left";
     }
+    const variant = selectCardArt(card).variant;
     c.textAlign = "center";
-    text(c, card.name, x + 81, y + 256, 18, INK, 173);
-    const variant = card.variant ?? (card.isEvolution ? "Evolution" : undefined);
-    text(c, [card.level === undefined ? card.rarity : `LVL ${card.level}`, variant?.toUpperCase()].filter(Boolean).join(" · "), x + 81, y + 284, 15, variant ? "#c9a5ff" : MUTED, 170);
+    if (elixir && card.elixir > 0) {
+      const dropWidth = bounds.width * 0.25;
+      const dropHeight = dropWidth * 1.19;
+      const dropX = bounds.x - 5;
+      const dropY = bounds.y + bounds.height * 0.07;
+      imageContain(c, elixir, dropX, dropY, dropWidth, dropHeight);
+      outlinedText(c, String(card.elixir), dropX + dropWidth / 2, dropY + dropHeight * 0.73, 26, dropWidth - 5);
+    }
+    if (card.level !== undefined) {
+      const levelY = bounds.y + bounds.height * 0.88;
+      const fill = c.createLinearGradient(0, levelY - 26, 0, levelY);
+      const goldLevel = variant === "Hero" || card.rarity === "Champion";
+      fill.addColorStop(0, goldLevel ? "#fff3ba" : "#e4f7ff");
+      fill.addColorStop(1, goldLevel ? "#ffc64f" : "#81caf4");
+      outlinedText(c, `Level ${card.level}`, x + 87, levelY, 25, 158, fill);
+    }
     c.textAlign = "left";
   });
   if (!cards.length) text(c, "Current deck unavailable", 818, 545, 26, MUTED, 700);
