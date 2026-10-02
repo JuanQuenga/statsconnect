@@ -2,6 +2,7 @@ import { HeadContent, Outlet } from "@tanstack/react-router";
 import { AmbientProvider, useAmbient } from "@/components/lobby/ambient";
 import { FooterNotice } from "./FooterNotice";
 import { SiteNav } from "./SiteNav";
+import { CommunityRequest } from "@statsconnect/monetization";
 
 export function AppShell() {
   return (
@@ -35,6 +36,7 @@ function Stage() {
       >
         <Outlet />
       </main>
+      <CommunityRequest supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL} />
       <FooterNotice />
     </div>
   );

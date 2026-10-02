@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { CommunityPanel } from "@statsconnect/monetization";
 import { useStatsConnectAuth, type ConnectedProfile } from "@statsconnect/auth";
 import { gameDestinationHref } from "@statsconnect/site-nav";
 import { ArrowRight, Link2, Trash2 } from "lucide-react";
@@ -101,6 +102,8 @@ function ConnectionsPage() {
           {disconnect.error.message}
         </PageStatus>
       ) : null}
+
+      <CommunityPanel supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL} />
 
       <Dialog
         open={pendingDisconnect !== null}

@@ -27,7 +27,7 @@ import { formatPercent, normalizeTag, readableMode, trophies } from "@/lib/forma
 import { rememberRecentProfile } from "@/lib/preferences";
 import type { BattleLogItem, BrawlerCatalogItem, PlayerAnalytics, PlayerBattle, PlayerProfile, PlayerSearchResponse, PlayerSnapshot } from "@/lib/types";
 import { useI18n, type Translator } from "@/lib/i18n";
-import { AdSenseUnit } from "@statsconnect/monetization";
+import { AdSenseUnit, recordCommunitySuccess } from "@statsconnect/monetization";
 
 type PlayerSearch = { tag?: string; q?: string };
 
@@ -709,6 +709,7 @@ function downloadProfileCard(player: PlayerProfile, analytics: PlayerAnalytics |
   anchor.download = `${player.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-statsconnect-brawl-stars.svg`;
   anchor.click();
   URL.revokeObjectURL(url);
+  recordCommunitySuccess();
 }
 
 function PlayerResults({ query, results }: { query: string; results: PlayerSearchResponse }) {

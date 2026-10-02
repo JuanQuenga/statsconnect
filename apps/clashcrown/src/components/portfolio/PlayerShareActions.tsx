@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Download, LoaderCircle, Share2 } from "lucide-react";
 import { createPlayerShareImage, playerShareFileName } from "@/lib/sharePlayerImage";
 import type { Player } from "@/lib/clash/domain";
+import { recordCommunitySuccess } from "@statsconnect/monetization";
 
 type ShareAction = "share" | "download";
 
@@ -49,6 +50,7 @@ export function PlayerShareActions({ player, compact = false }: { player: Player
         downloadBlob(blob, filename);
         setMessage("Image downloaded.");
       }
+      recordCommunitySuccess();
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setMessage(errorText(error));
