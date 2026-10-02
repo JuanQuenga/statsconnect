@@ -47,6 +47,23 @@ payments and payouts are available:
 5. Put the verified live public URL into the three build environments, then
    review and release the frontend change through the normal release process.
 
+### Created checkout and release gate
+
+The one-time **Support Juan’s work** Payment Link has been created in Juan's
+receiving account: <https://buy.stripe.com/bJedRaffk3lr7igdOG4AU00>.
+It uses customer-selected USD amounts with a $5 suggestion, no configured
+minimum or maximum, the benefit-free description above, and a custom thank-you
+confirmation. No subscription, promotion code, cross-sell, Managed Payments,
+post-payment invoice, or extra customer-data requirement was added.
+
+At the latest review, the account status showed Payments and Payouts active
+with no active tasks, but the link detail page still showed **Paused** and said
+Stripe was verifying the business. The public checkout rendered successfully;
+no payment was submitted. Keep `VITE_STATSCONNECT_SUPPORT_URL` unset until
+the link detail page confirms it is active. Reuse this existing link after the
+pause clears rather than creating another checkout. No production configuration
+or deployment has been changed.
+
 Clerk Billing is designed for recurring application subscriptions. StatsConnect
 currently uses Better Auth and does not need a Clerk migration to link to hosted
 Stripe checkout. Existing subscriptions, customers, prices, and entitlements
