@@ -254,6 +254,9 @@ importers:
       '@statsconnect/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@statsconnect/monetization':
+        specifier: workspace:*
+        version: link:../../packages/monetization
       '@statsconnect/site-errors':
         specifier: workspace:*
         version: link:../../packages/site-errors

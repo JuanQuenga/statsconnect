@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useStatsConnectAuth } from "@statsconnect/auth";
 import { gameDestinationHref } from "@statsconnect/site-nav";
 import { captureSiteEvent } from "@statsconnect/site-monitoring";
+import { recordCommunitySuccess } from "@statsconnect/monetization";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
@@ -28,6 +29,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
     onSuccess: (result) => {
       captureSiteEvent("player_lookup_succeeded", { game });
       setPreview(result);
+      recordCommunitySuccess();
     },
     onError: () => captureSiteEvent("player_lookup_failed", { game }),
   });

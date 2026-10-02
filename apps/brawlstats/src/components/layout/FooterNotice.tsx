@@ -1,9 +1,10 @@
 import { useI18n } from "@/lib/i18n";
+import { CommunityLinks } from "@statsconnect/monetization";
 
 const creatorCode = import.meta.env.VITE_SUPERCELL_CREATOR_CODE?.trim();
 
 export function FooterNotice() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const policy = t("footer.policy");
   return (
     <footer className="mt-auto border-t border-border bg-card/40">
@@ -15,6 +16,12 @@ export function FooterNotice() {
             {t("footer.description")}
           </p>
           {creatorCode ? <p className="mt-3 text-xs text-muted-foreground">Support this site in the Brawl Stars Shop with creator code <strong className="font-semibold text-foreground">{creatorCode}</strong>.</p> : null}
+          <CommunityLinks
+            supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+            monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+            supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+            locale={locale}
+          />
         </div>
         <div className="text-xs leading-relaxed md:max-w-sm md:text-right">
           <a className="text-accent underline-offset-2 hover:underline" href="https://statsconnect.app/privacy">Privacy policy</a>

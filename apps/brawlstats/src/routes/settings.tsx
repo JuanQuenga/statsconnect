@@ -18,6 +18,7 @@ import {
 } from "@/lib/preferences";
 import { useInstallPrompt } from "@/lib/pwa";
 import { downloadText, shareContent } from "@/lib/share";
+import { CommunityPanel } from "@statsconnect/monetization";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -149,6 +150,12 @@ function SettingsPage() {
           <Share2 /> {t("common.share")}
         </Button>
       </Card>
+      <CommunityPanel
+        supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+        monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+        supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+        locale={locale}
+      />
     </div>
   );
 }

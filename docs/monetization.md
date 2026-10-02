@@ -1,4 +1,139 @@
-# Ads and creator codes
+# Support, feedback, ads, and creator codes
+
+## Voluntary support and feedback
+
+All three site footers offer **Send feedback**, using the existing public contact
+`harmiox@gmail.com`. Connections settings in the Hub and companion settings in
+Brawl Stars also offer feedback. The link opens an email draft for the visitor
+to review and send. It does not attach player tags, account data, browsing
+history, screenshots, or logs, and it does not send anything automatically.
+
+Optional support uses a hosted checkout, separate from StatsConnect+ and its
+entitlements. The unified build includes the verified public support URL.
+Standalone app builds use the public URLs in their environment examples:
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_STATSCONNECT_SUPPORT_URL` | One-time support checkout |
+| `VITE_STATSCONNECT_MONTHLY_SUPPORT_URL` | $5 USD/month support checkout |
+| `VITE_STATSCONNECT_SUPPORT_PORTAL_URL` | Manage billing and cancel monthly support |
+
+These are public URLs, never API keys. Missing or invalid configuration hides
+the affected links. Monthly checkout also requires a valid public Stripe portal
+URL; keep the portal available even when monthly signups are disabled so existing
+supporters can cancel. Accepted one-time destinations
+are HTTPS Stripe Payment Links on `buy.stripe.com` or Ko-fi profile links on
+`ko-fi.com`, without credentials, query parameters, or fragments. Stripe test
+links are rejected. The app cannot verify the receiving account just from a URL;
+the operator must check the actual checkout before configuring it.
+
+The account owner approved both one-time support with a suggested USD $5 and a
+custom amount, and recurring support at $5 USD per month until canceled. Contributions
+support the developer’s work on StatsConnect and other software projects,
+including hosting costs, and confer no features, badges, ad removal, priority access,
+exclusive content, or other benefits. Do not describe them as charitable or
+tax-deductible.
+
+Stripe distinguishes tips for an already-provided service or content from
+donations for a specific charitable purpose. Support is an optional
+tip for software or content already provided, including the free StatsConnect
+statistics service, not charitable fundraising or personal
+money transmission. Describe that activity truthfully during onboarding and
+checkout setup; do not select a nonprofit category or imply nonprofit status.
+
+For Stripe, after the account owner completes activation and confirms that live
+payments and payouts are available:
+
+1. Create a Payment Link with **Customers choose what to pay**.
+2. Use **Support Juan’s work** and the description: "Optional tips support my work
+   on StatsConnect and other software projects, including hosting and development.
+   Contributions do not unlock features or benefits."
+3. Set a USD $5 suggested amount. Keep it one-time, with no recurring price,
+   trial, extra product, or account entitlement integration.
+4. Inspect the hosted page, amount selection, receiving identity, confirmation
+   message, and available payment methods. Check that the account is approved
+   for the actual activity under Stripe's requirements for tips and donations.
+5. Put the verified live public URL into the three build environments, then
+   review and release the frontend change through the normal release process.
+
+### Created checkouts, cancellation, and release
+
+The one-time **Support Juan’s work** Payment Link has been created in Juan's
+receiving account: <https://buy.stripe.com/bJedRaffk3lr7igdOG4AU00>.
+It uses customer-selected USD amounts with a $5 suggestion, no configured
+minimum or maximum, the benefit-free description above, and a custom thank-you
+confirmation. This link remains one-time. No promotion code, cross-sell, Managed Payments,
+post-payment invoice, or extra customer-data requirement was added.
+
+The owner completed account activation. The latest review confirmed the link
+is **Active**, with account Payments and Payouts active and no active tasks.
+The public checkout rendered successfully; no payment was submitted. Reuse this
+existing checkout rather than create another link. The
+verified URL is included in `unifiedPublicEnvironment` and all three app
+environment examples. An explicit `VITE_STATSCONNECT_SUPPORT_URL` overrides
+the unified default; set it to an empty string to hide support if the link ever
+needs to be withdrawn. No production environment, merge, or deployment has
+been changed; the default takes effect when this frontend change is released.
+
+A separate **Support Juan’s work monthly** checkout is active:
+<https://buy.stripe.com/28E28s8QW6xD9qobGy4AU01>.
+It charges $5 USD each month until canceled, with no trial, quantity adjustment,
+promotion, upsell, or benefits. Its description and confirmation explain the
+recurring charge and link to the public management portal:
+<https://billing.stripe.com/p/login/bJedRaffk3lr7igdOG4AU00>.
+Supporters sign in with their checkout email to manage or cancel support. The
+portal uses cancellation at the end of the billing period; canceling stops future
+monthly charges. The owner explicitly approved activating this account-wide
+portal, which also lets existing customers manage their own billing. No existing
+subscription, customer, price, or cancellation setting was changed.
+
+The site labels the monthly amount and renewal terms before checkout, and keeps
+the management link in its footers and settings. The monthly and portal variables
+can each override the unified default, including with an empty string. Verify
+that the public checkout and cancellation entry point remain available before
+release. No payment, subscription, or portal login email was submitted during
+verification. Monthly support uses standard Stripe Billing and Payments fees;
+there is no claim that processing is free.
+
+Clerk Billing is designed for recurring application subscriptions. StatsConnect
+currently uses Better Auth and does not need a Clerk migration to link to hosted
+Stripe checkout. Existing subscriptions, customers, prices, and entitlements
+are unaffected by this support UI.
+
+Separate project links may use the same receiving account when the operator,
+legal entity, activity, and Stripe's account requirements permit it. A personal
+Stripe login can contain several payment accounts; the login itself is not a
+receiving account. Do not create another account or change legal identity just
+to label a different project. Volt would use its own clearly named link and
+requires separate application work.
+
+### When requests appear
+
+Requests are inline below the main content, without an overlay or focus change.
+They never appear just from opening a page. A successful Hub profile lookup,
+Brawl profile-image download, or completed Clash image download/share records
+a useful action. Failed operations and canceled shares do not qualify.
+
+The visitor must complete useful actions in at least three browser-tab sessions,
+with at least one day since the first one. The first eligible request asks for
+feedback. Later eligible requests alternate with support when a valid support
+URL exists. There is at most one request per tab session and a shared 30-day
+cooldown for both request types on that site. **Not now** dismisses the current
+request; **Don't ask again** disables contextual requests indefinitely. Permanent
+footer/settings links stay available.
+
+Only counters, timestamps, request kind, and an opt-out flag are kept in local
+browser storage under `statsconnect.community.v1`; tab flags use session storage.
+Nothing is sent to a server or tracker. Each game host has its own browser
+storage. Blocked storage suppresses contextual requests. Clearing site storage
+resets the visitor's preference.
+
+Sources: [Supercell Fan Content Policy](https://supercell.com/en/fan-content-policy/),
+[Stripe Payment Links](https://docs.stripe.com/payment-links/create),
+[Stripe tips and donations requirements](https://support.stripe.com/questions/requirements-for-accepting-tips-or-donations),
+[Stripe customer portal activation](https://docs.stripe.com/customer-management/activate-no-code-customer-portal),
+[Stripe Billing fees](https://stripe.com/billing/pricing),
+[Clerk Billing](https://clerk.com/docs/guides/billing/overview).
 
 The game sites use manually placed AdSense units at natural content breaks on
 their home, catalog, leaderboard, and profile pages. Clash Royale also has units

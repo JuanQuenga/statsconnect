@@ -3,6 +3,7 @@ import { CompanionBar } from "@/components/layout/CompanionBar";
 import { SiteNav } from "@/components/layout/SiteNav";
 import type { CSSProperties, ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
+import { CommunityRequest } from "@statsconnect/monetization";
 
 type BrawlShellStyle = CSSProperties & {
   "--brawl-arena-image": string;
@@ -13,7 +14,7 @@ const shellStyle: BrawlShellStyle = {
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <div className="brawl-site-frame relative z-0 flex min-h-svh flex-col" style={shellStyle}>
       <a
@@ -27,6 +28,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main id="maincontent" className="flex-1" tabIndex={-1}>
         {children}
       </main>
+      <CommunityRequest
+        supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+        monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+        supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+        locale={locale}
+      />
       <FooterNotice />
     </div>
   );

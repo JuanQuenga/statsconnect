@@ -9,6 +9,7 @@ import {
   type SiteNavigationLinkAdapterProps,
 } from "@statsconnect/site-nav";
 import { useStatsConnectAuth } from "@statsconnect/auth";
+import { CommunityLinks, CommunityRequest } from "@statsconnect/monetization";
 
 const statsConnectOrigin = (
   import.meta.env.VITE_STATSCONNECT_ORIGIN?.trim() ||
@@ -106,13 +107,19 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         )}
       />
       <main id="maincontent" tabIndex={-1}>{children}</main>
+      <CommunityRequest
+        supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+        monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+        supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+        locale={locale}
+      />
       <SiteFooter />
     </div>
   );
 }
 
 function SiteFooter() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <footer className="site-footer">
       <div className="footer-inner">
@@ -142,6 +149,12 @@ function SiteFooter() {
           </div>
         </div>
         <div className="footer-legal">
+          <CommunityLinks
+            supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+            monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+            supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+            locale={locale}
+          />
           {creatorCode ? <p>Support this site in the Clash Royale Shop with creator code <strong>{creatorCode}</strong>.</p> : null}
           <p>
             {t("footer.disclaimer")} See Supercell&rsquo;s{" "}

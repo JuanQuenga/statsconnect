@@ -79,6 +79,9 @@ export function publicAppOrigin(app: DeliveryApp): string {
 
 export const unifiedPublicEnvironment = {
   VITE_STATSCONNECT_ORIGIN: publicAppOrigin(deliveryApp("statsconnect")),
+  VITE_STATSCONNECT_SUPPORT_URL: "https://buy.stripe.com/bJedRaffk3lr7igdOG4AU00",
+  VITE_STATSCONNECT_MONTHLY_SUPPORT_URL: "https://buy.stripe.com/28E28s8QW6xD9qobGy4AU01",
+  VITE_STATSCONNECT_SUPPORT_PORTAL_URL: "https://billing.stripe.com/p/login/bJedRaffk3lr7igdOG4AU00",
   VITE_ADSENSE_CLIENT_ID: "ca-pub-4485799997262487",
   VITE_ADSENSE_BRAWL_HOME_SLOT: "1866622105",
   VITE_ADSENSE_CLASH_HOME_SLOT: "7993046756",
@@ -153,6 +156,9 @@ export function runUnifiedBuild(): void {
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
     ...unifiedPublicEnvironment,
+    VITE_STATSCONNECT_SUPPORT_URL: process.env.VITE_STATSCONNECT_SUPPORT_URL ?? unifiedPublicEnvironment.VITE_STATSCONNECT_SUPPORT_URL,
+    VITE_STATSCONNECT_MONTHLY_SUPPORT_URL: process.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL ?? unifiedPublicEnvironment.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL,
+    VITE_STATSCONNECT_SUPPORT_PORTAL_URL: process.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL ?? unifiedPublicEnvironment.VITE_STATSCONNECT_SUPPORT_PORTAL_URL,
     VITE_MONITORING_ENVIRONMENT: process.env.VITE_MONITORING_ENVIRONMENT ?? process.env.VERCEL_ENV ?? "production",
     VITE_SENTRY_RELEASE: process.env.VITE_SENTRY_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA,
     STATSCONNECT_UNIFIED_BUILD: "1",

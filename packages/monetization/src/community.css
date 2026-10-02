@@ -1,0 +1,11 @@
+.statsconnect-community { font: inherit; font-size: .875rem; line-height: 1.6; color: inherit; }
+.statsconnect-community .community-actions { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; align-items: center; }
+.statsconnect-community a, .statsconnect-community button { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: .2em; }
+.statsconnect-community a:focus-visible, .statsconnect-community button:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; border-radius: 3px; }
+.statsconnect-community button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.statsconnect-community .community-notice { margin: .25rem 0 0; max-width: 42rem; font-size: .75rem; text-align: left; }
+.statsconnect-community .community-manage { font-size: .75rem; }
+.community-panel { margin-top: 2rem; border: 1px solid #8885; border-radius: 12px; padding: 1.25rem; }
+.community-panel h2, .community-request .community-request-title { font-size: 1rem; font-weight: 650; margin: 0 0 .4rem; }
+.community-panel p, .community-request p { margin: .4rem 0; }
+.community-request { width: min(calc(100% - 2rem), 60rem); margin: 1.5rem auto; padding: 1rem 1.25rem; border: 1px solid #8885; border-radius: 12px; background: #8881; }

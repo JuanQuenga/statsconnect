@@ -28,7 +28,7 @@ import { rememberRecentProfile } from "@/lib/preferences";
 import type { BattleLogItem, BrawlerCatalogItem, PlayerAnalytics, PlayerBattle, PlayerProfile, PlayerSearchResponse, PlayerSnapshot } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 import { downloadBrawlProfileCard } from "@/lib/profile-card";
-import { AdSenseUnit } from "@statsconnect/monetization";
+import { AdSenseUnit, recordCommunitySuccess } from "@statsconnect/monetization";
 
 type PlayerSearch = { tag?: string; q?: string };
 
@@ -179,6 +179,7 @@ function PlayerProfilePage({
     setCardDownloadError(false);
     try {
       await downloadBrawlProfileCard({ player, analytics, t, number });
+      recordCommunitySuccess();
     } catch {
       setCardDownloadError(true);
     } finally {
