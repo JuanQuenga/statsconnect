@@ -1,4 +1,4 @@
-import { getLocale, type Locale } from "../i18n.ts";
+import { getLocale, type Locale } from "../locale.ts";
 
 export function stripSupercellColorTags(value: string): string {
   return value.replace(/<\/?c(?:[0-9a-f]{1,8})?>/gi, "");

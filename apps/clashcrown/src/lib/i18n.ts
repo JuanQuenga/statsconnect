@@ -1,11 +1,8 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { formatNumber } from "@statsconnect/site-format";
-
-export const supportedLocales = ["en", "es"] as const;
-export type Locale = (typeof supportedLocales)[number];
-
-const STORAGE_KEY = "clashcrown-locale:v1";
-const listeners = new Set<() => void>();
+import { getLocale, setLocale, subscribe } from "./locale.ts";
+export { getLocale, setLocale, supportedLocales, type Locale } from "./locale.ts";
+import type { Locale } from "./locale.ts";
 
 const messages = {
   en: {
@@ -219,43 +216,6 @@ const messages = {
 } as const;
 
 export type MessageKey = keyof (typeof messages)["en"];
-
-function detectLocale(): Locale {
-  if (typeof window === "undefined") return "en";
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "en" || stored === "es") return stored;
-  } catch {
-    // Storage can be disabled; the browser language remains a safe fallback.
-  }
-  return window.navigator.language.toLowerCase().startsWith("es") ? "es" : "en";
-}
-
-let currentLocale = detectLocale();
-if (typeof document !== "undefined") document.documentElement.lang = currentLocale;
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-export function getLocale(): Locale {
-  return currentLocale;
-}
-
-export function setLocale(locale: Locale) {
-  if (currentLocale === locale) return;
-  currentLocale = locale;
-  if (typeof document !== "undefined") document.documentElement.lang = locale;
-  if (typeof window !== "undefined") {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, locale);
-    } catch {
-      // Keep the in-memory preference for this visit when storage is unavailable.
-    }
-  }
-  for (const listener of listeners) listener();
-}
 
 export function translate(locale: Locale, key: MessageKey): string {
   return messages[locale][key] ?? messages.en[key];
