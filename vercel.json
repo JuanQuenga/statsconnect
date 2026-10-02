@@ -9,7 +9,7 @@
       "maxDuration": 30
     },
     "api/profile-image.ts": {
-      "includeFiles": "{dist/profile-preview-config.json,apps/clashcrown/public/fonts/supercell-webfont.ttf,apps/clashcrown/public/images/{cards,arenas,clan-badges}/**/*.png,apps/clashcrown/public/images/icons/{level,elixir}.png,apps/clashcrown/public/images/share/trophy.png,apps/brawlstats/public/fonts/TotalBlack-900.otf,apps/brawlstats/public/assets/img/icons/genicon_trophy.png,apps/brawlstats/public/assets/brawlers/portraits/{16000109,16000110}.png}",
+      "includeFiles": "{dist/profile-preview-config.json,apps/{clashcrown/public/{fonts/*.ttf,images/{cards,arenas,clan-badges,icons,share}/**/*.png},brawlstats/public/{fonts/TotalBlack-900.otf,assets/{img/icons/genicon_trophy,brawlers/portraits/*}.png}}}",
       "maxDuration": 30
     }
   },

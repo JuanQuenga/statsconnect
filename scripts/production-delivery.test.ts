@@ -23,12 +23,20 @@ const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
 type VercelConfiguration = {
   buildCommand: string;
+  functions: Record<string, { includeFiles: string }>;
   headers: Array<{ headers: Array<{ key: string; value: string }>; source: string }>;
   outputDirectory: string;
   redirects: Array<{ destination: string; permanent: boolean; source: string }>;
   rewrites: Array<{ destination: string; source: string }>;
   trailingSlash: boolean;
 };
+
+test("function asset patterns fit Vercel's configuration limit", async () => {
+  const vercel = await readJson<VercelConfiguration>("vercel.json");
+  for (const [handler, configuration] of Object.entries(vercel.functions)) {
+    assert.ok(configuration.includeFiles.length <= 256, handler);
+  }
+});
 
 type RootPackage = {
   scripts: Record<string, string>;
