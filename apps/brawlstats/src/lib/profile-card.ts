@@ -71,6 +71,13 @@ function contain(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: numb
   ctx.drawImage(image, x + (width - drawnWidth) / 2, y + (height - drawnHeight) / 2, drawnWidth, drawnHeight);
 }
 
+function cover(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const sourceWidth = width / scale;
+  const sourceHeight = height / scale;
+  ctx.drawImage(image, (image.naturalWidth - sourceWidth) / 2, (image.naturalHeight - sourceHeight) / 2, sourceWidth, sourceHeight, x, y, width, height);
+}
+
 function star(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string) {
   ctx.beginPath();
   for (let point = 0; point < 10; point += 1) {
@@ -117,15 +124,12 @@ export async function createBrawlProfileCard({ player, analytics, t, number }: P
   const glow = ctx.createRadialGradient(1280, 380, 30, 1280, 380, 370);
   glow.addColorStop(0, "#59e7f433"); glow.addColorStop(1, "#59e7f400"); ctx.fillStyle = glow; ctx.fillRect(930, 0, 670, 710);
   ctx.fillStyle = YELLOW; ctx.fillRect(0, 0, 1600, 10);
-  star(ctx, 88, 65, 18, YELLOW);
-  text(ctx, "STATSCONNECT", 122, 76, 27, WHITE, 360, true);
+  text(ctx, "STATSCONNECT", 80, 76, 27, WHITE, 360, true);
   ctx.save(); ctx.textAlign = "right";
   text(ctx, "BRAWL STARS", 1520, 76, 29, YELLOW, 400, true); ctx.restore();
 
-  ctx.save(); ctx.beginPath(); ctx.roundRect(76, 128, 88, 88, 21); ctx.clip();
   ctx.fillStyle = "#254258"; ctx.fillRect(76, 128, 88, 88);
   if (icon) contain(ctx, icon, 78, 130, 84, 84); else star(ctx, 120, 172, 30, YELLOW);
-  ctx.restore();
   text(ctx, player.name, 191, 188, 64, WHITE, 750, true);
   text(ctx, player.tag, 193, 228, 26, CYAN, 340);
   text(ctx, player.club?.name || t("common.noClub"), 76, 277, 25, MUTED, 850);
@@ -171,17 +175,18 @@ export async function createBrawlProfileCard({ player, analytics, t, number }: P
   topBrawlers.forEach((brawler, index) => {
     const x = 80 + index * 295;
     if (index > 0) { ctx.fillStyle = "#ffffff1a"; ctx.fillRect(x - 18, 798, 1, 120); }
-    ctx.save(); ctx.beginPath(); ctx.roundRect(x, 798, 112, 120, 12); ctx.clip();
-    ctx.fillStyle = index === 0 ? "#715630" : "#15364b"; ctx.fillRect(x, 798, 112, 120);
+    // Match the catalog's 3:2 portrait framing and centered object-cover crop.
+    const portraitHeight = 112 / 1.5;
+    const portraitY = 798 + (120 - portraitHeight) / 2;
+    ctx.fillStyle = index === 0 ? "#715630" : "#15364b"; ctx.fillRect(x, portraitY, 112, portraitHeight);
     const portrait = portraits[index];
-    if (portrait) contain(ctx, portrait, x, 798, 112, 120);
+    if (portrait) cover(ctx, portrait, x, portraitY, 112, portraitHeight);
     else text(ctx, Array.from(brawler.name)[0] ?? "?", x + 34, 877, 56, YELLOW, 80, true);
-    ctx.restore();
     text(ctx, brawler.name, x + 126, 824, 27, WHITE, 153, true);
     text(ctx, number(brawler.trophies), x + 126, 866, 34, YELLOW, 153, true);
     text(ctx, t("assistant.power", { power: brawler.power }), x + 126, 901, 19, MUTED, 153);
   });
-  text(ctx, "bs.statsconnect.app", 80, 969, 18, MUTED, 960);
+  text(ctx, "statsconnect.app", 80, 969, 18, MUTED, 960);
   const stamp = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date());
   ctx.save(); ctx.textAlign = "right"; text(ctx, stamp, 1520, 969, 18, MUTED, 420); ctx.restore();
   return canvas;

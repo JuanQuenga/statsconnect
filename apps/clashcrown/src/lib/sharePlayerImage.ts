@@ -69,9 +69,11 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 
 export async function createPlayerShareImage(player: Player): Promise<Blob> {
   const cards = player.deck.slice(0, 8);
-  const [arena, trophy, cardImages] = await Promise.all([
+  const [arena, trophy, king, clanBadge, cardImages] = await Promise.all([
     loadImage(player.arenaImage),
-    loadImage("/images/ui-icons/trophies.png"),
+    loadImage("/images/share/trophy.png"),
+    loadImage("/images/icons/level.png"),
+    loadImage(player.clanBadge ?? ""),
     Promise.all(cards.map((card) => loadImage(card.variant === "Evolution" ? card.evolutionImage ?? card.image : card.variant === "Hero" ? card.heroImage ?? card.image : card.image))),
     loadFont(),
   ]);
@@ -81,88 +83,93 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
   const c = canvas.getContext("2d");
   if (!c) throw new Error("This browser does not support local image rendering.");
 
+  c.imageSmoothingQuality = "high";
   const background = c.createLinearGradient(0, 0, WIDTH, HEIGHT);
-  background.addColorStop(0, "#101b2e");
-  background.addColorStop(1, "#050c18");
+  background.addColorStop(0, "#173657");
+  background.addColorStop(0.6, "#0c2139");
+  background.addColorStop(1, "#081426");
   c.fillStyle = background;
   c.fillRect(0, 0, WIDTH, HEIGHT);
-  const glow = c.createRadialGradient(1230, 270, 0, 1230, 270, 570);
-  glow.addColorStop(0, "#24578b90");
-  glow.addColorStop(1, "#24578b00");
-  c.fillStyle = glow;
-  c.fillRect(0, 0, WIDTH, HEIGHT);
-  // Quiet arena geometry gives the illustration a stage, without hiding the stats.
+  // Subtle quilted geometry echoes the game's profile background.
   c.save();
-  c.strokeStyle = "#8fcfff10";
+  c.strokeStyle = "#7cb5df08";
   c.lineWidth = 2;
-  for (const radius of [195, 270, 345]) {
-    c.beginPath(); c.arc(1230, 275, radius, 0, Math.PI * 2); c.stroke();
+  for (let x = -HEIGHT; x < WIDTH + HEIGHT; x += 100) {
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x + HEIGHT, HEIGHT); c.stroke();
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x - HEIGHT, HEIGHT); c.stroke();
   }
   c.restore();
-  c.fillStyle = GOLD;
-  c.fillRect(64, 55, 5, 24);
-  text(c, "CLASH ROYALE", 85, 76, 20, GOLD);
+  text(c, "CLASH ROYALE", 64, 80, 26, GOLD, 650, true);
   c.textAlign = "right";
-  text(c, "STATSCONNECT", 1536, 76, 18, MUTED);
+  text(c, "STATSCONNECT", 1536, 80, 23, INK, 570, true);
   c.textAlign = "left";
-  text(c, player.name, 64, 163, 58, INK, 930, true);
-  text(c, `#${player.tag.replace(/^#/, "")}  ·  ${player.clan}`, 66, 207, 23, MUTED, 900);
+
+  text(c, player.name, 64, 190, 56, INK, 600, true);
+  text(c, `#${player.tag.replace(/^#/, "")}`, 66, 235, 23, MUTED, 620);
+  if (king) imageContain(c, king, 674, 127, 98, 98);
+  c.textAlign = "center";
+  text(c, player.level?.toString() ?? "?", 723, 187, 29, INK, 75, true);
+  text(c, "KING LEVEL", 723, 246, 13, MUTED, 110);
+  c.textAlign = "left";
+  if (clanBadge) imageContain(c, clanBadge, 65, 267, 62, 72);
+  text(c, player.clan, clanBadge ? 146 : 66, 310, 26, INK, clanBadge ? 598 : 680, true);
+
+  if (trophy) imageContain(c, trophy, 56, 369, 110, 124);
+  text(c, player.trophies?.toLocaleString("en-US") ?? "—", trophy ? 185 : 66, 489, 94, GOLD, trophy ? 560 : 680, true);
+  text(c, "TROPHIES", 68, 535, 19, MUTED);
+  text(c, "PERSONAL BEST", 68, 595, 17, MUTED);
+  text(c, player.bestTrophies?.toLocaleString("en-US") ?? "—", 68, 641, 34, INK, 320, true);
+  text(c, "CAREER WINS", 418, 595, 17, MUTED);
+  text(c, player.stats.Wins ?? "—", 418, 641, 34, INK, 310, true);
+  line(c, 66, 677, 680);
 
   if (arena) {
     c.save();
-    c.shadowColor = "#00000070"; c.shadowBlur = 32; c.shadowOffsetY = 22;
-    imageContain(c, arena, 1030, 108, 425, 330);
+    c.shadowColor = "#00000060"; c.shadowBlur = 20; c.shadowOffsetY = 12;
+    imageContain(c, arena, 66, 716, 176, 168);
     c.restore();
   }
-  c.textAlign = "center";
-  text(c, player.arena, 1235, 474, 22, INK, 510, true);
-  c.textAlign = "left";
-  if (trophy) imageContain(c, trophy, 64, 252, 79, 88);
-  text(c, player.trophies?.toLocaleString("en-US") ?? "Unreported", trophy ? 163 : 64, 348, player.trophies === undefined ? 58 : 108, GOLD, 785, true);
-  text(c, "TROPHIES", 68, 394, 19, MUTED);
-
+  const arenaTextX = arena ? 275 : 66;
+  text(c, player.arena, arenaTextX, 777, 28, INK, arena ? 468 : 680, true);
   const owned = player.cards.filter((card) => card.owned !== false).length;
-  const metrics = [
-    ["PERSONAL BEST", player.bestTrophies?.toLocaleString("en-US") ?? "Unreported"],
-    ["CAREER WINS", player.stats.Wins ?? "Unreported"],
-    ["KING LEVEL", player.level?.toString() ?? "Unreported"],
-    ["CARDS OWNED", (player.cardCollectionAvailable ?? player.cards.length > 0) ? String(owned) : "Unreported"],
-  ];
-  metrics.forEach(([label, value], i) => {
-    const x = 66 + i * 242;
-    text(c, value, x, 474, 34, INK, 215);
-    text(c, label, x, 509, 16, MUTED);
-  });
-  line(c, 64, 546, 1472);
-  text(c, "CURRENT DECK", 64, 590, 19, GOLD);
+  if (player.cardCollectionAvailable ?? player.cards.length > 0) {
+    text(c, `${owned} cards collected`, arenaTextX, 818, 21, MUTED, 460);
+  }
+  if (player.stats["3 crown wins"]) {
+    text(c, `${player.stats["3 crown wins"]} three-crown wins`, arenaTextX, 853, 21, MUTED, 460);
+  }
+
+  c.fillStyle = "#ffffff16";
+  c.fillRect(780, 160, 1, 735);
+  text(c, "CURRENT DECK", 818, 224, 24, INK, 450, true);
   const average = cards.length ? (cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length).toFixed(1) : undefined;
   c.textAlign = "right";
-  text(c, average ? `${average} AVG ELIXIR` : "Deck not reported", 1536, 590, 18, MUTED);
+  text(c, average ? `${average} AVG ELIXIR` : "Deck not reported", 1536, 224, 18, "#cfacff", 260);
   c.textAlign = "left";
-
   cards.forEach((card: Card, i) => {
-    const x = 64 + i * 186;
+    const x = 814 + (i % 4) * 184;
+    const y = 260 + Math.floor(i / 4) * 326;
     const image = cardImages[i];
     if (image) {
-      c.save(); c.shadowColor = "#00000080"; c.shadowBlur = 16; c.shadowOffsetY = 12;
-      imageContain(c, image, x, 620, 164, 226);
+      c.save(); c.shadowColor = "#00000070"; c.shadowBlur = 14; c.shadowOffsetY = 10;
+      imageContain(c, image, x, y, 162, 230);
       c.restore();
     } else {
-      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 8, 628, 148, 205, 12); c.fill();
-      c.textAlign = "center"; text(c, "?", x + 82, 754, 56, MUTED, undefined, true); c.textAlign = "left";
+      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 7, y + 8, 148, 214, 12); c.fill();
+      c.textAlign = "center"; text(c, "?", x + 81, y + 142, 56, MUTED, undefined, true); c.textAlign = "left";
     }
     c.textAlign = "center";
-    text(c, card.name, x + 82, 876, 17, INK, 173);
+    text(c, card.name, x + 81, y + 256, 18, INK, 173);
     const variant = card.variant ?? (card.isEvolution ? "Evolution" : undefined);
-    text(c, [card.level === undefined ? card.rarity : `LVL ${card.level}`, variant?.toUpperCase()].filter(Boolean).join(" · "), x + 82, 903, 14, variant ? "#c9a5ff" : MUTED, 170);
+    text(c, [card.level === undefined ? card.rarity : `LVL ${card.level}`, variant?.toUpperCase()].filter(Boolean).join(" · "), x + 81, y + 284, 15, variant ? "#c9a5ff" : MUTED, 170);
     c.textAlign = "left";
   });
-  if (!cards.length) text(c, "This player has no current deck available.", 64, 742, 28, MUTED);
-  line(c, 64, 932, 1472);
+  if (!cards.length) text(c, "Current deck unavailable", 818, 545, 26, MUTED, 700);
+  line(c, 64, 931, 1472);
   const date = player.fetchedAt ? new Date(player.fetchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined;
-  text(c, date ? `PROFILE SNAPSHOT  ·  ${date}` : "DEMO PROFILE", 64, 968, 16, MUTED);
+  text(c, date ? `PROFILE SNAPSHOT  ·  ${date}` : "DEMO PROFILE", 64, 969, 16, MUTED);
   c.textAlign = "right";
-  text(c, "cr.statsconnect.app", 1536, 968, 18, INK);
+  text(c, "statsconnect.app", 1536, 969, 19, INK);
   return canvasBlob(canvas);
 }
 
