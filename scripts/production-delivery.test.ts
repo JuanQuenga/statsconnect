@@ -15,18 +15,41 @@ import {
   unifiedPublicEnvironment,
   viteBasePath,
   viteOutputDirectory,
+  writeProfilePreviewConfiguration,
 } from "./production-delivery.ts";
+import { profilePreviewConfigPath } from "../shared/profile-preview-config.ts";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
 type VercelConfiguration = {
   buildCommand: string;
+  functions: Record<string, { includeFiles: string }>;
   headers: Array<{ headers: Array<{ key: string; value: string }>; source: string }>;
   outputDirectory: string;
   redirects: Array<{ destination: string; permanent: boolean; source: string }>;
-  rewrites: Array<{ destination: string; source: string }>;
+  rewrites: Array<{ destination: string; source: string; has?: Array<{ type: string; key?: string; value?: string }> }>;
   trailingSlash: boolean;
 };
+
+test("function asset patterns fit Vercel's configuration limit", async () => {
+  const vercel = await readJson<VercelConfiguration>("vercel.json");
+  for (const [handler, configuration] of Object.entries(vercel.functions)) {
+    assert.ok(configuration.includeFiles.length <= 256, handler);
+  }
+});
+
+test("Brawl profile rewrites forward tags without hash encoding ambiguity", async () => {
+  const vercel = await readJson<VercelConfiguration>("vercel.json");
+  for (const rewrite of vercel.rewrites.filter((route) => route.destination.startsWith("/api/profile-preview?game=bs"))) {
+    const capture = rewrite.has?.find((condition) => condition.type === "query" && condition.key === "tag")?.value;
+    assert.ok(capture);
+    for (const incoming of ["QVLRCJQ00", "#QVLRCJQ00", "%23QVLRCJQ00"]) {
+      const tag: string | undefined = new RegExp(`^${capture}$`).exec(incoming)?.groups?.playerTag;
+      assert.equal(tag, "QVLRCJQ00");
+      assert.equal(rewrite.destination.replace(":playerTag", tag), "/api/profile-preview?game=bs&tag=QVLRCJQ00");
+    }
+  }
+});
 
 type RootPackage = {
   scripts: Record<string, string>;
@@ -145,6 +168,12 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
   ]);
   assert.deepEqual(vercel.rewrites, [
+    { source: "/api/profile-image", destination: "/api/profile-image" },
+    { source: "/api/profile-preview", destination: "/api/profile-preview" },
+    { source: "/players/:tag", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/api/profile-preview?game=cr&tag=:tag" },
+    { source: "/players", has: [{ type: "host", value: "bs.statsconnect.app" }, { type: "query", key: "tag", value: "(?:#|%23)?(?<playerTag>[0-9A-Za-z]{3,15})" }], destination: "/api/profile-preview?game=bs&tag=:playerTag" },
+    { source: "/cr/players/:tag", destination: "/api/profile-preview?game=cr&tag=:tag" },
+    { source: "/bs/players", has: [{ type: "query", key: "tag", value: "(?:#|%23)?(?<playerTag>[0-9A-Za-z]{3,15})" }], destination: "/api/profile-preview?game=bs&tag=:playerTag" },
     { source: "/service-worker.js", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/service-worker.js" },
     { source: "/manifest.webmanifest", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/subdomain.webmanifest" },
     ...expectedGameRewrites,
@@ -157,6 +186,19 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     "/application-shell-manifest.json",
     ...deliveryApps.slice(1).map((app) => `${app.routePrefix}/beta`),
   ]);
+});
+
+test("profile preview runtime receives the public backend URL injected only during the frontend build", async (context) => {
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "statsconnect-preview-config-"));
+  context.after(() => rm(fixtureRoot, { force: true, recursive: true }));
+  await mkdir(path.join(fixtureRoot, "dist"));
+  writeProfilePreviewConfiguration({
+    VITE_CONVEX_URL: "https://example.convex.cloud",
+    CONVEX_DEPLOY_KEY: "must-never-appear-in-public-output",
+  }, fixtureRoot);
+  const content = await readFile(path.join(fixtureRoot, profilePreviewConfigPath), "utf8");
+  assert.deepEqual(JSON.parse(content), { convexUrl: "https://example.convex.cloud", convexSiteUrl: "https://example.convex.site" });
+  assert.equal(content.includes("must-never"), false);
 });
 
 test("the root Vercel Adapter never caches the shell document or application manifest", async () => {

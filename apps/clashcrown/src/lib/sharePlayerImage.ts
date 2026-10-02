@@ -1,9 +1,20 @@
-import { buildCardUpgradePlan } from "@/lib/clash/upgradeCosts";
-import type { Card, Player } from "@/lib/clash/domain";
+import { browserProfileImageRuntime, type ProfileImageRuntime } from "../../../../shared/profile-image-runtime.ts";
+import { cardArtFallbacks, selectCardArt } from "./clash/assets.ts";
+import type { Card, Player } from "./clash/domain.ts";
 
-const WIDTH = 1200;
-const HEIGHT = 630;
-const CARD_LIMIT = 8;
+const WIDTH = 1600;
+const HEIGHT = 1000;
+const INK = "#f6f3ec";
+const MUTED = "#9eafc5";
+const GOLD = "#ffd777";
+const LEVEL_COLORS: Record<Card["rarity"], readonly string[]> = {
+  Common: ["#e4f7ff", "#81caf4"],
+  Rare: ["#ffe5a3", "#ff941f"],
+  Epic: ["#f5c7ff", "#d85bff"],
+  Legendary: ["#ffd7ff", "#b9efff", "#8ff4cd"],
+  Champion: ["#fff4ba", "#ffc83d"],
+};
+const FONT = '"Share Royale", "Supercell Magic", sans-serif';
 
 function assetUrl(source: string): string {
   if (!source.startsWith("/")) return source;
@@ -11,196 +22,199 @@ function assetUrl(source: string): string {
   return new URL(`${base}${source}`, window.location.origin).toString();
 }
 
-function roundedRect(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-) {
-  const safeRadius = Math.min(radius, width / 2, height / 2);
-  context.beginPath();
-  context.moveTo(x + safeRadius, y);
-  context.arcTo(x + width, y, x + width, y + height, safeRadius);
-  context.arcTo(x + width, y + height, x, y + height, safeRadius);
-  context.arcTo(x, y + height, x, y, safeRadius);
-  context.arcTo(x, y, x + width, y, safeRadius);
-  context.closePath();
+function text(context: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, color = INK, maxWidth?: number, gameFont = false) {
+  context.fillStyle = color;
+  context.font = gameFont ? `${size}px ${FONT}` : `600 ${size}px system-ui, sans-serif`;
+  // Fit names by font size, rather than distorting the letters horizontally.
+  while (maxWidth && context.measureText(value).width > maxWidth && size > 12) {
+    size -= 1;
+    context.font = gameFont ? `${size}px ${FONT}` : `600 ${size}px system-ui, sans-serif`;
+  }
+  context.fillText(value, x, y);
 }
 
-function fillRoundedRect(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-  fill: string
-) {
-  roundedRect(context, x, y, width, height, radius);
+function line(context: CanvasRenderingContext2D, x: number, y: number, width: number, color = "#ffffff20") {
+  context.fillStyle = color;
+  context.fillRect(x, y, width, 1);
+}
+
+function imageContain(context: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number) {
+  const scale = Math.min(width / image.width, height / image.height);
+  const w = image.width * scale;
+  const h = image.height * scale;
+  const bounds = { x: x + (width - w) / 2, y: y + (height - h) / 2, width: w, height: h };
+  context.drawImage(image, bounds.x, bounds.y, w, h);
+  return bounds;
+}
+
+/** Match the deck UI's thick dark outlines without stretching the game font. */
+function outlinedText(context: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, width: number, fill: string | CanvasGradient = INK) {
+  context.save();
+  context.font = `${size}px ${FONT}`;
+  while (context.measureText(value).width > width && size > 12) {
+    size -= 1;
+    context.font = `${size}px ${FONT}`;
+  }
+  context.lineJoin = "round";
+  context.strokeStyle = "#08101d";
+  context.lineWidth = Math.max(3, size * 0.16);
+  context.strokeText(value, x, y);
   context.fillStyle = fill;
-  context.fill();
+  context.fillText(value, x, y);
+  context.restore();
 }
 
-async function loadImage(source: string): Promise<HTMLImageElement | undefined> {
-  const image = new window.Image();
-  image.crossOrigin = "anonymous";
-  image.decoding = "async";
-  image.src = assetUrl(source);
-  try {
-    await image.decode();
-    return image;
-  } catch {
-    return undefined;
+async function loadCardImage(card: Card, runtime: ProfileImageRuntime) {
+  const selected = selectCardArt(card);
+  for (const source of [selected.src, ...cardArtFallbacks({ name: card.name, variant: selected.variant })]) {
+    const image = await runtime.loadImage(runtime.assetUrl(source));
+    if (image) return image;
   }
-}
-
-function drawMetric(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  label: string,
-  value: string
-) {
-  fillRoundedRect(context, x, y, width, 86, 18, "rgba(16, 45, 78, .88)");
-  context.fillStyle = "#f8fbff";
-  context.font = "700 29px ProximaNova, Inter, sans-serif";
-  context.fillText(value, x + 20, y + 38, width - 40);
-  context.fillStyle = "#8ea2c4";
-  context.font = "600 15px ProximaNova, Inter, sans-serif";
-  context.fillText(label.toUpperCase(), x + 20, y + 66, width - 40);
-}
-
-function cardKey(card: Card): string {
-  return typeof card.id === "number" ? `id:${card.id}` : `name:${card.name.toLowerCase()}`;
-}
-
-function featuredCards(player: Player): Card[] {
-  const unique = new Map<string, Card>();
-  for (const card of [player.favoriteCard, ...player.deck, ...player.cards].filter((card): card is Card => Boolean(card))) {
-    if (!unique.has(cardKey(card))) unique.set(cardKey(card), card);
-  }
-  return [...unique.values()]
-    .sort((a, b) => (b.level ?? -1) - (a.level ?? -1) || a.name.localeCompare(b.name))
-    .slice(0, CARD_LIMIT);
-}
-
-async function drawCards(context: CanvasRenderingContext2D, cards: Card[]) {
-  const images = await Promise.all(cards.map((card) => loadImage(card.image)));
-  const startX = 70;
-  const gap = 12;
-  const tileWidth = 122;
-  const tileHeight = 76;
-  const rowGap = 8;
-
-  cards.forEach((card, index) => {
-    const column = index % 4;
-    const row = Math.floor(index / 4);
-    const x = startX + column * (tileWidth + gap);
-    const y = 412 + row * (tileHeight + rowGap);
-    fillRoundedRect(context, x, y, tileWidth, tileHeight, 16, "rgba(8, 24, 44, .9)");
-    const image = images[index];
-    if (image) {
-      const scale = Math.min(86 / image.width, 45 / image.height);
-      const width = image.width * scale;
-      const height = image.height * scale;
-      context.drawImage(image, x + (tileWidth - width) / 2, y + 5 + (45 - height) / 2, width, height);
-    } else {
-      fillRoundedRect(context, x + 28, y + 5, 66, 42, 10, "rgba(72, 96, 137, .4)");
-      context.fillStyle = "#cbd8ef";
-      context.font = "700 28px ProximaNova, Inter, sans-serif";
-      context.textAlign = "center";
-      context.fillText(card.name.slice(0, 1).toUpperCase(), x + tileWidth / 2, y + 35);
-      context.textAlign = "left";
-    }
-    context.fillStyle = "#f8fbff";
-    context.font = "700 13px ProximaNova, Inter, sans-serif";
-    context.textAlign = "center";
-    context.fillText(card.name, x + tileWidth / 2, y + 59, tileWidth - 14);
-    context.fillStyle = "#8ea2c4";
-    context.font = "600 11px ProximaNova, Inter, sans-serif";
-    context.fillText(card.level !== undefined ? `LEVEL ${card.level}` : card.rarity.toUpperCase(), x + tileWidth / 2, y + 72);
-    context.textAlign = "left";
-  });
+  return undefined;
 }
 
 function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    try {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("The browser could not create the share image."));
-      }, "image/png");
-    } catch {
-      reject(new Error("One or more card images could not be included in the share image."));
-    }
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("The browser could not create the share image.")), "image/png");
   });
 }
 
-export async function createPlayerShareImage(player: Player): Promise<Blob> {
-  const canvas = document.createElement("canvas");
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("This browser does not support local image rendering.");
+export async function createPlayerShareImage(player: Player, runtime: ProfileImageRuntime = { ...browserProfileImageRuntime, assetUrl }): Promise<Blob> {
+  const loadImage = (source: string) => runtime.loadImage(runtime.assetUrl(source));
+  const cards = player.deck.slice(0, 8);
+  const [arena, trophy, king, clanBadge, elixir, cardImages] = await Promise.all([
+    loadImage(player.arenaImage),
+    loadImage("/images/share/trophy.png"),
+    loadImage("/images/icons/level.png"),
+    loadImage(player.clanBadge ?? ""),
+    loadImage("/images/icons/elixir.png"),
+    Promise.all(cards.map((card) => loadCardImage(card, runtime))),
+    runtime.loadFont(runtime.assetUrl("/fonts/supercell-webfont.ttf"), "Share Royale"),
+  ]);
+  const canvas = runtime.createCanvas(WIDTH, HEIGHT);
+  const c = canvas.getContext("2d");
+  if (!c) throw new Error("This browser does not support local image rendering.");
 
-  const background = context.createLinearGradient(0, 0, WIDTH, HEIGHT);
-  background.addColorStop(0, "#061b31");
-  background.addColorStop(0.58, "#102a4d");
-  background.addColorStop(1, "#07569f");
-  context.fillStyle = background;
-  context.fillRect(0, 0, WIDTH, HEIGHT);
+  c.imageSmoothingQuality = "high";
+  const background = c.createLinearGradient(0, 0, WIDTH, HEIGHT);
+  background.addColorStop(0, "#173657");
+  background.addColorStop(0.6, "#0c2139");
+  background.addColorStop(1, "#081426");
+  c.fillStyle = background;
+  c.fillRect(0, 0, WIDTH, HEIGHT);
+  const light = c.createRadialGradient(1130, 380, 40, 1130, 380, 900);
+  light.addColorStop(0, "#238dce44");
+  light.addColorStop(1, "#238dce00");
+  c.fillStyle = light;
+  c.fillRect(0, 0, WIDTH, HEIGHT);
+  // Subtle quilted geometry echoes the game's profile background.
+  c.save();
+  c.strokeStyle = "#7cb5df08";
+  c.lineWidth = 2;
+  for (let x = -HEIGHT; x < WIDTH + HEIGHT; x += 100) {
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x + HEIGHT, HEIGHT); c.stroke();
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x - HEIGHT, HEIGHT); c.stroke();
+  }
+  c.restore();
+  text(c, "CLASH ROYALE", 64, 80, 26, GOLD, 650, true);
+  c.textAlign = "right";
+  text(c, "STATSCONNECT", 1536, 80, 23, INK, 570, true);
+  c.textAlign = "left";
 
-  const glow = context.createRadialGradient(980, 70, 10, 980, 70, 500);
-  glow.addColorStop(0, "rgba(31, 147, 255, .34)");
-  glow.addColorStop(1, "rgba(31, 147, 255, 0)");
-  context.fillStyle = glow;
-  context.fillRect(0, 0, WIDTH, HEIGHT);
+  text(c, player.name, 64, 190, 56, INK, 475, true);
+  text(c, `#${player.tag.replace(/^#/, "")}`, 66, 235, 23, MUTED, 540);
+  if (king) imageContain(c, king, 544, 131, 92, 92);
+  c.textAlign = "center";
+  text(c, player.level?.toString() ?? "?", 590, 188, 29, INK, 75, true);
+  c.textAlign = "left";
+  if (clanBadge) imageContain(c, clanBadge, 65, 267, 62, 72);
+  text(c, player.clan, clanBadge ? 146 : 66, 310, 26, INK, clanBadge ? 478 : 560, true);
 
-  context.fillStyle = "#75c5ff";
-  context.font = "700 18px ProximaNova, Inter, sans-serif";
-  context.fillText("STATSCONNECT · CLASH ROYALE COLLECTION SNAPSHOT", 70, 62);
-  context.fillStyle = "#ffffff";
-  context.font = "700 54px ProximaNova, Inter, sans-serif";
-  context.fillText(player.name, 70, 125, 760);
-  context.fillStyle = "#a8bbd8";
-  context.font = "600 20px ProximaNova, Inter, sans-serif";
-  context.fillText(`#${player.tag}  ·  ${player.clan}  ·  ${player.arena}`, 72, 160, 850);
+  if (trophy) imageContain(c, trophy, 56, 369, 110, 124);
+  text(c, player.trophies?.toLocaleString("en-US") ?? "—", trophy ? 185 : 66, 489, 80, GOLD, trophy ? 440 : 560, true);
+  text(c, "PERSONAL BEST", 68, 595, 17, MUTED);
+  text(c, player.bestTrophies?.toLocaleString("en-US") ?? "—", 68, 641, 34, INK, 320, true);
+  text(c, "CAREER WINS", 355, 595, 17, MUTED);
+  text(c, player.stats.Wins ?? "—", 355, 641, 34, INK, 265, true);
+  line(c, 66, 677, 558);
 
-  const ownedCards = player.cards.filter((card) => card.owned !== false);
-  const readyCards = ownedCards.filter((card) => buildCardUpgradePlan(card).ready).length;
-  const evolutionCards = ownedCards.filter((card) => card.canEvolve).length;
-  const collectionAvailable = player.cardCollectionAvailable ?? player.cards.length > 0;
-  const metrics = [
-    ["Trophies", player.trophies?.toLocaleString() ?? "Not reported"],
-    ["Best trophies", player.bestTrophies?.toLocaleString() ?? "Not reported"],
-    ["Cards owned", collectionAvailable ? ownedCards.length.toLocaleString() : "Not reported"],
-    ["Ready / Evolution", collectionAvailable ? `${readyCards} / ${evolutionCards}` : "Not reported"]
-  ] as const;
-  metrics.forEach(([label, value], index) => drawMetric(context, 70 + index * 266, 205, 246, label, value));
+  if (arena) {
+    c.save();
+    c.shadowColor = "#00000060"; c.shadowBlur = 20; c.shadowOffsetY = 12;
+    imageContain(c, arena, 66, 723, 145, 155);
+    c.restore();
+  }
+  const arenaTextX = arena ? 232 : 66;
+  text(c, player.arena, arenaTextX, 777, 25, INK, arena ? 388 : 560, true);
+  const owned = player.cards.filter((card) => card.owned !== false).length;
+  if (player.cardCollectionAvailable ?? player.cards.length > 0) {
+    text(c, `${owned} cards collected`, arenaTextX, 818, 20, MUTED, 388);
+  }
+  if (player.stats["3 crown wins"]) {
+    text(c, `${player.stats["3 crown wins"]} three-crown wins`, arenaTextX, 853, 20, MUTED, 388);
+  }
 
-  context.fillStyle = "#f8fbff";
-  context.font = "700 24px ProximaNova, Inter, sans-serif";
-  context.fillText("Collection highlights", 70, 378);
-  context.fillStyle = "#8ea2c4";
-  context.font = "500 15px ProximaNova, Inter, sans-serif";
-  context.fillText("Highest-level cards, with the current deck and favorite card prioritized", 70, 400);
-  await drawCards(context, featuredCards(player));
-
-  context.fillStyle = "#8ea2c4";
-  context.font = "500 14px ProximaNova, Inter, sans-serif";
-  const freshness = player.fetchedAt
-    ? `Live API snapshot · ${new Date(player.fetchedAt).toLocaleString()}`
-    : "Demo profile · not live API data";
-  context.fillText(freshness, 70, 602);
-  context.textAlign = "right";
-  context.fillStyle = "#f8fbff";
-  context.font = "700 17px ProximaNova, Inter, sans-serif";
-  context.fillText("cr.statsconnect.app", 1130, 602);
-  context.textAlign = "left";
-
+  // The inset blue tray gives the deck depth while each PNG keeps its own silhouette.
+  c.save();
+  c.shadowColor = "#020b1bcc"; c.shadowBlur = 28; c.shadowOffsetY = 14;
+  const tray = c.createLinearGradient(0, 210, 0, 876);
+  tray.addColorStop(0, "#1d507e"); tray.addColorStop(1, "#0b2c51");
+  c.fillStyle = tray; c.beginPath(); c.roundRect(665, 208, 883, 663, 26); c.fill();
+  c.shadowColor = "transparent";
+  c.strokeStyle = "#71caff38"; c.lineWidth = 2; c.stroke();
+  c.restore();
+  const average = cards.length ? (cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length).toFixed(1) : undefined;
+  c.textAlign = "right";
+  if (average && elixir) {
+    imageContain(c, elixir, 1415, 147, 32, 39);
+    outlinedText(c, average, 1536, 180, 30, 65);
+  } else {
+    text(c, average ? average : "Deck not reported", 1536, 180, 18, "#cfacff", 260);
+  }
+  c.textAlign = "left";
+  cards.forEach((card: Card, i) => {
+    const x = 676 + (i % 4) * 216;
+    const y = 240 + Math.floor(i / 4) * 285;
+    const activeVariant = selectCardArt(card).variant;
+    const accent = activeVariant === "Hero" ? "#ffcb58" : activeVariant === "Evolution" ? "#d965ff" : LEVEL_COLORS[card.rarity].at(-1) ?? "#81caf4";
+    const image = cardImages[i];
+    let bounds = { x, y, width: 206, height: 300 };
+    if (image) {
+      c.save(); c.shadowColor = `${accent}55`; c.shadowBlur = 22; c.shadowOffsetY = 5;
+      // The supplied PNG owns the rarity frame and its silhouette.
+      bounds = imageContain(c, image, x, y, 206, 300);
+      c.restore();
+    } else {
+      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 7, y + 8, 192, 278, 12); c.fill();
+      c.textAlign = "center"; text(c, "?", x + 103, y + 174, 56, MUTED, undefined, true); c.textAlign = "left";
+    }
+    const variant = activeVariant;
+    c.textAlign = "center";
+    if (elixir && card.elixir > 0) {
+      const dropWidth = bounds.width * 0.25;
+      const dropHeight = dropWidth * 1.19;
+      const dropX = bounds.x - 5;
+      const dropY = bounds.y + bounds.height * 0.07;
+      imageContain(c, elixir, dropX, dropY, dropWidth, dropHeight);
+      outlinedText(c, String(card.elixir), dropX + dropWidth / 2, dropY + dropHeight * 0.73, 30, dropWidth - 5);
+    }
+    if (card.level !== undefined) {
+      const levelY = bounds.y + bounds.height * 0.88;
+      const fill = c.createLinearGradient(0, levelY - 26, 0, levelY);
+      const colors = variant === "Hero" ? LEVEL_COLORS.Champion
+        : variant === "Evolution" ? ["#ffc4ff", "#f36bff"]
+        : LEVEL_COLORS[card.rarity];
+      colors.forEach((color, index) => fill.addColorStop(index / (colors.length - 1), color));
+      outlinedText(c, `Level ${card.level}`, x + 103, levelY, 29, 190, fill);
+    }
+    c.textAlign = "left";
+  });
+  if (!cards.length) text(c, "Current deck unavailable", 676, 545, 26, MUTED, 700);
+  line(c, 64, 931, 1472);
+  const date = player.fetchedAt ? new Date(player.fetchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined;
+  text(c, date ? date : "DEMO PROFILE", 64, 969, 16, MUTED);
+  c.textAlign = "right";
+  text(c, "statsconnect.app", 1536, 969, 19, INK);
   return canvasBlob(canvas);
 }
 
