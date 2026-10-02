@@ -23,11 +23,13 @@
     "build:vercel": "node scripts/production-delivery.ts vercel",
     "deploy:backend": "pnpm --filter @statsconnect/backend deploy",
     "deploy:unified": "node scripts/production-delivery.ts deploy",
-    "test": "node --test scripts/*.test.ts && pnpm -r --if-present test",
+    "test": "node --test scripts/*.test.ts server/*.test.ts && pnpm -r --if-present test",
     "verify": "node scripts/release-gate.ts",
     "test:delivery": "node --test scripts/production-delivery.test.ts",
-    "typecheck": "pnpm typecheck:delivery && pnpm -r --if-present typecheck",
-    "typecheck:delivery": "tsc --noEmit -p scripts/tsconfig.json"
+    "typecheck": "pnpm typecheck:delivery && pnpm typecheck:profile-previews && pnpm -r --if-present typecheck",
+    "typecheck:delivery": "tsc --noEmit -p scripts/tsconfig.json",
+    "test:profile-previews": "node --test server/profile-preview.test.ts",
+    "typecheck:profile-previews": "tsc --noEmit -p server/tsconfig.json"
   },
   "devDependencies": {
     "@sentry/vite-plugin": "^5.4.0",
@@ -36,5 +38,9 @@
     "qrcode": "^1.5.4",
     "typescript": "^7.0.2",
     "vite": "catalog:"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.10",
+    "convex": "^1.43.0"
   }
 }

@@ -8,7 +8,7 @@ import type {
   Player,
   PlayerAchievement,
   PlayerBadge
-} from "@/lib/clash/domain";
+} from "./domain.ts";
 import {
   activeCardVariant,
   arenaImage,
@@ -19,9 +19,9 @@ import {
   heroCardImage,
   warLeague,
   UNKNOWN_CARD_IMAGE
-} from "./assets";
-import { formatApiDate, stripSupercellColorTags } from "./format";
-import { optionalNumber } from "@/lib/numbers";
+} from "./assets.ts";
+import { formatApiDate, stripSupercellColorTags } from "./format.ts";
+import { optionalNumber } from "../numbers.ts";
 import type {
   ApiBattle,
   ApiCard,
@@ -33,7 +33,7 @@ import type {
   CardsPayload,
   ClanBundlePayload,
   PlayerBundlePayload
-} from "./types";
+} from "./types.ts";
 
 const FALLBACK_CARD: Card = {
   name: "Unknown Card",

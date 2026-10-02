@@ -3,6 +3,16 @@
   "buildCommand": "pnpm build:vercel",
   "outputDirectory": "dist",
   "trailingSlash": false,
+  "functions": {
+    "api/profile-preview.ts": {
+      "includeFiles": "dist/{index.html,profile-preview-config.json}",
+      "maxDuration": 30
+    },
+    "api/profile-image.ts": {
+      "includeFiles": "{dist/profile-preview-config.json,apps/clashcrown/public/fonts/supercell-webfont.ttf,apps/clashcrown/public/images/{cards,arenas,clan-badges}/**/*.png,apps/clashcrown/public/images/icons/{level,elixir}.png,apps/clashcrown/public/images/share/trophy.png,apps/brawlstats/public/fonts/TotalBlack-900.otf,apps/brawlstats/public/assets/img/icons/genicon_trophy.png,apps/brawlstats/public/assets/brawlers/portraits/{16000109,16000110}.png}",
+      "maxDuration": 30
+    }
+  },
   "redirects": [
     {
       "source": "/cr",
@@ -105,6 +115,12 @@
     }
   ],
   "rewrites": [
+    {"source": "/api/profile-image", "destination": "/api/profile-image"},
+    {"source": "/api/profile-preview", "destination": "/api/profile-preview"},
+    {"source": "/players/:tag", "has": [{"type": "host", "value": "cr.statsconnect.app"}], "destination": "/api/profile-preview?game=cr&tag=:tag"},
+    {"source": "/players", "has": [{"type": "host", "value": "bs.statsconnect.app"}, {"type": "query", "key": "tag"}], "destination": "/api/profile-preview?game=bs"},
+    {"source": "/cr/players/:tag", "destination": "/api/profile-preview?game=cr&tag=:tag"},
+    {"source": "/bs/players", "has": [{"type": "query", "key": "tag"}], "destination": "/api/profile-preview?game=bs"},
     { "source": "/service-worker.js", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/bs/service-worker.js" },
     { "source": "/manifest.webmanifest", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/bs/subdomain.webmanifest" },
     { "source": "/bs", "destination": "/index.html" },

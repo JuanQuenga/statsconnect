@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["node", "vite/client"],
+    "paths": { "@/*": ["../apps/clashcrown/src/*"] }
+  },
+  "include": ["*.ts", "../api/profile-*.ts", "../shared/profile-image-runtime.ts"]
+}

@@ -1,6 +1,6 @@
-import { brawlerModelUrl, brawlerPortraitUrl, profileIconUrl } from "./artwork";
-import type { PlayerAnalytics, PlayerProfile } from "./types";
-import type { Translator } from "./i18n";
+import { browserProfileImageRuntime, type ProfileImageRuntime } from "../../../../shared/profile-image-runtime.ts";
+import { brawlerModelUrl, brawlerPortraitUrl, profileIconUrl } from "./artwork.ts";
+import type { PlayerAggregate, PlayerProfile } from "./types.ts";
 
 const WIDTH = 1600;
 const HEIGHT = 1000;
@@ -12,41 +12,24 @@ const YELLOW = "#ffdc49";
 const CYAN = "#59e7f4";
 const MUTED = "#96b0c5";
 
+export type ProfileCardTranslationKey = "common.trophies" | "common.noClub" | "common.brawlers" | "player.cardBest" | "player.threeWins" | "player.power11" | "player.record30" | "common.battles" | "player.cardTopBrawlers" | "player.notExposed" | "assistant.power";
+export type ProfileCardTranslator = (key: ProfileCardTranslationKey, values?: Record<string, string | number>) => string;
+export type ProfileCardAnalytics = { summaries: Array<Pick<PlayerAggregate, "days" | "battles" | "wins" | "losses">> };
+
 type ProfileCardOptions = {
   player: PlayerProfile;
-  analytics: PlayerAnalytics | undefined;
-  t: Translator;
+  analytics: ProfileCardAnalytics | undefined;
+  t: ProfileCardTranslator;
   number: (value: number) => string;
 };
 
-const localAsset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
-
-/** Load with CORS so an unavailable remote image cannot taint the PNG export. */
-function loadArtwork(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    const finish = (result: HTMLImageElement | null) => {
-      window.clearTimeout(timeout);
-      image.onload = null;
-      image.onerror = null;
-      resolve(result);
-    };
-    const timeout = window.setTimeout(() => finish(null), 8000);
-    image.onload = () => finish(image);
-    image.onerror = () => finish(null);
-    image.src = src;
-  });
-}
-
-async function loadDisplayFont() {
-  const font = new FontFace("Brawl Card Display", `url(${localAsset("fonts/TotalBlackVF.otf")})`, { weight: "100 900" });
-  try {
-    document.fonts.add(await font.load());
-  } catch {
-    // System fonts still produce a complete card when the local font is unavailable.
-  }
-}
+const browserRuntime: ProfileImageRuntime = {
+  ...browserProfileImageRuntime,
+  assetUrl: (source) => {
+    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+    return source.startsWith("/") && !source.startsWith(`${base}/`) ? `${base}${source}` : source;
+  },
+};
 
 function text(ctx: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, color = WHITE, width = WIDTH, display = false) {
   ctx.fillStyle = color;
@@ -91,19 +74,19 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, radius: numbe
 }
 
 /** The actual download renderer, exported separately for direct visual verification. */
-export async function createBrawlProfileCard({ player, analytics, t, number }: ProfileCardOptions): Promise<HTMLCanvasElement> {
+export async function createBrawlProfileCard({ player, analytics, t, number }: ProfileCardOptions, runtime: ProfileImageRuntime = browserRuntime): Promise<HTMLCanvasElement> {
+  const loadArtwork = (source: string) => runtime.loadImage(runtime.assetUrl(source));
   const brawlers = [...(player.brawlers ?? [])].sort((a, b) => b.trophies - a.trophies || b.highestTrophies - a.highestTrophies || a.id - b.id);
   const topBrawlers = brawlers.slice(0, 5);
   const signature = topBrawlers[0];
   const [icon, trophy, hero, portraits] = await Promise.all([
     loadArtwork(profileIconUrl(player.icon?.id)),
-    loadArtwork(localAsset("assets/img/icons/genicon_trophy.png")),
+    loadArtwork("/assets/img/icons/genicon_trophy.png"),
     signature ? loadArtwork(brawlerModelUrl(signature.id)) : Promise.resolve(null),
     Promise.all(topBrawlers.map((brawler) => loadArtwork(brawlerPortraitUrl(brawler.id)))),
-    loadDisplayFont(),
+    runtime.loadFont(runtime.assetUrl("/fonts/TotalBlack-900.otf"), "Brawl Card Display", "900"),
   ]);
-  const canvas = document.createElement("canvas");
-  canvas.width = WIDTH; canvas.height = HEIGHT;
+  const canvas = runtime.createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas rendering is unavailable");
   ctx.imageSmoothingQuality = "high";

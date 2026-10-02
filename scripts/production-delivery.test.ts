@@ -15,7 +15,9 @@ import {
   unifiedPublicEnvironment,
   viteBasePath,
   viteOutputDirectory,
+  writeProfilePreviewConfiguration,
 } from "./production-delivery.ts";
+import { profilePreviewConfigPath } from "../shared/profile-preview-config.ts";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -142,6 +144,12 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
   ]);
   assert.deepEqual(vercel.rewrites, [
+    { source: "/api/profile-image", destination: "/api/profile-image" },
+    { source: "/api/profile-preview", destination: "/api/profile-preview" },
+    { source: "/players/:tag", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/api/profile-preview?game=cr&tag=:tag" },
+    { source: "/players", has: [{ type: "host", value: "bs.statsconnect.app" }, { type: "query", key: "tag" }], destination: "/api/profile-preview?game=bs" },
+    { source: "/cr/players/:tag", destination: "/api/profile-preview?game=cr&tag=:tag" },
+    { source: "/bs/players", has: [{ type: "query", key: "tag" }], destination: "/api/profile-preview?game=bs" },
     { source: "/service-worker.js", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/service-worker.js" },
     { source: "/manifest.webmanifest", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/subdomain.webmanifest" },
     ...expectedGameRewrites,
@@ -154,6 +162,19 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     "/application-shell-manifest.json",
     ...deliveryApps.slice(1).map((app) => `${app.routePrefix}/beta`),
   ]);
+});
+
+test("profile preview runtime receives the public backend URL injected only during the frontend build", async (context) => {
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "statsconnect-preview-config-"));
+  context.after(() => rm(fixtureRoot, { force: true, recursive: true }));
+  await mkdir(path.join(fixtureRoot, "dist"));
+  writeProfilePreviewConfiguration({
+    VITE_CONVEX_URL: "https://example.convex.cloud",
+    CONVEX_DEPLOY_KEY: "must-never-appear-in-public-output",
+  }, fixtureRoot);
+  const content = await readFile(path.join(fixtureRoot, profilePreviewConfigPath), "utf8");
+  assert.deepEqual(JSON.parse(content), { convexUrl: "https://example.convex.cloud", convexSiteUrl: "https://example.convex.site" });
+  assert.equal(content.includes("must-never"), false);
 });
 
 test("the root Vercel Adapter never caches the shell document or application manifest", async () => {

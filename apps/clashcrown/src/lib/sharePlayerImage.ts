@@ -1,42 +1,25 @@
-import { cardArtFallbacks, selectCardArt } from "@/lib/clash/assets";
-import type { Card, Player } from "@/lib/clash/domain";
+import { browserProfileImageRuntime, type ProfileImageRuntime } from "../../../../shared/profile-image-runtime.ts";
+import { cardArtFallbacks, selectCardArt } from "./clash/assets.ts";
+import type { Card, Player } from "./clash/domain.ts";
 
 const WIDTH = 1600;
 const HEIGHT = 1000;
 const INK = "#f6f3ec";
 const MUTED = "#9eafc5";
 const GOLD = "#ffd777";
+const LEVEL_COLORS: Record<Card["rarity"], readonly string[]> = {
+  Common: ["#e4f7ff", "#81caf4"],
+  Rare: ["#ffe5a3", "#ff941f"],
+  Epic: ["#f5c7ff", "#d85bff"],
+  Legendary: ["#ffd7ff", "#b9efff", "#8ff4cd"],
+  Champion: ["#fff4ba", "#ffc83d"],
+};
 const FONT = '"Share Royale", "Supercell Magic", sans-serif';
 
 function assetUrl(source: string): string {
   if (!source.startsWith("/")) return source;
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   return new URL(`${base}${source}`, window.location.origin).toString();
-}
-
-async function loadImage(source: string): Promise<HTMLImageElement | undefined> {
-  if (!source) return undefined;
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    const finish = (result: HTMLImageElement | undefined) => {
-      window.clearTimeout(timeout);
-      image.onload = null;
-      image.onerror = null;
-      resolve(result);
-    };
-    const timeout = window.setTimeout(() => finish(undefined), 8000);
-    image.onload = () => finish(image);
-    image.onerror = () => finish(undefined);
-    image.src = assetUrl(source);
-  });
-}
-
-async function loadFont() {
-  try {
-    const font = new FontFace("Share Royale", `url("${assetUrl("/fonts/supercell-webfont.ttf")}")`);
-    document.fonts.add(await font.load());
-  } catch { /* System fonts keep the export available when the game font is unavailable. */ }
 }
 
 function text(context: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, color = INK, maxWidth?: number, gameFont = false) {
@@ -81,10 +64,10 @@ function outlinedText(context: CanvasRenderingContext2D, value: string, x: numbe
   context.restore();
 }
 
-async function loadCardImage(card: Card) {
+async function loadCardImage(card: Card, runtime: ProfileImageRuntime) {
   const selected = selectCardArt(card);
   for (const source of [selected.src, ...cardArtFallbacks({ name: card.name, variant: selected.variant })]) {
-    const image = await loadImage(source);
+    const image = await runtime.loadImage(runtime.assetUrl(source));
     if (image) return image;
   }
   return undefined;
@@ -96,7 +79,8 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-export async function createPlayerShareImage(player: Player): Promise<Blob> {
+export async function createPlayerShareImage(player: Player, runtime: ProfileImageRuntime = { ...browserProfileImageRuntime, assetUrl }): Promise<Blob> {
+  const loadImage = (source: string) => runtime.loadImage(runtime.assetUrl(source));
   const cards = player.deck.slice(0, 8);
   const [arena, trophy, king, clanBadge, elixir, cardImages] = await Promise.all([
     loadImage(player.arenaImage),
@@ -104,12 +88,10 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
     loadImage("/images/icons/level.png"),
     loadImage(player.clanBadge ?? ""),
     loadImage("/images/icons/elixir.png"),
-    Promise.all(cards.map(loadCardImage)),
-    loadFont(),
+    Promise.all(cards.map((card) => loadCardImage(card, runtime))),
+    runtime.loadFont(runtime.assetUrl("/fonts/supercell-webfont.ttf"), "Share Royale"),
   ]);
-  const canvas = document.createElement("canvas");
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
+  const canvas = runtime.createCanvas(WIDTH, HEIGHT);
   const c = canvas.getContext("2d");
   if (!c) throw new Error("This browser does not support local image rendering.");
 
@@ -119,6 +101,11 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
   background.addColorStop(0.6, "#0c2139");
   background.addColorStop(1, "#081426");
   c.fillStyle = background;
+  c.fillRect(0, 0, WIDTH, HEIGHT);
+  const light = c.createRadialGradient(1130, 380, 40, 1130, 380, 900);
+  light.addColorStop(0, "#238dce44");
+  light.addColorStop(1, "#238dce00");
+  c.fillStyle = light;
   c.fillRect(0, 0, WIDTH, HEIGHT);
   // Subtle quilted geometry echoes the game's profile background.
   c.save();
@@ -134,69 +121,74 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
   text(c, "STATSCONNECT", 1536, 80, 23, INK, 570, true);
   c.textAlign = "left";
 
-  text(c, player.name, 64, 190, 56, INK, 600, true);
-  text(c, `#${player.tag.replace(/^#/, "")}`, 66, 235, 23, MUTED, 620);
-  if (king) imageContain(c, king, 674, 127, 98, 98);
+  text(c, player.name, 64, 190, 56, INK, 475, true);
+  text(c, `#${player.tag.replace(/^#/, "")}`, 66, 235, 23, MUTED, 540);
+  if (king) imageContain(c, king, 544, 131, 92, 92);
   c.textAlign = "center";
-  text(c, player.level?.toString() ?? "?", 723, 187, 29, INK, 75, true);
-  text(c, "KING LEVEL", 723, 246, 13, MUTED, 110);
+  text(c, player.level?.toString() ?? "?", 590, 188, 29, INK, 75, true);
   c.textAlign = "left";
   if (clanBadge) imageContain(c, clanBadge, 65, 267, 62, 72);
-  text(c, player.clan, clanBadge ? 146 : 66, 310, 26, INK, clanBadge ? 598 : 680, true);
+  text(c, player.clan, clanBadge ? 146 : 66, 310, 26, INK, clanBadge ? 478 : 560, true);
 
   if (trophy) imageContain(c, trophy, 56, 369, 110, 124);
-  text(c, player.trophies?.toLocaleString("en-US") ?? "—", trophy ? 185 : 66, 489, 94, GOLD, trophy ? 560 : 680, true);
-  text(c, "TROPHIES", 68, 535, 19, MUTED);
+  text(c, player.trophies?.toLocaleString("en-US") ?? "—", trophy ? 185 : 66, 489, 80, GOLD, trophy ? 440 : 560, true);
   text(c, "PERSONAL BEST", 68, 595, 17, MUTED);
   text(c, player.bestTrophies?.toLocaleString("en-US") ?? "—", 68, 641, 34, INK, 320, true);
-  text(c, "CAREER WINS", 418, 595, 17, MUTED);
-  text(c, player.stats.Wins ?? "—", 418, 641, 34, INK, 310, true);
-  line(c, 66, 677, 680);
+  text(c, "CAREER WINS", 355, 595, 17, MUTED);
+  text(c, player.stats.Wins ?? "—", 355, 641, 34, INK, 265, true);
+  line(c, 66, 677, 558);
 
   if (arena) {
     c.save();
     c.shadowColor = "#00000060"; c.shadowBlur = 20; c.shadowOffsetY = 12;
-    imageContain(c, arena, 66, 716, 176, 168);
+    imageContain(c, arena, 66, 723, 145, 155);
     c.restore();
   }
-  const arenaTextX = arena ? 275 : 66;
-  text(c, player.arena, arenaTextX, 777, 28, INK, arena ? 468 : 680, true);
+  const arenaTextX = arena ? 232 : 66;
+  text(c, player.arena, arenaTextX, 777, 25, INK, arena ? 388 : 560, true);
   const owned = player.cards.filter((card) => card.owned !== false).length;
   if (player.cardCollectionAvailable ?? player.cards.length > 0) {
-    text(c, `${owned} cards collected`, arenaTextX, 818, 21, MUTED, 460);
+    text(c, `${owned} cards collected`, arenaTextX, 818, 20, MUTED, 388);
   }
   if (player.stats["3 crown wins"]) {
-    text(c, `${player.stats["3 crown wins"]} three-crown wins`, arenaTextX, 853, 21, MUTED, 460);
+    text(c, `${player.stats["3 crown wins"]} three-crown wins`, arenaTextX, 853, 20, MUTED, 388);
   }
 
-  c.fillStyle = "#ffffff16";
-  c.fillRect(780, 160, 1, 735);
-  text(c, "CURRENT DECK", 818, 224, 24, INK, 450, true);
+  // The inset blue tray gives the deck depth while each PNG keeps its own silhouette.
+  c.save();
+  c.shadowColor = "#020b1bcc"; c.shadowBlur = 28; c.shadowOffsetY = 14;
+  const tray = c.createLinearGradient(0, 210, 0, 876);
+  tray.addColorStop(0, "#1d507e"); tray.addColorStop(1, "#0b2c51");
+  c.fillStyle = tray; c.beginPath(); c.roundRect(665, 208, 883, 663, 26); c.fill();
+  c.shadowColor = "transparent";
+  c.strokeStyle = "#71caff38"; c.lineWidth = 2; c.stroke();
+  c.restore();
   const average = cards.length ? (cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length).toFixed(1) : undefined;
   c.textAlign = "right";
   if (average && elixir) {
-    imageContain(c, elixir, 1370, 190, 27, 33);
-    outlinedText(c, average, 1466, 219, 26, 65);
-    text(c, "AVG", 1536, 217, 14, MUTED, 65);
+    imageContain(c, elixir, 1415, 147, 32, 39);
+    outlinedText(c, average, 1536, 180, 30, 65);
   } else {
-    text(c, average ? `${average} AVG ELIXIR` : "Deck not reported", 1536, 224, 18, "#cfacff", 260);
+    text(c, average ? average : "Deck not reported", 1536, 180, 18, "#cfacff", 260);
   }
   c.textAlign = "left";
   cards.forEach((card: Card, i) => {
-    const x = 808 + (i % 4) * 184;
-    const y = 270 + Math.floor(i / 4) * 320;
+    const x = 676 + (i % 4) * 216;
+    const y = 240 + Math.floor(i / 4) * 285;
+    const activeVariant = selectCardArt(card).variant;
+    const accent = activeVariant === "Hero" ? "#ffcb58" : activeVariant === "Evolution" ? "#d965ff" : LEVEL_COLORS[card.rarity].at(-1) ?? "#81caf4";
     const image = cardImages[i];
-    let bounds = { x, y, width: 174, height: 250 };
+    let bounds = { x, y, width: 206, height: 300 };
     if (image) {
-      c.save(); c.shadowColor = "#00000070"; c.shadowBlur = 14; c.shadowOffsetY = 10;
+      c.save(); c.shadowColor = `${accent}55`; c.shadowBlur = 22; c.shadowOffsetY = 5;
       // The supplied PNG owns the rarity frame and its silhouette.
-      bounds = imageContain(c, image, x, y, 174, 250);
+      bounds = imageContain(c, image, x, y, 206, 300);
       c.restore();
     } else {
-      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 7, y + 8, 148, 214, 12); c.fill();
-      c.textAlign = "center"; text(c, "?", x + 81, y + 142, 56, MUTED, undefined, true); c.textAlign = "left";
+      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 7, y + 8, 192, 278, 12); c.fill();
+      c.textAlign = "center"; text(c, "?", x + 103, y + 174, 56, MUTED, undefined, true); c.textAlign = "left";
     }
-    const variant = selectCardArt(card).variant;
+    const variant = activeVariant;
     c.textAlign = "center";
     if (elixir && card.elixir > 0) {
       const dropWidth = bounds.width * 0.25;
@@ -204,22 +196,23 @@ export async function createPlayerShareImage(player: Player): Promise<Blob> {
       const dropX = bounds.x - 5;
       const dropY = bounds.y + bounds.height * 0.07;
       imageContain(c, elixir, dropX, dropY, dropWidth, dropHeight);
-      outlinedText(c, String(card.elixir), dropX + dropWidth / 2, dropY + dropHeight * 0.73, 26, dropWidth - 5);
+      outlinedText(c, String(card.elixir), dropX + dropWidth / 2, dropY + dropHeight * 0.73, 30, dropWidth - 5);
     }
     if (card.level !== undefined) {
       const levelY = bounds.y + bounds.height * 0.88;
       const fill = c.createLinearGradient(0, levelY - 26, 0, levelY);
-      const goldLevel = variant === "Hero" || card.rarity === "Champion";
-      fill.addColorStop(0, goldLevel ? "#fff3ba" : "#e4f7ff");
-      fill.addColorStop(1, goldLevel ? "#ffc64f" : "#81caf4");
-      outlinedText(c, `Level ${card.level}`, x + 87, levelY, 25, 158, fill);
+      const colors = variant === "Hero" ? LEVEL_COLORS.Champion
+        : variant === "Evolution" ? ["#ffc4ff", "#f36bff"]
+        : LEVEL_COLORS[card.rarity];
+      colors.forEach((color, index) => fill.addColorStop(index / (colors.length - 1), color));
+      outlinedText(c, `Level ${card.level}`, x + 103, levelY, 29, 190, fill);
     }
     c.textAlign = "left";
   });
-  if (!cards.length) text(c, "Current deck unavailable", 818, 545, 26, MUTED, 700);
+  if (!cards.length) text(c, "Current deck unavailable", 676, 545, 26, MUTED, 700);
   line(c, 64, 931, 1472);
   const date = player.fetchedAt ? new Date(player.fetchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined;
-  text(c, date ? `PROFILE SNAPSHOT  ·  ${date}` : "DEMO PROFILE", 64, 969, 16, MUTED);
+  text(c, date ? date : "DEMO PROFILE", 64, 969, 16, MUTED);
   c.textAlign = "right";
   text(c, "statsconnect.app", 1536, 969, 19, INK);
   return canvasBlob(canvas);

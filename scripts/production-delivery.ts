@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { profilePreviewConfigPath, profilePreviewConfiguration } from "../shared/profile-preview-config.ts";
 
 export type DeliveryAppId = "statsconnect" | "brawlstats" | "clashcrown";
 
@@ -162,7 +163,12 @@ export function runUnifiedBuild(): void {
   }
 
   writeApplicationShellManifest();
+  writeProfilePreviewConfiguration(environment);
   removeStandaloneApplicationDocuments();
+}
+
+export function writeProfilePreviewConfiguration(environment: NodeJS.ProcessEnv, rootDirectory = repositoryRoot): void {
+  writeFileSync(path.join(rootDirectory, profilePreviewConfigPath), `${JSON.stringify(profilePreviewConfiguration(environment))}\n`, "utf8");
 }
 
 export function removeStandaloneApplicationDocuments(rootDirectory = repositoryRoot): void {
