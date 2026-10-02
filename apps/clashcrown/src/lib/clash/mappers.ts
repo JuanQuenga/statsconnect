@@ -22,6 +22,7 @@ import {
 } from "./assets.ts";
 import { formatApiDate, stripSupercellColorTags } from "./format.ts";
 import { optionalNumber } from "../numbers.ts";
+import { START_LEVELS } from "./upgradeCosts.ts";
 import type {
   ApiBattle,
   ApiCard,
@@ -56,17 +57,22 @@ export function mapCard(card?: ApiCard): Card {
   const evolutionLevel = card.evolutionLevel ?? 0;
   const evolutionImage = evolutionCardImage(card);
   const variant = activeCardVariant(card);
+  const rarity = rarityMap[card.rarity?.toLowerCase() ?? ""] ?? "Common";
+  // Supercell levels start at 1 for every rarity; the game uses a shared scale.
+  const levelOffset = START_LEVELS[rarity] - 1;
+  const apiLevel = optionalNumber(card.level);
+  const apiMaxLevel = optionalNumber(card.maxLevel);
 
   return {
     id: card.id,
     name: card.name,
     elixir: card.elixirCost ?? 0,
-    rarity: rarityMap[card.rarity?.toLowerCase() ?? ""] ?? "Common",
+    rarity,
     image: cardImage(card),
     evolutionImage,
     heroImage: heroCardImage(card),
-    level: optionalNumber(card.level),
-    maxLevel: optionalNumber(card.maxLevel),
+    level: apiLevel === undefined ? undefined : apiLevel + levelOffset,
+    maxLevel: apiMaxLevel === undefined ? undefined : apiMaxLevel + levelOffset,
     starLevel: optionalNumber(card.starLevel),
     count: optionalNumber(card.count),
     evolutionLevel,
