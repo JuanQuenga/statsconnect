@@ -10,16 +10,25 @@ history, screenshots, or logs, and it does not send anything automatically.
 
 Optional support uses a hosted checkout, separate from StatsConnect+ and its
 entitlements. The unified build includes the verified public support URL.
-Standalone app builds use `VITE_STATSCONNECT_SUPPORT_URL`, included in their
-environment examples. This is a public URL, never an API key. Missing or invalid
-configuration hides support links and support requests. Accepted destinations
+Standalone app builds use the public URLs in their environment examples:
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_STATSCONNECT_SUPPORT_URL` | One-time support checkout |
+| `VITE_STATSCONNECT_MONTHLY_SUPPORT_URL` | $5 USD/month support checkout |
+| `VITE_STATSCONNECT_SUPPORT_PORTAL_URL` | Manage billing and cancel monthly support |
+
+These are public URLs, never API keys. Missing or invalid configuration hides
+the affected links. Monthly checkout also requires a valid public Stripe portal
+URL; keep the portal available even when monthly signups are disabled so existing
+supporters can cancel. Accepted one-time destinations
 are HTTPS Stripe Payment Links on `buy.stripe.com` or Ko-fi profile links on
 `ko-fi.com`, without credentials, query parameters, or fragments. Stripe test
 links are rejected. The app cannot verify the receiving account just from a URL;
 the operator must check the actual checkout before configuring it.
 
-The initial setup is one-time support with a suggested USD $5 and a custom
-amount. Recurring support requires a separate explicit decision. Contributions
+The account owner approved both one-time support with a suggested USD $5 and a
+custom amount, and recurring support at $5 USD per month until canceled. Contributions
 support the developer’s work on StatsConnect and other software projects,
 including hosting costs, and confer no features, badges, ad removal, priority access,
 exclusive content, or other benefits. Do not describe them as charitable or
@@ -47,13 +56,13 @@ payments and payouts are available:
 5. Put the verified live public URL into the three build environments, then
    review and release the frontend change through the normal release process.
 
-### Created checkout and release
+### Created checkouts, cancellation, and release
 
 The one-time **Support Juan’s work** Payment Link has been created in Juan's
 receiving account: <https://buy.stripe.com/bJedRaffk3lr7igdOG4AU00>.
 It uses customer-selected USD amounts with a $5 suggestion, no configured
 minimum or maximum, the benefit-free description above, and a custom thank-you
-confirmation. No subscription, promotion code, cross-sell, Managed Payments,
+confirmation. This link remains one-time. No promotion code, cross-sell, Managed Payments,
 post-payment invoice, or extra customer-data requirement was added.
 
 The owner completed account activation. The latest review confirmed the link
@@ -65,6 +74,32 @@ environment examples. An explicit `VITE_STATSCONNECT_SUPPORT_URL` overrides
 the unified default; set it to an empty string to hide support if the link ever
 needs to be withdrawn. No production environment, merge, or deployment has
 been changed; the default takes effect when this frontend change is released.
+
+A separate **Support Juan’s work monthly** checkout is active:
+<https://buy.stripe.com/28E28s8QW6xD9qobGy4AU01>.
+It charges $5 USD each month until canceled, with no trial, quantity adjustment,
+promotion, upsell, or benefits. Its description and confirmation explain the
+recurring charge and link to the public management portal:
+<https://billing.stripe.com/p/login/bJedRaffk3lr7igdOG4AU00>.
+Supporters sign in with their checkout email to manage or cancel support. The
+portal uses cancellation at the end of the billing period; canceling stops future
+monthly charges. The owner explicitly approved activating this account-wide
+portal, which also lets existing customers manage their own billing. No existing
+subscription, customer, price, or cancellation setting was changed.
+
+The site labels the monthly amount and renewal terms before checkout, and keeps
+the management link in its footers and settings. The monthly and portal variables
+can each override the unified default, including with an empty string. Verify
+that the public checkout and cancellation entry point remain available before
+release. No payment, subscription, or portal login email was submitted during
+verification. Monthly support uses standard Stripe Billing and Payments fees;
+there is no claim that processing is free.
+
+The account's existing Stripe Climate contribution is enabled at 1% of revenue,
+confirmed in its contribution settings and both public checkouts. That allocates
+$0.05 from a $5 payment to carbon removal, in addition to normal processing fees.
+No fixed contribution or revenue threshold was shown in the current settings.
+This account-wide enrollment was not changed as part of support setup.
 
 Clerk Billing is designed for recurring application subscriptions. StatsConnect
 currently uses Better Auth and does not need a Clerk migration to link to hosted
@@ -102,6 +137,8 @@ resets the visitor's preference.
 Sources: [Supercell Fan Content Policy](https://supercell.com/en/fan-content-policy/),
 [Stripe Payment Links](https://docs.stripe.com/payment-links/create),
 [Stripe tips and donations requirements](https://support.stripe.com/questions/requirements-for-accepting-tips-or-donations),
+[Stripe customer portal activation](https://docs.stripe.com/customer-management/activate-no-code-customer-portal),
+[Stripe Billing fees](https://stripe.com/billing/pricing),
 [Clerk Billing](https://clerk.com/docs/guides/billing/overview).
 
 The game sites use manually placed AdSense units at natural content breaks on

@@ -71,6 +71,8 @@ test("public game origins use subdomains independently of build asset prefixes",
   assert.deepEqual(unifiedPublicEnvironment, {
     VITE_STATSCONNECT_ORIGIN: "https://statsconnect.app",
     VITE_STATSCONNECT_SUPPORT_URL: "https://buy.stripe.com/bJedRaffk3lr7igdOG4AU00",
+    VITE_STATSCONNECT_MONTHLY_SUPPORT_URL: "https://buy.stripe.com/28E28s8QW6xD9qobGy4AU01",
+    VITE_STATSCONNECT_SUPPORT_PORTAL_URL: "https://billing.stripe.com/p/login/bJedRaffk3lr7igdOG4AU00",
     VITE_ADSENSE_CLIENT_ID: "ca-pub-4485799997262487",
     VITE_ADSENSE_BRAWL_HOME_SLOT: "1866622105",
     VITE_ADSENSE_CLASH_HOME_SLOT: "7993046756",

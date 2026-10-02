@@ -36,7 +36,11 @@ function Stage() {
       >
         <Outlet />
       </main>
-      <CommunityRequest supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL} />
+      <CommunityRequest
+        supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+        monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+        supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+      />
       <FooterNotice />
     </div>
   );

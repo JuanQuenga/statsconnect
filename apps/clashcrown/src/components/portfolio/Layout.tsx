@@ -107,7 +107,12 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
         )}
       />
       <main id="maincontent" tabIndex={-1}>{children}</main>
-      <CommunityRequest supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL} locale={locale} />
+      <CommunityRequest
+        supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+        monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+        supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+        locale={locale}
+      />
       <SiteFooter />
     </div>
   );
@@ -144,7 +149,12 @@ function SiteFooter() {
           </div>
         </div>
         <div className="footer-legal">
-          <CommunityLinks supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL} locale={locale} />
+          <CommunityLinks
+            supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+            monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+            supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+            locale={locale}
+          />
           {creatorCode ? <p>Support this site in the Clash Royale Shop with creator code <strong>{creatorCode}</strong>.</p> : null}
           <p>
             {t("footer.disclaimer")} See Supercell&rsquo;s{" "}

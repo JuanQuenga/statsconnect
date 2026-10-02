@@ -77,4 +77,27 @@ export function publicSupportUrl(value: string | undefined): string | null {
   return null;
 }
 
+export type SupportUrls = Readonly<{
+  supportUrl?: string;
+  monthlySupportUrl?: string;
+  supportPortalUrl?: string;
+}>;
+
+/** Monthly checkout is available only with a reviewed public cancellation route. */
+export function resolveSupportLinks({ supportUrl, monthlySupportUrl, supportPortalUrl }: SupportUrls) {
+  const oneTime = publicSupportUrl(supportUrl);
+  let portal: string | null = null;
+  try {
+    const url = new URL(supportPortalUrl?.trim() ?? "");
+    if (
+      url.protocol === "https:" && url.hostname === "billing.stripe.com" &&
+      !url.username && !url.password && !url.port && !url.search && !url.hash &&
+      /^\/p\/login\/[A-Za-z0-9]{10,}$/.test(url.pathname)
+    ) portal = url.href;
+  } catch { /* Invalid portal URLs never appear to visitors. */ }
+  const checkout = publicSupportUrl(monthlySupportUrl);
+  const monthly = portal && checkout?.startsWith("https://buy.stripe.com/") && checkout !== oneTime ? checkout : null;
+  return { oneTime, monthly, portal };
+}
+
 export const feedbackHref = "mailto:harmiox@gmail.com?subject=StatsConnect%20feedback&body=What%20were%20you%20trying%20to%20do%3F%0A%0AWhat%20worked%20or%20should%20change%3F%0A%0APlease%20leave%20out%20passwords%2C%20account%20details%2C%20and%20payment%20information.";

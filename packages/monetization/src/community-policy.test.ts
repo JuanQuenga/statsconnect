@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COMMUNITY_COOLDOWN, emptyCommunityState, feedbackHref, nextCommunityRequest, parseCommunityState, publicSupportUrl } from "./community-policy.ts";
+import { COMMUNITY_COOLDOWN, emptyCommunityState, feedbackHref, nextCommunityRequest, parseCommunityState, publicSupportUrl, resolveSupportLinks } from "./community-policy.ts";
 
 const now = 10 * COMMUNITY_COOLDOWN;
 const returning = { ...emptyCommunityState, successfulSessions: 2, firstSuccessAt: now - COMMUNITY_COOLDOWN };
@@ -60,4 +60,50 @@ test("feedback uses the existing public contact and contains no browsing or prof
   assert.equal(destination.searchParams.has("cc"), false);
   assert.equal(destination.searchParams.has("bcc"), false);
   assert.match(destination.searchParams.get("body") ?? "", /leave out passwords/);
+});
+
+const supportUrls = {
+  supportUrl: "https://buy.stripe.com/abcdefghijk",
+  monthlySupportUrl: "https://buy.stripe.com/lmnopqrstuv",
+  supportPortalUrl: "https://billing.stripe.com/p/login/abcdefghijk",
+};
+
+test("monthly support requires a valid cancellation route without disabling one-time support", () => {
+  assert.deepEqual(resolveSupportLinks(supportUrls), {
+    oneTime: supportUrls.supportUrl, monthly: supportUrls.monthlySupportUrl, portal: supportUrls.supportPortalUrl,
+  });
+  assert.deepEqual(resolveSupportLinks({ ...supportUrls, supportPortalUrl: undefined }), {
+    oneTime: supportUrls.supportUrl, monthly: null, portal: null,
+  });
+});
+
+test("unsafe, private-session and test portal URLs suppress monthly support", () => {
+  for (const supportPortalUrl of [
+    "", "http://billing.stripe.com/p/login/abcdefghijk",
+    "https://billing.stripe.com.evil.example/p/login/abcdefghijk",
+    "https://user:secret@billing.stripe.com/p/login/abcdefghijk",
+    "https://billing.stripe.com/p/login/abcdefghijk?email=player",
+    "https://billing.stripe.com/p/login/abcdefghijk#secret",
+    "https://billing.stripe.com/p/login/test_abcdefghijk",
+    "https://billing.stripe.com/p/session/abcdefghijk",
+  ]) {
+    const links = resolveSupportLinks({ ...supportUrls, supportPortalUrl });
+    assert.equal(links.monthly, null);
+    assert.equal(links.portal, null);
+    assert.equal(links.oneTime, supportUrls.supportUrl);
+  }
+});
+
+test("existing supporters keep cancellation access when new monthly signups are disabled", () => {
+  assert.deepEqual(resolveSupportLinks({ supportPortalUrl: supportUrls.supportPortalUrl }), {
+    oneTime: null, monthly: null, portal: supportUrls.supportPortalUrl,
+  });
+});
+
+test("monthly checkout cannot reuse the one-time URL or point to a different provider", () => {
+  for (const monthlySupportUrl of [supportUrls.supportUrl, "https://ko-fi.com/creator", "https://buy.stripe.com/test_abcdefghijk"]) {
+    const links = resolveSupportLinks({ ...supportUrls, monthlySupportUrl });
+    assert.equal(links.monthly, null);
+    assert.equal(links.portal, supportUrls.supportPortalUrl);
+  }
 });

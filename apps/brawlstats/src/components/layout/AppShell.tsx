@@ -28,7 +28,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main id="maincontent" className="flex-1" tabIndex={-1}>
         {children}
       </main>
-      <CommunityRequest supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL} locale={locale} />
+      <CommunityRequest
+        supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+        monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+        supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+        locale={locale}
+      />
       <FooterNotice />
     </div>
   );
