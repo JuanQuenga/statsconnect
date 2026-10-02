@@ -33,6 +33,11 @@ export function sanitizeSentryEvent<T extends Event>(event: T): T {
       ...(typeof breadcrumb.data?.to === "string" ? { to: safeUrl(breadcrumb.data.to) } : {}),
     },
   }));
+  // Sentry copies original frame URLs here before beforeSend; keep source-map linkage private too.
+  for (const image of event.debug_meta?.images ?? []) {
+    if (image.code_file) image.code_file = safeSourceUrl(image.code_file);
+    if ("debug_file" in image && image.debug_file) image.debug_file = safeSourceUrl(image.debug_file);
+  }
   for (const exception of event.exception?.values ?? []) {
     // Arbitrary API errors may embed player tags, tokens, email, or submitted input.
     // The exception type, source positions, and source maps remain useful for diagnosis.
