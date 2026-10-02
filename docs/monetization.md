@@ -9,9 +9,9 @@ to review and send. It does not attach player tags, account data, browsing
 history, screenshots, or logs, and it does not send anything automatically.
 
 Optional support uses a hosted checkout, separate from StatsConnect+ and its
-entitlements. Set `VITE_STATSCONNECT_SUPPORT_URL` in all three app build
-environments only after the receiving account and public payment link have
-been verified. This is a public URL, never an API key. Missing or invalid
+entitlements. The unified build includes the verified public support URL.
+Standalone app builds use `VITE_STATSCONNECT_SUPPORT_URL`, included in their
+environment examples. This is a public URL, never an API key. Missing or invalid
 configuration hides support links and support requests. Accepted destinations
 are HTTPS Stripe Payment Links on `buy.stripe.com` or Ko-fi profile links on
 `ko-fi.com`, without credentials, query parameters, or fragments. Stripe test
@@ -47,7 +47,7 @@ payments and payouts are available:
 5. Put the verified live public URL into the three build environments, then
    review and release the frontend change through the normal release process.
 
-### Created checkout and release gate
+### Created checkout and release
 
 The one-time **Support Juan’s work** Payment Link has been created in Juan's
 receiving account: <https://buy.stripe.com/bJedRaffk3lr7igdOG4AU00>.
@@ -56,13 +56,15 @@ minimum or maximum, the benefit-free description above, and a custom thank-you
 confirmation. No subscription, promotion code, cross-sell, Managed Payments,
 post-payment invoice, or extra customer-data requirement was added.
 
-At the latest review, the account status showed Payments and Payouts active
-with no active tasks, but the link detail page still showed **Paused** and said
-Stripe was verifying the business. The public checkout rendered successfully;
-no payment was submitted. Keep `VITE_STATSCONNECT_SUPPORT_URL` unset until
-the link detail page confirms it is active. Reuse this existing link after the
-pause clears rather than creating another checkout. No production configuration
-or deployment has been changed.
+The owner completed account activation. The latest review confirmed the link
+is **Active**, with account Payments and Payouts active and no active tasks.
+The public checkout rendered successfully; no payment was submitted. Reuse this
+existing checkout rather than create another link. The
+verified URL is included in `unifiedPublicEnvironment` and all three app
+environment examples. An explicit `VITE_STATSCONNECT_SUPPORT_URL` overrides
+the unified default; set it to an empty string to hide support if the link ever
+needs to be withdrawn. No production environment, merge, or deployment has
+been changed; the default takes effect when this frontend change is released.
 
 Clerk Billing is designed for recurring application subscriptions. StatsConnect
 currently uses Better Auth and does not need a Clerk migration to link to hosted

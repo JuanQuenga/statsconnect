@@ -11,7 +11,7 @@ function PrivacyPage() {
       <header className="space-y-3 border-b border-border pb-8">
         <p className="eyebrow text-[var(--ambient)]">StatsConnect</p>
         <h1 className="font-display text-4xl font-semibold text-foreground sm:text-5xl">Privacy</h1>
-        <p>Last updated October 2, 2026.</p>
+        <p>Last updated October 1, 2026.</p>
       </header>
 
       <section className="space-y-3">
