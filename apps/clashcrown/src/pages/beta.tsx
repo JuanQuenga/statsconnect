@@ -468,7 +468,7 @@ function SeedTag() {
             aria-label="Admin key"
           />
         </label>
-        <button type="submit" className="pink-button" disabled={pending || !tag || !key}>
+        <button type="submit" className="primary-button" disabled={pending || !tag || !key}>
           {pending ? "Queueing…" : "Queue"}
         </button>
       </form>

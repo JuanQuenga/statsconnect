@@ -15,24 +15,25 @@
   justify-content: center;
   gap: 6px;
   padding: 0 10px;
-  border: 1px solid rgba(113, 145, 190, .48);
+  border: 1px solid #c9d3dd;
   border-radius: 6px;
-  background: rgba(14, 42, 77, .94);
-  color: #eff7ff;
-  font: 700 10px var(--font-ui);
+  background: #fff;
+  color: #17324f;
+  font: 650 11px var(--font-ui);
   white-space: nowrap;
-  transition: border-color .15s ease, background .15s ease;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
 }
 
 .actions button:hover:not(:disabled),
 .actions a:hover {
-  border-color: rgba(31, 147, 255, .72);
-  background: rgba(7, 86, 159, .7);
+  border-color: rgba(7, 86, 159, .55);
+  background: #eef5fb;
+  color: #07569f;
 }
 
 .actions button:focus-visible,
 .actions a:focus-visible {
-  outline: 3px solid rgba(89, 190, 255, .65);
+  outline: 3px solid rgba(31, 147, 255, .55);
   outline-offset: 2px;
 }
 
@@ -43,8 +44,8 @@
 
 .notice {
   width: 100%;
-  color: #ff9db1;
-  font: 9px var(--font-ui);
+  color: #b03a4a;
+  font: 10px var(--font-ui);
   text-align: right;
 }
 

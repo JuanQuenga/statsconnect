@@ -276,7 +276,7 @@ function PlayerSeed({
       </div>
       <form onSubmit={onSubmit} className="player-seed-form">
         <label><span className="sr-only">Player tag</span><Search size={18} /><input value={tagInput} onChange={(event) => setTagInput(event.target.value)} placeholder="#PLAYER TAG" autoComplete="off" /></label>
-        <button type="submit" className="pink-button" disabled={loading}>{loading ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />}{loading ? "Loading" : "Personalize"}</button>
+        <button type="submit" className="primary-button" disabled={loading}>{loading ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />}{loading ? "Loading" : "Personalize"}</button>
         {player ? <button type="button" className="quiet-button" onClick={onClear}><X size={16} />Clear</button> : null}
       </form>
       {player ? <p className="player-connected"><Check size={16} />Using {player.name} · #{player.tag} · {player.cards.length} owned cards reported</p> : null}
@@ -377,7 +377,7 @@ function ObservedDeckCard({ deck, displayRank, catalog, player, observed, onCopy
       </div>
       <div className="observed-deck-metrics"><div><span>Win rate</span><strong>{(deck.winRate * 100).toFixed(1)}%</strong><small>{deck.wins}/{deck.uses} games won</small></div><div><span>Popularity</span><strong>{(deck.usageRate * 100).toFixed(2)}%</strong><small>{deck.uses.toLocaleString()} observations</small></div><div><span>Elixir / cycle</span><strong>{cost ? `${cost.average.toFixed(1)} / ${cost.cycle}` : "Unavailable"}</strong><small>{deck.evolutionIds.length} evolution{deck.evolutionIds.length === 1 ? "" : "s"}</small></div></div>
       {isPersonal ? <PersonalFit deck={deck} catalog={catalog} replacements={replacements} /> : null}
-      <div className="deck-result-actions"><button type="button" onClick={() => onUse(deck)}>Use in builder</button><button type="button" className="pink-button" onClick={() => onCopy(deck)}><Copy size={15} />Copy to game</button></div>
+      <div className="deck-result-actions"><button type="button" onClick={() => onUse(deck)}>Use in builder</button><button type="button" className="primary-button" onClick={() => onCopy(deck)}><Copy size={15} />Copy to game</button></div>
     </article>
   );
 }

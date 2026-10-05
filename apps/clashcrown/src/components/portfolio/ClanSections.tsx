@@ -25,7 +25,7 @@ export function ClanProfile({ clan }: { clan: Clan }) {
         <Summary icon={clan.warBadge} value={formatNumber(clan.warTrophies)} label={clan.warLeague ?? (locale === "es" ? "Trofeos de guerra" : "War Trophies")} />
       </div>
       <div className="clan-hero-actions">
-        <Link href={`/clans/${clan.tag}/war`} className="pink-button">
+        <Link href={`/clans/${clan.tag}/war`} className="primary-button">
           <Swords size={17} /> {t("clan.war")}
         </Link>
         {clan.fetchedAt ? (

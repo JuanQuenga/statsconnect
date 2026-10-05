@@ -76,7 +76,7 @@ export function PersonalDashboard() {
             <strong>{defaultProfile.name}</strong>
             <small>#{defaultProfile.tag}{defaultProfile.clan ? ` · ${defaultProfile.clan}` : ""}</small>
           </div>
-          <Link href={`/players/${defaultProfile.tag}`} className="pink-button">Open profile</Link>
+          <Link href={`/players/${defaultProfile.tag}`} className="primary-button">Open profile</Link>
         </div>
       ) : null}
 
@@ -86,7 +86,7 @@ export function PersonalDashboard() {
           <div>
             <p>Save a player or clan to see it here.</p>
           </div>
-          <Link href="/players" className="pink-button">Find a player</Link>
+          <Link href="/players" className="primary-button">Find a player</Link>
         </div>
       ) : (
         <div className={styles.profileColumns}>

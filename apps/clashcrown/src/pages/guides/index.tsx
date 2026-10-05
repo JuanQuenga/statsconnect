@@ -22,7 +22,7 @@ export default function GuidesPage() {
         <ArenaRouteHero
           title={t("guides.title")}
           summary={t("guides.description")}
-          actions={<Link href="/meta" className="pink-button"><BarChart3 size={15} /> {t("guides.liveMeta")}</Link>}
+          actions={<Link href="/meta" className="primary-button"><BarChart3 size={15} /> {t("guides.liveMeta")}</Link>}
         />
         <section className="guide-grid">
           {strategyGuides.map((guide) => (

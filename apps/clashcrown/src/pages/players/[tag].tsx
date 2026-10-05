@@ -117,7 +117,7 @@ function PlayerDashboard({
                 <h2>Profile history</h2>
                 <p>See when trophies, deck, clan, and collection totals changed across observed profile checks.</p>
               </div>
-              <Link href={`/players/${player.tag.replace(/^#/, "")}/history`} className="pink-button">Open history</Link>
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/history`} className="primary-button">Open history</Link>
             </section>
             <PlayerBadgeSection badges={player.badges} />
             <PlayerAchievementsSection achievements={player.achievements} />
@@ -129,7 +129,7 @@ function PlayerDashboard({
           <>
             <div className="section-heading compact-heading">
               <span />
-              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="pink-button">{t("player.upgradePlanner")}</Link>
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="primary-button">{t("player.upgradePlanner")}</Link>
               <span />
             </div>
             <CardCollection player={player} catalogCards={catalogCards} catalogLoading={catalogLoading} catalogError={catalogError} />

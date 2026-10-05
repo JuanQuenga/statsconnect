@@ -254,7 +254,7 @@
     grid-template-columns: 1fr;
   }
 
-  .form :global(.pink-button) {
+  .form :global(.primary-button) {
     justify-self: center;
   }
 

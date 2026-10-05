@@ -115,7 +115,7 @@ function ClanSearch() {
                 <option value="60000">60,000+</option>
               </select>
             </label>
-            <button type="submit" className="pink-button">
+            <button type="submit" className="primary-button">
               {locale === "es" ? "Buscar" : "Search"}
             </button>
           </form>

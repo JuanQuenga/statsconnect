@@ -40,7 +40,7 @@ function NotFoundPage() {
         summary="The link may be outdated, or the page may have moved."
         actions={
           <div className="app-error-actions">
-            <Link href="/" className="pink-button">Back to StatsConnect Clash Royale</Link>
+            <Link href="/" className="primary-button">Back to StatsConnect Clash Royale</Link>
             <Link href="/players" className="app-error-home">Find a player</Link>
           </div>
         }

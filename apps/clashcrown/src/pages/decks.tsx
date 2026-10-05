@@ -79,7 +79,7 @@ function OfflineDeckExperience() {
       <div hidden={surface !== "builder"}><DeckBuilder cards={localCards} source={locale === "es" ? "Catálogo local" : "Local catalog"} /></div>
       <div hidden={surface === "builder"}>
         <section className="profile-section discovery-results">
-          <div className="discovery-empty"><ShieldCheck size={38} /><h2>{locale === "es" ? "Los datos de mazos observados no están conectados" : "Observed deck data is not connected"}</h2><p>{locale === "es" ? "El descubrimiento y las recomendaciones requieren una implementación de Convex configurada. El creador manual sigue disponible." : "Discovery and player recommendations require a configured Convex deployment. No demo win rates or synthetic recommendations are shown. The manual builder remains available."}</p><button type="button" className="pink-button" onClick={() => setSurface("builder")}>{locale === "es" ? "Abrir creador manual" : "Open manual builder"}</button></div>
+          <div className="discovery-empty"><ShieldCheck size={38} /><h2>{locale === "es" ? "Los datos de mazos observados no están conectados" : "Observed deck data is not connected"}</h2><p>{locale === "es" ? "El descubrimiento y las recomendaciones requieren una implementación de Convex configurada. El creador manual sigue disponible." : "Discovery and player recommendations require a configured Convex deployment. No demo win rates or synthetic recommendations are shown. The manual builder remains available."}</p><button type="button" className="primary-button" onClick={() => setSurface("builder")}>{locale === "es" ? "Abrir creador manual" : "Open manual builder"}</button></div>
         </section>
       </div>
     </DeckExperienceShell>

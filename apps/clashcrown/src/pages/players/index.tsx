@@ -60,7 +60,7 @@ export default function PlayerSearchPage() {
           actions={
             <>
               <ProfileSearch />
-              <Link href="/players/compare" className="pink-button">
+              <Link href="/players/compare" className="primary-button">
                 Compare two players
               </Link>
             </>
@@ -222,7 +222,7 @@ function PlayerRow({
         </button>
       </td>
       <td>
-        <Link href={`/players/${tag}`} className="pink-button">
+        <Link href={`/players/${tag}`} className="primary-button">
           Open
         </Link>
       </td>
