@@ -1073,7 +1073,7 @@ button { cursor: pointer; }
 .members-table td {
   height: 67px;
   border-top: 1px solid rgba(62, 88, 128, .18);
-  color: #dfe8f8;
+  color: #17324f;
   font-size: 13px;
   padding: 0 16px;
 }
@@ -1483,7 +1483,7 @@ td .profile-deck-grid { width: 308px; }
 }
 .hero-chips { justify-content: center; margin-top: 14px; }
 a.status-chip:hover { background: rgba(117, 197, 255, .3); }
-.empty-panel { min-height: 240px; display: grid; place-content: center; text-align: center; }
+.empty-panel { min-height: 160px; display: grid; place-content: center; text-align: center; }
 .empty-panel p { color: var(--muted-foreground); font: 13px var(--font-ui); }
 
 /* Historical data is deliberately visually distinct from live profile cards. */
@@ -1816,7 +1816,7 @@ a.status-chip:hover { background: rgba(117, 197, 255, .3); }
 .selected-check { position: absolute; top: 8px; right: 8px; color: #fff; background: #07569f; border-radius: 50%; padding: 2px; }
 /* Keep empty-state copy quieter than the section title. */
 .empty-results {
-  min-height: 140px;
+  min-height: 96px;
   max-width: 620px;
   margin: 0 auto;
   display: grid;
