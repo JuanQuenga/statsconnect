@@ -1,5 +1,5 @@
 import { browserProfileImageRuntime, type ProfileImageRuntime } from "../../../../shared/profile-image-runtime.ts";
-import { analyzePlayerBattles } from "./clash/battles";
+import { analyzePlayerBattles } from "./clash/battles.ts";
 import { cardArtFallbacks, selectCardArt } from "./clash/assets.ts";
 import type { Battle, Card, Player } from "./clash/domain.ts";
 
