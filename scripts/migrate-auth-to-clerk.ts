@@ -157,16 +157,15 @@ export async function importUser(
   const existing = exactEmailMatch(byExternalId.data, email) ?? byExternalId.data[0];
   if (existing) {
     const clerkEmails = existing.emailAddresses
-      .map((address) => address.emailAddress.toLowerCase())
-      .join(", ");
+      .map((address) => address.emailAddress.toLowerCase());
     return {
       outcome: "already-imported",
       oldId,
       clerkId: existing.id,
       email,
-      detail: clerkEmails.includes(email)
+      detail: clerkEmails.some((address) => address === email)
         ? undefined
-        : `email drift: export has ${email}, Clerk user has ${clerkEmails || "none"} — fix the address in Clerk so auto-link can adopt it`,
+        : `email drift: export has ${email}, Clerk user has ${clerkEmails.join(", ") || "none"} — fix the address in Clerk so auto-link can adopt it`,
     };
   }
 
