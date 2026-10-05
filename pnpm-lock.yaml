@@ -49,8 +49,11 @@ importers:
         version: 1.0.10
       convex:
         specifier: ^1.43.0
-        version: 1.43.0(react@19.2.8)
+        version: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
     devDependencies:
+      '@clerk/backend':
+        specifier: ^3.22.0
+        version: 3.22.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@sentry/vite-plugin':
         specifier: ^5.4.0
         version: 5.4.0
@@ -110,7 +113,7 @@ importers:
         version: 2.1.1
       convex:
         specifier: ^1.43.0
-        version: 1.43.0(react@19.2.8)
+        version: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       lucide-react:
         specifier: 'catalog:'
         version: 1.30.0(react@19.2.8)
@@ -201,7 +204,7 @@ importers:
         version: 2.1.1
       convex:
         specifier: ^1.43.0
-        version: 1.43.0(react@19.2.8)
+        version: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       lucide-react:
         specifier: 'catalog:'
         version: 1.30.0(react@19.2.8)
@@ -289,7 +292,7 @@ importers:
         version: 2.1.1
       convex:
         specifier: ^1.43.0
-        version: 1.43.0(react@19.2.8)
+        version: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       lucide-react:
         specifier: 'catalog:'
         version: 1.30.0(react@19.2.8)
@@ -333,15 +336,12 @@ importers:
 
   packages/auth:
     dependencies:
-      '@convex-dev/better-auth':
-        specifier: ^0.12.5
-        version: 0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(convex@1.43.0(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)
-      better-auth:
-        specifier: ~1.6.29
-        version: 1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@clerk/clerk-react':
+        specifier: ^5.61.3
+        version: 5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       convex:
         specifier: ^1.43.0
-        version: 1.43.0(react@19.2.8)
+        version: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -360,13 +360,13 @@ importers:
     dependencies:
       '@convex-dev/better-auth':
         specifier: ^0.12.5
-        version: 0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(convex@1.43.0(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)
+        version: 0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(convex@1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)
       better-auth:
         specifier: ~1.6.29
         version: 1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       convex:
         specifier: ^1.43.0
-        version: 1.43.0(react@19.2.8)
+        version: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
     devDependencies:
       typescript:
         specifier: ^7.0.2
@@ -635,6 +635,42 @@ packages:
 
   '@better-fetch/fetch@1.3.1':
     resolution: {integrity: sha512-ABkD1WhyfPZprKRQI3bhATjeiFuNWC9PXhfGWqL+sg/gKrM977oFrYkdb4msM3hgUGonr7KlOsOFT5TU2rht9g==}
+
+  '@clerk/backend@3.22.0':
+    resolution: {integrity: sha512-YBJtclx3ytvQGNYhf0/pG+WHUk1ams7Aai3D2AB8c96AkSnzUE+i1Q98HyupIulPDr3fUWeQJtex4DYyO9D4fA==}
+    engines: {node: '>=20.9.0'}
+
+  '@clerk/clerk-react@5.61.3':
+    resolution: {integrity: sha512-W21aNEeHtqh3xJLuW5g2ydben/1D5pSnxsl/kCnv0IY1zma7lO+aIJ7Br2bR4FKKkiu695mPnjtY+fvkQmCXBg==}
+    engines: {node: '>=18.17.0'}
+    deprecated: 'This package is no longer supported. Please use @clerk/react instead. See the upgrade guide for more info: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3'
+    peerDependencies:
+      react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+      react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+
+  '@clerk/shared@3.48.0':
+    resolution: {integrity: sha512-4VBHItiLUZJGptWNwLazcOvz4yAFBzrjuJaf1yF35KGZWSNg3FrDCNsn8PZdPs5l4kJjx6aIGSmoRZmbOruuSg==}
+    engines: {node: '>=18.17.0'}
+    peerDependencies:
+      react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+      react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  '@clerk/shared@4.38.0':
+    resolution: {integrity: sha512-jVHz03682SJ3xsjsSjNX8YyWHllnr91qQEQZpZjCHGUIwGz3rYVavh69cofSuvPrqwOtXReukVEMtodzG2vVCQ==}
+    engines: {node: '>=20.9.0'}
+    peerDependencies:
+      react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+      react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   '@convex-dev/better-auth@0.12.5':
     resolution: {integrity: sha512-YFUbGk04OlINno9FpOTNZN67AP+kSQsblfep5zs1f/WTgMWjD5FymU6rSSh3mu52gukmDNnBJTjC/lj4QRpjlQ==}
@@ -1138,6 +1174,9 @@ packages:
   '@sentry/vite-plugin@5.4.0':
     resolution: {integrity: sha512-fFJgCxs5hDyAm9BbZJ+LbA+LK2tjX5OoD0v0ARU4StR6KQmGUduoPs69yJ9AfqZ0om3Rlp5JDliiwFcNkasORA==}
     engines: {node: '>= 18'}
+
+  '@stablelib/base64@1.0.1':
+    resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -1713,6 +1752,9 @@ packages:
   core-js@3.50.0:
     resolution: {integrity: sha512-BRWgOLKkFeCgRudR6zrs8p9XJZcE14grzKMMssoYrk6krtuEZ7MTKPIY5RzOnqsEKIR9kst7wNzphttraT+Yqw==}
 
+  csstype@3.1.3:
+    resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
+
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
@@ -1779,6 +1821,10 @@ packages:
   defu@6.1.7:
     resolution: {integrity: sha512-7z22QmUWiQ/2d0KkdYmANbRUVABpZ9SNYyH5vx6PZ+nE5bcC0l7uFvEfHlyld/HcGBFTL536ClDt3DEcSlEJAQ==}
 
+  dequal@2.0.3:
+    resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
+    engines: {node: '>=6'}
+
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
@@ -1822,6 +1868,9 @@ packages:
   eventemitter3@5.0.4:
     resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
 
+  fast-sha256@1.3.0:
+    resolution: {integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==}
+
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
     engines: {node: '>=12.0.0'}
@@ -1857,6 +1906,9 @@ packages:
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
     engines: {node: 6.* || 8.* || >= 10.*}
+
+  glob-to-regexp@0.4.1:
+    resolution: {integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==}
 
   glob@13.0.6:
     resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
@@ -1900,6 +1952,13 @@ packages:
 
   jose@6.2.8:
     resolution: {integrity: sha512-Bsdjwm3Qsd/P0jR+BHDe3LytDfY7WBq2HmCCLIwuVRHMuEC9ae7/R474GIUdF1NgCyZjzVo/A9DOiOBtXq8ZoQ==}
+
+  js-cookie@3.0.7:
+    resolution: {integrity: sha512-z/wZZgDrkNV1eA0ULjM/F9/50Ya8fbzgKneSpoPsXSGd0KnpdtHfOZWK+GcwLk+EZbS4F9RBhU+K2RgzuDaItw==}
+    engines: {node: '>=20'}
+
+  js-cookie@3.0.8:
+    resolution: {integrity: sha512-yeJd4aNAdYZQjaon2bpD/Gb0B/omw7HQOsynXXcOiWVCacbBcPlgn8S/d1X6blFSaHao7ozqtW7NZW19xpCtIw==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -2303,6 +2362,12 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
+  standardwebhooks@1.1.1:
+    resolution: {integrity: sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==}
+
+  std-env@3.10.0:
+    resolution: {integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==}
+
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -2310,6 +2375,11 @@ packages:
   strip-ansi@6.0.1:
     resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
     engines: {node: '>=8'}
+
+  swr@2.3.4:
+    resolution: {integrity: sha512-bYd2lrhc+VarcpkgWclcUi92wYCpOgMws9Sd1hG1ntAu0NEy+14CbotuFjshBU2kt9rYj9TSmDcybpxpeTU1fg==}
+    peerDependencies:
+      react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   tagged-tag@1.0.0:
     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
@@ -2337,6 +2407,9 @@ packages:
 
   tr46@0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+
+  tslib@2.8.1:
+    resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
   tw-animate-css@1.4.0:
     resolution: {integrity: sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ==}
@@ -2685,13 +2758,51 @@ snapshots:
 
   '@better-fetch/fetch@1.3.1': {}
 
-  '@convex-dev/better-auth@0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(convex@1.43.0(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)':
+  '@clerk/backend@3.22.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@clerk/shared': 4.38.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      standardwebhooks: 1.1.1
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
+  '@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@clerk/shared': 3.48.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      tslib: 2.8.1
+
+  '@clerk/shared@3.48.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      csstype: 3.1.3
+      dequal: 2.0.3
+      glob-to-regexp: 0.4.1
+      js-cookie: 3.0.7
+      std-env: 3.10.0
+      swr: 2.3.4(react@19.2.8)
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  '@clerk/shared@4.38.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@tanstack/query-core': 5.101.4
+      dequal: 2.0.3
+      glob-to-regexp: 0.4.1
+      js-cookie: 3.0.8
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  '@convex-dev/better-auth@0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(convex@1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)':
     dependencies:
       '@better-fetch/fetch': 1.3.1
       better-auth: 1.6.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       common-tags: 1.8.2
-      convex: 1.43.0(react@19.2.8)
-      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
+      convex: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
       jose: 6.2.8
       react: 19.2.8
       remeda: 2.40.0
@@ -3054,6 +3165,8 @@ snapshots:
       - rollup
       - supports-color
       - webpack
+
+  '@stablelib/base64@1.0.1': {}
 
   '@standard-schema/spec@1.1.0': {}
 
@@ -3449,9 +3562,9 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)(zod@4.4.3):
+  convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8))(hono@4.13.1)(react@19.2.8)(typescript@7.0.2)(zod@4.4.3):
     dependencies:
-      convex: 1.43.0(react@19.2.8)
+      convex: 1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
       hono: 4.13.1
@@ -3459,12 +3572,13 @@ snapshots:
       typescript: 7.0.2
       zod: 4.4.3
 
-  convex@1.43.0(react@19.2.8):
+  convex@1.43.0(@clerk/clerk-react@5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8):
     dependencies:
       esbuild: 0.27.0
       prettier: 3.9.6
       ws: 8.21.0
     optionalDependencies:
+      '@clerk/clerk-react': 5.61.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react: 19.2.8
     transitivePeerDependencies:
       - bufferutil
@@ -3473,6 +3587,8 @@ snapshots:
   cookie-es@3.1.1: {}
 
   core-js@3.50.0: {}
+
+  csstype@3.1.3: {}
 
   csstype@3.2.3: {}
 
@@ -3523,6 +3639,8 @@ snapshots:
   decimal.js-light@2.5.1: {}
 
   defu@6.1.7: {}
+
+  dequal@2.0.3: {}
 
   detect-libc@2.1.2: {}
 
@@ -3580,6 +3698,8 @@ snapshots:
 
   eventemitter3@5.0.4: {}
 
+  fast-sha256@1.3.0: {}
+
   fdir@6.5.0(picomatch@4.0.5):
     optionalDependencies:
       picomatch: 4.0.5
@@ -3604,6 +3724,8 @@ snapshots:
   gensync@1.0.0-beta.2: {}
 
   get-caller-file@2.0.5: {}
+
+  glob-to-regexp@0.4.1: {}
 
   glob@13.0.6:
     dependencies:
@@ -3638,6 +3760,10 @@ snapshots:
   jiti@2.7.0: {}
 
   jose@6.2.8: {}
+
+  js-cookie@3.0.7: {}
+
+  js-cookie@3.0.8: {}
 
   js-tokens@4.0.0: {}
 
@@ -3956,6 +4082,13 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
+  standardwebhooks@1.1.1:
+    dependencies:
+      '@stablelib/base64': 1.0.1
+      fast-sha256: 1.3.0
+
+  std-env@3.10.0: {}
+
   string-width@4.2.3:
     dependencies:
       emoji-regex: 8.0.0
@@ -3965,6 +4098,12 @@ snapshots:
   strip-ansi@6.0.1:
     dependencies:
       ansi-regex: 5.0.1
+
+  swr@2.3.4(react@19.2.8):
+    dependencies:
+      dequal: 2.0.3
+      react: 19.2.8
+      use-sync-external-store: 1.6.0(react@19.2.8)
 
   tagged-tag@1.0.0: {}
 
@@ -3984,6 +4123,8 @@ snapshots:
       picomatch: 4.0.5
 
   tr46@0.0.3: {}
+
+  tslib@2.8.1: {}
 
   tw-animate-css@1.4.0: {}
 

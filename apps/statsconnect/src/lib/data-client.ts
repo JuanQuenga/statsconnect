@@ -13,6 +13,24 @@ import { getViewerId } from "./viewer";
 const convexUrl = import.meta.env.VITE_CONVEX_URL?.trim();
 const convex = convexUrl ? new ConvexHttpClient(convexUrl, { logger: false }) : null;
 
+// Signed-in callers feed the Clerk token fetcher here (ConvexTokenBridge) so
+// the hub throttles previews per account; guests keep the anonymous viewer
+// key. ConvexHttpClient.setAuth takes a raw token string, so each request
+// mints a fresh short-lived JWT before it fires.
+type ConvexAuthTokenProvider = () => Promise<string | null>;
+let authTokenProvider: ConvexAuthTokenProvider | null = null;
+
+export function setConvexAuthTokenProvider(provider: ConvexAuthTokenProvider | null): void {
+  authTokenProvider = provider;
+}
+
+async function applyConvexAuth(): Promise<void> {
+  if (!convex) return;
+  const token = authTokenProvider ? await authTokenProvider() : null;
+  if (token) convex.setAuth(token);
+  else convex.clearAuth();
+}
+
 const refs = {
   preview: makeFunctionReference<"action", { viewerId: string; game: GameId; playerTag: string }, AdapterResult<ProfileSummary>>("hub/profiles:preview"),
 };
@@ -74,7 +92,9 @@ function toClientError(error: unknown): DataClientError {
 
 async function request<T>(operation: (client: ConvexHttpClient) => Promise<T>): Promise<T> {
   try {
-    return await operation(requireConvex());
+    const client = requireConvex();
+    await applyConvexAuth();
+    return await operation(client);
   } catch (error) {
     throw toClientError(error);
   }

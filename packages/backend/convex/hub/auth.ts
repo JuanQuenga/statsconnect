@@ -3,11 +3,17 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 
 type AuthenticatedCtx = Pick<QueryCtx | MutationCtx, "auth">;
 
+/**
+ * The Clerk user ID (`user_...` from the JWT `sub` claim) is the canonical
+ * account key across the hub: savedProfiles.ownerId, accountEntitlements
+ * .subject, and watchDemands.subject all store it. tokenIdentifier embeds the
+ * Clerk issuer domain and is never persisted.
+ */
 export async function verifiedSubjectOrNull(
   ctx: AuthenticatedCtx,
 ): Promise<string | null> {
   const identity = await ctx.auth.getUserIdentity();
-  return identity?.tokenIdentifier ?? null;
+  return identity?.subject ?? null;
 }
 
 export async function requireVerifiedSubject(

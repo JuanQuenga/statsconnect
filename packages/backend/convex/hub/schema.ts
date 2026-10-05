@@ -43,6 +43,21 @@ export const watchTargetStatusValidator = v.union(
 );
 
 export const hubTables = {
+  /**
+   * One row per identity carried over from the Better Auth → Clerk migration.
+   * `oldId` is the Better Auth user ID that owned rows before the cutover;
+   * `newSubject` is the Clerk user ID that owns them now. The inverse index
+   * powers rollbackRekey, so this ledger is never pruned.
+   */
+  authMigration: defineTable({
+    oldId: v.string(),
+    newSubject: v.string(),
+    email: v.optional(v.string()),
+    migratedAt: v.number(),
+  })
+    .index("by_old_id", ["oldId"])
+    .index("by_new_subject", ["newSubject"]),
+
   savedProfiles: defineTable({
     ownerId: v.string(),
     game: gameIdValidator,

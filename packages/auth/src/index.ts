@@ -1,4 +1,5 @@
 export {
+  ConvexTokenBridge,
   StatsConnectAuthProvider,
   useStatsConnectAuth,
   useStatsConnectProfileTracking,
