@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import { authComponent } from "../auth";
 import { mutation, query } from "../_generated/server";
+import { requireVerifiedSubject } from "./auth";
 import { gameIdValidator } from "./schema";
 import {
   registerConnectedProfile,
@@ -49,19 +49,19 @@ export const accountState = query({
     v.null(),
   ),
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-    if (!user) return null;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
     const profiles = await ctx.db
       .query("savedProfiles")
-      .withIndex("by_owner_and_updated_at", (index) => index.eq("ownerId", user._id))
+      .withIndex("by_owner_and_updated_at", (index) => index.eq("ownerId", identity.subject))
       .order("desc")
       .take(16);
     return {
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        image: user.image ?? null,
+        id: identity.subject,
+        name: identity.name ?? "Account",
+        email: identity.email ?? "",
+        image: identity.pictureUrl ?? null,
       },
       profiles: profiles.map((profile) => ({
         game: profile.game,
@@ -77,8 +77,8 @@ export const mergeBrowserProfiles = mutation({
   args: { profiles: v.array(savedProfileInput) },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-    if (!user) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to sync profiles." });
+    const ownerId = await requireVerifiedSubject(ctx);
+    if (!ownerId) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to sync profiles." });
     const now = Date.now();
     for (const profile of args.profiles.slice(0, 16)) {
       const playerTag = normalizeTag(profile.tag);
@@ -86,7 +86,7 @@ export const mergeBrowserProfiles = mutation({
       const existing = await ctx.db
         .query("savedProfiles")
         .withIndex("by_owner_game_and_tag", (index) => index
-          .eq("ownerId", user._id)
+          .eq("ownerId", ownerId)
           .eq("game", profile.game)
           .eq("playerTag", playerTag))
         .unique();
@@ -106,7 +106,7 @@ export const mergeBrowserProfiles = mutation({
           { now, nextDueAt: now },
         );
         await ctx.db.insert("savedProfiles", {
-          ownerId: user._id,
+          ownerId,
           game: profile.game,
           playerTag,
           name,
@@ -124,15 +124,15 @@ export const save = mutation({
   args: savedProfileInput,
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-    if (!user) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to save profiles." });
+    const ownerId = await requireVerifiedSubject(ctx);
+    if (!ownerId) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to save profiles." });
     const playerTag = normalizeTag(args.tag);
     const name = normalizeName(args.name);
     const now = Date.now();
     const existing = await ctx.db
       .query("savedProfiles")
       .withIndex("by_owner_game_and_tag", (index) => index
-        .eq("ownerId", user._id)
+        .eq("ownerId", ownerId)
         .eq("game", args.game)
         .eq("playerTag", playerTag))
       .unique();
@@ -150,7 +150,7 @@ export const save = mutation({
         { now, nextDueAt: now },
       );
       await ctx.db.insert("savedProfiles", {
-        ownerId: user._id,
+        ownerId,
         game: args.game,
         playerTag,
         name,
@@ -167,12 +167,12 @@ export const remove = mutation({
   args: { game: gameIdValidator, tag: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-    if (!user) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to manage profiles." });
+    const ownerId = await requireVerifiedSubject(ctx);
+    if (!ownerId) throw new ConvexError({ code: "AUTH_REQUIRED", message: "Sign in to manage profiles." });
     const profile = await ctx.db
       .query("savedProfiles")
       .withIndex("by_owner_game_and_tag", (index) => index
-        .eq("ownerId", user._id)
+        .eq("ownerId", ownerId)
         .eq("game", args.game)
         .eq("playerTag", normalizeTag(args.tag)))
       .unique();

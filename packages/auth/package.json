@@ -24,7 +24,6 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@convex-dev/better-auth": "^0.12.5",
-    "better-auth": "~1.6.29"
+    "@clerk/clerk-react": "^5.61.3"
   }
 }

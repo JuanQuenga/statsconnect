@@ -110,8 +110,8 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
     <StrictMode>
       <AppErrorBoundary app={APP_NAME} fallback={BrawlStatsFatalError}>
         <StatsConnectAuthProvider
+          clerkPublishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
           convexUrl={import.meta.env.VITE_CONVEX_URL}
-          convexSiteUrl={import.meta.env.VITE_CONVEX_SITE_URL}
         >
           <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />

@@ -2,7 +2,7 @@ import Image from "@/components/Image";
 import Link from "@/components/Link";
 import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
-import { Crown, RefreshCcw, Shield, Trophy } from "lucide-react";
+import { Crown, Layers, RefreshCcw, Shield, Swords, Trophy } from "lucide-react";
 import { leagueImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { analyzePlayerBattles } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
@@ -45,6 +45,11 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
   const clanLabel = player.clan && player.clan !== "No clan"
     ? player.clan
     : locale === "es" ? "Sin clan" : "No clan";
+  const careerWins = readPlayerStat(player.stats, "Wins");
+  const threeCrowns = readPlayerStat(player.stats, "3 crown wins");
+  const cardsCollected = player.cardCollectionAvailable === false
+    ? undefined
+    : player.cards.filter((card) => card.owned !== false).length;
 
   return (
     <ArenaHeroFrame className="profile-hero">
@@ -90,6 +95,17 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
                 </span>
               ) : <span>{locale === "es" ? "Sin posición clasificatoria registrada" : "No Ranked standing recorded"}</span>}
             </div>
+          </div>
+          <div className="profile-rank-stats">
+            {careerWins !== undefined ? (
+              <HeroMetric icon={<Swords aria-hidden="true" />} label={locale === "es" ? "Victorias" : "Career wins"} value={formatNumber(careerWins)} />
+            ) : null}
+            {threeCrowns !== undefined ? (
+              <HeroMetric icon={<Crown aria-hidden="true" />} label={locale === "es" ? "Victorias de tres coronas" : "Three-crown wins"} value={formatNumber(threeCrowns)} />
+            ) : null}
+            {cardsCollected !== undefined ? (
+              <HeroMetric icon={<Layers aria-hidden="true" />} label={locale === "es" ? "Cartas encontradas" : "Cards collected"} value={formatNumber(cardsCollected)} />
+            ) : null}
           </div>
           <div className="profile-trophy-road">
             <HeroMetric icon={<Trophy />} label="Trophy Road" value={player.trophies === undefined ? "—" : formatNumber(player.trophies)} />

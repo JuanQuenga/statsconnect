@@ -14,6 +14,7 @@ import {
   StatsConnectRouteError,
 } from "./components/AppErrorPage";
 import { routeTree } from "./routeTree.gen";
+import { setConvexAuthTokenProvider } from "./lib/data-client";
 
 const APP_NAME = "StatsConnect";
 
@@ -86,8 +87,9 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
     <StrictMode>
       <AppErrorBoundary app={APP_NAME} fallback={StatsConnectFatalError}>
         <StatsConnectAuthProvider
+          clerkPublishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
           convexUrl={import.meta.env.VITE_CONVEX_URL}
-          convexSiteUrl={import.meta.env.VITE_CONVEX_SITE_URL}
+          onConvexTokenProvider={setConvexAuthTokenProvider}
         >
           <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />

@@ -29,11 +29,12 @@ export const preview = action({
   handler: async (ctx, args) => {
     const tag = publicTag(args.playerTag);
     const identity = await ctx.auth.getUserIdentity();
-    // Authenticated callers throttle on their tokenIdentifier so a rotating
-    // viewerId cannot evade the per-viewer limit. Anonymous callers fall back
-    // to the client key plus a shared global window that bounds total
-    // upstream proxy traffic even when keys are spoofed.
-    const throttleKey = identity ? ownerKey(identity.tokenIdentifier) : ownerKey(args.viewerId);
+    // Authenticated callers throttle on their Clerk subject so a rotating
+    // viewerId cannot evade the per-account limit; the account prefix keeps
+    // these keys out of ownerKey's guest UUID validation. Anonymous callers
+    // fall back to the client key plus a shared global window that bounds
+    // total upstream proxy traffic even when keys are spoofed.
+    const throttleKey = identity ? `account:${identity.subject}` : ownerKey(args.viewerId);
     await ctx.runMutation(internal.hub.internal.connectThrottle.checkAndRecord, {
       ownerKey: throttleKey,
     });

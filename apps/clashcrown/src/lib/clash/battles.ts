@@ -1,6 +1,6 @@
-import { parseApiDate } from "./format";
+import { parseApiDate } from "./format.ts";
 import type { Battle, Card } from "@/lib/clash/domain";
-import type { ApiBattle, ApiBattleParticipant } from "./types";
+import type { ApiBattle, ApiBattleParticipant } from "./types.ts";
 
 /**
  * Battle modes worth aggregating into meta statistics. Every one of these is a

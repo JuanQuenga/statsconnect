@@ -1,12 +1,10 @@
 import {
-  ConvexBetterAuthProvider,
-  type AuthClient,
-} from "@convex-dev/better-auth/react";
-import {
-  convexClient,
-  crossDomainClient,
-} from "@convex-dev/better-auth/client/plugins";
-import { createAuthClient } from "better-auth/react";
+  ClerkProvider,
+  useAuth as useClerkAuth,
+  useClerk,
+  useSignIn,
+} from "@clerk/clerk-react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import {
@@ -39,7 +37,6 @@ import {
   type ProfileTrackingInterface,
   type ProfileTrackingState,
 } from "./profile-tracking";
-import { createSharedAuthStorage } from "./shared-auth-storage";
 
 export type StatsConnectAccount = {
   id: string;
@@ -131,23 +128,6 @@ const defaultState: StatsConnectAuthState = {
 
 const AuthContext = createContext<StatsConnectAuthState>(defaultState);
 
-function siteUrlFromCloudUrl(convexUrl: string): string {
-  return convexUrl.replace(/\.convex\.cloud\/?$/, ".convex.site");
-}
-
-function browserAuthStorage() {
-  if (typeof window === "undefined") return undefined;
-  return createSharedAuthStorage({
-    hostname: window.location.hostname,
-    protocol: window.location.protocol,
-    readCookie: () => document.cookie,
-    writeCookie: (value) => {
-      document.cookie = value;
-    },
-    legacyStorage: window.localStorage,
-  });
-}
-
 function useProfilesModule(
   createModule: () => ConnectedProfilesModule,
 ): { module: ConnectedProfilesModule; snapshot: ConnectedProfilesSnapshot } {
@@ -157,74 +137,92 @@ function useProfilesModule(
   return { module, snapshot };
 }
 
-function useConvexClients(
-  configuredUrl: string,
-  configuredSiteUrl: string,
-): { convex: ConvexReactClient; auth: AuthClient } | null {
+function useConvexReactClient(configuredUrl: string): ConvexReactClient | null {
   const pendingCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clientsRef = useRef<{
-    url: string;
-    siteUrl: string;
-    clients: { convex: ConvexReactClient; auth: AuthClient };
-  } | null>(null);
+  const clientRef = useRef<{ url: string; client: ConvexReactClient } | null>(null);
 
-  if (configuredUrl && configuredSiteUrl && !clientsRef.current) {
-    const authStorage = browserAuthStorage();
-    clientsRef.current = {
-      url: configuredUrl,
-      siteUrl: configuredSiteUrl,
-      clients: {
-        convex: new ConvexReactClient(configuredUrl),
-        auth: createAuthClient({
-          baseURL: configuredSiteUrl,
-          plugins: [convexClient(), crossDomainClient(authStorage ? { storage: authStorage } : {})],
-        }) as unknown as AuthClient,
-      },
-    };
+  if (configuredUrl && !clientRef.current) {
+    clientRef.current = { url: configuredUrl, client: new ConvexReactClient(configuredUrl) };
   }
 
-  const clients = clientsRef.current;
+  const entry = clientRef.current;
   useEffect(() => {
-    if (!clients) return;
+    if (!entry) return;
     if (pendingCloseRef.current) {
       clearTimeout(pendingCloseRef.current);
       pendingCloseRef.current = null;
     }
     return () => {
       pendingCloseRef.current = setTimeout(() => {
-        clients.clients.convex.close();
-        if (clientsRef.current === clients) clientsRef.current = null;
+        entry.client.close();
+        if (clientRef.current === entry) clientRef.current = null;
         pendingCloseRef.current = null;
       }, 0);
     };
-  }, [clients]);
+  }, [entry]);
 
-  return clients?.clients ?? null;
+  return entry?.client ?? null;
 }
 
 export function StatsConnectAuthProvider({
   children,
-  convexSiteUrl,
+  clerkPublishableKey,
   convexUrl,
+  onConvexTokenProvider,
 }: {
   children: ReactNode;
-  convexSiteUrl?: string;
+  clerkPublishableKey?: string;
   convexUrl?: string;
+  /** Receives the signed-in Clerk token fetcher (null while signed out). */
+  onConvexTokenProvider?: (provider: (() => Promise<string | null>) | null) => void;
 }) {
   const configuredUrl = convexUrl?.trim();
-  const configuredSiteUrl = convexSiteUrl?.trim() || (configuredUrl ? siteUrlFromCloudUrl(configuredUrl) : "");
-  const clients = useConvexClients(configuredUrl ?? "", configuredSiteUrl);
+  const publishableKey = clerkPublishableKey?.trim();
+  const convex = useConvexReactClient(configuredUrl ?? "");
 
-  if (!clients) return <GuestProfiles>{children}</GuestProfiles>;
+  if (!configuredUrl || !publishableKey || !convex) {
+    return <GuestProfiles onTokenProvider={onConvexTokenProvider}>{children}</GuestProfiles>;
+  }
 
   return (
-    <ConvexBetterAuthProvider client={clients.convex} authClient={clients.auth}>
-      <ConfiguredAuth authClient={clients.auth}>{children}</ConfiguredAuth>
-    </ConvexBetterAuthProvider>
+    <ClerkProvider publishableKey={publishableKey}>
+      <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+        {/* Must render under ClerkProvider: the bridge reads Clerk context. */}
+        {onConvexTokenProvider ? (
+          <ConvexTokenBridge onTokenProvider={onConvexTokenProvider} />
+        ) : null}
+        <ConfiguredAuth>{children}</ConfiguredAuth>
+      </ConvexProviderWithClerk>
+    </ClerkProvider>
   );
 }
 
-function GuestProfiles({ children }: { children: ReactNode }) {
+/**
+ * Feeds the standalone Hub ConvexHttpClient the signed-in Clerk token so
+ * authenticated preview calls throttle per account instead of per browser.
+ * Only the provider mounts this (inside ClerkProvider); onTokenProvider
+ * receives null again on sign-out or unmount.
+ */
+function ConvexTokenBridge({
+  onTokenProvider,
+}: {
+  onTokenProvider: (provider: (() => Promise<string | null>) | null) => void;
+}): null {
+  const { getToken, isSignedIn } = useClerkAuth();
+  useEffect(() => {
+    onTokenProvider(isSignedIn ? () => getToken({ template: "convex" }) : null);
+    return () => onTokenProvider(null);
+  }, [getToken, isSignedIn, onTokenProvider]);
+  return null;
+}
+
+function GuestProfiles({
+  children,
+  onTokenProvider,
+}: {
+  children: ReactNode;
+  onTokenProvider?: (provider: (() => Promise<string | null>) | null) => void;
+}) {
   const profiles = useProfilesModule(() => createConnectedProfilesModule({
     account: noopAccountAdapter,
     browser: getBrowserConnectedProfilesAdapter(),
@@ -253,17 +251,17 @@ function GuestProfiles({ children }: { children: ReactNode }) {
     },
     signOut: async () => profiles.module.signOut(),
   }), [profiles.module, profiles.snapshot]);
+  // Guest mode has no Clerk tokens, so never leave a stale fetcher behind.
+  useEffect(() => {
+    onTokenProvider?.(null);
+  }, [onTokenProvider]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-function ConfiguredAuth({
-  authClient,
-  children,
-}: {
-  authClient: AuthClient;
-  children: ReactNode;
-}) {
+function ConfiguredAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading: isConvexAuthLoading } = useConvexAuth();
+  const clerk = useClerk();
+  const { signIn } = useSignIn();
   const [accessNow] = useState(() => Date.now());
   const access = useQuery(accessRef, isAuthenticated ? { now: accessNow } : "skip");
   const accountState = useQuery(accountStateRef, isAuthenticated ? {} : "skip");
@@ -333,19 +331,22 @@ function ConfiguredAuth({
     saveProfile: profiles.module.save,
     removeProfile: profiles.module.remove,
     signInWithGoogle: async () => {
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: window.location.href,
+      if (!signIn) throw new StatsConnectAuthConfigurationError();
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: window.location.href,
+        redirectUrlComplete: window.location.href,
       });
     },
     signOut: async () => {
-      await authClient.signOut();
+      await clerk.signOut();
       profiles.module.signOut();
     },
   }), [
     access,
     accountState,
-    authClient,
+    clerk,
+    signIn,
     isAuthenticated,
     isConvexAuthLoading,
     accountTrackedProfiles,
