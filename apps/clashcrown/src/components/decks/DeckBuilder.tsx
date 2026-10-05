@@ -103,7 +103,7 @@ export function DeckBuilder({
           <div><span>Average elixir</span><strong>{selected.length ? average.toFixed(1) : "—"}</strong></div>
           <div><span>4-card cycle</span><strong>{selected.length >= 4 ? cycle : "—"}</strong></div>
           <button type="button" onClick={() => { setSelected([]); setNotice(""); }}><Trash2 size={17} />Clear</button>
-          <button type="button" className="pink-button" onClick={copyDeck}><Copy size={17} />Copy deck</button>
+          <button type="button" className="primary-button" onClick={copyDeck}><Copy size={17} />Copy deck</button>
         </div>
         <div className="selected-deck" aria-label="Selected deck">
           {Array.from({ length: 8 }).map((_, index) => {

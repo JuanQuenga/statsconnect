@@ -77,7 +77,7 @@ export default function PlayerComparePage() {
               Second player
               <input value={draftB} onChange={(event) => setDraftB(event.target.value)} placeholder="#PLAYER_TAG" list="player-suggestions" />
             </label>
-            <button type="submit" className="pink-button">
+            <button type="submit" className="primary-button">
               Compare
             </button>
           </form>

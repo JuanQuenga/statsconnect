@@ -239,7 +239,7 @@ function PlayerProfilePage({
                 </span>
               </div>
               <div className="min-w-0">
-                <p className="mb-1 text-xs font-semibold tracking-[0.18em] text-[var(--player-accent)] uppercase">
+                <p className="mb-1 text-[0.8125rem] font-semibold text-[var(--player-accent)]">
                   {player.tag}
                 </p>
                 <h1 id="player-name" className="truncate font-display text-5xl leading-[.9] tracking-[-0.035em] text-white sm:text-7xl">
@@ -286,7 +286,7 @@ function PlayerProfilePage({
               />
               {signatureFeatureArt ? <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-background/60 via-transparent to-transparent" aria-hidden /> : null}
               <Card className="absolute right-2 bottom-1 z-10 w-48 gap-1 border border-white/10 bg-background/80 p-3 py-3 backdrop-blur-md">
-                <p className="text-[0.65rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase">{t("player.brawler")}</p>
+                <p className="text-[0.8125rem] font-semibold text-muted-foreground">{t("player.brawler")}</p>
                 <div className="flex items-end justify-between gap-2">
                   <p className="font-display text-xl">{signature.name}</p>
                   <p className="font-display text-primary">{trophies(signature.trophies)}</p>

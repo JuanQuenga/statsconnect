@@ -85,7 +85,6 @@ function HomePage() {
         <section>
           <div className="mb-5 flex items-end justify-between gap-3">
             <div>
-              <p className="brawl-eyebrow mb-2">{t("home.liveCatalog")}</p>
               <h2 className="section-title">{t("home.newest")}</h2>
             </div>
             <Link to="/brawlers" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "shrink-0")}>
@@ -132,7 +131,6 @@ function HomePage() {
           <div>
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <p className="brawl-eyebrow mb-2">{t("home.rotation")}</p>
                 <h2 className="section-title">{t("home.activeEvents")}</h2>
               </div>
               <Link to="/maps" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
@@ -167,7 +165,6 @@ function HomePage() {
 
           <div>
             <div className="mb-4">
-              <p className="brawl-eyebrow mb-2">{t("home.globalRankings")}</p>
               <h2 className="section-title">{t("home.topPlayers")}</h2>
             </div>
             <HomeListFeedback state={playersState} error={playersQuery.error} emptyTitle={t("leaderboard.empty")} />

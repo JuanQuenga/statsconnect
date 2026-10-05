@@ -57,7 +57,7 @@ export default function ToolsPage() {
             <li><strong>2</strong><span>{locale === "es" ? "La posición +0 es el próximo cofre. +N cuenta cuántos cofres se abren antes." : "Position +0 is the next chest. +N counts how many chests are opened before it."}</span></li>
             <li><strong>3</strong><span>{locale === "es" ? "La lista es una instantánea de la API. Actualiza el perfil después de abrir cofres para mover la cola." : "The list is an API snapshot. Refresh the profile after opening chests to move the queue."}</span></li>
           </ol>
-          <Link href="/players" className="pink-button"><Search size={15} /> {t("tools.openPlayer")}</Link>
+          <Link href="/players" className="primary-button"><Search size={15} /> {t("tools.openPlayer")}</Link>
         </section>
 
         <section className="utility-links">
@@ -149,7 +149,7 @@ function DeckLinkParser() {
         <div className="parsed-deck" role="status">
           <p><Check size={16} /> {locale === "es" ? "Dominio oficial y ocho identificadores de carta válidos." : "Official domain and eight valid card identifiers."}</p>
           <ol>{result.cardIds.map((id, index) => <li key={`${id}-${index}`}><span>{index + 1}</span><code>{id}</code></li>)}</ol>
-          <a className="pink-button" href={result.url} target="_blank" rel="noopener noreferrer">{t("common.open")} <ExternalLink size={14} /></a>
+          <a className="primary-button" href={result.url} target="_blank" rel="noopener noreferrer">{t("common.open")} <ExternalLink size={14} /></a>
         </div>
       ) : null}
     </section>

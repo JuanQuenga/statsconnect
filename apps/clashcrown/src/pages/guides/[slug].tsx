@@ -17,7 +17,7 @@ export default function GuidePage({ slug }: { slug: string }) {
         <div className="editorial-state">
           <BookFallback />
           <h1>Guide not found</h1>
-          <Link href="/guides" className="pink-button"><ArrowLeft size={15} /> {t("guides.title")}</Link>
+          <Link href="/guides" className="primary-button"><ArrowLeft size={15} /> {t("guides.title")}</Link>
         </div>
       </Layout>
     );
@@ -41,7 +41,7 @@ export default function GuidePage({ slug }: { slug: string }) {
             <h1>{title}</h1>
             <p>{summary}</p>
             <div className="editorial-actions">
-              <Link href="/meta" className="pink-button"><BarChart3 size={15} /> {t("guides.liveMeta")}</Link>
+              <Link href="/meta" className="primary-button"><BarChart3 size={15} /> {t("guides.liveMeta")}</Link>
               <Link href={`/decks?include=${guide.heroCard.slug}`} className="secondary-button"><Hammer size={15} /> {t("guides.build")}</Link>
             </div>
           </div>

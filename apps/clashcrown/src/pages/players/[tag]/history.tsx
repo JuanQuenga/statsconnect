@@ -54,7 +54,7 @@ function PlayerHistory({ tag }: { tag: string }) {
             <Database size={34} />
             <h2>No observations yet</h2>
             <p>Load the live player profile once to create the first snapshot. StatsConnect does not fabricate earlier seasons.</p>
-            <Link className="pink-button" href={`/players/${tag}`}>Load player profile</Link>
+            <Link className="primary-button" href={`/players/${tag}`}>Load player profile</Link>
           </section>
         ) : (
           <div className="history-record">

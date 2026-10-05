@@ -118,7 +118,7 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
       <div className="flex flex-col items-center gap-4 text-center">
         <span className="grid size-16 place-items-center rounded-full border border-primary/40 bg-primary/10 text-primary shadow-[0_0_50px_rgba(245,200,91,0.14)]"><LoaderCircle className="size-8 motion-safe:animate-spin" aria-hidden="true" /></span>
         <span className="font-display text-2xl text-foreground">{alt}</span>
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Loading 3D model</span>
+        <span className="text-[0.8125rem] font-semibold text-muted-foreground">Loading 3D model</span>
       </div>
     </div> : null}
     {!showLoading && !showModelFrame ? <div className="absolute inset-0 grid place-items-center overflow-hidden rounded-xl bg-[radial-gradient(circle_at_center,rgba(245,200,91,0.12),transparent_65%)]">

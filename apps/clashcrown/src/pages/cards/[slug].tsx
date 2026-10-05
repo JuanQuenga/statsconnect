@@ -101,7 +101,7 @@ function CardDetail({ slug }: { slug: string }) {
               {card.heroImage ? <span>Hero available</span> : null}
             </p>
             <CardVariants card={card} />
-            <Link href={`/decks?include=${cardSlug(card.name)}`} className="pink-button card-detail-cta">
+            <Link href={`/decks?include=${cardSlug(card.name)}`} className="primary-button card-detail-cta">
               Build a deck with {card.name}
             </Link>
           </div>

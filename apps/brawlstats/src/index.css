@@ -167,11 +167,9 @@
 
   .brawl-eyebrow {
     color: var(--muted-foreground);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
+    font-size: 0.8125rem;
+    font-weight: 650;
     line-height: 1.5;
-    text-transform: uppercase;
   }
 
   .brawl-hero-copy > .brawl-eyebrow {

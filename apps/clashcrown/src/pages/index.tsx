@@ -101,7 +101,7 @@ function MetaTopDeck() {
     <section className="deck-day page-band">
       <div className="section-title-row">
         <h2>Top observed deck</h2>
-        <Link href="/meta" className="pink-button">See the full meta</Link>
+        <Link href="/meta" className="primary-button">See the full meta</Link>
       </div>
       <div className="archetype-tabs" aria-label="Battle mode">
         {HOME_MODES.map((item) => (
@@ -182,7 +182,7 @@ function MetaPopularCards() {
     <section className="popular page-band">
       <div className="section-title-row">
         <h2>Most played card</h2>
-        <Link href="/meta" className="pink-button">Card and deck rankings</Link>
+        <Link href="/meta" className="primary-button">Card and deck rankings</Link>
       </div>
       {payload === undefined || library.isLoading ? (
         <HomeDataMessage message="Loading Path of Legends card statistics…" />
@@ -196,7 +196,7 @@ function MetaPopularCards() {
         <>
           <div className="popular-grid">
             <MetaMetric
-              color="pink"
+              color="gold"
               label="Win rate"
               value={`${(top.winRate * 100).toFixed(1)}%`}
               detail={`${top.uses.toLocaleString()} games observed`}
@@ -235,7 +235,7 @@ function LiveEventLab() {
     <section className="event-lab page-band">
       <div className="section-title-row">
         <h2>Live tournaments</h2>
-        <Link href="/tournaments" className="pink-button">View tournaments</Link>
+        <Link href="/tournaments" className="primary-button">View tournaments</Link>
       </div>
       {query.isLoading ? (
         <HomeDataMessage message="Loading current Global Tournaments…" />
@@ -279,7 +279,7 @@ function UnavailableMetaSection({ title, href = "/meta" }: { title: string; href
         <h2>{title}</h2>
         <p>StatsConnect cannot load this live section until its Clash Royale data service is configured.</p>
       </div>
-      <Link href={href} className="pink-button">Open details</Link>
+      <Link href={href} className="primary-button">Open details</Link>
     </section>
   );
 }
@@ -298,7 +298,7 @@ function Pager({ onPrevious, onNext }: { onPrevious?: () => void; onNext?: () =>
   );
 }
 
-function MetaMetric({ color, label, value, detail }: { color: "pink" | "blue"; label: string; value: string; detail: string }) {
+function MetaMetric({ color, label, value, detail }: { color: "gold" | "blue"; label: string; value: string; detail: string }) {
   return (
     <div className={`spark spark-${color} meta-metric`}>
       <div className="spark-label">

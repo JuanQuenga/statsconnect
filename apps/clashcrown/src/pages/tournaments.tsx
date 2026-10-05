@@ -81,7 +81,7 @@ function Tournaments() {
                 aria-label="Tournament name"
               />
             </label>
-            <button type="submit" className="pink-button">
+            <button type="submit" className="primary-button">
               Search
             </button>
           </form>

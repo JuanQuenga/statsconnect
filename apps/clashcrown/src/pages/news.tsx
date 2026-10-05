@@ -93,7 +93,7 @@ function NewsLayout({
           summary={<>{t("news.description")} StatsConnect stores only headline metadata and always sends you to the original article.</>}
           actions={
             <div className="editorial-actions">
-              <a className="pink-button" href={sourceUrl} target="_blank" rel="noopener noreferrer">
+              <a className="primary-button" href={sourceUrl} target="_blank" rel="noopener noreferrer">
                 {t("common.source")} <ExternalLink size={15} />
               </a>
               {onRefresh ? (

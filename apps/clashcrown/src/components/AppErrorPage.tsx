@@ -52,7 +52,7 @@ function ErrorPanel({ copy, error, reference, retry }: ErrorPanelProps) {
       </h1>
       <p>{copy.description}</p>
       <div className="app-error-actions">
-        <button type="button" className="pink-button" onClick={retry}>
+        <button type="button" className="primary-button" onClick={retry}>
           <RefreshCw size={16} aria-hidden />
           {copy.retry}
         </button>

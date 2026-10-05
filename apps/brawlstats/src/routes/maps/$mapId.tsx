@@ -301,7 +301,7 @@ function TeamGrid({
 function MetaSummary({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <Card className="gap-0 p-5 py-5 md:col-span-1">
-      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <p className="text-[0.8125rem] font-semibold text-muted-foreground">{label}</p>
       <p className="mt-2 truncate font-display text-2xl text-primary">{value}</p>
       <p className="text-xs text-muted-foreground">{detail}</p>
     </Card>
@@ -312,7 +312,7 @@ function StatSummary({ label, median, avg }: { label: string; median: number; av
   const { t } = useI18n();
   return (
     <Card className="gap-0 p-5 py-5">
-      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <p className="text-[0.8125rem] font-semibold text-muted-foreground">{label}</p>
       <p className="mt-2 font-display text-3xl text-primary">{formatPercent(median)}</p>
       <p className="text-sm text-muted-foreground">{t("maps.medianAvg", { average: formatPercent(avg) })}</p>
     </Card>

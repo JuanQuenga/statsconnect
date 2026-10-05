@@ -9,9 +9,9 @@
 
 .deckPresentation { width: min(860px, 100%); margin-inline: auto; }
 .deckTools { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
-.elixir { display: flex; align-items: center; gap: 8px; color: #503264; }
+.elixir { display: flex; align-items: center; gap: 8px; color: #17324f; }
 .elixir strong { display: flex; align-items: baseline; gap: 8px; font: 750 18px/1.4 var(--font-ui); }
-.elixir span { color: #675272; font: 500 12px/1.4 var(--font-ui); }
+.elixir span { color: #52627a; font: 500 12px/1.4 var(--font-ui); }
 .deckPresentation .deckCards { --deck-grid-max-width: 860px; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
 .deckPresentation :global(.game-card-art > img) { filter: none; }
 

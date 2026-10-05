@@ -205,7 +205,7 @@ function EmptyArchive() {
       <Archive size={36} />
       <h2>No leaderboard observations yet</h2>
       <p>Open a live leaderboard or let the crawler complete a discovery pass. History begins with that real API response; earlier boards are not backfilled from guesses.</p>
-      <Link className="pink-button" href="/leaderboards">Open live leaderboards</Link>
+      <Link className="primary-button" href="/leaderboards">Open live leaderboards</Link>
     </section>
   );
 }
