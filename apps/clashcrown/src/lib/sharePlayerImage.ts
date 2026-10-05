@@ -1,6 +1,7 @@
 import { browserProfileImageRuntime, type ProfileImageRuntime } from "../../../../shared/profile-image-runtime.ts";
+import { analyzePlayerBattles } from "./clash/battles";
 import { cardArtFallbacks, selectCardArt } from "./clash/assets.ts";
-import type { Card, Player } from "./clash/domain.ts";
+import type { Battle, Card, Player } from "./clash/domain.ts";
 
 const WIDTH = 1600;
 const HEIGHT = 1000;
@@ -65,6 +66,24 @@ function outlinedText(context: CanvasRenderingContext2D, value: string, x: numbe
   context.fillText(value, x, y);
   context.restore();
 }
+
+/** "W10"/"L4"-style streak over the most recent battles, matching the website hero. */
+function resultStreak(battles: Battle[]) {
+  const latest = battles[0]?.result;
+  if (!latest) return "—";
+  let count = 0;
+  for (const battle of battles) {
+    if (battle.result !== latest) break;
+    count += 1;
+  }
+  return `${latest === "Win" ? "W" : latest === "Loss" ? "L" : "D"}${count}`;
+}
+
+const FORM_PILL_COLORS: Record<Battle["result"], string> = {
+  Win: "#2f9e4f",
+  Draw: "#5b6b7f",
+  Loss: "#c0455a"
+};
 
 async function loadCardImage(card: Card, runtime: ProfileImageRuntime) {
   const selected = selectCardArt(card);
@@ -178,9 +197,15 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
     text(c, average ? average : "Deck not reported", 1536, 180, 18, "#cfacff", 260);
   }
   c.textAlign = "left";
+  // Cards pack tightly against the top of the tray so recent form can anchor
+  // the space beneath them; a short last row centers itself like the website.
+  const rowCount = Math.ceil(cards.length / 4);
+  const lastRowCount = cards.length - (rowCount - 1) * 4;
   cards.forEach((card: Card, i) => {
-    const x = 676 + (i % 4) * 216;
-    const y = 240 + Math.floor(i / 4) * 285;
+    const row = Math.floor(i / 4);
+    const rowOffset = row === rowCount - 1 && lastRowCount < 4 ? (4 - lastRowCount) * 108 : 0;
+    const x = 676 + rowOffset + (i % 4) * 216;
+    const y = 230 + row * 264;
     const activeVariant = selectCardArt(card).variant;
     const accent = activeVariant === "Hero" ? "#ffcb58" : activeVariant === "Evolution" ? "#d965ff" : LEVEL_COLORS[card.rarity].at(-1) ?? "#81caf4";
     const image = cardImages[i];
@@ -216,6 +241,31 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
     c.textAlign = "left";
   });
   if (!cards.length) text(c, "Current deck unavailable", 676, 545, 26, MUTED, 700);
+
+  // Recent form strip along the bottom of the tray, mirroring the website hero.
+  line(c, 692, 816, 832, "#ffffff26");
+  const form = analyzePlayerBattles(player.battles.slice(0, 10));
+  const formBattles = form.recent;
+  if (form.games) {
+    const labelWidth = text(c, "RECENT FORM", 692, 849, 13, MUTED);
+    text(c, `${form.wins}–${form.losses}${form.draws ? `–${form.draws}` : ""}`, 692 + labelWidth + 10, 849, 17, INK, 80, true);
+    formBattles.forEach((battle, i) => {
+      const px = 826 + i * 28;
+      c.fillStyle = FORM_PILL_COLORS[battle.result];
+      c.beginPath(); c.roundRect(px, 830, 23, 23, 6); c.fill();
+      c.textAlign = "center";
+      text(c, battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L", px + 11.5, 847, 13, "#ffffff");
+      c.textAlign = "left";
+    });
+    c.textAlign = "right";
+    text(c, "WIN RATE", 1372, 838, 11, MUTED);
+    text(c, `${form.winRate.toFixed(0)}%`, 1372, 862, 22, INK, 110, true);
+    text(c, "STREAK", 1524, 838, 11, MUTED);
+    text(c, resultStreak(formBattles), 1524, 862, 22, GOLD, 110, true);
+    c.textAlign = "left";
+  } else {
+    text(c, "No recent battles recorded", 692, 849, 13, MUTED, 700);
+  }
   line(c, 64, 931, 1472);
   const date = player.fetchedAt ? new Date(player.fetchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined;
   text(c, date ? date : "DEMO PROFILE", 64, 969, 16, MUTED);

@@ -11,7 +11,10 @@ const TREE_URL = `https://api.github.com/repos/${ASSET_REPOSITORY}/git/trees/${A
 const IMAGE_ROOT = path.resolve(process.cwd(), "public/images");
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const CONCURRENCY = 12;
-const RETAINED_GENERATED_ASSETS = new Set(["cards/unknown.png"]);
+// cards/unknown.png is locally generated; cards/minion-giant.png was composited
+// by hand (official CDN art in the Rare frame) because the card postdates the
+// pinned cr-api-assets snapshot. Drop the entry once upstream ships the card.
+const RETAINED_GENERATED_ASSETS = new Set(["cards/unknown.png", "cards/minion-giant.png"]);
 
 async function fetchBytes(url, description) {
   const response = await fetch(url);

@@ -6145,15 +6145,21 @@ a:hover .entity-cell strong { color: #07569f; }
   align-items: stretch;
 }
 
-/* Left rail mirrors the share image: ranked standing and trophy road in one
- * panel sized to the deck column, so neither side floats with dead space. */
+/* Left rail mirrors the share image: ranked standing, career stats, and trophy
+ * road stacked in one panel sized to the deck column, so neither side floats
+ * with dead space. */
 .profile-competitive-status {
   grid-column: 1;
   grid-row: 2 / span 2;
   display: grid;
-  align-content: space-evenly;
-  gap: 22px;
+  grid-template-rows: auto 1fr auto;
+  align-content: space-between;
+  gap: 14px;
+  padding: 16px;
 }
+.profile-rank-stats { display: grid; align-content: space-evenly; }
+.profile-rank-stats .profile-hero-metric { min-height: 52px; padding: 7px 2px; }
+.profile-rank-stats .profile-hero-metric strong { font-size: 18px; }
 .profile-recent-form { grid-column: 2; grid-row: 3; }
 .profile-hero-deck {
   grid-column: 2;
@@ -6251,7 +6257,13 @@ a:hover .entity-cell strong { color: #07569f; }
   --deck-grid-max-width: 500px;
   width: 100%;
   margin: 0 auto;
+  /* Flex so a short deck centers its last row instead of leaving a hole. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: center;
 }
+.profile-hero-deck-grid > .profile-deck-grid-slot { width: 25%; }
 .profile-hero-proposal > .profile-hero-actions { grid-row: 4; }
 
 @media (max-width: 1020px) {
