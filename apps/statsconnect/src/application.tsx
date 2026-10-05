@@ -1,7 +1,4 @@
-import {
-  ConvexTokenBridge,
-  StatsConnectAuthProvider,
-} from "@statsconnect/auth";
+import { StatsConnectAuthProvider } from "@statsconnect/auth";
 import type { MountedStatsConnectApplication } from "@statsconnect/site-nav";
 import {
   AppErrorBoundary,
@@ -92,8 +89,8 @@ export function mountApplication(rootElement: HTMLElement): MountedStatsConnectA
         <StatsConnectAuthProvider
           clerkPublishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
           convexUrl={import.meta.env.VITE_CONVEX_URL}
+          onConvexTokenProvider={setConvexAuthTokenProvider}
         >
-          <ConvexTokenBridge onTokenProvider={setConvexAuthTokenProvider} />
           <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />
           </QueryClientProvider>

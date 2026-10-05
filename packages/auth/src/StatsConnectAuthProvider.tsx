@@ -168,22 +168,29 @@ export function StatsConnectAuthProvider({
   children,
   clerkPublishableKey,
   convexUrl,
+  onConvexTokenProvider,
 }: {
   children: ReactNode;
   clerkPublishableKey?: string;
   convexUrl?: string;
+  /** Receives the signed-in Clerk token fetcher (null while signed out). */
+  onConvexTokenProvider?: (provider: (() => Promise<string | null>) | null) => void;
 }) {
   const configuredUrl = convexUrl?.trim();
   const publishableKey = clerkPublishableKey?.trim();
   const convex = useConvexReactClient(configuredUrl ?? "");
 
   if (!configuredUrl || !publishableKey || !convex) {
-    return <GuestProfiles>{children}</GuestProfiles>;
+    return <GuestProfiles onTokenProvider={onConvexTokenProvider}>{children}</GuestProfiles>;
   }
 
   return (
     <ClerkProvider publishableKey={publishableKey}>
       <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+        {/* Must render under ClerkProvider: the bridge reads Clerk context. */}
+        {onConvexTokenProvider ? (
+          <ConvexTokenBridge onTokenProvider={onConvexTokenProvider} />
+        ) : null}
         <ConfiguredAuth>{children}</ConfiguredAuth>
       </ConvexProviderWithClerk>
     </ClerkProvider>
@@ -193,10 +200,10 @@ export function StatsConnectAuthProvider({
 /**
  * Feeds the standalone Hub ConvexHttpClient the signed-in Clerk token so
  * authenticated preview calls throttle per account instead of per browser.
- * Render inside StatsConnectAuthProvider; onTokenProvider receives null again
- * on sign-out or unmount.
+ * Only the provider mounts this (inside ClerkProvider); onTokenProvider
+ * receives null again on sign-out or unmount.
  */
-export function ConvexTokenBridge({
+function ConvexTokenBridge({
   onTokenProvider,
 }: {
   onTokenProvider: (provider: (() => Promise<string | null>) | null) => void;
@@ -209,7 +216,13 @@ export function ConvexTokenBridge({
   return null;
 }
 
-function GuestProfiles({ children }: { children: ReactNode }) {
+function GuestProfiles({
+  children,
+  onTokenProvider,
+}: {
+  children: ReactNode;
+  onTokenProvider?: (provider: (() => Promise<string | null>) | null) => void;
+}) {
   const profiles = useProfilesModule(() => createConnectedProfilesModule({
     account: noopAccountAdapter,
     browser: getBrowserConnectedProfilesAdapter(),
@@ -238,6 +251,10 @@ function GuestProfiles({ children }: { children: ReactNode }) {
     },
     signOut: async () => profiles.module.signOut(),
   }), [profiles.module, profiles.snapshot]);
+  // Guest mode has no Clerk tokens, so never leave a stale fetcher behind.
+  useEffect(() => {
+    onTokenProvider?.(null);
+  }, [onTokenProvider]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

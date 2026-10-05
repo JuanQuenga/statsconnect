@@ -240,9 +240,14 @@ async function main(): Promise<void> {
     }
   }
 
+  // Only known-good outcomes may enter the mapping: a conflict's clerkId
+  // belongs to an unrelated account, and rekeying onto it would hand the old
+  // identity's data to the wrong user. Excluded rows surface as orphans in
+  // migrationStatus instead.
+  const importableOutcomes: ReadonlySet<Outcome> = new Set(["imported", "adopted", "already-imported"]);
   const mapping: MigrationEntry[] = results
     .filter((result): result is ImportResult & { oldId: string; clerkId: string; email: string } =>
-      Boolean(result.oldId && result.clerkId && result.email))
+      importableOutcomes.has(result.outcome) && Boolean(result.oldId && result.clerkId && result.email))
     .map(({ oldId, clerkId, email }) => ({ oldId, clerkId, email }));
   writeFileSync(path.resolve(parsed.outPath), `${JSON.stringify(mapping, null, 2)}\n`);
 
