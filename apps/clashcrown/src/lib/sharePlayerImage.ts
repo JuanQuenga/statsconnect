@@ -22,7 +22,8 @@ function assetUrl(source: string): string {
   return new URL(`${base}${source}`, window.location.origin).toString();
 }
 
-function text(context: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, color = INK, maxWidth?: number, gameFont = false) {
+/** Draws the value and returns its measured width so callers can flow content around it. */
+function text(context: CanvasRenderingContext2D, value: string, x: number, y: number, size: number, color = INK, maxWidth?: number, gameFont = false): number {
   context.fillStyle = color;
   context.font = gameFont ? `${size}px ${FONT}` : `600 ${size}px system-ui, sans-serif`;
   // Fit names by font size, rather than distorting the letters horizontally.
@@ -31,6 +32,7 @@ function text(context: CanvasRenderingContext2D, value: string, x: number, y: nu
     context.font = gameFont ? `${size}px ${FONT}` : `600 ${size}px system-ui, sans-serif`;
   }
   context.fillText(value, x, y);
+  return context.measureText(value).width;
 }
 
 function line(context: CanvasRenderingContext2D, x: number, y: number, width: number, color = "#ffffff20") {
@@ -121,12 +123,16 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
   text(c, "STATSCONNECT", 1536, 80, 23, INK, 570, true);
   c.textAlign = "left";
 
-  text(c, player.name, 64, 190, 56, INK, 475, true);
+  // The king level badge hugs the name instead of floating near the deck tray.
+  const nameWidth = text(c, player.name, 64, 190, 56, INK, 475, true);
   text(c, `#${player.tag.replace(/^#/, "")}`, 66, 235, 23, MUTED, 540);
-  if (king) imageContain(c, king, 544, 131, 92, 92);
-  c.textAlign = "center";
-  text(c, player.level?.toString() ?? "?", 590, 188, 29, INK, 75, true);
-  c.textAlign = "left";
+  if (king) {
+    const kingX = Math.min(64 + nameWidth + 24, 560);
+    imageContain(c, king, kingX, 131, 92, 92);
+    c.textAlign = "center";
+    text(c, player.level?.toString() ?? "?", kingX + 46, 188, 29, INK, 75, true);
+    c.textAlign = "left";
+  }
   if (clanBadge) imageContain(c, clanBadge, 65, 267, 62, 72);
   text(c, player.clan, clanBadge ? 146 : 66, 310, 26, INK, clanBadge ? 478 : 560, true);
 

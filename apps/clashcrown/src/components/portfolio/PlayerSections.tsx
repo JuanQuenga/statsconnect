@@ -52,7 +52,15 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
       <div className="profile-hero-proposal">
         <header className="profile-hero-identity">
           <div className="profile-hero-nameplate">
-            <h1>{player.name}</h1>
+            <div className="profile-hero-title">
+              <h1>{player.name}</h1>
+              {player.level !== undefined ? (
+                <span className="profile-hero-level" aria-label={`${locale === "es" ? "Nivel del rey" : "King level"} ${player.level}`}>
+                  <Image src="/images/ui-icons/playerlevel.png" alt="" width={52} height={52} />
+                  <strong aria-hidden="true">{player.level}</strong>
+                </span>
+              ) : null}
+            </div>
             <p>
               <strong>#{player.tag}</strong>
               <span aria-hidden="true">·</span>
@@ -65,12 +73,6 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
             </p>
           </div>
           <div className="profile-hero-status">
-            {player.level !== undefined ? (
-              <span className="profile-hero-level" aria-label={`${locale === "es" ? "Nivel del rey" : "King level"} ${player.level}`}>
-                <Image src="/images/ui-icons/playerlevel.png" alt="" width={52} height={52} />
-                <strong aria-hidden="true">{player.level}</strong>
-              </span>
-            ) : null}
             <span className="profile-hero-freshness">{updatedLabel(player.fetchedAt, locale)}</span>
           </div>
         </header>

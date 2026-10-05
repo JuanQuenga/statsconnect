@@ -1428,7 +1428,9 @@ button:disabled { cursor: wait; opacity: .62; }
   display: block;
   object-fit: contain;
   object-position: center;
-  filter: drop-shadow(0 8px 7px rgba(0, 0, 0, .4));
+  /* Match the share image: dark grounding shadow plus the rarity-colored halo. */
+  filter: drop-shadow(0 8px 7px rgba(0, 0, 0, .4))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--game-card-accent) 32%, transparent));
 }
 .profile-deck-grid {
   --deck-grid-max-width: 408px;
@@ -1471,9 +1473,14 @@ td .profile-deck-grid { width: 308px; }
   bottom: 7%;
   z-index: 2;
   overflow: hidden;
-  color: var(--game-card-level-start);
-  -webkit-text-fill-color: var(--game-card-level-start);
-  -webkit-text-stroke: 1px #111827;
+  /* Gradient fill under a heavy outline, matching the share image's level text. */
+  color: var(--game-card-level-end);
+  background: linear-gradient(180deg, var(--game-card-level-start) 12%, var(--game-card-level-end) 86%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: max(1px, .1em) #111827;
+  paint-order: stroke fill;
   font: 400 clamp(9px, 12cqi, var(--game-card-level-font))/.95 var(--font-display);
   letter-spacing: -.025em;
   text-overflow: ellipsis;
@@ -5378,19 +5385,20 @@ a:hover .entity-cell strong { color: #07569f; }
   justify-content: center;
   gap: 8px;
   padding-inline: 15px;
-  border: 1px solid rgba(127, 157, 198, .32);
+  border: 1px solid rgba(15, 43, 71, .32);
   border-radius: 8px;
-  color: var(--foreground);
-  background: rgba(25, 48, 78, .86);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset;
+  color: #17324f;
+  background: linear-gradient(180deg, #ffffff, #eef4fa);
+  box-shadow: 0 2px 8px rgba(2, 10, 20, .3);
   font: 700 11px/1 var(--font-ui);
   white-space: nowrap;
 }
 
 .profile-page .profile-primary-actions button:hover,
 .profile-page .profile-hero-actions .player-share-actions button:hover {
-  border-color: rgba(22, 136, 232, .62);
-  background: rgba(37, 61, 94, .96);
+  border-color: rgba(7, 86, 159, .55);
+  background: #eef5fb;
+  color: #07569f;
 }
 
 .profile-page .profile-hero-metrics {
@@ -6133,30 +6141,40 @@ a:hover .entity-cell strong { color: #07569f; }
 /* Player profile redesign: keep the arena hero dark, then switch the profile
  * content to a bright editorial report. This block intentionally comes last. */
 .profile-hero-proposal {
-  grid-template-columns: minmax(320px, .9fr) minmax(500px, 1.1fr);
+  grid-template-columns: minmax(320px, .85fr) minmax(500px, 1.15fr);
   align-items: stretch;
 }
 
+/* Left rail mirrors the share image: ranked standing and trophy road in one
+ * panel sized to the deck column, so neither side floats with dead space. */
 .profile-competitive-status {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 2 / span 2;
   display: grid;
-  align-content: center;
+  align-content: space-evenly;
+  gap: 22px;
 }
-.profile-recent-form { grid-column: 1; grid-row: 3; }
+.profile-recent-form { grid-column: 2; grid-row: 3; }
 .profile-hero-deck {
   grid-column: 2;
-  grid-row: 2 / span 2;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 18px 20px;
+  justify-content: flex-start;
+  padding: 14px 18px 12px;
+}
+
+.profile-hero-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .profile-hero-status {
   flex: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
@@ -6186,16 +6204,10 @@ a:hover .entity-cell strong { color: #07569f; }
 }
 
 .profile-hero-status .profile-hero-freshness {
-  display: block;
-  max-width: 112px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: #9db0c8;
-  background: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  font: 600 10px/1.35 var(--font-ui);
+  max-width: none;
+  padding: 5px 10px;
+  color: #d6e4f6;
+  font: 650 10px/1.2 var(--font-ui);
   text-align: right;
 }
 
@@ -6238,7 +6250,7 @@ a:hover .entity-cell strong { color: #07569f; }
 .profile-hero-deck-grid {
   --deck-grid-max-width: 500px;
   width: 100%;
-  margin: auto;
+  margin: 0 auto;
 }
 .profile-hero-proposal > .profile-hero-actions { grid-row: 4; }
 
@@ -6257,11 +6269,14 @@ a:hover .entity-cell strong { color: #07569f; }
   .profile-hero-deck { grid-column: 1; grid-row: 4; padding: 12px; }
   .profile-hero-proposal > .profile-hero-actions { grid-row: 5; }
   .profile-hero-deck-grid { --deck-grid-max-width: 440px; }
+  .profile-hero-title { gap: 9px; }
+  .profile-hero-level,
+  .profile-hero-level img { width: 40px; height: 40px; }
+  .profile-hero-level strong { font-size: 12px; }
 }
 
 @media (max-width: 430px) {
-  .profile-hero-status { align-items: flex-start; flex-direction: column; gap: 3px; }
-  .profile-hero-status .profile-hero-freshness { max-width: 78px; text-align: left; }
+  .profile-hero-title { gap: 8px; }
   .profile-hero-deck { overflow: hidden; padding: 10px 8px 8px; }
   .profile-hero-deck > header { gap: 8px; }
   .profile-hero-elixir > img { width: 34px; height: 41px; }
