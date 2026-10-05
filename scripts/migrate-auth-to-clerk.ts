@@ -150,13 +150,23 @@ export async function importUser(
   const byExternalId = await withRateLimitRetry(() =>
     clerk.users.getUserList({ externalId: [oldId], limit: 2 }),
   );
-  const existing = exactEmailMatch(byExternalId.data, email);
+  // externalId uniquely identifies the imported user even if their email
+  // changed in Better Auth after the first import — rematch on the id and
+  // report email drift, since Google auto-link matches on email at first
+  // sign-in and a stale address would create a duplicate account.
+  const existing = exactEmailMatch(byExternalId.data, email) ?? byExternalId.data[0];
   if (existing) {
+    const clerkEmails = existing.emailAddresses
+      .map((address) => address.emailAddress.toLowerCase())
+      .join(", ");
     return {
       outcome: "already-imported",
       oldId,
       clerkId: existing.id,
       email,
+      detail: clerkEmails.includes(email)
+        ? undefined
+        : `email drift: export has ${email}, Clerk user has ${clerkEmails || "none"} — fix the address in Clerk so auto-link can adopt it`,
     };
   }
 
@@ -232,7 +242,7 @@ async function main(): Promise<void> {
     try {
       const result = await importUser(clerk, user);
       results.push(result);
-      console.log(`  ${result.outcome}: ${result.email} → ${result.clerkId}`);
+      console.log(`  ${result.outcome}: ${result.email} → ${result.clerkId}${result.detail ? ` (${result.detail})` : ""}`);
     } catch (error: unknown) {
       const detail = error instanceof Error ? error.message : String(error);
       results.push({ outcome: "failed", oldId: user.oldId, email: user.email, detail });
