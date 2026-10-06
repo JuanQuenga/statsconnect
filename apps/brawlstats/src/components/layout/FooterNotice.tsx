@@ -24,7 +24,15 @@ export function FooterNotice() {
           />
         </div>
         <div className="text-xs leading-relaxed md:max-w-sm md:text-right">
+          <a className="text-accent underline-offset-2 hover:underline" href="https://statsconnect.app/about">About</a>
+          {" · "}
+          <a className="text-accent underline-offset-2 hover:underline" href="https://statsconnect.app/faq">FAQ</a>
+          {" · "}
           <a className="text-accent underline-offset-2 hover:underline" href="https://statsconnect.app/privacy">Privacy policy</a>
+          {" · "}
+          <a className="text-accent underline-offset-2 hover:underline" href="https://statsconnect.app/terms">Terms</a>
+          {" · "}
+          <a className="text-accent underline-offset-2 hover:underline" href="https://statsconnect.app/contact">Contact</a>
           <p className="mt-2">
           {t("footer.legal", { policy }).split(policy)[0]}
           <a

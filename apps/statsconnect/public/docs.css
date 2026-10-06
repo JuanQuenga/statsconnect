@@ -1,0 +1,116 @@
+/* Shared styling for the static document pages (about, terms, contact, faq,
+   data & methodology). These pages are plain HTML served before any JavaScript
+   so crawlers and no-JS visitors always get real content. */
+
+:root { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #08070d;
+  color: #e8e6ef;
+  font: 16px/1.7 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc-shell {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+.doc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.doc-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.doc-brand::before {
+  content: "";
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 0.2rem;
+  background: linear-gradient(135deg, #a78bfa, #6d28d9);
+}
+
+.doc-top .doc-open {
+  color: #a9a4c0;
+  text-decoration: none;
+  font-size: 0.9rem;
+  border: 1px solid #2b2740;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  white-space: nowrap;
+}
+
+.doc-top .doc-open:hover { color: #fff; border-color: #3d3760; }
+
+h1 { font-size: 2.2rem; line-height: 1.15; margin: 0 0 0.75rem; letter-spacing: -0.01em; color: #fff; }
+
+.doc-updated { color: #8f8aa8; font-size: 0.85rem; margin: 0 0 2.5rem; }
+
+h2 { font-size: 1.25rem; margin: 2.25rem 0 0.5rem; color: #fff; }
+
+h3 { font-size: 1.02rem; margin: 1.5rem 0 0.25rem; color: #efedf7; }
+
+p, li { color: #c9c5da; }
+
+ul, ol { padding-left: 1.35rem; }
+
+li + li { margin-top: 0.4rem; }
+
+a { color: #b9a8ff; text-decoration: none; }
+
+a:hover { text-decoration: underline; }
+
+strong { color: #f0eef8; }
+
+.doc-note {
+  background: #131120;
+  border: 1px solid #26223c;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+}
+
+dt { color: #fff; font-weight: 600; margin-top: 1.25rem; }
+
+dd { margin: 0.25rem 0 0 0; }
+
+.doc-footer {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #221f33;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  font-size: 0.85rem;
+}
+
+.doc-footer a { color: #a9a4c0; }
+
+.doc-footer a:hover { color: #fff; text-decoration: none; }
+
+.doc-disclaimer {
+  margin-top: 1.5rem;
+  color: #8f8aa8;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  h1 { font-size: 1.7rem; }
+  .doc-shell { padding: 1.75rem 1.1rem 3rem; }
+}

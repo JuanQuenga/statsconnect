@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Where StatsConnect statistics come from: official game APIs, community data sources, and battle-log aggregation." />
+    <meta name="theme-color" content="#08070d" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="StatsConnect" />
+    <meta property="og:title" content="Data &amp; methodology · StatsConnect" />
+    <meta property="og:description" content="Where StatsConnect statistics come from: official game APIs, community data sources, and battle-log aggregation." />
+    <link rel="canonical" href="https://statsconnect.app/data-methodology" />
+    <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="/favicon-32x32.png?v=2" sizes="32x32" />
+    <link rel="stylesheet" href="/docs.css" />
+    <title>Data &amp; methodology · StatsConnect</title>
+  </head>
+  <body>
+    <div class="doc-shell">
+      <header class="doc-top">
+        <a class="doc-brand" href="/">StatsConnect</a>
+        <a class="doc-open" href="/">Open StatsConnect</a>
+      </header>
+
+      <article>
+        <h1>Data &amp; methodology</h1>
+        <p class="doc-updated">Last updated October 6, 2026.</p>
+
+        <p>Every statistic on StatsConnect is built from public game data. This page documents where that data comes
+        from, how often it refreshes, and where the limits are — so you can judge the numbers for yourself.</p>
+
+        <h2>Data sources</h2>
+        <h3>Official Supercell APIs</h3>
+        <p>Player profiles, clubs and clans, current decks, upcoming chests, and the official leaderboards come from
+        Supercell’s developer APIs for Clash Royale and Brawl Stars. These are the same endpoints the games use for
+        public profile sharing, read with developer keys issued to this project. Direct lookups are always sourced this
+        way — never guessed or modeled.</p>
+
+        <h3>Community data services</h3>
+        <p>Some reference data — card images, brawler stats, map layouts, and game-mode metadata — is supplied by
+        community projects such as Brawlify and BrawlAPI, which maintain accurate catalogs as the games update. When a
+        game patch changes names or stats, these catalogs update alongside it.</p>
+
+        <h3>Public battle-log aggregation</h3>
+        <p>The meta reports are StatsConnect’s own work. Public battle logs are collected through the official APIs and
+        folded into daily aggregates covering win rates, usage, matchups, and deck patterns. Battle logs only include
+        recently played battles, so the crawlers sample continuously and combine results into rolling windows rather
+        than a single exhaustive census.</p>
+
+        <h2>Refresh cadence</h2>
+        <ul>
+          <li><strong>Player and clan lookups</strong> — read live from the official APIs and cached for a few minutes,
+          so they track the game closely.</li>
+          <li><strong>Leaderboards</strong> — polled continuously, with each snapshot archived so movement over time is
+          real history rather than a single day’s view.</li>
+          <li><strong>Meta reports</strong> — rebuilt on a daily cycle from rolling battle-log windows; every report
+          states the date range it covers.</li>
+        </ul>
+
+        <h2>How to read the meta numbers</h2>
+        <p>Aggregate statistics are only as good as their sample. Every meta figure on StatsConnect is shown with its
+        <strong>sample size</strong>, and any stat below a minimum confidence floor is marked low-confidence rather than
+        presented as settled. A card or deck can genuinely swing a few percentage points between windows — check the
+        window dates before treating a change as a trend.</p>
+
+        <h2>Known limitations</h2>
+        <ul>
+          <li>Battle logs are public and recent-only, so aggregated meta reflects sampled battles, not every battle
+          played. Ladder segments with fewer logged battles naturally have wider uncertainty.</li>
+          <li>Official APIs occasionally lag during game updates or outages; affected pages are labeled rather than
+          silently stale.</li>
+          <li>Historical trophy and battle data only exists from when collection started — very old snapshots cannot be
+          reconstructed.</li>
+          <li>Name changes and account resets can make two tags look like one player’s history; profiles are keyed by
+          tag, not person.</li>
+        </ul>
+
+        <h2>Corrections</h2>
+        <p>If a number looks wrong, or your own battle record appears mis-attributed, <a href="/contact">get in
+        touch</a> with the page URL and what you expected — aggregation bugs get fixed at the source, and corrections
+        flow into the next daily rebuild.</p>
+
+        <div class="doc-note">
+          <p><strong>Fan-made project.</strong> This material is unofficial and is not endorsed by Supercell. For more
+          information see Supercell’s <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">Fan
+          Content Policy</a>. StatsConnect is not affiliated with Supercell.</p>
+        </div>
+      </article>
+
+      <footer>
+        <nav class="doc-footer" aria-label="Site pages">
+          <a href="/">Home</a>
+          <a href="/about">About</a>
+          <a href="/faq">FAQ</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="/contact">Contact</a>
+        </nav>
+        <p class="doc-disclaimer">© 2026 StatsConnect. Fan-made statistics platform, not affiliated with or endorsed by Supercell.</p>
+      </footer>
+    </div>
+  </body>
+</html>

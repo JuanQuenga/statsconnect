@@ -2,8 +2,17 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { profileImageUrl, profileUrl, type LoadedProfile, type ProfileIdentity } from "./profile-data.ts";
 
-function html(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] ?? character));
+}
+
+/** Replace the shell's title, description, canonical, and social tags with route-specific ones. */
+export function injectDocumentHead(shell: string, tags: readonly string[]): string {
+  return shell
+    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
+    .replace(/<meta\b[^>]*(?:property\s*=\s*["']og:|name\s*=\s*["'](?:twitter:|description["']))[^>]*>/gi, "")
+    .replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, "")
+    .replace(/<\/head>/i, () => `${tags.join("\n    ")}\n  </head>`);
 }
 
 export function profileMetadata(shell: string, identity: ProfileIdentity, profile?: LoadedProfile): string {
@@ -15,30 +24,30 @@ export function profileMetadata(shell: string, identity: ProfileIdentity, profil
     : `Explore this ${game} player profile on StatsConnect.`;
   const image = profile ? profileImageUrl(identity) : "https://statsconnect.app/og.png";
   const url = profileUrl(identity);
+  // Per-player pages are programmatic data views; keep them out of search
+  // indexes until they carry unique rendered value, while link discovery
+  // (follow) stays intact.
   const tags = [
-    `<title>${html(title)}</title>`,
-    `<meta name="description" content="${html(description)}" />`,
-    `<link rel="canonical" href="${html(url)}" />`,
+    `<title>${escapeHtml(title)}</title>`,
+    `<meta name="description" content="${escapeHtml(description)}" />`,
+    `<link rel="canonical" href="${escapeHtml(url)}" />`,
+    '<meta name="robots" content="noindex, follow" />',
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="StatsConnect" />`,
-    `<meta property="og:title" content="${html(title)}" />`,
-    `<meta property="og:description" content="${html(description)}" />`,
-    `<meta property="og:url" content="${html(url)}" />`,
-    `<meta property="og:image" content="${html(image)}" />`,
+    `<meta property="og:title" content="${escapeHtml(title)}" />`,
+    `<meta property="og:description" content="${escapeHtml(description)}" />`,
+    `<meta property="og:url" content="${escapeHtml(url)}" />`,
+    `<meta property="og:image" content="${escapeHtml(image)}" />`,
     `<meta property="og:image:type" content="image/png" />`,
     ...(profile ? ['<meta property="og:image:width" content="1600" />', '<meta property="og:image:height" content="1000" />'] : []),
-    `<meta property="og:image:alt" content="${html(title)}" />`,
+    `<meta property="og:image:alt" content="${escapeHtml(title)}" />`,
     '<meta name="twitter:card" content="summary_large_image" />',
-    `<meta name="twitter:title" content="${html(title)}" />`,
-    `<meta name="twitter:description" content="${html(description)}" />`,
-    `<meta name="twitter:image" content="${html(image)}" />`,
-    `<meta name="twitter:image:alt" content="${html(title)}" />`,
-  ].join("\n    ");
-  return shell
-    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
-    .replace(/<meta\b[^>]*(?:property\s*=\s*["']og:|name\s*=\s*["'](?:twitter:|description["']))[^>]*>/gi, "")
-    .replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, "")
-    .replace(/<\/head>/i, () => `${tags}\n  </head>`);
+    `<meta name="twitter:title" content="${escapeHtml(title)}" />`,
+    `<meta name="twitter:description" content="${escapeHtml(description)}" />`,
+    `<meta name="twitter:image" content="${escapeHtml(image)}" />`,
+    `<meta name="twitter:image:alt" content="${escapeHtml(title)}" />`,
+  ];
+  return injectDocumentHead(shell, tags);
 }
 
 export async function applicationShell(): Promise<string> {

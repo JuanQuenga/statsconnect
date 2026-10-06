@@ -85,6 +85,25 @@ function LandingPage({
             />
           ))}
         </TileNav>
+        <div className="hub-section__heading">
+          <h3>What you can explore</h3>
+          <p>
+            In <Link to="/games/$game" params={{ game: "clash-royale" }}>Clash Royale</Link>: global and regional
+            leaderboards, a meta report built from real public battle logs with the sample sizes shown, deck discovery
+            and war-set building, the full card library, clan search, official news, and strategy guides for the four
+            core deck archetypes.
+          </p>
+          <p>
+            In <Link to="/games/$game" params={{ game: "brawl-stars" }}>Brawl Stars</Link>: player and club lookup,
+            official trophy leaderboards, the live map and event rotation, map-by-map meta with date windows and
+            confidence floors, a progression planner for Power Points and coins, and a map assistant that suggests picks
+            from live data.
+          </p>
+          <p>
+            Everything on StatsConnect reads public game data through the official Supercell APIs and our own battle-log
+            aggregation — <a href="/data-methodology">see how the data works</a>.
+          </p>
+        </div>
       </section>
 
       <section className="hub-flow" aria-labelledby="hub-flow-title">

@@ -9,14 +9,15 @@ export async function GET(request: Request): Promise<Response> {
   try { shell = await applicationShell(); } catch {
     return new Response("Player page is temporarily unavailable", { status: 503, headers: { "Cache-Control": "no-store" } });
   }
+  const robots = { "X-Robots-Tag": "noindex, follow" };
   try {
     const profile = await loadProfile(identity);
     return new Response(profileMetadata(shell, identity, profile), {
-      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": profileCacheControl },
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": profileCacheControl, ...robots },
     });
   } catch {
     return new Response(profileMetadata(shell, identity), {
-      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", ...robots },
     });
   }
 }

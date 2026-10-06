@@ -3,6 +3,7 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { profilePreviewConfigPath, profilePreviewConfiguration } from "../shared/profile-preview-config.ts";
+import { writeSeoFiles } from "./seo-files.ts";
 
 export type DeliveryAppId = "statsconnect" | "brawlstats" | "clashcrown";
 
@@ -170,6 +171,7 @@ export function runUnifiedBuild(): void {
 
   writeApplicationShellManifest();
   writeProfilePreviewConfiguration(environment);
+  writeSeoFiles();
   removeStandaloneApplicationDocuments();
 }
 

@@ -18,11 +18,13 @@ import {
   writeProfilePreviewConfiguration,
 } from "./production-delivery.ts";
 import { profilePreviewConfigPath } from "../shared/profile-preview-config.ts";
+import { siteRoutes } from "../shared/site-routes.ts";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
 type VercelConfiguration = {
   buildCommand: string;
+  cleanUrls: boolean;
   functions: Record<string, { includeFiles: string }>;
   headers: Array<{ headers: Array<{ key: string; value: string }>; source: string }>;
   outputDirectory: string;
@@ -123,6 +125,8 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   const vercel = await readJson<VercelConfiguration>("vercel.json");
   assert.equal(vercel.buildCommand, "pnpm build:vercel");
   assert.equal(vercel.outputDirectory, deliveryApps[0]?.outputDirectory);
+  assert.equal(vercel.cleanUrls, true);
+  assert.equal(vercel.functions["api/site-shell.ts"]?.includeFiles, "dist/index.html");
 
   assert.deepEqual(vercel.redirects, [
     ...["cr", "bs"].flatMap((game) => [
@@ -167,6 +171,23 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: app.routePrefix, destination: "/index.html" },
     { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
   ]);
+  const seoFileRewrites = [
+    { source: "/robots.txt", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/seo/robots-cr.txt" },
+    { source: "/robots.txt", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/seo/robots-bs.txt" },
+    { source: "/robots.txt", destination: "/seo/robots-hub.txt" },
+    { source: "/sitemap.xml", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/seo/sitemap-cr.xml" },
+    { source: "/sitemap.xml", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/seo/sitemap-bs.xml" },
+    { source: "/sitemap.xml", destination: "/seo/sitemap-hub.xml" },
+  ];
+  // Derived from the shared route inventory; per-route coverage is audited in
+  // seo-files.test.ts, this pins the exact position in the rewrite order.
+  const siteShellRewrites = (["cr", "bs"] as const).flatMap((site) =>
+    siteRoutes(site).map((route) => ({
+      source: route.path,
+      has: [{ type: "host", value: `${site}.statsconnect.app` }],
+      destination: `/api/site-shell?game=${site}&route=${encodeURIComponent(route.path)}`,
+    })),
+  );
   assert.deepEqual(vercel.rewrites, [
     { source: "/api/profile-image", destination: "/api/profile-image" },
     { source: "/api/profile-preview", destination: "/api/profile-preview" },
@@ -174,6 +195,8 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: "/players", has: [{ type: "host", value: "bs.statsconnect.app" }, { type: "query", key: "tag", value: "(?:#|%23)?(?<playerTag>[0-9A-Za-z]{3,15})" }], destination: "/api/profile-preview?game=bs&tag=:playerTag" },
     { source: "/cr/players/:tag", destination: "/api/profile-preview?game=cr&tag=:tag" },
     { source: "/bs/players", has: [{ type: "query", key: "tag", value: "(?:#|%23)?(?<playerTag>[0-9A-Za-z]{3,15})" }], destination: "/api/profile-preview?game=bs&tag=:playerTag" },
+    ...seoFileRewrites,
+    ...siteShellRewrites,
     { source: "/service-worker.js", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/service-worker.js" },
     { source: "/manifest.webmanifest", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/subdomain.webmanifest" },
     ...expectedGameRewrites,

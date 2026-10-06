@@ -145,7 +145,11 @@ function SiteFooter() {
             <strong>Discover</strong>
             <Link href="/clans/search">Clan Search</Link>
             <Link href="/news">{t("nav.news")}</Link>
+            <a href="https://statsconnect.app/about">About</a>
+            <a href="https://statsconnect.app/faq">FAQ</a>
             <a href="https://statsconnect.app/privacy">Privacy policy</a>
+            <a href="https://statsconnect.app/terms">Terms</a>
+            <a href="https://statsconnect.app/contact">Contact</a>
           </div>
         </div>
         <div className="footer-legal">
