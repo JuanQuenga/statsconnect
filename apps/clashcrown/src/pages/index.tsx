@@ -3,7 +3,7 @@ import { DeckCardGrid } from "@/components/portfolio/DeckCardGrid";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import Link from "@/components/Link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdSenseUnit } from "@statsconnect/monetization";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
@@ -31,10 +31,19 @@ export default function HomePage() {
       <ArenaHeroFrame className={`royale-hero ${styles.hero}`}>
         <div className="royale-hero-inner">
           <div className="royale-hero-copy">
-            <h1>Clash Royale stats</h1>
+            <h1>Clash Royale<br />stats</h1>
+            <p className="royale-hero-sub">
+              Live meta decks, card rankings, and every player&apos;s battle history — look up any tag.
+            </p>
             <ProfileSearch />
             <PlayerTagGuide />
           </div>
+        </div>
+        <div className={styles.heroDeck} aria-hidden="true">
+          <Image src="/images/cards/mega-knight.png" alt="" width={150} height={180} />
+          <Image src="/images/cards/little-prince.png" alt="" width={150} height={180} />
+          <Image src="/images/cards/rune-giant.png" alt="" width={150} height={180} />
+          <Image src="/images/cards/barbarian-barrel-hero.png" alt="" width={150} height={180} />
         </div>
       </ArenaHeroFrame>
 
@@ -172,11 +181,14 @@ function MetaPopularCards() {
   const payload = useConvexQuery(topCardsQuery, {
     mode: "pathOfLegends",
     windowDays: HOME_WINDOW_DAYS,
-    limit: 1
+    limit: 5
   });
 
   const top = payload?.cards[0];
   const card = top ? library.byId.get(top.cardId) : undefined;
+  const runners = (payload?.cards.slice(1) ?? [])
+    .map((entry) => library.byId.get(entry.cardId))
+    .filter((entry): entry is Card => entry !== undefined);
 
   return (
     <section className="popular page-band">
@@ -212,6 +224,15 @@ function MetaPopularCards() {
               detail="of observed decks"
             />
           </div>
+          {runners.length ? (
+            <div className="popular-runners" aria-label="Next most played cards">
+              {runners.map((runner) => (
+                <Link key={runner.id} href={`/cards/${cardSlug(runner.name)}`} title={runner.name}>
+                  <GameCardArt card={runner} size="mini" portrait="highest" showLevel={false} />
+                </Link>
+              ))}
+            </div>
+          ) : null}
           <p className="table-note">
             From {Math.round(payload.decksObserved).toLocaleString()} decks observed in Path of Legends over the last {HOME_WINDOW_DAYS} days. These rates are aggregated from crawled battle logs.
           </p>
@@ -242,7 +263,9 @@ function LiveEventLab() {
       ) : query.error ? (
         <HomeDataMessage message={errorMessage(query.error)} />
       ) : !tournaments.length ? (
-        <HomeDataMessage message="No Global Tournament is running." />
+        <HomeDataMessage message="No Global Tournament is running right now.">
+          <Link href="/tournaments" className="primary-button">Browse tournaments</Link>
+        </HomeDataMessage>
       ) : (
         <div className="event-grid">
           {tournaments.map((tournament) => (
@@ -284,8 +307,8 @@ function UnavailableMetaSection({ title, href = "/meta" }: { title: string; href
   );
 }
 
-function HomeDataMessage({ message }: { message: string }) {
-  return <p className="home-data-message" role="status">{message}</p>;
+function HomeDataMessage({ message, children }: { message: string; children?: ReactNode }) {
+  return <p className="home-data-message" role="status">{message}{children}</p>;
 }
 
 function Pager({ onPrevious, onNext }: { onPrevious?: () => void; onNext?: () => void }) {

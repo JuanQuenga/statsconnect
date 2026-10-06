@@ -1,7 +1,47 @@
 .hero :global(.royale-hero-inner) { display: block; min-height: 0; }
-.hero :global(.royale-hero-copy) { max-width: 620px; padding: 44px 0 120px; }
-.hero :global(.royale-hero-copy h1) { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.15; letter-spacing: -.035em; }
-.hero :global(.royale-hero-copy .search-wrap) { margin-top: 22px; }
+.hero :global(.royale-hero-copy) { max-width: 760px; padding: 64px 0 150px; }
+.hero :global(.royale-hero-copy h1) {
+  margin: 0;
+  color: #fff;
+  font: 400 clamp(46px, 5.8vw, 82px)/.98 var(--font-display);
+  letter-spacing: .01em;
+  text-shadow: 0 3px 0 rgba(7, 16, 29, .5), 0 16px 34px rgba(2, 8, 18, .55);
+}
+.hero :global(.royale-hero-sub) {
+  max-width: 46ch;
+  margin: 16px 0 0;
+  color: #eaf3fc;
+  font: 600 15px/1.55 var(--font-ui);
+  text-shadow: 0 2px 6px rgba(2, 8, 18, .6);
+}
+.hero :global(.royale-hero-copy .search-wrap) { margin-top: 24px; }
+
+/* A tilted tray of vendored card portraits fills the hero's art column — the
+ * same bright frames the deck trays and share image draw. The long compound
+ * outbids the frame rule `.site-frame-clash .arena-hero-frame >
+ * :not(.arena-hero-frame-art) { position: relative }`, which would otherwise
+ * pin the tray into the copy flow. */
+.hero:global(.royale-hero):global(.arena-hero-frame) > .heroDeck {
+  position: absolute;
+  z-index: 1;
+  right: 24px;
+  bottom: 44px;
+  display: flex;
+  align-items: end;
+  pointer-events: none;
+  transform: rotate(-4deg);
+  filter: drop-shadow(0 28px 24px rgba(3, 10, 22, .4));
+}
+.heroDeck img { width: clamp(120px, 13vw, 176px); height: auto; margin-left: -7%; }
+.heroDeck img:first-child { margin-left: 0; }
+@media (max-width: 1180px) {
+  .heroDeck img { width: clamp(96px, 10.5vw, 140px); }
+}
+@media (max-width: 980px) {
+  /* Same compound as above: a plain .heroDeck would lose to its display: flex. */
+  .hero:global(.royale-hero):global(.arena-hero-frame) > .heroDeck { display: none; }
+}
+
 .tagGuide { margin-top: 14px; max-width: 490px; color: #e3edf6; font: 400 13px/1.6 var(--font-ui); }
 .tagGuide summary { width: fit-content; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .tagGuide summary:focus-visible { outline: 2px solid #75c5ff; outline-offset: 4px; }
@@ -9,9 +49,9 @@
 
 .deckPresentation { width: min(860px, 100%); margin-inline: auto; }
 .deckTools { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
-.elixir { display: flex; align-items: center; gap: 8px; color: #17324f; }
-.elixir strong { display: flex; align-items: baseline; gap: 8px; font: 750 18px/1.4 var(--font-ui); }
-.elixir span { color: #52627a; font: 500 12px/1.4 var(--font-ui); }
+.elixir { display: flex; align-items: center; gap: 10px; color: #17324f; }
+.elixir strong { font: 400 27px/1 var(--font-display); }
+.elixir span { display: block; color: #52627a; font: 500 11px/1.3 var(--font-ui); }
 .deckPresentation .deckCards { --deck-grid-max-width: 860px; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
 .deckPresentation :global(.game-card-art > img) { filter: none; }
 
@@ -20,14 +60,20 @@
   .deckPresentation .deckCards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
+.deck-demo-copy { align-items: center; }
+.deck-demo-copy strong { font: 400 20px/1.1 var(--font-display); }
+
 .deckMetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 20px 0 8px; border-block: 1px solid #d9e1e8; }
 .deckMetrics > div { display: flex; flex-direction: column-reverse; gap: 6px; padding: 16px; text-align: center; }
 .deckMetrics > div + div { border-left: 1px solid #d9e1e8; }
 .deckMetrics dt { color: #526274; font: 500 12px/1.4 var(--font-ui); }
-.deckMetrics dd { margin: 0; color: #17324f; font: 750 clamp(22px, 3vw, 30px)/1.1 var(--font-ui); font-variant-numeric: tabular-nums; }
+.deckMetrics dd { margin: 0; color: #17324f; font: 400 clamp(24px, 3vw, 32px)/1.05 var(--font-display); }
 
+@media (max-width: 680px) {
+  .hero :global(.royale-hero-copy h1) { font-size: clamp(30px, 10vw, 46px); }
+}
 @media (max-width: 600px) {
-  .hero :global(.royale-hero-copy) { padding-top: 32px; }
+  .hero :global(.royale-hero-copy) { padding: 40px 0 118px; }
   .deckMetrics > div { padding: 14px 8px; }
   .deckMetrics dt { font-size: 11px; }
 }

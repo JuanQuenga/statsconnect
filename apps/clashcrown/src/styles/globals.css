@@ -6138,36 +6138,117 @@ a:hover .entity-cell strong { color: #07569f; }
   .card-report-card-link .game-card-art { width: 64px; }
 }
 
-/* Player profile redesign: keep the arena hero dark, then switch the profile
- * content to a bright editorial report. This block intentionally comes last. */
+/* Player profile hero: mirrors the downloadable share image. Identity sits on
+ * the arena art, a gold career ledger carries the numbers, and the deck tray
+ * holds recent form under the cards. This block intentionally comes last. */
 .profile-hero-proposal {
-  grid-template-columns: minmax(320px, .85fr) minmax(500px, 1.15fr);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
 }
 
-/* Left rail mirrors the share image: ranked standing, career stats, and trophy
- * road stacked in one panel sized to the deck column, so neither side floats
- * with dead space. */
-.profile-competitive-status {
-  grid-column: 1;
-  grid-row: 2 / span 2;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  align-content: space-between;
-  gap: 14px;
-  padding: 16px;
+.profile-hero-identity { padding: 2px 4px 4px; }
+
+.profile-hero-standing {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
-.profile-rank-stats { display: grid; align-content: space-evenly; }
-.profile-rank-stats .profile-hero-metric { min-height: 52px; padding: 7px 2px; }
-.profile-rank-stats .profile-hero-metric strong { font-size: 18px; }
-.profile-recent-form { grid-column: 2; grid-row: 3; }
-.profile-hero-deck {
-  grid-column: 2;
-  grid-row: 2;
+
+.profile-standing-lockup {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px 9px 10px;
+  border: 1px solid rgba(113, 202, 255, .26);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(29, 80, 126, .9), rgba(11, 44, 81, .93));
+  box-shadow: 0 12px 24px rgba(3, 10, 22, .45);
+}
+.profile-standing-lockup > img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .45));
+}
+.profile-standing-lockup > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.profile-standing-lockup small {
+  color: #9db7d4;
+  font: 700 9.5px/1 var(--font-ui);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.profile-standing-lockup strong {
+  overflow: hidden;
+  color: #fff;
+  font: 400 19px/1.05 var(--font-display);
+  text-shadow: 0 2px 0 rgba(7, 16, 29, .55);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-standing-lockup span { color: #ffcb58; font: 700 12px/1 var(--font-ui); }
+
+/* Career ledger: every headline number in one scoreboard row, trophies in
+ * gold — the share image's bottom strip, lifted onto the web hero. */
+.profile-hero-ledger {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 13px 8px;
+  border: 1px solid rgba(113, 202, 255, .26);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(29, 80, 126, .9), rgba(11, 44, 81, .93));
+  box-shadow: 0 12px 24px rgba(3, 10, 22, .45);
+}
+.profile-ledger-tile {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 2px 20px;
+}
+.profile-ledger-tile + .profile-ledger-tile { border-left: 1px solid rgba(147, 189, 235, .2); }
+.profile-ledger-tile small {
+  color: #9db7d4;
+  font: 700 9.5px/1 var(--font-ui);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.profile-ledger-tile strong {
+  color: #fff;
+  font: 400 clamp(22px, 2.2vw, 29px)/1 var(--font-display);
+  text-shadow: 0 2px 0 rgba(7, 16, 29, .6), 0 5px 12px rgba(2, 8, 18, .4);
+  white-space: nowrap;
+}
+.profile-ledger-tile[data-gold] strong { color: #ffcb58; }
+
+/* Deck tray: one panel for the cards and, beneath them, the recent-form strip
+ * — the share image's tray, so the two surfaces read as the same product. */
+.profile-hero-main {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding: 14px 18px 12px;
+  border: 1px solid rgba(113, 202, 255, .26);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(26, 72, 114, .88), rgba(10, 38, 71, .92));
+  box-shadow: 0 16px 30px rgba(3, 10, 22, .45);
+}
+.profile-hero-deck {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px 6px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .profile-hero-title {
@@ -6177,11 +6258,11 @@ a:hover .entity-cell strong { color: #07569f; }
   gap: 12px;
 }
 
-.profile-hero-status {
-  flex: none;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+.profile-hero-nameplate h1 {
+  color: #fff;
+  font: 400 clamp(34px, 3.6vw, 50px)/1 var(--font-display);
+  letter-spacing: .01em;
+  text-shadow: 0 3px 0 rgba(7, 16, 29, .55), 0 10px 22px rgba(2, 8, 18, .55);
 }
 
 .profile-hero-level {
@@ -6209,12 +6290,17 @@ a:hover .entity-cell strong { color: #07569f; }
   transform: translate(-50%, -48%);
 }
 
-.profile-hero-status .profile-hero-freshness {
+.profile-hero-standing .profile-hero-freshness {
   max-width: none;
-  padding: 5px 10px;
-  color: #d6e4f6;
-  font: 650 10px/1.2 var(--font-ui);
-  text-align: right;
+  padding: 0;
+  border: 0;
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  color: #b9cbe2;
+  font: 650 10px/1.3 var(--font-ui);
+  text-shadow: 0 1px 2px rgba(4, 10, 22, .8);
+  white-space: nowrap;
 }
 
 .profile-hero-deck > header {
@@ -6242,8 +6328,8 @@ a:hover .entity-cell strong { color: #07569f; }
 
 .profile-hero-deck .profile-hero-elixir strong {
   color: #fff;
-  font: 850 36px/.88 var(--font-ui);
-  letter-spacing: -.04em;
+  font: 400 34px/.9 var(--font-display);
+  text-shadow: 0 2px 0 rgba(7, 16, 29, .6);
 }
 
 .profile-hero-deck .profile-hero-elixir small {
@@ -6253,47 +6339,139 @@ a:hover .entity-cell strong { color: #07569f; }
 }
 
 .profile-hero-deck-tools { margin-left: auto; }
-.profile-hero-deck-grid {
-  --deck-grid-max-width: 500px;
-  width: 100%;
-  margin: 0 auto;
-  /* Flex so a short deck centers its last row instead of leaving a hole. */
+/* Base .profile-deck-grid is already a centered 4-column grid; only widen it. */
+.profile-hero-deck-grid { --deck-grid-max-width: 620px; }
+
+/* Recent form lives under the cards, inside the tray, exactly like the share
+ * image: record and pips on the left, rates on the right, note underneath. */
+.profile-recent-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin: 10px 18px 0;
+  padding: 12px 2px 14px;
+  border: 0;
+  border-top: 1px solid rgba(147, 189, 235, .22);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.profile-form-title {
+  flex: none;
+  color: #9db7d4;
+  font: 700 9.5px/1 var(--font-ui);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.profile-form-record {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.profile-form-record > strong {
+  color: #fff;
+  font: 400 27px/1 var(--font-display);
+  text-shadow: 0 2px 0 rgba(7, 16, 29, .6);
+  white-space: nowrap;
+}
+.profile-form-pips {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
-  justify-content: center;
+  gap: 4px;
 }
-.profile-hero-deck-grid > .profile-deck-grid-slot { width: 25%; }
-.profile-hero-proposal > .profile-hero-actions { grid-row: 4; }
+.profile-form-pips > span {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: #fff;
+  background: #5b6b7f;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .25), 0 2px 3px rgba(3, 10, 22, .4);
+  font: 800 10.5px/1 var(--font-ui);
+}
+.profile-form-pips > span.win { background: #2f9e4f; }
+.profile-form-pips > span.loss { background: #c0455a; }
+.profile-form-side {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-left: auto;
+}
+.profile-form-side > div {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+.profile-form-side small {
+  color: #9db7d4;
+  font: 700 9.5px/1 var(--font-ui);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.profile-form-side strong {
+  color: #ffcb58;
+  font: 400 21px/1 var(--font-display);
+  text-shadow: 0 2px 0 rgba(7, 16, 29, .6);
+  white-space: nowrap;
+}
+.profile-recent-form > p {
+  flex-basis: 100%;
+  margin: 0;
+  color: #8398b5;
+  font: 600 10px/1.3 var(--font-ui);
+  text-align: right;
+}
+.profile-hero-proposal > .profile-hero-actions {
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+.profile-hero-proposal > .profile-hero-actions .profile-primary-actions { margin-right: auto; }
 
 @media (max-width: 1020px) {
-  .profile-hero-proposal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .profile-competitive-status { grid-column: 1; grid-row: 2; }
-  .profile-recent-form { grid-column: 2; grid-row: 2; }
-  .profile-hero-deck { grid-column: 1 / -1; grid-row: 3; }
-  .profile-hero-proposal > .profile-hero-actions { grid-row: 4; }
+  .profile-hero-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .profile-hero-standing { width: 100%; flex-wrap: wrap; }
+  .profile-hero-ledger {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 0;
+    padding: 12px 6px;
+  }
+  .profile-ledger-tile:nth-child(4) { border-left: 0; }
 }
 
 @media (max-width: 760px) {
-  .profile-hero-proposal { grid-template-columns: 1fr; }
-  .profile-competitive-status { grid-column: 1; grid-row: 2; }
-  .profile-recent-form { grid-column: 1; grid-row: 3; }
-  .profile-hero-deck { grid-column: 1; grid-row: 4; padding: 12px; }
-  .profile-hero-proposal > .profile-hero-actions { grid-row: 5; }
-  .profile-hero-deck-grid { --deck-grid-max-width: 440px; }
+  .profile-hero-ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-ledger-tile:nth-child(3) { border-left: 0; }
+  .profile-ledger-tile { padding: 4px 10px; }
+  .profile-ledger-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .profile-hero-deck-grid { --deck-grid-max-width: 460px; }
   .profile-hero-title { gap: 9px; }
   .profile-hero-level,
   .profile-hero-level img { width: 40px; height: 40px; }
   .profile-hero-level strong { font-size: 12px; }
+  .profile-form-side { margin-left: 0; }
 }
 
 @media (max-width: 430px) {
   .profile-hero-title { gap: 8px; }
-  .profile-hero-deck { overflow: hidden; padding: 10px 8px 8px; }
+  .profile-hero-main { border-radius: 13px; }
+  .profile-hero-deck { padding: 11px 10px 4px; }
   .profile-hero-deck > header { gap: 8px; }
   .profile-hero-elixir > img { width: 34px; height: 41px; }
   .profile-hero-deck .profile-hero-elixir strong { font-size: 29px; }
-  .profile-hero-deck-grid { --deck-grid-max-width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .profile-hero-deck-grid { --deck-grid-max-width: 100%; }
+  .profile-recent-form { margin: 8px 10px 0; gap: 10px 14px; }
+  .profile-ledger-tile strong { font-size: 21px; }
 }
 
 .profile-page {
@@ -6499,4 +6677,55 @@ a:hover .entity-cell strong { color: #07569f; }
   .profile-page > .profile-section { border-radius: 8px; }
   .profile-story .profile-section,
   .profile-page > .profile-section { padding: 28px 18px; }
+}
+
+/* Clash Royale home: display-type hero with a deck fan in the art column,
+ * gold calls to action, and section headers set in the game font. This block
+ * intentionally comes last, and re-states the `.site-frame-home` selectors it
+ * outbids — the earlier home-theme rules would otherwise win the cascade. */
+.royale-hero .arena-hero-frame-art {
+  background-image:
+    linear-gradient(90deg, rgba(4, 16, 32, .78) 0%, rgba(4, 16, 32, .56) 34%, rgba(4, 16, 32, .2) 66%, rgba(4, 16, 32, .08) 100%),
+    linear-gradient(180deg, rgba(4, 16, 32, .14) 0%, transparent 42%, rgba(6, 18, 34, .52) 100%),
+    url("/images/theme/subreddit/home-hero-v2.png");
+}
+
+.site-frame-home .page-band { margin-top: 34px; padding: 30px 32px 34px; }
+
+.site-frame-home .page-band > .section-title-row > h2,
+.site-frame-home .home-data-state > div > h2 {
+  color: #0b223d;
+  font: 400 27px/1.08 var(--font-display);
+  letter-spacing: .015em;
+  text-shadow: none;
+}
+
+.site-frame-home .deck-demo-copy strong { font: 400 20px/1.1 var(--font-display); }
+
+.site-frame-home .primary-button,
+.site-frame-home .copy-deck {
+  border-color: rgba(122, 84, 10, .4);
+  color: #17324f;
+  background: linear-gradient(180deg, #ffd45c, #f2b23a);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .5), 0 10px 22px rgba(157, 106, 15, .3);
+  font-size: 12.5px;
+  font-weight: 750;
+}
+
+.site-frame-home .primary-button:hover,
+.site-frame-home .copy-deck:hover { background: linear-gradient(180deg, #ffe07a, #f7bc45); }
+
+.popular-runners {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.popular-runners a { width: 64px; transition: transform .15s ease; }
+.popular-runners a:hover { transform: translateY(-3px); }
+.popular-runners .game-card-art { width: 100%; }
+
+@media (max-width: 680px) {
+  .site-frame-home .page-band { padding: 20px; }
 }

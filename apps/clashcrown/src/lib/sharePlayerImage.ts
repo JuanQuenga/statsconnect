@@ -1,6 +1,6 @@
 import { browserProfileImageRuntime, type ProfileImageRuntime } from "../../../../shared/profile-image-runtime.ts";
 import { analyzePlayerBattles } from "./clash/battles.ts";
-import { cardArtFallbacks, selectCardArt } from "./clash/assets.ts";
+import { cardArtFallbacks, NO_CLAN_BADGE_IMAGE, selectCardArt } from "./clash/assets.ts";
 import type { Battle, Card, Player } from "./clash/domain.ts";
 
 const WIDTH = 1600;
@@ -94,6 +94,30 @@ async function loadCardImage(card: Card, runtime: ProfileImageRuntime) {
   return undefined;
 }
 
+/** Loads the first source that resolves, for artwork with a recovery chain. */
+async function loadFirst(sources: string[], runtime: ProfileImageRuntime) {
+  for (const source of sources) {
+    const image = await runtime.loadImage(runtime.assetUrl(source));
+    if (image) return image;
+  }
+  return undefined;
+}
+
+/**
+ * Clan badges normally point at the API's CDN, which a canvas export cannot
+ * read when its CORS headers are missing. The vendored badge set shares the
+ * CDN's ids, so a failed remote badge recovers locally before giving up on a
+ * neutral placeholder.
+ */
+function clanBadgeSources(badge?: string): string[] {
+  if (!badge) return [];
+  const sources = [badge];
+  const vendored = badge.match(/clan-?badges\/(\d+)\.(?:png|webp)/i);
+  if (vendored && !badge.startsWith("/")) sources.push(`/images/clan-badges/${vendored[1]}.png`);
+  if (!badge.startsWith("/")) sources.push(NO_CLAN_BADGE_IMAGE);
+  return sources;
+}
+
 function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("The browser could not create the share image.")), "image/png");
@@ -107,7 +131,7 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
     loadImage(player.arenaImage),
     loadImage("/images/share/trophy.png"),
     loadImage("/images/icons/level.png"),
-    loadImage(player.clanBadge ?? ""),
+    loadFirst(clanBadgeSources(player.clanBadge), runtime),
     loadImage("/images/icons/elixir.png"),
     Promise.all(cards.map((card) => loadCardImage(card, runtime))),
     runtime.loadFont(runtime.assetUrl("/fonts/supercell-webfont.ttf"), "Share Royale"),
@@ -155,7 +179,8 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
   if (clanBadge) imageContain(c, clanBadge, 65, 267, 62, 72);
   text(c, player.clan, clanBadge ? 146 : 66, 310, 26, INK, clanBadge ? 478 : 560, true);
 
-  if (trophy) imageContain(c, trophy, 56, 369, 110, 124);
+  // The cup centers on the trophy count's optical middle instead of floating high.
+  if (trophy) imageContain(c, trophy, 56, 396, 110, 124);
   text(c, player.trophies?.toLocaleString("en-US") ?? "—", trophy ? 185 : 66, 489, 80, GOLD, trophy ? 440 : 560, true);
   text(c, "PERSONAL BEST", 68, 595, 17, MUTED);
   text(c, player.bestTrophies?.toLocaleString("en-US") ?? "—", 68, 641, 34, INK, 320, true);
@@ -179,45 +204,50 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
     text(c, `${player.stats["3 crown wins"]} three-crown wins`, arenaTextX, 853, 20, MUTED, 388);
   }
 
-  // The inset blue tray gives the deck depth while each PNG keeps its own silhouette.
+  // The tray sits directly under the wordmark and owns the deck alone: the
+  // average elixir rides the band beneath the grid inside it, and recent form
+  // moves to the page below the tray.
   c.save();
   c.shadowColor = "#020b1bcc"; c.shadowBlur = 28; c.shadowOffsetY = 14;
-  const tray = c.createLinearGradient(0, 210, 0, 876);
+  const tray = c.createLinearGradient(0, 120, 0, 760);
   tray.addColorStop(0, "#1d507e"); tray.addColorStop(1, "#0b2c51");
-  c.fillStyle = tray; c.beginPath(); c.roundRect(665, 208, 883, 663, 26); c.fill();
+  c.fillStyle = tray; c.beginPath(); c.roundRect(665, 120, 883, 640, 26); c.fill();
   c.shadowColor = "transparent";
   c.strokeStyle = "#71caff38"; c.lineWidth = 2; c.stroke();
   c.restore();
   const average = cards.length ? (cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length).toFixed(1) : undefined;
-  c.textAlign = "right";
   if (average && elixir) {
-    imageContain(c, elixir, 1415, 147, 32, 39);
-    outlinedText(c, average, 1536, 180, 30, 65);
+    c.font = `27px ${FONT}`;
+    const valueWidth = c.measureText(average).width;
+    const groupX = 665 + (883 - (32 + 14 + valueWidth)) / 2;
+    imageContain(c, elixir, groupX, 690, 32, 39);
+    outlinedText(c, average, groupX + 46, 720, 27, valueWidth + 20);
   } else {
-    text(c, average ? average : "Deck not reported", 1536, 180, 18, "#cfacff", 260);
+    c.textAlign = "center";
+    text(c, average ? average : "Deck not reported", 665 + 441, 720, 20, "#cfacff", 500);
+    c.textAlign = "left";
   }
-  c.textAlign = "left";
-  // Cards pack tightly against the top of the tray so recent form can anchor
-  // the space beneath them; a short last row centers itself like the website.
+  // Even 15px insets all round: the grid centers within the tray and a short
+  // last row centers itself like the website.
   const rowCount = Math.ceil(cards.length / 4);
   const lastRowCount = cards.length - (rowCount - 1) * 4;
   cards.forEach((card: Card, i) => {
     const row = Math.floor(i / 4);
     const rowOffset = row === rowCount - 1 && lastRowCount < 4 ? (4 - lastRowCount) * 108 : 0;
-    const x = 676 + rowOffset + (i % 4) * 216;
-    const y = 230 + row * 264;
+    const x = 680 + rowOffset + (i % 4) * 216;
+    const y = 136 + row * 274;
     const activeVariant = selectCardArt(card).variant;
     const accent = activeVariant === "Hero" ? "#ffcb58" : activeVariant === "Evolution" ? "#d965ff" : LEVEL_COLORS[card.rarity].at(-1) ?? "#81caf4";
     const image = cardImages[i];
-    let bounds = { x, y, width: 206, height: 300 };
+    let bounds = { x, y, width: 206, height: 260 };
     if (image) {
       c.save(); c.shadowColor = `${accent}55`; c.shadowBlur = 22; c.shadowOffsetY = 5;
       // The supplied PNG owns the rarity frame and its silhouette.
-      bounds = imageContain(c, image, x, y, 206, 300);
+      bounds = imageContain(c, image, x, y, 206, 260);
       c.restore();
     } else {
-      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 7, y + 8, 192, 278, 12); c.fill();
-      c.textAlign = "center"; text(c, "?", x + 103, y + 174, 56, MUTED, undefined, true); c.textAlign = "left";
+      c.fillStyle = "#17283d"; c.beginPath(); c.roundRect(x + 7, y + 7, 192, 246, 12); c.fill();
+      c.textAlign = "center"; text(c, "?", x + 103, y + 151, 56, MUTED, undefined, true); c.textAlign = "left";
     }
     const variant = activeVariant;
     c.textAlign = "center";
@@ -240,31 +270,35 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
     }
     c.textAlign = "left";
   });
-  if (!cards.length) text(c, "Current deck unavailable", 676, 545, 26, MUTED, 700);
+  if (!cards.length) text(c, "Current deck unavailable", 680, 415, 26, MUTED, 700);
 
-  // Recent form strip along the bottom of the tray, mirroring the website hero.
-  line(c, 692, 816, 832, "#ffffff26");
+  // Recent form strip on the page below the tray, mirroring the website hero.
+  // The pills flow from the measured record width so long records can never
+  // overlap them (a fixed start clipped "5–5" into the first pill).
+  line(c, 665, 800, 883, "#ffffff26");
   const form = analyzePlayerBattles(player.battles.slice(0, 10));
   const formBattles = form.recent;
   if (form.games) {
-    const labelWidth = text(c, "RECENT FORM", 692, 849, 13, MUTED);
-    text(c, `${form.wins}–${form.losses}${form.draws ? `–${form.draws}` : ""}`, 692 + labelWidth + 10, 849, 17, INK, 80, true);
+    const baseY = 852;
+    let formX = 665;
+    formX += text(c, "RECENT FORM", formX, baseY - 2, 14, MUTED) + 14;
+    formX += text(c, `${form.wins}–${form.losses}${form.draws ? `–${form.draws}` : ""}`, formX, baseY, 24, INK, 120, true) + 18;
     formBattles.forEach((battle, i) => {
-      const px = 826 + i * 28;
+      const px = formX + i * 34;
       c.fillStyle = FORM_PILL_COLORS[battle.result];
-      c.beginPath(); c.roundRect(px, 830, 23, 23, 6); c.fill();
+      c.beginPath(); c.roundRect(px, baseY - 28, 28, 28, 8); c.fill();
       c.textAlign = "center";
-      text(c, battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L", px + 11.5, 847, 13, "#ffffff");
+      text(c, battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L", px + 14, baseY - 9, 15, "#ffffff");
       c.textAlign = "left";
     });
     c.textAlign = "right";
-    text(c, "WIN RATE", 1372, 838, 11, MUTED);
-    text(c, `${form.winRate.toFixed(0)}%`, 1372, 862, 22, INK, 110, true);
-    text(c, "STREAK", 1524, 838, 11, MUTED);
-    text(c, resultStreak(formBattles), 1524, 862, 22, GOLD, 110, true);
+    text(c, "WIN RATE", 1352, baseY - 20, 12, MUTED);
+    text(c, `${form.winRate.toFixed(0)}%`, 1352, baseY + 10, 27, INK, 130, true);
+    text(c, "STREAK", 1494, baseY - 20, 12, MUTED);
+    text(c, resultStreak(formBattles), 1494, baseY + 10, 27, GOLD, 130, true);
     c.textAlign = "left";
   } else {
-    text(c, "No recent battles recorded", 692, 849, 13, MUTED, 700);
+    text(c, "No recent battles recorded", 665, 838, 14, MUTED, 700);
   }
   line(c, 64, 931, 1472);
   const date = player.fetchedAt ? new Date(player.fetchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined;

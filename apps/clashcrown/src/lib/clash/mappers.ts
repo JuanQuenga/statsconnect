@@ -207,9 +207,40 @@ function playerStats(source: ApiPlayer): Record<string, string> {
   return stats;
 }
 
+/**
+ * Supercell's /players/{tag} endpoint sometimes reports `currentDeck` one card
+ * short of the eight the game actually holds — a slot (observed: the Champion,
+ * Little Prince) silently omitted while the same player's battle log still
+ * lists all eight cards. A seven-card payload is that truncation signature.
+ * The newest battle whose reported deck contains every card the profile did
+ * return supplies the missing eighth card with its real art and id; when the
+ * battle log can't confirm the deck, placeholder art pads the tray so it is
+ * never short. Shorter decks are genuinely incomplete profiles (a fresh
+ * account), not truncation, and are left alone. The placeholder carries no
+ * id, so `deckLinkForCards` correctly refuses to build a copy-deck link.
+ */
+function deckWithRestoredSlot(deck: Card[], battles: ApiBattle[], playerTag: string): Card[] {
+  if (deck.length !== 7) return deck;
+  const knownIds = new Set(deck.map((card) => String(card.id)));
+  for (const battle of battles) {
+    const team = battle.team ?? [];
+    const ours = team.find((participant) => participant.tag?.replace(/^#/, "") === playerTag) ?? team[0];
+    const cards = ours?.cards ?? [];
+    const sameDeck = cards.length === 8 && deck.every((card) => cards.some((entry) => String(entry.id) === String(card.id)));
+    if (!sameDeck) continue;
+    const missing = cards.find((entry) => !knownIds.has(String(entry.id)));
+    if (missing) return [...deck, mapCard(missing)];
+  }
+  return [...deck, { ...FALLBACK_CARD }];
+}
+
 export function mapPlayerBundle(payload: PlayerBundlePayload): Player {
   const source = payload.player.data;
-  const currentDeck = source.currentDeck?.map(mapCard) ?? [];
+  const currentDeck = deckWithRestoredSlot(
+    source.currentDeck?.map(mapCard) ?? [],
+    payload.battles.data,
+    source.tag
+  );
   const allCards = source.cards?.map((card) => ({ ...mapCard(card), owned: true })) ?? [];
   const favoriteCard = source.currentFavouriteCard ? mapCard(source.currentFavouriteCard) : undefined;
 
