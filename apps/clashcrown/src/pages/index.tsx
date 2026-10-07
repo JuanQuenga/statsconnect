@@ -88,7 +88,7 @@ function ExploreTiles() {
     <nav className="cr-explore" aria-label="Explore Clash Royale stats">
       {EXPLORE_TILES.map((tile) => (
         <Link key={tile.href} href={tile.href}>
-          <img src={tile.art} alt="" loading="lazy" />
+          <Image src={tile.art} alt="" />
           <strong>{tile.title}</strong>
           <span>{tile.detail}</span>
         </Link>
@@ -279,7 +279,7 @@ function LiveEventLab() {
         <HomeDataMessage message={errorMessage(query.error)} />
       ) : !tournaments.length ? (
         <div className="cr-empty">
-          <img src="/images/icons/battle-tournament.png" alt="" width={76} height={76} />
+          <Image src="/images/icons/battle-tournament.png" alt="" width={76} height={76} />
           <div>
             <strong>No Global Tournament right now</strong>
             <p>Global Tournaments run during special events. Player-made tournaments are open all the time.</p>

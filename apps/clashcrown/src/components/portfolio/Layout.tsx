@@ -176,7 +176,7 @@ function SiteFooter() {
     <footer className="cr-footer">
       <div className="cr-footer-columns">
         {columns.slice(0, 2)}
-        <img className="cr-footer-king" src="/images/theme/subreddit/footer-king-upscaled.webp" alt="" width={123} height={205} />
+        <Image className="cr-footer-king" src="/images/theme/subreddit/footer-king-upscaled.webp" alt="" width={123} height={205} />
         {columns.slice(2)}
       </div>
       <div className="cr-footer-legal">

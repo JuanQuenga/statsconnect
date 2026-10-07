@@ -1,5 +1,6 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { CircleHelp, X } from "lucide-react";
+import Image from "@/components/Image";
 
 /**
  * "Where is my player tag?" opens a centred dialog with the in-game walkthrough
@@ -24,7 +25,7 @@ export function PlayerTagGuide() {
               <X size={18} aria-hidden="true" />
             </Dialog.Close>
           </header>
-          <img
+          <Image
             src="/images/animated/hashtag.gif"
             alt="Opening a Clash Royale profile from the main screen and copying the player tag shown under the name"
             width={720}

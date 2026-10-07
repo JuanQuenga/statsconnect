@@ -896,3 +896,20 @@
   }
   .site-frame-clash :is(.meta-controls, .history-coverage, .discovery-filter-panel, .tool-card, .tool-explainer) { padding: 16px; }
 }
+
+/* Card detail mode switch: legacy CSS forced five equal grid columns, so
+   longer labels ("Path of Legends") spilled out. Size tabs to their labels
+   and let the tray scroll if a bar is narrower than all five. */
+.site-frame-clash .card-mode-switch.cr-tabs {
+  width: auto;
+  max-width: 100%;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.site-frame-clash .card-mode-switch.cr-tabs > button {
+  flex: none;
+  min-height: 38px;
+  padding: 0 14px;
+  border-bottom: 0;
+}

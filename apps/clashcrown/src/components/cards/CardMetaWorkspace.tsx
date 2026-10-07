@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, LayoutGrid, Rows3, Search } from "lucide-react";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import Image from "@/components/Image";
 import Link from "@/components/Link";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import type { Card } from "@/lib/clash/domain";
@@ -158,7 +159,7 @@ export function CardMetaWorkspace({ library }: { library: CardLibrary }) {
           {!isTowers ? (
             <>
               <ChipGroup label="Elixir" values={ELIXIRS} value={filters.elixir} onChange={(value) => update("elixir", value)} render={(item) => (
-                item === "All" ? "All" : <><img src="/images/icons/elixir.png" alt="" width={14} height={14} />{item}</>
+                item === "All" ? "All" : <><Image src="/images/icons/elixir.png" alt="" width={14} height={14} />{item}</>
               )} />
               <ChipGroup label="Type" values={VARIANTS} value={filters.variant} onChange={(value) => update("variant", value)} render={(item) => item} />
             </>
