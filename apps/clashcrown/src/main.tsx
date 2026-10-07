@@ -18,6 +18,7 @@ import {
 import { PersonalizationProvider } from "@/components/personalization/PersonalizationProvider";
 import { routeTree } from "./routeTree.gen";
 import "./styles/globals.css";
+import "./styles/arena.css";
 
 const APP_NAME = "StatsConnect Clash Royale";
 const basePath = gameRouteBase("clash-royale", import.meta.env.BASE_URL, window.location.hostname);

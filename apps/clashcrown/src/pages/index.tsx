@@ -10,6 +10,7 @@ import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { PersonalDashboard } from "@/components/personalization/PersonalDashboard";
+import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { averageElixir, copyDeckLink, UNKNOWN_CARD_IMAGE } from "@/lib/clash/assets";
@@ -26,6 +27,8 @@ function unknownCard(id: number): Card {
 }
 
 export default function HomePage() {
+  const hasSavedProfiles = usePersonalization().profiles.length > 0;
+
   return (
     <Layout variant="home">
       <ArenaHeroFrame className={`royale-hero ${styles.hero}`}>
@@ -47,9 +50,18 @@ export default function HomePage() {
         </div>
       </ArenaHeroFrame>
 
-      <PersonalDashboard />
+      {/* Returning players see their own profiles first; for everyone else an
+          empty "saved profiles" panel is not the thing to lead with. */}
+      {hasSavedProfiles ? <PersonalDashboard /> : null}
 
       {isConvexConfigured ? <MetaTopDeck /> : <UnavailableMetaSection title="Top observed deck" />}
+
+      <div className="cr-home-split">
+        {isConvexConfigured ? <MetaPopularCards /> : <UnavailableMetaSection title="Most played card" href="/cards" />}
+        {isConvexConfigured ? <LiveEventLab /> : <UnavailableMetaSection title="Live tournaments" href="/tournaments" />}
+      </div>
+
+      <ExploreTiles />
 
       <AdSenseUnit
         clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
@@ -58,10 +70,29 @@ export default function HomePage() {
         className="home-ad-unit"
       />
 
-      {isConvexConfigured ? <LiveEventLab /> : <UnavailableMetaSection title="Live tournaments" href="/tournaments" />}
-
-      {isConvexConfigured ? <MetaPopularCards /> : <UnavailableMetaSection title="Most played card" href="/cards" />}
+      {hasSavedProfiles ? null : <PersonalDashboard />}
     </Layout>
+  );
+}
+
+const EXPLORE_TILES = [
+  { href: "/cards", title: "Card library", detail: "Every card with stats, levels, and win rates.", art: "/images/art/giant.png" },
+  { href: "/decks", title: "Deck builder", detail: "Build a deck or start from a proven one.", art: "/images/art/prince.png" },
+  { href: "/leaderboards", title: "Leaderboards", detail: "Top players and clans by region.", art: "/images/art/hog-rider.png" },
+  { href: "/clans/search", title: "Clans", detail: "Find a clan and check its war record.", art: "/images/art/the-bowler.png" },
+];
+
+function ExploreTiles() {
+  return (
+    <nav className="cr-explore" aria-label="Explore Clash Royale stats">
+      {EXPLORE_TILES.map((tile) => (
+        <Link key={tile.href} href={tile.href}>
+          <img src={tile.art} alt="" loading="lazy" />
+          <strong>{tile.title}</strong>
+          <span>{tile.detail}</span>
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -110,7 +141,7 @@ function MetaTopDeck() {
     <section className="deck-day page-band">
       <div className="section-title-row">
         <h2>Top observed deck</h2>
-        <Link href="/meta" className="primary-button">See the full meta</Link>
+        <Link href="/meta" className="primary-button">Full meta</Link>
       </div>
       <div className="archetype-tabs" aria-label="Battle mode">
         {HOME_MODES.map((item) => (
@@ -132,7 +163,7 @@ function MetaTopDeck() {
       </div>
 
       {payload === undefined || library.isLoading ? (
-        <p className="table-note" role="status">Loading the latest deck statistics and card catalog…</p>
+        <HomeDataMessage loading message="Loading the latest deck statistics and card catalog…" />
       ) : library.error ? (
         <p className="table-note" role="status">{errorMessage(library.error)}</p>
       ) : !deck ? (
@@ -194,10 +225,10 @@ function MetaPopularCards() {
     <section className="popular page-band">
       <div className="section-title-row">
         <h2>Most played card</h2>
-        <Link href="/meta" className="primary-button">Card and deck rankings</Link>
+        <Link href="/cards" className="primary-button">All cards</Link>
       </div>
       {payload === undefined || library.isLoading ? (
-        <HomeDataMessage message="Loading Path of Legends card statistics…" />
+        <HomeDataMessage loading message="Loading Path of Legends card statistics…" />
       ) : library.error ? (
         <HomeDataMessage message={errorMessage(library.error)} />
       ) : !top ? (
@@ -205,24 +236,16 @@ function MetaPopularCards() {
       ) : !card ? (
         <HomeDataMessage message="The leading card is not yet available in the live card catalog." />
       ) : (
-        <>
-          <div className="popular-grid">
-            <MetaMetric
-              color="gold"
-              label="Win rate"
-              value={`${(top.winRate * 100).toFixed(1)}%`}
-              detail={`${top.uses.toLocaleString()} games observed`}
-            />
-            <Link href={`/cards/${cardSlug(card.name)}`} className="popular-card-center">
+        <div>
+          <div className="cr-top-card">
+            <Link href={`/cards/${cardSlug(card.name)}`}>
               <GameCardArt card={card} size="library" portrait="highest" />
               <strong>{card.name}</strong>
             </Link>
-            <MetaMetric
-              color="blue"
-              label="Usage"
-              value={`${(top.usageRate * 100).toFixed(1)}%`}
-              detail="of observed decks"
-            />
+            <dl>
+              <div><dt>Usage</dt><dd>{(top.usageRate * 100).toFixed(1)}%<small>of decks</small></dd></div>
+              <div><dt>Win rate</dt><dd>{(top.winRate * 100).toFixed(1)}%<small>{top.uses.toLocaleString()} games</small></dd></div>
+            </dl>
           </div>
           {runners.length ? (
             <div className="popular-runners" aria-label="Next most played cards">
@@ -234,9 +257,9 @@ function MetaPopularCards() {
             </div>
           ) : null}
           <p className="table-note">
-            From {Math.round(payload.decksObserved).toLocaleString()} decks observed in Path of Legends over the last {HOME_WINDOW_DAYS} days. These rates are aggregated from crawled battle logs.
+            Path of Legends, last {HOME_WINDOW_DAYS} days · {Math.round(payload.decksObserved).toLocaleString()} decks observed.
           </p>
-        </>
+        </div>
       )}
     </section>
   );
@@ -256,16 +279,21 @@ function LiveEventLab() {
     <section className="event-lab page-band">
       <div className="section-title-row">
         <h2>Live tournaments</h2>
-        <Link href="/tournaments" className="primary-button">View tournaments</Link>
+        <Link href="/tournaments" className="primary-button">Tournaments</Link>
       </div>
       {query.isLoading ? (
-        <HomeDataMessage message="Loading current Global Tournaments…" />
+        <HomeDataMessage loading message="Loading current Global Tournaments…" />
       ) : query.error ? (
         <HomeDataMessage message={errorMessage(query.error)} />
       ) : !tournaments.length ? (
-        <HomeDataMessage message="No Global Tournament is running right now.">
-          <Link href="/tournaments" className="primary-button">Browse tournaments</Link>
-        </HomeDataMessage>
+        <div className="cr-empty">
+          <img src="/images/icons/battle-tournament.png" alt="" width={76} height={76} />
+          <div>
+            <strong>No Global Tournament right now</strong>
+            <p>Global Tournaments run during special events. Player-made tournaments are open all the time.</p>
+            <Link href="/tournaments" className="primary-button cr-button-blue">Find a tournament</Link>
+          </div>
+        </div>
       ) : (
         <div className="event-grid">
           {tournaments.map((tournament) => (
@@ -307,8 +335,8 @@ function UnavailableMetaSection({ title, href = "/meta" }: { title: string; href
   );
 }
 
-function HomeDataMessage({ message, children }: { message: string; children?: ReactNode }) {
-  return <p className="home-data-message" role="status">{message}{children}</p>;
+function HomeDataMessage({ message, loading = false, children }: { message: string; loading?: boolean; children?: ReactNode }) {
+  return <p className="home-data-message" role="status" data-state={loading ? "loading" : undefined}>{message}{children}</p>;
 }
 
 function Pager({ onPrevious, onNext }: { onPrevious?: () => void; onNext?: () => void }) {
@@ -317,18 +345,6 @@ function Pager({ onPrevious, onNext }: { onPrevious?: () => void; onNext?: () =>
     <div className="pager">
       <Button variant="secondary" size="icon" type="button" aria-label="Previous" onClick={onPrevious}><ChevronLeft size={18} /></Button>
       <Button variant="secondary" size="icon" type="button" aria-label="Next" onClick={onNext}><ChevronRight size={18} /></Button>
-    </div>
-  );
-}
-
-function MetaMetric({ color, label, value, detail }: { color: "gold" | "blue"; label: string; value: string; detail: string }) {
-  return (
-    <div className={`spark spark-${color} meta-metric`}>
-      <div className="spark-label">
-        <span>{label}</span>
-        <strong>{value}</strong>
-        <small>{detail}</small>
-      </div>
     </div>
   );
 }
