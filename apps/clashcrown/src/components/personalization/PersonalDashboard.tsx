@@ -251,6 +251,9 @@ export function TrackingControls({ profile }: { profile: Pick<ProfileInput, "tag
             ? tracked ? "Tracked across StatsConnect" : "Track this profile across StatsConnect"
             : "Sign in to track profiles across StatsConnect";
 
+  // Tracking needs an account; without Clerk configured there is none to offer.
+  if (!auth.isConfigured) return null;
+
   return (
     <div className={styles.trackingControls} aria-label="StatsConnect profile tracking controls">
       <button

@@ -72,7 +72,8 @@ export function ProfileActions({ profile, size = "sm" }: ProfileActionsProps) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button
+      {/* Tracking needs an account; without Clerk configured there is none to offer. */}
+      {auth.isConfigured ? <Button
         type="button"
         size={size}
         variant={tracked ? "secondary" : "outline"}
@@ -84,7 +85,7 @@ export function ProfileActions({ profile, size = "sm" }: ProfileActionsProps) {
       >
         {trackPending ? <LoaderCircle className="animate-spin" /> : tracked ? <BookmarkCheck /> : <Bookmark />}
         {trackLabel}
-      </Button>
+      </Button> : null}
       <Button type="button" size={size} variant="outline" onClick={share}>
         <Share2 />
         {shareLabel || t("common.share")}

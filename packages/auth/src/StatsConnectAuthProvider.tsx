@@ -55,6 +55,8 @@ export type StatsConnectPlusOffer = {
 
 export type StatsConnectAuthState = {
   account: StatsConnectAccount | null;
+  /** False on deployments without a Clerk key: sign-in UI should be hidden. */
+  isConfigured: boolean;
   isLoading: boolean;
   profiles: readonly ConnectedProfile[];
   profilesStatus: ConnectedProfilesSnapshot["status"];
@@ -100,6 +102,7 @@ const noopAccountAdapter: AccountConnectedProfilesAdapter = {
 };
 
 const defaultState: StatsConnectAuthState = {
+  isConfigured: false,
   account: null,
   isLoading: false,
   profiles: [],
@@ -310,6 +313,7 @@ function ConfiguredAuth({ children }: { children: ReactNode }) {
 
   const value = useMemo<StatsConnectAuthState>(() => ({
     account: accountState?.user ?? null,
+    isConfigured: true,
     isLoading: isConvexAuthLoading || (isAuthenticated && accountState === undefined),
     profiles: profiles.snapshot.profiles,
     profilesStatus: profiles.snapshot.status,

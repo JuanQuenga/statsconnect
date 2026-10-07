@@ -85,7 +85,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
           email: auth.account.email,
           onSignOut: () => void auth.signOut(),
         } : undefined}
-        authAction={!auth.account && !auth.isLoading ? {
+        authAction={auth.isConfigured && !auth.account && !auth.isLoading ? {
           label: "Sign in",
           onClick: () => void auth.signIn(),
         } : undefined}
