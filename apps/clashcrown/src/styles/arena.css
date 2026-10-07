@@ -219,20 +219,80 @@
 
 .site-frame-clash .arena-route-hero-description { font-weight: 600; text-shadow: 0 1px 3px rgba(4, 16, 32, .6); }
 
-/* --- Footer -------------------------------------------------------------- */
+/* --- Footer -------------------------------------------------------------
+ * Proportions follow the original r/ClashRoyale stylesheet: the footer drops
+ * well clear of the content, the wall art scales to the footer's own height
+ * (so its ledge stays a thin lip), 130px link columns flank the King, and the
+ * legal lines sit on a 200px band of lances and grass. */
 
-.site-frame-clash .footer-brand-row p {
-  max-width: 340px;
-  margin: 14px 0 0;
-  color: rgba(255, 255, 255, .86);
-  font: 500 14px/1.6 var(--font-ui);
+.cr-footer {
+  margin-top: clamp(72px, 9vw, 140px);
+  padding-top: 46px;
+  color: #fff;
+  text-align: center;
+  background:
+    url("/images/theme/subreddit/arena-wall-upscaled.png") center top / auto 100% repeat-x,
+    #8e8399;
 }
 
-.site-frame-clash .statsconnect-game-brand strong {
-  font-size: 22px;
-  -webkit-text-stroke: .14em var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 .1em 0 var(--cr-ink);
+.cr-footer-columns {
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.cr-footer-col { width: 130px; padding: 10px 10px 0; }
+
+.cr-footer-col strong {
+  display: block;
+  margin-bottom: 4px;
+  font: 700 14px/1.4 var(--font-ui);
+  text-shadow: 1px 1px 5px #000;
+}
+
+.cr-footer-col ul { margin: 0; padding: 0; list-style: none; }
+
+.cr-footer-col a {
+  color: #e6e6e6;
+  font: 500 13px/1.75 var(--font-ui);
+  text-shadow: 2px 2px 5px #333;
+}
+
+.cr-footer-col a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+
+.cr-footer-king {
+  width: 123px;
+  height: 205px;
+  flex: none;
+  margin: -28px 18px 0;
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, .35));
+}
+
+.cr-footer-legal {
+  min-height: 200px;
+  margin-top: 10px;
+  padding: 18px 24px 0;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 6px;
+  background: url("/images/theme/subreddit/footer-lances.png") center bottom / max(100%, 1100px) auto no-repeat;
+  font: 500 13px/1.5 var(--font-ui);
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, .7);
+}
+
+.cr-footer-legal p { max-width: 720px; margin: 0; }
+.cr-footer-legal a { color: #cfe9ff; }
+.cr-footer-legal .statsconnect-community { margin: 0; }
+
+@media (max-width: 760px) {
+  .cr-footer-columns { flex-wrap: wrap; row-gap: 18px; }
+  .cr-footer-king { order: -1; width: 82px; height: auto; margin: -20px calc(50% - 41px) 0; }
+  .cr-footer-col { width: 50%; max-width: 180px; }
+  .cr-footer-legal { min-height: 0; padding-bottom: 96px; background-size: 640px auto; }
 }
 
 /* --- Home ---------------------------------------------------------------- */

@@ -118,57 +118,82 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
   );
 }
 
+const FOOTER_COLUMNS = [
+  {
+    title: "Explore",
+    links: [
+      { href: "/leaderboards", label: "Leaderboards" },
+      { href: "/meta", label: "Meta Report" },
+      { href: "/players", label: "Player Lookup" },
+    ],
+  },
+  {
+    title: "Build",
+    links: [
+      { href: "/cards", label: "Card Library" },
+      { href: "/decks", label: "Decks" },
+      { href: "/tools", label: "Tools" },
+    ],
+  },
+  {
+    title: "Discover",
+    links: [
+      { href: "/clans/search", label: "Clan Search" },
+      { href: "/news", label: "News" },
+      { href: "/tournaments", label: "Tournaments" },
+    ],
+  },
+  {
+    title: "StatsConnect",
+    links: [
+      { href: "https://statsconnect.app/about", label: "About" },
+      { href: "https://statsconnect.app/faq", label: "FAQ" },
+      { href: "https://statsconnect.app/privacy", label: "Privacy policy" },
+      { href: "https://statsconnect.app/terms", label: "Terms" },
+      { href: "https://statsconnect.app/contact", label: "Contact" },
+    ],
+  },
+];
+
+/** The classic r/ClashRoyale footer: link columns around the King on the
+ *  arena wall, legal copy resting on the lances. */
 function SiteFooter() {
   const { t, locale } = useI18n();
+  const columns = FOOTER_COLUMNS.map((column) => (
+    <div key={column.title} className="cr-footer-col">
+      <strong>{column.title}</strong>
+      <ul>
+        {column.links.map((link) => (
+          <li key={link.href}>
+            {link.href.startsWith("http") ? <a href={link.href}>{link.label}</a> : <Link href={link.href}>{link.label}</Link>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ));
+
   return (
-    <footer className="site-footer">
-      <div className="footer-inner">
-        <div className="footer-brand-row">
-          <Link href="/" aria-label="StatsConnect" className="statsconnect-game-brand">
-            <strong>StatsConnect</strong>
-          </Link>
-          <p>Fan-made Clash Royale stats: meta decks, card rankings, and battle history for any player or clan.</p>
-        </div>
-        <div className="footer-link-groups">
-          <div>
-            <strong>Explore</strong>
-            <Link href="/leaderboards">Leaderboards</Link>
-            <Link href="/meta">Meta Report</Link>
-            <Link href="/players">Player Lookup</Link>
-          </div>
-          <div>
-            <strong>Build</strong>
-            <Link href="/cards">Card Library</Link>
-            <Link href="/decks">Decks</Link>
-            <Link href="/tools">{t("nav.tools")}</Link>
-          </div>
-          <div>
-            <strong>Discover</strong>
-            <Link href="/clans/search">Clan Search</Link>
-            <Link href="/news">{t("nav.news")}</Link>
-            <a href="https://statsconnect.app/about">About</a>
-            <a href="https://statsconnect.app/faq">FAQ</a>
-            <a href="https://statsconnect.app/privacy">Privacy policy</a>
-            <a href="https://statsconnect.app/terms">Terms</a>
-            <a href="https://statsconnect.app/contact">Contact</a>
-          </div>
-        </div>
-        <div className="footer-legal">
-          <CommunityLinks
-            supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
-            monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
-            supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
-            locale={locale}
-          />
-          {creatorCode ? <p>Support this site in the Clash Royale Shop with creator code <strong>{creatorCode}</strong>.</p> : null}
-          <p>
-            {t("footer.disclaimer")} See Supercell&rsquo;s{" "}
-            <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
-              Fan Content Policy
-            </a>.
-          </p>
-          <p>© {new Date().getFullYear()} StatsConnect.</p>
-        </div>
+    <footer className="cr-footer">
+      <div className="cr-footer-columns">
+        {columns.slice(0, 2)}
+        <img className="cr-footer-king" src="/images/theme/subreddit/footer-king-upscaled.webp" alt="" width={123} height={205} />
+        {columns.slice(2)}
+      </div>
+      <div className="cr-footer-legal">
+        <CommunityLinks
+          supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
+          monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
+          supportPortalUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_PORTAL_URL}
+          locale={locale}
+        />
+        {creatorCode ? <p>Support this site in the Clash Royale Shop with creator code <strong>{creatorCode}</strong>.</p> : null}
+        <p>
+          {t("footer.disclaimer")} See Supercell&rsquo;s{" "}
+          <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
+            Fan Content Policy
+          </a>
+          . © {new Date().getFullYear()} StatsConnect.
+        </p>
       </div>
     </footer>
   );
