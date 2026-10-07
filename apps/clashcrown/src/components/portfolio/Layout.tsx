@@ -60,10 +60,9 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
     { href: "/", label: t("nav.home"), icon: <Image src="/images/icons/blue-wide.png" alt="" width={27} height={27} /> },
     { href: "/meta", label: t("nav.meta") },
     { href: "/leaderboards", label: t("nav.leaderboards"), mobileLabel: locale === "es" ? "Clasif." : "Ranks", icon: <Image src="/images/ui-icons/trophies.png" alt="" width={27} height={27} /> },
-    { href: "/history", label: "History" },
     { href: "/cards", label: t("nav.cards"), icon: <Image src="/images/icons/book-cards.png" alt="" width={27} height={27} /> },
     { href: "/decks", label: t("nav.decks"), mobileLabel: locale === "es" ? "Mazos" : "Decks", icon: <Image src="/images/icons/cardsq.png" alt="" width={27} height={27} /> },
-    { href: "/clans/search", label: t("nav.clans") },
+    { href: "/history", label: "History" },
     { href: "/news", label: t("nav.news") },
     { href: "/tools", label: t("nav.tools") },
   ];
@@ -124,7 +123,7 @@ const FOOTER_COLUMNS = [
     links: [
       { href: "/leaderboards", label: "Leaderboards" },
       { href: "/meta", label: "Meta Report" },
-      { href: "/players", label: "Player Lookup" },
+      { href: "/history", label: "History" },
     ],
   },
   {
@@ -138,7 +137,6 @@ const FOOTER_COLUMNS = [
   {
     title: "Discover",
     links: [
-      { href: "/clans/search", label: "Clan Search" },
       { href: "/news", label: "News" },
       { href: "/tournaments", label: "Tournaments" },
     ],

@@ -759,7 +759,7 @@
 }
 
 /* Small copy on the bright sky gets the same navy edge as the hero copy. */
-.site-frame-clash :is(.arena-hero-frame, .card-detail-hero, .clan-hero, .guide-detail-hero) :is(p, small, span, time):not(.cr-tabs *, button *, .primary-button *, .summary-tile *) {
+.site-frame-clash :is(.arena-hero-frame, .card-detail-hero, .clan-hero, .guide-detail-hero) :is(p, small, span, time):not(.cr-tabs *, button *, .primary-button *, .summary-tile *, .game-card-art *) {
   text-shadow: 0 1px 0 var(--cr-ink), 0 0 10px rgba(14, 37, 70, .55);
 }
 

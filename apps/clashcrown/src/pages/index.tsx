@@ -80,7 +80,7 @@ const EXPLORE_TILES = [
   { href: "/cards", title: "Card library", detail: "Every card with stats, levels, and win rates.", art: "/images/art/giant.png" },
   { href: "/decks", title: "Deck builder", detail: "Build a deck or start from a proven one.", art: "/images/art/prince.png" },
   { href: "/leaderboards", title: "Leaderboards", detail: "Top players and clans by region.", art: "/images/art/hog-rider.png" },
-  { href: "/clans/search", title: "Clans", detail: "Find a clan and check its war record.", art: "/images/art/the-bowler.png" },
+  { href: "/meta", title: "Meta report", detail: "The decks and cards winning right now.", art: "/images/art/the-bowler.png" },
 ];
 
 function ExploreTiles() {

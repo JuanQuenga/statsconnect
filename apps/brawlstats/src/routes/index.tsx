@@ -155,7 +155,7 @@ function HomePage() {
           </div>
 
           <div>
-            <SectionHeader id="home-clubs" title={t("home.topClubs")} link={<Link to="/clubs" className="brawl-chip">{t("nav.clubs")}</Link>} />
+            <SectionHeader id="home-clubs" title={t("home.topClubs")} link={<Link to="/leaderboards" className="brawl-chip">{t("nav.leaderboards")}</Link>} />
             <HomeListFeedback state={clubsState} error={clubsQuery.error} emptyTitle={t("leaderboard.empty")} />
             {clubsState === "ready" ? (
               <RankList>

@@ -43,13 +43,11 @@ export function SiteNav() {
   const preferences = usePreferences();
   const links = [
     { href: "/", label: t("nav.home") },
-    { href: "/players", label: t("nav.players") },
-    { href: "/clubs", label: t("nav.clubs") },
-    { href: "/maps", label: t("nav.maps") },
-    { href: "/brawlers", label: t("nav.brawlers") },
     { href: "/meta", label: t("nav.meta") },
-    { href: "/progression", label: t("nav.progression") },
     { href: "/leaderboards", label: t("nav.leaderboards") },
+    { href: "/brawlers", label: t("nav.brawlers") },
+    { href: "/maps", label: t("nav.maps") },
+    { href: "/progression", label: t("nav.progression") },
     { href: "/assistant", label: t("nav.assistant") },
   ];
   const mobileLinks = [

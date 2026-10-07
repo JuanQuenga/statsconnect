@@ -17,12 +17,12 @@ export function FooterNotice() {
   const policy = t("footer.policy");
   const [legalBefore, legalAfter] = t("footer.legal", { policy }).split(policy);
   const exploreLinks = [
-    { to: "/players", label: t("nav.players") },
-    { to: "/clubs", label: t("nav.clubs") },
-    { to: "/brawlers", label: t("nav.brawlers") },
-    { to: "/maps", label: t("nav.maps") },
     { to: "/meta", label: t("nav.meta") },
     { to: "/leaderboards", label: t("nav.leaderboards") },
+    { to: "/brawlers", label: t("nav.brawlers") },
+    { to: "/maps", label: t("nav.maps") },
+    { to: "/progression", label: t("nav.progression") },
+    { to: "/assistant", label: t("nav.assistant") },
     { to: "/settings", label: t("nav.settings") },
   ] as const;
 
