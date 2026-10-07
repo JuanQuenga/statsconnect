@@ -1,25 +1,20 @@
-import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, LayoutGrid, Rows3, Search } from "lucide-react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "@/components/Link";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import type { Card } from "@/lib/clash/domain";
 import { META_MODES, modeLabel, type MetaMode } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import {
-  CARD_META_TABS,
-  cardMetaTabLabel,
   filterCardCatalog,
-  movementLabel,
-  rankCardMetaRows,
-  tierLabel,
-  type CardFilterElixir,
-  type CardFilters,
-  type CardFilterRarity,
-  type CardFilterVariant,
   normalizeFiltersForSegment,
+  type CardCatalogSegment,
+  type CardFilterElixir,
+  type CardFilterRarity,
+  type CardFilters,
+  type CardFilterVariant,
   type CardMetaRecord,
-  type CardMetaTab,
-  type CardCatalogSegment
+  type CardMetaTier
 } from "@/lib/cardMetaSelectors";
 import { useCardMeta } from "@/lib/useCardMeta";
 import type { useCardLibrary } from "@/lib/useCardCatalog";
@@ -27,353 +22,277 @@ import styles from "./CardMetaWorkspace.module.css";
 
 type CardLibrary = ReturnType<typeof useCardLibrary>;
 type WindowDays = 1 | 7;
-const CATALOG_SEGMENTS: readonly CardCatalogSegment[] = ["cards", "towerTroops"];
+type View = "grid" | "tiers";
+type SortKey = "usage" | "winRate" | "score" | "rising" | "elixir" | "name";
 
-const MODE_SET: ReadonlySet<string> = new Set(META_MODES);
-const TAB_SET: ReadonlySet<string> = new Set(CARD_META_TABS);
-const RARITY_VALUES: readonly CardFilterRarity[] = ["All", "Common", "Rare", "Epic", "Legendary", "Champion"];
-const ELIXIR_VALUES: readonly CardFilterElixir[] = ["All", "1", "2", "3", "4", "5", "6+"];
-const VARIANT_VALUES: readonly CardFilterVariant[] = ["All", "Evolutions", "Heroes", "Base"];
+const RARITIES: readonly CardFilterRarity[] = ["All", "Common", "Rare", "Epic", "Legendary", "Champion"];
+const ELIXIRS: readonly CardFilterElixir[] = ["All", "1", "2", "3", "4", "5", "6+"];
+const VARIANTS: readonly CardFilterVariant[] = ["All", "Evolutions", "Heroes", "Base"];
+const TIERS: readonly CardMetaTier[] = ["S", "A", "B", "C"];
+const SORTS: readonly { key: SortKey; label: string }[] = [
+  { key: "usage", label: "Most played" },
+  { key: "winRate", label: "Highest win rate" },
+  { key: "score", label: "Meta score" },
+  { key: "rising", label: "Trending up" },
+  { key: "elixir", label: "Elixir cost" },
+  { key: "name", label: "Name A–Z" }
+];
 
-function isMetaMode(value: string): value is MetaMode {
-  return MODE_SET.has(value);
+const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
+const count = (value: number) => Math.round(value).toLocaleString();
+
+/** Cards without a publishable stat for the chosen sort always sink to the end. */
+function sortValue(card: Card, meta: CardMetaRecord | undefined, sort: SortKey): number {
+  const observed = meta && meta.status.kind === "observed";
+  switch (sort) {
+    case "usage": return meta ? meta.usageRate : -1;
+    case "winRate": return observed ? meta.winRate : -1;
+    case "score": return meta?.score ?? -1;
+    case "rising": return meta?.movement?.usageDelta ?? -Infinity;
+    case "elixir": return -card.elixir;
+    case "name": return 0;
+  }
 }
 
-function isMetaTab(value: string): value is CardMetaTab {
-  return TAB_SET.has(value);
-}
-
-function isRarity(value: string): value is CardFilterRarity {
-  return RARITY_VALUES.some((item) => item === value);
-}
-
-function isElixir(value: string): value is CardFilterElixir {
-  return ELIXIR_VALUES.some((item) => item === value);
-}
-
-function isVariant(value: string): value is CardFilterVariant {
-  return VARIANT_VALUES.some((item) => item === value);
-}
-
-function percent(value: number) {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-function number(value: number) {
-  return Math.round(value).toLocaleString();
-}
-
-function rateClass(value: number) {
-  if (value >= 0.5) return styles.good;
-  return styles.bad;
-}
-
-function movementClass(row: CardMetaRecord) {
-  const delta = row.movement?.usageDelta;
-  if (delta === undefined || delta === 0) return styles.movementNone;
-  return delta > 0 ? styles.movementUp : styles.movementDown;
+function sortCards(cards: readonly Card[], metaById: ReadonlyMap<number, CardMetaRecord>, sort: SortKey) {
+  return [...cards].sort((left, right) => {
+    const difference = sortValue(right, metaById.get(right.id ?? -1), sort) - sortValue(left, metaById.get(left.id ?? -1), sort);
+    return difference || left.name.localeCompare(right.name);
+  });
 }
 
 export function CardMetaWorkspace({ library }: { library: CardLibrary }) {
   const [mode, setMode] = useState<MetaMode>("pathOfLegends");
   const [windowDays, setWindowDays] = useState<WindowDays>(7);
-  const [tab, setTab] = useState<CardMetaTab>("popularity");
   const [segment, setSegment] = useState<CardCatalogSegment>("cards");
-  const [filters, setFilters] = useState<CardFilters>({
-    query: "",
-    rarity: "All",
-    elixir: "All",
-    variant: "All"
-  });
+  const [view, setView] = useState<View>("grid");
+  const [sort, setSort] = useState<SortKey>("usage");
+  const [filters, setFilters] = useState<CardFilters>({ query: "", rarity: "All", elixir: "All", variant: "All" });
   const meta = useCardMeta(mode, windowDays);
 
-  const catalog = segment === "cards" ? library.cards : library.towerTroops;
-  const visibleCards = useMemo(() => filterCardCatalog(catalog, filters), [catalog, filters]);
-  const rankedRows = useMemo(
-    () => rankCardMetaRows([...meta.byId.values()], tab).slice(0, 12),
-    [meta.byId, tab]
-  );
-  const towerRows = useMemo(
-    () => [...meta.towerById.values()].sort((left, right) => right.uses - left.uses || left.cardId - right.cardId),
-    [meta.towerById]
-  );
-  const selectedMeta = segment === "cards" ? meta.byId : meta.towerById;
-  const report = meta.report;
-  const rankingTitle = segment === "cards" ? "Card rankings" : "Regular card rankings";
+  const isTowers = segment === "towerTroops";
+  const catalog = isTowers ? library.towerTroops : library.cards;
+  const metaById = isTowers ? meta.towerById : meta.byId;
+  const loading = isTowers ? meta.towerLoading : meta.loading;
+  const decksObserved = isTowers ? meta.towerDecksObserved : meta.decksObserved;
+  // Tower Troops have no tiers, so the tier list only exists for regular cards.
+  const activeView: View = isTowers ? "grid" : view;
 
-  const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
+  const visible = useMemo(
+    () => sortCards(filterCardCatalog(catalog, filters), metaById, sort),
+    [catalog, filters, metaById, sort]
+  );
+  const filtered = filters.query !== "" || filters.rarity !== "All" || filters.elixir !== "All" || filters.variant !== "All";
+
+  const update = <K extends keyof CardFilters>(key: K, value: CardFilters[K]) =>
     setFilters((current) => ({ ...current, [key]: value }));
-  };
 
   return (
     <div className={styles.page}>
-      <section className={styles.controls} aria-label="Meta workspace controls">
-        <div className={styles.controlRow}>
-          <span className={styles.controlLabel}>Mode</span>
-          <div className="cr-tabs" role="group" aria-label="Mode">
-            {META_MODES.map((item) => (
+      <section className={styles.toolbar} aria-label="Card filters">
+        <div className={styles.toolbarRow}>
+          <div className="cr-tabs" role="tablist" aria-label="Card type">
+            {(["cards", "towerTroops"] as const).map((item) => (
               <button
-                className={item === mode ? `${styles.pill} ${styles.active}` : styles.pill}
-                key={item}
-                type="button"
-                aria-pressed={item === mode}
-                onClick={() => setMode(item)}
-              >
-                {modeLabel(item)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className={styles.controlRow}>
-          <span className={styles.controlLabel}>Window</span>
-          <div className="cr-tabs" role="group" aria-label="Window">
-            {[1, 7].map((days) => (
-              <button
-                className={days === windowDays ? `${styles.pill} ${styles.active}` : styles.pill}
-                key={days}
-                type="button"
-                aria-pressed={days === windowDays}
-                onClick={() => setWindowDays(days === 1 ? 1 : 7)}
-              >
-                {days === 1 ? "24 hours" : "7 days"}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className={styles.controlRow}>
-          <span className={styles.controlLabel}>Browse</span>
-          <div className="cr-tabs" role="group" aria-label="Browse">
-            {CATALOG_SEGMENTS.map((item) => (
-              <button
-                className={item === segment ? `${styles.pill} ${styles.active}` : styles.pill}
-                key={item}
-                type="button"
-                aria-pressed={item === segment}
-                onClick={() => {
-                  setSegment(item);
-                  setFilters((current) => normalizeFiltersForSegment(item, current));
-                }}
-              >
-                {item === "cards" ? "Cards" : "Tower Troops"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className={styles.layout}>
-        <section className={styles.panel} aria-labelledby="ranking-title">
-          <div className={styles.panelHeader}>
-            <div>
-              <h2 className={styles.panelTitle} id="ranking-title">{rankingTitle}</h2>
-              <p className={styles.panelNote}>
-                {segment === "towerTroops" ? "Tower Troop browsing is selected below; this ranking remains regular cards because Tower Troops have a separate signal." : null}
-                {segment === "towerTroops" ? " " : null}
-                {modeLabel(mode)} · {windowDays === 1 ? "last 24 hours" : "last 7 days"}. Performance uses the report&apos;s confidence-adjusted score when enough games exist.
-              </p>
-            </div>
-            <Link className={styles.detailLink} href="/meta">Open full meta report →</Link>
-          </div>
-
-          <div className={`${styles.tabs} cr-tabs`} role="tablist" aria-label="Card ranking type">
-            {CARD_META_TABS.map((item) => (
-              <button
-                className={item === tab ? `${styles.tab} ${styles.active}` : styles.tab}
                 key={item}
                 type="button"
                 role="tab"
-                aria-selected={item === tab}
-                onClick={() => setTab(item)}
+                aria-selected={segment === item}
+                onClick={() => {
+                  setSegment(item);
+                  setFilters((current) => normalizeFiltersForSegment(item, item === "towerTroops" ? { ...current, elixir: "All" } : current));
+                }}
               >
-                {cardMetaTabLabel(item)}
+                {item === "cards" ? `Cards · ${library.cards.length}` : `Tower Troops · ${library.towerTroops.length}`}
               </button>
             ))}
           </div>
-
-          <Coverage report={report} decksObserved={meta.decksObserved} />
-
-          {meta.loading ? (
-            <p className={styles.empty} role="status">Loading observed card statistics…</p>
-          ) : rankedRows.length ? (
-            <div className={styles.rankings}>
-              {rankedRows.map((row, index) => (
-                <RankingRow key={row.cardId} row={row} card={library.byId.get(row.cardId)} rank={index + 1} />
+          <div className={styles.scope}>
+            <label className={styles.selectLabel}>
+              <span>Mode</span>
+              <select value={mode} onChange={(event) => setMode(event.currentTarget.value as MetaMode)}>
+                {META_MODES.map((item) => <option key={item} value={item}>{modeLabel(item)}</option>)}
+              </select>
+            </label>
+            <div className="cr-tabs" role="group" aria-label="Time window">
+              {([1, 7] as const).map((days) => (
+                <button key={days} type="button" aria-pressed={windowDays === days} onClick={() => setWindowDays(days)}>
+                  {days === 1 ? "24h" : "7 days"}
+                </button>
               ))}
             </div>
-          ) : (
-            <p className={styles.empty}>
-              {tab === "rising" || tab === "declining"
-                ? `No ${tab} cards clear the sample floor in this window.`
-                : "There is not enough observed data to publish this ranking yet."}
-            </p>
-          )}
-        </section>
+          </div>
+        </div>
 
-        <section className={styles.panel} aria-labelledby="catalog-title">
-          <div className={styles.catalogHeader}>
-            <div>
-              <h2 id="catalog-title">{segment === "cards" ? "Card catalog" : "Tower troop catalog"}</h2>
-              <span className={styles.catalogCount}>{visibleCards.length} of {catalog.length} shown</span>
-              {segment === "towerTroops" ? <p className={styles.catalogNote}>Tower Troop observations are reported separately from regular card rankings.</p> : null}
+        <div className={styles.toolbarRow}>
+          <label className={styles.search}>
+            <Search size={18} aria-hidden="true" />
+            <input
+              type="search"
+              value={filters.query}
+              onChange={(event) => update("query", event.currentTarget.value)}
+              placeholder={isTowers ? "Search Tower Troops" : "Search cards"}
+              aria-label={isTowers ? "Search Tower Troops" : "Search cards"}
+            />
+          </label>
+          <label className={styles.selectLabel}>
+            <span>Sort</span>
+            <select value={sort} onChange={(event) => setSort(event.currentTarget.value as SortKey)} disabled={activeView === "tiers"}>
+              {SORTS.filter((item) => !isTowers || (item.key !== "score" && item.key !== "rising")).map((item) => (
+                <option key={item.key} value={item.key}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          {!isTowers ? (
+            <div className="cr-tabs" role="group" aria-label="View">
+              <button type="button" aria-pressed={view === "grid"} aria-label="Grid" onClick={() => setView("grid")}><LayoutGrid size={16} aria-hidden="true" /><span className={styles.viewLabel}>Grid</span></button>
+              <button type="button" aria-pressed={view === "tiers"} aria-label="Tier list" onClick={() => setView("tiers")}><Rows3 size={16} aria-hidden="true" /><span className={styles.viewLabel}>Tier list</span></button>
             </div>
-          </div>
+          ) : null}
+        </div>
 
-          <div className={styles.controlRow}>
-            <label className={styles.search}>
-              <Search size={17} aria-hidden="true" />
-              <span className="sr-only">{segment === "towerTroops" ? "Search tower troops" : "Search cards"}</span>
-              <input
-                value={filters.query}
-                onChange={(event) => updateFilter("query", event.currentTarget.value)}
-                placeholder={segment === "towerTroops" ? "Search tower troops" : "Search cards"}
-                aria-label={segment === "towerTroops" ? "Search tower troops" : "Search cards"}
-              />
-            </label>
-            <label>
-              <span className="sr-only">Filter by rarity</span>
-              <select
-                className={styles.select}
-                value={filters.rarity}
-                onChange={(event) => {
-                  if (isRarity(event.currentTarget.value)) updateFilter("rarity", event.currentTarget.value);
-                }}
-              >
-                {RARITY_VALUES.map((item) => <option key={item} value={item}>{item} rarity</option>)}
-              </select>
-            </label>
-            <label>
-              <span className="sr-only">Filter by elixir</span>
-              <select
-                className={styles.select}
-                value={filters.elixir}
-                onChange={(event) => {
-                  if (isElixir(event.currentTarget.value)) updateFilter("elixir", event.currentTarget.value);
-                }}
-              >
-                {ELIXIR_VALUES.map((item) => <option key={item} value={item}>{item === "All" ? "All elixir" : `${item} elixir`}</option>)}
-              </select>
-            </label>
-            {segment === "cards" ? (
-              <label>
-                <span className="sr-only">Filter by variant</span>
-                <select
-                  className={styles.select}
-                  value={filters.variant}
-                  onChange={(event) => {
-                    if (isVariant(event.currentTarget.value)) updateFilter("variant", event.currentTarget.value);
-                  }}
-                >
-                  {VARIANT_VALUES.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </label>
-            ) : null}
-          </div>
+        <div className={styles.chipRows}>
+          <ChipGroup label="Rarity" values={RARITIES} value={filters.rarity} onChange={(value) => update("rarity", value)} render={(item) => (
+            item === "All" ? "All" : <><i className={styles.rarityDot} data-rarity={item} aria-hidden="true" />{item}</>
+          )} />
+          {!isTowers ? (
+            <>
+              <ChipGroup label="Elixir" values={ELIXIRS} value={filters.elixir} onChange={(value) => update("elixir", value)} render={(item) => (
+                item === "All" ? "All" : <><img src="/images/icons/elixir.png" alt="" width={14} height={14} />{item}</>
+              )} />
+              <ChipGroup label="Type" values={VARIANTS} value={filters.variant} onChange={(value) => update("variant", value)} render={(item) => item} />
+            </>
+          ) : null}
+        </div>
+      </section>
 
-          <div className={styles.cardGrid}>
-            {visibleCards.map((card) => (
-                <CardTile
-                  key={card.id ?? card.name}
-                  card={card}
-                  meta={selectedMeta.get(card.id ?? -1)}
-                  loading={segment === "cards" ? meta.loading : meta.towerLoading}
-                  countLabel={segment === "cards" ? "games" : "decks"}
-                />
+      <section className={`profile-section ${styles.results}`} aria-labelledby="card-results-title">
+        <div className="section-heading">
+          <h2 id="card-results-title">{modeLabel(mode)} · {windowDays === 1 ? "last 24 hours" : "last 7 days"}</h2>
+          <span>
+            {loading ? "Loading stats…" : `${count(decksObserved)} decks observed`}
+            {filtered ? ` · ${visible.length} of ${catalog.length} shown` : ""}
+          </span>
+        </div>
+
+        {visible.length === 0 ? (
+          <div className={styles.empty}>
+            <strong>No cards match</strong>
+            <p>Try a different name or clear a filter.</p>
+            <button type="button" className="primary-button cr-button-blue" onClick={() => setFilters({ query: "", rarity: "All", elixir: "All", variant: "All" })}>
+              Clear filters
+            </button>
+          </div>
+        ) : activeView === "tiers" ? (
+          <TierList cards={visible} metaById={metaById} loading={loading} />
+        ) : (
+          <ul className={styles.grid}>
+            {visible.map((card) => (
+              <li key={card.id ?? card.name}>
+                <CardTile card={card} meta={metaById.get(card.id ?? -1)} loading={loading} countLabel={isTowers ? "decks" : "games"} />
+              </li>
             ))}
-          </div>
-          {!visibleCards.length ? <p className={styles.empty}>No cards match those filters.</p> : null}
-        </section>
+          </ul>
+        )}
 
-        {segment === "cards" ? (
-          <TowerTroopPanel cards={library.towerTroops} rows={towerRows} loading={meta.towerLoading} decksObserved={meta.towerDecksObserved} />
-        ) : null}
+        <p className={styles.footnote}>
+          Usage is the share of observed decks that include a card; win rate is its wins over its games. Cards under{" "}
+          {meta.report ? `${count(meta.report.minTierUses)} uses` : "the sample floor"} are marked low sample and get no tier. Stats come from
+          crawled battle logs, not every Clash Royale match. <Link href="/meta">Full meta report</Link>
+        </p>
+      </section>
+    </div>
+  );
+}
 
-        <details className={`${styles.panel} ${styles.methodology}`}>
-          <summary>How to read this workspace</summary>
-          <p>
-            Usage is the share of observed decks containing a card. Win rate is wins divided by observed games for that card. Cards below the report sample floor remain visible in the catalog but are labeled insufficient and do not receive a tier. Rising and declining compare equal adjacent windows; no movement label means that comparison was not available. This is a crawled sample, not the full Clash Royale player base.
-          </p>
-          {report?.methodology ? <p>{report.methodology}</p> : null}
-          {report?.truncated ? <p>Some daily aggregates reached the read cap, so coverage may be incomplete for this window.</p> : null}
-        </details>
+function ChipGroup<T extends string>({ label, values, value, onChange, render }: {
+  label: string;
+  values: readonly T[];
+  value: T;
+  onChange: (value: T) => void;
+  render: (value: T) => ReactNode;
+}) {
+  return (
+    <div className={styles.chipGroup} role="group" aria-label={label}>
+      <span className={styles.chipLabel}>{label}</span>
+      <div className={styles.chips}>
+        {values.map((item) => (
+          <button key={item} type="button" className={styles.chip} aria-pressed={value === item} onClick={() => onChange(item)}>
+            {render(item)}
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-function Coverage({ report, decksObserved }: { report: ReturnType<typeof useCardMeta>["report"]; decksObserved: number }) {
+function CardTile({ card, meta, loading, countLabel }: { card: Card; meta: CardMetaRecord | undefined; loading: boolean; countLabel: "games" | "decks" }) {
+  const delta = meta?.movement?.usageDelta;
   return (
-    <div className={styles.coverage} aria-label="Observed sample summary">
-      <div className={styles.coverageCard}><span>Decks observed</span><strong>{number(decksObserved)}</strong></div>
-      <div className={styles.coverageCard}><span>Recent report</span><strong>{report ? number(report.recentDecks) : "—"}</strong></div>
-      <div className={styles.coverageCard}><span>Tier floor</span><strong>{report ? `${number(report.minTierUses)} uses` : "—"}</strong></div>
-    </div>
-  );
-}
-
-function RankingRow({ row, card, rank, countLabel = "Games" }: { row: CardMetaRecord; card: Card | undefined; rank: number; countLabel?: "Games" | "Decks" }) {
-  if (!card) {
-    return (
-      <div className={styles.rankingRow}>
-        <span className={styles.rank}>{rank}</span>
-        <span className={styles.entityText}><strong className={styles.entityName}>Card {row.cardId}</strong><small className={styles.entitySub}>Not in live catalog</small></span>
-        <span className={styles.metric}><span className={styles.metricLabel}>{countLabel}</span><strong className={styles.metricValue}>{number(row.uses)}</strong></span>
-      </div>
-    );
-  }
-  return (
-    <div className={styles.rankingRow}>
-      <span className={styles.rank}>{rank}</span>
-      <Link className={styles.entity} href={`/cards/${cardSlug(card.name)}`}>
-        <span className={styles.thumb}><GameCardArt card={card} size="library" portrait="highest" /></span>
-        <span className={styles.entityText}><strong className={styles.entityName}>{card.name}</strong><small className={styles.entitySub}>{card.rarity} · {card.elixir} elixir · {tierLabel(row)}</small></span>
-      </Link>
-      <span className={styles.metric}><span className={styles.metricLabel}>Usage</span><strong className={styles.metricValue}>{percent(row.usageRate)}</strong></span>
-      <span className={styles.metric}><span className={styles.metricLabel}>Win rate</span><strong className={`${styles.metricValue} ${rateClass(row.winRate)}`}>{percent(row.winRate)}</strong></span>
-      <span className={styles.metric}><span className={styles.metricLabel}>{countLabel}</span><strong className={styles.metricValue}>{number(row.uses)}</strong></span>
-      <span className={styles.metric}><span className={styles.metricLabel}>Score</span><strong className={styles.metricValue}>{row.score === null ? "—" : row.score.toFixed(3)}</strong></span>
-      <span className={`${styles.movement} ${movementClass(row)}`} title={row.movement ? `Win rate change ${percent(Math.abs(row.movement.winRateDelta))}` : undefined}>{movementLabel(row)}</span>
-      <Link className={styles.detailLink} href={`/cards/${cardSlug(card.name)}`}>Details</Link>
-    </div>
-  );
-}
-
-function CardTile({ card, meta, loading, countLabel = "games" }: { card: Card; meta: CardMetaRecord | undefined; loading: boolean; countLabel?: "games" | "decks" }) {
-  return (
-    <Link className={styles.cardTile} href={`/cards/${cardSlug(card.name)}`}>
-      <span className={styles.cardTileArt}><GameCardArt card={card} size="library" portrait="highest" /></span>
-      <strong className={styles.cardTileName}>{card.name}</strong>
-      <span className={styles.entitySub}>{card.rarity} · {card.elixir} elixir</span>
-      {meta ? <CardTileStats meta={meta} countLabel={countLabel} /> : <span className={`${styles.cardTileMeta} ${styles.status}`}>{loading ? "Loading observed stats…" : "Not observed in this sample"}</span>}
+    <Link className={styles.tile} href={`/cards/${cardSlug(card.name)}`} data-rarity={card.rarity}>
+      {meta?.tier ? <span className={styles.tierBadge} data-tier={meta.tier} aria-label={`${meta.tier} tier`}>{meta.tier}</span> : null}
+      <span className={styles.tileArt}><GameCardArt card={card} size="library" portrait="highest" showLevel={false} /></span>
+      <strong className={styles.tileName}>{card.name}</strong>
+      {meta ? (
+        meta.status.kind === "insufficient" ? (
+          <span className={styles.lowSample}>Low sample · {count(meta.uses)} {countLabel}</span>
+        ) : (
+          <span className={styles.stats}>
+            <span className={styles.usage}>
+              <span className={styles.bar} aria-hidden="true"><i style={{ "--fill": `${Math.min(100, meta.usageRate * 300)}%` } as CSSProperties} /></span>
+              <span><b>{percent(meta.usageRate)}</b> used</span>
+            </span>
+            <span className={styles.win}>
+              <b data-good={meta.winRate >= 0.5}>{percent(meta.winRate)}</b> win
+              {delta ? (
+                <em data-up={delta > 0} title={`Usage ${delta > 0 ? "up" : "down"} ${Math.abs(delta * 100).toFixed(1)} points`}>
+                  {delta > 0 ? <ArrowUp size={12} aria-hidden="true" /> : <ArrowDown size={12} aria-hidden="true" />}
+                  {Math.abs(delta * 100).toFixed(1)}
+                </em>
+              ) : null}
+            </span>
+          </span>
+        )
+      ) : (
+        <span className={styles.lowSample}>{loading ? "Loading…" : "Not seen yet"}</span>
+      )}
     </Link>
   );
 }
 
-function CardTileStats({ meta, countLabel }: { meta: CardMetaRecord; countLabel: "games" | "decks" }) {
-  if (meta.status.kind === "insufficient") {
-    return <span className={`${styles.cardTileMeta} ${styles.status}`}>Insufficient sample · {number(meta.uses)} / {number(meta.status.minimumUses)} uses</span>;
-  }
-  return (
-    <span className={styles.cardTileMeta}>
-      <span><strong>{percent(meta.usageRate)}</strong> usage · <strong className={rateClass(meta.winRate)}>{percent(meta.winRate)}</strong> win</span>
-      <span>{number(meta.uses)} {countLabel} · {meta.tier ? `${meta.tier} tier` : "Tier pending"} · {movementLabel(meta)}</span>
-    </span>
-  );
-}
+function TierList({ cards, metaById, loading }: { cards: readonly Card[]; metaById: ReadonlyMap<number, CardMetaRecord>; loading: boolean }) {
+  if (loading) return <div className={styles.empty}><p>Loading tiers…</p></div>;
+  const rows = [...TIERS.map((tier) => ({ tier: tier as CardMetaTier | null, label: tier })), { tier: null, label: "—" }];
+  const byTier = (tier: CardMetaTier | null) => sortCards(cards, metaById, "score")
+    .filter((card) => (metaById.get(card.id ?? -1)?.tier ?? null) === tier);
 
-function TowerTroopPanel({ cards, rows, loading, decksObserved }: { cards: Card[]; rows: CardMetaRecord[]; loading: boolean; decksObserved: number }) {
   return (
-    <section className={`${styles.panel} ${styles.towerPanel}`} aria-labelledby="tower-troop-title">
-      <div className={styles.panelHeader}>
-        <div>
-          <h2 className={styles.panelTitle} id="tower-troop-title">Tower troop signal</h2>
-          <p className={styles.panelNote}>Tracked separately because each deck brings one Tower Troop, not eight regular cards. {loading ? "Loading the denominator…" : `${number(decksObserved)} decks observed in this window.`}</p>
-        </div>
-      </div>
-      {loading ? <p className={styles.empty}>Loading Tower Troop observations…</p> : rows.length ? (
-        <div className={styles.rankings}>
-          {rows.slice(0, 6).map((row, index) => <RankingRow key={row.cardId} row={row} card={cards.find((item) => item.id === row.cardId)} rank={index + 1} countLabel="Decks" />)}
-        </div>
-      ) : <p className={styles.empty}>Tower Troop tracking has no publishable observations in this window yet.</p>}
-    </section>
+    <div className={styles.tierList}>
+      {rows.map(({ tier, label }) => {
+        const members = byTier(tier);
+        if (!members.length) return null;
+        return (
+          <div key={label} className={styles.tierRow}>
+            <span className={styles.tierLetter} data-tier={tier ?? "none"}>
+              {label}
+              {tier === null ? <small>Low sample</small> : null}
+            </span>
+            <ul className={styles.tierCards}>
+              {members.map((card) => {
+                const meta = metaById.get(card.id ?? -1);
+                return (
+                  <li key={card.id ?? card.name}>
+                    <Link href={`/cards/${cardSlug(card.name)}`} title={meta ? `${card.name} · ${percent(meta.usageRate)} used · ${percent(meta.winRate)} win` : card.name}>
+                      <GameCardArt card={card} size="mini" portrait="highest" showLevel={false} />
+                      <span>{card.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
   );
 }

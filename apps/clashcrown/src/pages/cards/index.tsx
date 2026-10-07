@@ -26,25 +26,25 @@ function CardLibrary() {
 
   return (
     <CardsPageFrame
-      summary={`${library.cards.length} cards · ${library.towerTroops.length} Tower Troops · observed usage, performance, and movement`}
+      summary="Every card, ranked by how often it's played and how often it wins. Tap a card for its matchups, trends, and best decks."
     >
       <CardMetaWorkspace library={library} />
     </CardsPageFrame>
   );
 }
 
-function CardsPageFrame({ children, summary = "Observed usage, performance, and movement from crawled battle logs" }: { children: ReactNode; summary?: string }) {
+function CardsPageFrame({ children, summary = "Every card, ranked by how often it's played and how often it wins." }: { children: ReactNode; summary?: string }) {
   return (
     <Layout>
       <Head>
-        <title>Card Meta Workspace | StatsConnect · Clash Royale statistics</title>
+        <title>Card Stats & Tier List | StatsConnect · Clash Royale statistics</title>
         <meta
           name="description"
           content="Explore observed Clash Royale card usage, win rate, tiers, and movement with honest sample coverage."
         />
         <link rel="canonical" href="/cards" />
       </Head>
-      <ArenaRouteHero title="Card meta workspace" summary={summary} />
+      <ArenaRouteHero title="Cards" summary={summary} />
       {children}
     </Layout>
   );
