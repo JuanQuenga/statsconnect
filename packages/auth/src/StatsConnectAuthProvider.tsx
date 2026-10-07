@@ -5,7 +5,7 @@ import {
   useSignIn,
 } from "@clerk/clerk-react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
+import { ConvexProvider, ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import {
   createContext,
@@ -181,7 +181,9 @@ export function StatsConnectAuthProvider({
   const convex = useConvexReactClient(configuredUrl ?? "");
 
   if (!configuredUrl || !publishableKey || !convex) {
-    return <GuestProfiles onTokenProvider={onConvexTokenProvider}>{children}</GuestProfiles>;
+    const guest = <GuestProfiles onTokenProvider={onConvexTokenProvider}>{children}</GuestProfiles>;
+    // Without Clerk, public Convex queries still need a client in context.
+    return convex ? <ConvexProvider client={convex}>{guest}</ConvexProvider> : guest;
   }
 
   return (
