@@ -1,7 +1,9 @@
 import Head from "@/components/Head";
 import Link from "@/components/Link";
 import { useRouter } from "@/lib/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import Image from "@/components/Image";
+import styles from "./upgrades.module.css";
 import { Layout } from "@/components/portfolio/Layout";
 import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
@@ -15,9 +17,15 @@ import { player as mockPlayer } from "@/lib/mock-data";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 
 const RARITIES: readonly UpgradeRarity[] = ["Common", "Rare", "Epic", "Legendary", "Champion"];
-const SORTS = ["Progress", "Level", "Name", "Rarity"] as const;
-type Sort = (typeof SORTS)[number];
+const SORTS = [
+  { key: "Closest", label: "Closest to upgrade" },
+  { key: "Level", label: "Level" },
+  { key: "Rarity", label: "Rarity" },
+  { key: "Name", label: "Name A–Z" }
+] as const;
+type Sort = (typeof SORTS)[number]["key"];
 type RarityFilter = "All" | UpgradeRarity;
+const READY_PREVIEW = 16;
 
 export default function UpgradesPage() {
   const router = useRouter();
@@ -41,39 +49,47 @@ function LiveUpgrades({ tag }: { tag: string }) {
 function UpgradePlanner({ player }: { player: Player }) {
   const personalization = usePersonalization();
   const [rarity, setRarity] = useState<RarityFilter>("All");
-  const [sort, setSort] = useState<Sort>("Progress");
-  const [onlyReady, setOnlyReady] = useState(false);
+  const [sort, setSort] = useState<Sort>("Closest");
+  const [hideMaxed, setHideMaxed] = useState(true);
+  const [showAllReady, setShowAllReady] = useState(false);
   const plans = useMemo(() => buildUpgradePlans(player.cards), [player.cards]);
 
   useEffect(() => {
     if (player.tag) void personalization.remember({ kind: "players", tag: player.tag, name: player.name, clan: player.clan }).catch(() => undefined);
   }, [player.tag, player.name, player.clan]);
 
-  const filteredPlans = useMemo(() => {
-    const filtered = plans.filter((plan) => (rarity === "All" || plan.rarity === rarity) && (!onlyReady || plan.ready));
-    return [...filtered].sort((a, b) => {
-      if (sort === "Progress") return b.progress - a.progress || a.card.name.localeCompare(b.card.name);
-      if (sort === "Level") return (b.level ?? -1) - (a.level ?? -1) || a.card.name.localeCompare(b.card.name);
-      if (sort === "Name") return a.card.name.localeCompare(b.card.name);
-      return RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity) || a.card.name.localeCompare(b.card.name);
-    });
-  }, [plans, onlyReady, rarity, sort]);
-
-  const readyPlans = plans.filter((plan) => plan.ready);
-  const validPlans = plans.filter((plan) => plan.level !== undefined);
-  const overallProgress = validPlans.length ? validPlans.reduce((total, plan) => total + plan.progress, 0) / validPlans.length : 0;
-  const totals = useMemo(
-    () => plans.reduce(
-      (total, plan) => ({
-        cards: total.cards + plan.cardsStillNeeded,
-        gold: total.gold + plan.goldStillNeeded
-      }),
-      { cards: 0, gold: 0 }
-    ),
+  const known = plans.filter((plan) => plan.level !== undefined);
+  const maxed = known.filter((plan) => plan.level === MAX_CARD_LEVEL);
+  const ready = useMemo(
+    () => plans.filter((plan) => plan.ready).sort((a, b) => (a.next?.gold ?? 0) - (b.next?.gold ?? 0) || a.card.name.localeCompare(b.card.name)),
     [plans]
   );
-  const maxedCount = validPlans.filter((plan) => plan.level === MAX_CARD_LEVEL).length;
-  const grouped = useMemo(() => RARITIES.map((item) => ({ rarity: item, plans: filteredPlans.filter((plan) => plan.rarity === item) })).filter((group) => group.plans.length), [filteredPlans]);
+  // Not ready yet, not maxed: ordered by how close the next level is.
+  const nextUp = useMemo(
+    () => plans
+      .filter((plan) => !plan.ready && plan.next && plan.level !== undefined && plan.level < MAX_CARD_LEVEL)
+      .sort((a, b) => copiesShare(b) - copiesShare(a) || a.card.name.localeCompare(b.card.name))
+      .slice(0, 8),
+    [plans]
+  );
+  const totals = useMemo(
+    () => plans.reduce((total, plan) => ({ cards: total.cards + plan.cardsStillNeeded, gold: total.gold + plan.goldStillNeeded }), { cards: 0, gold: 0 }),
+    [plans]
+  );
+  const readyGold = ready.reduce((total, plan) => total + (plan.next?.gold ?? 0), 0);
+
+  const collection = useMemo(() => {
+    const filtered = plans.filter((plan) => (rarity === "All" || plan.rarity === rarity) && (!hideMaxed || plan.level !== MAX_CARD_LEVEL));
+    return [...filtered].sort((a, b) => {
+      if (sort === "Closest") return Number(b.ready) - Number(a.ready) || copiesShare(b) - copiesShare(a) || a.card.name.localeCompare(b.card.name);
+      if (sort === "Level") return (b.level ?? -1) - (a.level ?? -1) || a.card.name.localeCompare(b.card.name);
+      if (sort === "Rarity") return RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity) || a.card.name.localeCompare(b.card.name);
+      return a.card.name.localeCompare(b.card.name);
+    });
+  }, [plans, rarity, sort, hideMaxed]);
+
+  const profileTag = player.tag.replace(/^#/, "");
+  const maxedShare = known.length ? maxed.length / known.length : 0;
 
   return (
     <Layout>
@@ -81,129 +97,171 @@ function UpgradePlanner({ player }: { player: Player }) {
         <title>{`${player.name} upgrades | StatsConnect · Clash Royale statistics`}</title>
         <meta name="description" content={`Plan ${player.name}'s Clash Royale card upgrades and track the path to a maxed collection.`} />
       </Head>
-      <div className="profile-page upgrade-page">
+      <div className={`profile-page ${styles.page}`}>
         <ArenaRouteHero
-          title={<>{player.name}&rsquo;s Upgrade Planner</>}
-          summary={`See what can be upgraded today and how many card copies and gold remain before the collection reaches level ${MAX_CARD_LEVEL}.`}
+          title="Upgrade planner"
+          summary={<>What <Link href={`/players/${profileTag}`} className={styles.heroLink}>{player.name}</Link> can upgrade today, what&rsquo;s close, and the road to a maxed collection.</>}
         />
 
-        {!plans.length ? <EmptyUpgradeState /> : null}
-        {plans.length ? (
-          <>
-            <SummaryCards totals={totals} readyCount={readyPlans.length} cardCount={plans.length} maxedCount={maxedCount} />
-            <OverallProgress value={overallProgress} knownCards={validPlans.length} totalCards={plans.length} />
-            {readyPlans.length ? <ReadyUpgrades plans={readyPlans} /> : <EmptySection title="Ready to upgrade now" copy="No card has enough copies for its next upgrade yet." />}
-            <section className="profile-section upgrade-collection-section">
-              <div className="section-heading upgrade-heading"><span className="filter-button static">{filteredPlans.length} cards</span><h2>Collection overview</h2><span /></div>
-              <div className="upgrade-toolbar">
-                <label>
-                  <span>Rarity</span>
-                  <select value={rarity} onChange={(event) => setRarity(event.target.value as RarityFilter)}>
-                    <option value="All">All rarities</option>
-                    {RARITIES.map((item) => <option key={item} value={item}>{item}</option>)}
-                  </select>
-                </label>
-                <label>
-                  <span>Sort by</span>
-                  <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
-                    {SORTS.map((item) => <option key={item}>{item}</option>)}
-                  </select>
-                </label>
-                <button type="button" className={onlyReady ? "upgrade-toggle upgrade-toggle-on" : "upgrade-toggle"} aria-pressed={onlyReady} onClick={() => setOnlyReady((value) => !value)}>
-                  {onlyReady ? "Showing ready only" : "Show ready only"}
-                </button>
+        {!plans.length ? (
+          <section className="profile-section empty-panel">
+            <h2>No card collection available</h2>
+            <p>The API did not return card levels for this player, so there is nothing to plan yet.</p>
+          </section>
+        ) : (
+          <div className={styles.body}>
+            <section className={styles.road} aria-label="Road to max">
+              <div className={styles.ring} style={{ "--share": `${Math.round(maxedShare * 360)}deg` } as CSSProperties}>
+                <div>
+                  <strong>{maxed.length}</strong>
+                  <span>of {known.length} at level {MAX_CARD_LEVEL}</span>
+                </div>
               </div>
-              {!filteredPlans.length ? <p className="empty-results">No cards match these filters.</p> : null}
-              {grouped.map((group) => <RarityGroup key={group.rarity} rarity={group.rarity} plans={group.plans} />)}
-              {validPlans.length !== plans.length ? <p className="upgrade-note">{plans.length - validPlans.length} card{plans.length - validPlans.length === 1 ? " has" : "s have"} incomplete level data, so it is excluded from the totals.</p> : null}
+              <dl className={styles.totals}>
+                <div>
+                  <dt><Image src="/images/icons/gold.png" alt="" width={26} height={26} />Gold to max everything</dt>
+                  <dd>{totals.gold.toLocaleString()}</dd>
+                </div>
+                <div>
+                  <dt><Image src="/images/icons/cardsq.png" alt="" width={26} height={26} />Card copies still needed</dt>
+                  <dd>{totals.cards.toLocaleString()}</dd>
+                </div>
+                <div>
+                  <dt><Image src="/images/icons/checkmark.png" alt="" width={26} height={26} />Ready to upgrade now</dt>
+                  <dd>{ready.length}<small>{ready.length ? `${readyGold.toLocaleString()} gold for all` : "keep collecting"}</small></dd>
+                </div>
+              </dl>
+              <ul className={styles.rarityBars}>
+                {RARITIES.map((item) => {
+                  const group = known.filter((plan) => plan.rarity === item);
+                  if (!group.length) return null;
+                  const done = group.filter((plan) => plan.level === MAX_CARD_LEVEL).length;
+                  return (
+                    <li key={item} data-rarity={item}>
+                      <span>{item}</span>
+                      <i aria-hidden="true"><b style={{ width: `${(done / group.length) * 100}%` }} /></i>
+                      <small>{done}/{group.length}</small>
+                    </li>
+                  );
+                })}
+              </ul>
             </section>
-          </>
-        ) : null}
+
+            {ready.length ? (
+              <section className="profile-section">
+                <div className="section-heading">
+                  <h2>Ready to upgrade</h2>
+                  <span>Cheapest first · {readyGold.toLocaleString()} gold total</span>
+                </div>
+                <ul className={styles.tiles}>
+                  {(showAllReady ? ready : ready.slice(0, READY_PREVIEW)).map((plan) => <UpgradeTile key={plan.card.id ?? plan.card.name} plan={plan} />)}
+                </ul>
+                {ready.length > READY_PREVIEW ? (
+                  <button type="button" className={`primary-button cr-button-blue ${styles.more}`} onClick={() => setShowAllReady((value) => !value)}>
+                    {showAllReady ? "Show fewer" : `Show all ${ready.length}`}
+                  </button>
+                ) : null}
+              </section>
+            ) : null}
+
+            {nextUp.length ? (
+              <section className="profile-section">
+                <div className="section-heading">
+                  <h2>Almost there</h2>
+                  <span>Closest to their next level</span>
+                </div>
+                <ul className={styles.tiles}>
+                  {nextUp.map((plan) => <UpgradeTile key={plan.card.id ?? plan.card.name} plan={plan} />)}
+                </ul>
+              </section>
+            ) : null}
+
+            {!ready.length && !nextUp.length && known.length === maxed.length ? (
+              <section className="profile-section empty-panel">
+                <h2>Every card is maxed</h2>
+                <p>{player.name} has every card at level {MAX_CARD_LEVEL}. Nothing left to upgrade.</p>
+              </section>
+            ) : null}
+
+            <section className="profile-section">
+              <div className="section-heading">
+                <h2>Collection</h2>
+                <span>{collection.length} of {plans.length} cards</span>
+              </div>
+              <div className={styles.toolbar}>
+                <div className={styles.chips} role="group" aria-label="Rarity">
+                  {(["All", ...RARITIES] as const).map((item) => (
+                    <button key={item} type="button" className={styles.chip} aria-pressed={rarity === item} onClick={() => setRarity(item)}>
+                      {item === "All" ? "All" : <><i className={styles.rarityDot} data-rarity={item} aria-hidden="true" />{item}</>}
+                    </button>
+                  ))}
+                </div>
+                <div className={styles.toolbarEnd}>
+                  <label className={styles.toggle}>
+                    <input type="checkbox" checked={hideMaxed} onChange={(event) => setHideMaxed(event.currentTarget.checked)} />
+                    Hide maxed ({maxed.length})
+                  </label>
+                  <label className={styles.sort}>
+                    <span>Sort</span>
+                    <select value={sort} onChange={(event) => setSort(event.currentTarget.value as Sort)}>
+                      {SORTS.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
+              {collection.length ? (
+                <ul className={`${styles.tiles} ${styles.compact}`}>
+                  {collection.map((plan) => <UpgradeTile key={plan.card.id ?? plan.card.name} plan={plan} compact />)}
+                </ul>
+              ) : (
+                <p className={styles.note}>{hideMaxed && maxed.length ? "Every card here is maxed. Turn off “Hide maxed” to see them." : "No cards match this rarity."}</p>
+              )}
+              {known.length !== plans.length ? (
+                <p className={styles.note}>{plans.length - known.length} card{plans.length - known.length === 1 ? " has" : "s have"} no level data and {plans.length - known.length === 1 ? "is" : "are"} left out of the totals.</p>
+              ) : null}
+            </section>
+          </div>
+        )}
       </div>
     </Layout>
   );
 }
 
-function SummaryCards({ totals, readyCount, cardCount, maxedCount }: { totals: { cards: number; gold: number }; readyCount: number; cardCount: number; maxedCount: number }) {
-  const items = [
-    { label: "Gold still needed", value: totals.gold, note: `to reach level ${MAX_CARD_LEVEL}` },
-    { label: "Cards still needed", value: totals.cards, note: "copies or Wild Cards" },
-    { label: "Max-level cards", value: maxedCount, note: `at level ${MAX_CARD_LEVEL}` },
-    { label: "Ready now", value: readyCount, note: `of ${cardCount} cards` }
-  ];
-  return <section className="upgrade-summary-grid" aria-label="Upgrade totals">{items.map((item) => <div className="upgrade-summary-card" key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong><small>{item.note}</small></div>)}</section>;
+/** How much of the next level's copies the player already holds, 0–1. */
+function copiesShare(plan: CardUpgradePlan) {
+  if (!plan.next || plan.next.cards <= 0) return 0;
+  return Math.min(1, plan.count / plan.next.cards);
 }
 
-function OverallProgress({ value, knownCards, totalCards }: { value: number; knownCards: number; totalCards: number }) {
-  return (
-    <section className="overall-progress">
-      <div className="overall-progress-heading"><h2>Overall collection progress</h2><strong>{Math.round(value * 100)}%</strong></div>
-      <ProgressBar value={value} label="Overall collection progress" />
-      <p>{knownCards} of {totalCards} cards have level data. Progress averages each card&rsquo;s path from its starting rarity level to max level {MAX_CARD_LEVEL}.</p>
-    </section>
-  );
-}
-
-function ReadyUpgrades({ plans }: { plans: CardUpgradePlan[] }) {
-  return (
-    <section className="profile-section ready-section">
-      <div className="section-heading upgrade-heading"><span className="filter-button ready-filter">{plans.length} ready</span><h2>Ready to upgrade now</h2><span /></div>
-      <div className="ready-grid">{plans.map((plan) => <ReadyCard key={plan.card.id ?? plan.card.name} plan={plan} />)}</div>
-    </section>
-  );
-}
-
-function ReadyCard({ plan }: { plan: CardUpgradePlan }) {
-  const next = plan.next;
-  if (!next) return null;
-  return (
-    <Link href={`/cards/${cardSlug(plan.card.name)}`} className="ready-card">
-      <GameCardArt card={plan.card} size="mini" />
-      <span className="ready-card-copy"><strong>{plan.card.name}</strong><small>{plan.rarity} · Level {plan.level} → {next.toLevel}</small></span>
-      <span className="ready-cost"><b>{next.gold.toLocaleString()}</b><small>gold</small></span>
-    </Link>
-  );
-}
-
-function RarityGroup({ rarity, plans }: { rarity: UpgradeRarity; plans: CardUpgradePlan[] }) {
-  const known = plans.filter((plan) => plan.level !== undefined);
-  const progress = known.length ? known.reduce((total, plan) => total + plan.progress, 0) / known.length : 0;
-  const remaining = plans.reduce((total, plan) => total + plan.cardsStillNeeded, 0);
-  return (
-    <section className="rarity-group">
-      <div className="rarity-group-heading"><div><h3>{rarity}</h3><span>{plans.length} cards · {remaining.toLocaleString()} copies remaining</span></div><strong>{Math.round(progress * 100)}% maxed</strong></div>
-      <ProgressBar value={progress} label={`${rarity} collection progress`} />
-      <div className="upgrade-card-list">{plans.map((plan) => <UpgradeCard key={plan.card.id ?? plan.card.name} plan={plan} />)}</div>
-    </section>
-  );
-}
-
-function UpgradeCard({ plan }: { plan: CardUpgradePlan }) {
+function UpgradeTile({ plan, compact = false }: { plan: CardUpgradePlan; compact?: boolean }) {
   const { card, next } = plan;
-  const progressLabel = plan.level === undefined
-    ? "Level data unavailable"
-    : plan.level >= MAX_CARD_LEVEL
-      ? `Maxed at level ${MAX_CARD_LEVEL}`
-      : `${plan.count.toLocaleString()} / ${(next?.cards ?? 0).toLocaleString()} cards`;
+  const isMaxed = plan.level === MAX_CARD_LEVEL;
+  const share = copiesShare(plan);
   return (
-    <Link href={`/cards/${cardSlug(card.name)}`} className="upgrade-card-row">
-      <GameCardArt card={card} size="mini" />
-      <span className="upgrade-card-name"><strong>{card.name}</strong><small>{card.rarity}{card.starLevel ? ` · ${card.starLevel}★` : ""}</small></span>
-      <span className="upgrade-level">{plan.level === undefined ? "—" : `Lv ${plan.level}/${MAX_CARD_LEVEL}`}</span>
-      <span className="upgrade-progress"><span className="upgrade-progress-label"><small>{progressLabel}</small><small>{Math.round(plan.progress * 100)}%</small></span><ProgressBar value={plan.progress} label={`${card.name} progress`} /></span>
-      <span className={plan.ready ? "upgrade-status upgrade-status-ready" : "upgrade-status"}>{plan.ready ? "Ready" : plan.level === undefined ? "Missing" : plan.level >= MAX_CARD_LEVEL ? "Maxed" : `→ ${next?.toLevel ?? "—"}`}</span>
-    </Link>
+    <li>
+      <Link href={`/cards/${cardSlug(card.name)}`} className={styles.tile} data-state={plan.ready ? "ready" : isMaxed ? "maxed" : "progress"}>
+        <span className={styles.art}><GameCardArt card={card} size="library" /></span>
+        {compact ? null : <strong className={styles.name}>{card.name}</strong>}
+        {plan.level === undefined ? (
+          <span className={styles.meta}>No level data</span>
+        ) : isMaxed ? (
+          <span className={styles.maxBadge}>Max</span>
+        ) : next ? (
+          <>
+            <span className={styles.copies} aria-label={`${plan.count} of ${next.cards} copies`}>
+              <i style={{ width: `${share * 100}%` }} />
+              <b>{plan.count.toLocaleString()}/{next.cards.toLocaleString()}</b>
+            </span>
+            {plan.ready && !compact ? (
+              <span className={styles.upgradeButton}>
+                {next.gold > 0 ? <><Image src="/images/icons/gold.png" alt="" width={16} height={16} />{next.gold.toLocaleString()}</> : "Upgrade"}
+              </span>
+            ) : compact ? null : (
+              <span className={styles.meta}>Level {plan.level} → {next.toLevel}</span>
+            )}
+          </>
+        ) : null}
+      </Link>
+    </li>
   );
-}
-
-function ProgressBar({ value, label }: { value: number; label: string }) {
-  return <span className="upgrade-progress-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)}><i style={{ width: `${Math.round(value * 100)}%` }} /></span>;
-}
-
-function EmptyUpgradeState() {
-  return <section className="profile-section empty-panel"><h2>No card collection available</h2><p>The API did not return card levels for this player, so there is nothing to plan yet.</p></section>;
-}
-
-function EmptySection({ title, copy }: { title: string; copy: string }) {
-  return <section className="profile-section empty-panel upgrade-empty-section"><h2>{title}</h2><p>{copy}</p></section>;
 }
