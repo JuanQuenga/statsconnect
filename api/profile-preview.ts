@@ -4,10 +4,15 @@ import { applicationShell, profileMetadata } from "../server/profile-metadata.ts
 /** Keep the SPA shell, but send profile metadata before any JavaScript runs. */
 export async function GET(request: Request): Promise<Response> {
   const identity = profileIdentity(new URL(request.url));
-  if (!identity) return new Response("Invalid player tag", { status: 400, headers: { "Cache-Control": "no-store" } });
   let shell: string;
   try { shell = await applicationShell(); } catch {
     return new Response("Player page is temporarily unavailable", { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+  // Not a player tag (e.g. /players/compare, or a mistyped tag): this rewrite
+  // only exists to add link-preview metadata, so hand the app its plain shell
+  // and let the client route render the page or its own invalid-tag message.
+  if (!identity) {
+    return new Response(shell, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
   }
   const robots = { "X-Robots-Tag": "noindex, follow" };
   try {

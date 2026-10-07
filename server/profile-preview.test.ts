@@ -81,6 +81,19 @@ test("actual crawler handlers preserve the shell and emit a PNG without browser 
   assert.equal(png.readUInt32BE(20), 1000);
 });
 
+test("non-tag player paths such as /players/compare get the app shell, not an error", async (context) => {
+  const fetchMock = context.mock.method(globalThis, "fetch", async () => new Response("unexpected", { status: 500 }));
+  for (const tag of ["compare", "not-a-tag", ""]) {
+    const response = await previewHandler(new Request(`https://statsconnect.app/api/profile-preview?game=cr&tag=${tag}`));
+    assert.equal(response.status, 200, tag);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    const html = await response.text();
+    const originalShell = await readFile("dist/index.html", "utf8");
+    assert.equal(html, originalShell);
+  }
+  assert.equal(fetchMock.mock.callCount(), 0);
+});
+
 test("upstream failure retains usable HTML and never caches an error or fabricated player image", async (context) => {
   const previous = process.env.VITE_CONVEX_URL;
   process.env.VITE_CONVEX_URL = "https://example.convex.cloud";
