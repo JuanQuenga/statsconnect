@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { buildReferenceBridge } from "./build-reference-asset-bridge.mjs";
-import { crawlMvInventory } from "./import-mv-brawl-assets.mjs";
+import { crawlMvInventory, geometryUvSource } from "./import-mv-brawl-assets.mjs";
 
 const bytes = (value) => Buffer.from(value);
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -204,7 +204,7 @@ test("crawls the canonical English inventory and mirrors Spike, Crow, Colt, and 
     assert.equal(inventory.routes[0].requiredRoles.includes("face"), false);
     assert.equal(inventory.routes[1].faceFlags.coversWholeTexture, false, "empty reference data attributes are false");
     const colt = inventory.routes.find((entry) => entry.skinId === "GunSlingerDefault");
-    assert.deepEqual(colt?.animationMetadata.idle, { label: "Idle Anim", startFrame: 0, endFrame: 27, fps: 120, face: "face" });
+    assert.deepEqual(colt?.animationMetadata.idle, { label: "Idle Anim", startFrame: 0, endFrame: 27, fps: 120, face: "face", contentHash: digest("idle_120.glb") });
     assert.equal(colt?.animationMetadata.weapon.face, "face");
     assert.equal(colt?.animationMetadata.ulti.face, "face");
     const spike = inventory.routes.find((entry) => entry.skinId === "CactusDefault");
@@ -333,4 +333,43 @@ test("derives every used material slot and mirrors override texture variables", 
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("67/68 UV selection uses lobby atlas only, preserving independent reference exceptions", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "mv-lobby-uv-test-"));
+  const tables = sourceTables();
+  const inventoryHtml = '<div id="search-data" data-entries="[[true,&#34;&#34;,false,&#34;Crow (Default)&#34;]]"></div>';
+  const materials = materialGlb([
+    { name: "outline", constants: [], shader: "uber", variables: { booleans: { enableNormalOutline: true, hasNormalOutline: true }, floats: { outlineWidth: -0.066 }, floatVectors: { outlineColor: [0.1, 0.2, 0.3, 0.4] } } },
+    { name: "plain", constants: [], shader: "uber", variables: { booleans: { enableNormalOutline: false }, floats: { outlineWidth: 10 }, floatVectors: { outlineColor: [1, 1, 1, 1] } } },
+  ], [0, 1]);
+  try {
+    for (const lobbyAtlasName of ["characters", "characters_68"]) {
+      const animations = { idle: ["idle.glb", "characters_67", "crow_68_face", "1", "20", "Idle"], lobby: ["win.glb", lobbyAtlasName, "crow_happy_67", "1", "20", "Win"] };
+      const html = `<canvas id="glCanvas" data-model-name="crow_geo.glb" data-diffuse-texture-override="crow_tex.sctx" data-animations="${JSON.stringify(animations).replaceAll('"', '&#34;')}"></canvas>`;
+      const fetchImpl = async (url) => {
+        if (url === "https://mv.brawlstars.top/en/") return new Response(inventoryHtml);
+        if (url.endsWith("Crow_(Default)")) return new Response(html);
+        if (url.endsWith("crow_geo.glb")) return new Response(materials);
+        return new Response(Buffer.from(url));
+      };
+      const inventory = await crawlMvInventory({ ...tables, fetchImpl, outputDir: path.join(root, lobbyAtlasName), requestDelayMs: 0 });
+      const entry = inventory.routes[0];
+      assert.equal(entry.geometryMetadata.uvSource, lobbyAtlasName === "characters" ? "default" : "67/68");
+      assert.deepEqual(entry.materialSlots[0].outline, { width: -0.066, color: [0.1, 0.2, 0.3, 0.4] });
+      assert.equal("outline" in entry.materialSlots[1], false);
+      const animationHash = digest("https://cdn.brawlbox.com.cn/sc3d/idle.glb");
+      assert.equal(entry.assets.animations.idle.contentHash, animationHash);
+      assert.equal(entry.animationMetadata.idle.contentHash, animationHash);
+      const bridge = await buildReferenceBridge({ inventory, charactersRows: tables.characters, outputDir: path.join(root, `bridge-${lobbyAtlasName}`), publicPrefix: "/assets/brawlers/3d/reference-bridge", contentAddressed: true });
+      assert.deepEqual(bridge.entries[0].materialSlots[0].outline, entry.materialSlots[0].outline);
+      assert.equal(bridge.entries[0].animationMetadata.idle.contentHash, animationHash);
+    }
+    const hints = { model: "crow_geo.glb", fileVersion: "", lobbyAtlasName: "characters" };
+    assert.equal(geometryUvSource({ extensionsUsed: ["v"] }, hints), "67/68");
+    assert.equal(geometryUvSource({}, { ...hints, fileVersion: "67" }), "67/68");
+    assert.equal(geometryUvSource({}, { ...hints, model: "rico_og_geo.glb" }), "67/68");
+    assert.equal(geometryUvSource({ extensionsUsed: ["KHR_texture_transform", "v"] }, hints), "KHR_texture_transform");
+    assert.equal(geometryUvSource({ asset: { generator: "COLLADA2GLTF" } }, { ...hints, lobbyAtlasName: "68" }), "COLLADA2GLTF");
+  } finally { await rm(root, { recursive: true, force: true }); }
 });

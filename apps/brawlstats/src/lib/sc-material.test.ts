@@ -79,9 +79,19 @@ test("hides zero-opacity slots, which the game and reference viewer never show",
   material.dispose();
 });
 
-test("hides normal-outline hulls instead of drawing them coincident with the body", () => {
+test("hides normal-outline hulls that have no reference outline parameters", () => {
   const material = createScMaterial({ diffuse: false, normalOutline: true });
   assert.equal(material.visible, false);
+  material.dispose();
+});
+
+test("draws normal-outline hulls with the reference width and colour when the catalog has them", () => {
+  const material = createScMaterial({ diffuse: false, normalOutline: true, outline: { width: 0.4, color: [0.1, 0.05, 0.2, 1] } });
+  assert.equal(material.visible, true);
+  assert.equal(material.defines.USE_OUTLINE, 1);
+  assert.equal(material.uniforms.outlineWidth.value, 0.4);
+  assert.deepEqual(material.uniforms.outlineColor.value.toArray(), [0.1, 0.05, 0.2]);
+  assert.match(material.vertexShader, /transformed -= vSkinnedNormal \* outlineWidth/);
   material.dispose();
 });
 

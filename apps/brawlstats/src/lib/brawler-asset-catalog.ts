@@ -170,7 +170,8 @@ function outlineParams(value: unknown): ScMaterialMetadata["outline"] {
   if (value === undefined || value === null) return undefined;
   const source = record(value);
   const color = source.color;
-  if (typeof source.width !== "number" || !Number.isFinite(source.width) || source.width < 0) return undefined;
+  // Authored widths are signed (often negative); the shader uses them as-is.
+  if (typeof source.width !== "number" || !Number.isFinite(source.width)) return undefined;
   if (!Array.isArray(color) || color.length !== 4 || !color.every((part) => typeof part === "number" && Number.isFinite(part))) return undefined;
   return { width: source.width, color: [color[0], color[1], color[2], color[3]] };
 }

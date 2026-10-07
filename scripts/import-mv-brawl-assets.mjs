@@ -186,11 +186,15 @@ function materialTextureValue(value) {
   return texture === "." ? null : texture;
 }
 
-function geometryUvSource(document, { model, fileVersion, faceNames = [] }) {
+export function geometryUvSource(document, { model, fileVersion, lobbyAtlasName = "" }) {
   const extensions = Array.isArray(document?.extensionsUsed) ? document.extensionsUsed : [];
   if (extensions.includes("KHR_texture_transform")) return "KHR_texture_transform";
   if (document?.asset?.generator === "COLLADA2GLTF") return "COLLADA2GLTF";
-  if (faceNames.some((name) => name.includes("67") || name.includes("68")) || extensions.includes("v") || ["67", "68"].includes(String(fileVersion ?? "")) || ["barley_unicornknight_redux_geo.glb", "rico_og_geo.glb", "bull_footbull_redux_geo.glb", "bull_ox_redux_geo.glb"].includes(model)) return "67/68";
+  // sc3d.CTe9BkRj.js:1 checks animations.lobby[1] ONLY for the atlas-name
+  // clause, never other atlases or face export names. Keep its independent
+  // extension/version/model exceptions and higher-priority UV transforms.
+  // Selected 67/68 transforms UV as (2*u, 2*v), with no offset.
+  if (lobbyAtlasName.includes("67") || lobbyAtlasName.includes("68") || extensions.includes("v") || ["67", "68"].includes(String(fileVersion ?? "")) || ["barley_unicornknight_redux_geo.glb", "rico_og_geo.glb", "bull_footbull_redux_geo.glb", "bull_ox_redux_geo.glb"].includes(model)) return "67/68";
   return "default";
 }
 
@@ -245,6 +249,16 @@ function materialSlotDefinitions(document, { cdnOrigin, assets, uvSource = "defa
     const textures = variables.textures && typeof variables.textures === "object" ? variables.textures : {};
     const booleans = variables.booleans && typeof variables.booleans === "object" ? variables.booleans : {};
     const floatValues = variables.floats && typeof variables.floats === "object" ? variables.floats : {};
+    const outlineColor = variables.floatVectors?.outlineColor;
+    // Authored object-space width, no pixel/home-screen scaling. Reference
+    // uber.vert.glsl:88-97 adds [0,width,0] when hasNormalOutline, then subtracts
+    // normalize(skinnedNormal)*width when enableNormalOutline, before modelMatrix.
+    // Its JS fixes outlineIngameMul=1 and uses default FrontSide. Fragment
+    // lines 158-160 force alpha=1; preserve authored RGBA for the catalog.
+    const outline = booleans.enableNormalOutline === true && Number.isFinite(floatValues.outlineWidth)
+      && Array.isArray(outlineColor) && outlineColor.length === 4
+      && outlineColor.every((value) => Number.isFinite(value) && value >= 0 && value <= 1)
+      ? { width: floatValues.outlineWidth, color: [...outlineColor] } : undefined;
     const stencilDefine = !hasAnyStencil || constants.includes("STENCIL");
     const slot = {
       materialName,
@@ -253,6 +267,7 @@ function materialSlotDefinitions(document, { cdnOrigin, assets, uvSource = "defa
       lightmapDiffuse: constants.includes("LIGHTMAP"),
       specular: constants.includes("SPECULAR"),
       opacity: typeof floatValues.opacity === "number" ? floatValues.opacity : undefined,
+      outline,
       stencil: stencilDefine && Boolean(assets.faceAtlas),
       sc3d_material_stencil: stencilDefine,
       uvSource,
@@ -341,7 +356,7 @@ export function pageToInventoryEntry({ html, route, displayName, cdnOrigin, char
     animationMetadata,
     materialSlots: [],
     geometryMetadata: { uvSource: "default", sourceKind: DEFAULT_SOURCE_KIND, fileVersion: attrs["data-file-version"] || null },
-    uvHints: { model, fileVersion: attrs["data-file-version"] || null, faceNames: Object.values(page.animations).flatMap((value) => Array.isArray(value) ? value.slice(1, 3).filter((item) => typeof item === "string") : []) },
+    uvHints: { model, fileVersion: attrs["data-file-version"] || null, lobbyAtlasName: typeof page.animations.lobby?.[1] === "string" ? page.animations.lobby[1] : "" },
     faceFlags: { coversWholeTexture: truthyDatasetValue(attrs["data-face-covers-whole-texture"]), scaledUpTexture: truthyDatasetValue(attrs["data-face-scaled-up-texture"]) },
     // The reference viewer always executes its outline postprocess. The
     // dataset flag selects its shader threshold/default, not availability.
@@ -376,6 +391,11 @@ async function downloadEntryAssets(entry, { assetCache, assetConcurrency = 1 }) 
     try {
       const capture = await assetCache.get(asset.url);
       downloaded[key] = { ...capture, sourceKind: entry.sourceKind, assetSetId: entry.assetSetId, ...(asset.metadata ?? {}) };
+      if (key.startsWith("asset-animations-")) {
+        const animation = key.slice("asset-animations-".length);
+        downloaded[key].contentHash = capture.sha256;
+        entry.animationMetadata[animation] = { ...entry.animationMetadata[animation], contentHash: capture.sha256 };
+      }
     } catch (error) {
       failures[key] = { kind: "unavailable", sourceUrl: asset.url, reason: String(error instanceof Error ? error.message : error) };
     }
@@ -402,7 +422,7 @@ async function downloadEntryAssets(entry, { assetCache, assetConcurrency = 1 }) 
         }
       }
       const materialDocument = parseMaterialDocument(await readFile(materialSource.path));
-      const uvSource = geometryUvSource(geometryDocument, { model: entry.uvHints?.model ?? path.basename(new URL(entry.assets.geometry.url).pathname), fileVersion: entry.uvHints?.fileVersion ?? entry.geometryMetadata?.fileVersion, faceNames: entry.uvHints?.faceNames });
+      const uvSource = geometryUvSource(geometryDocument, { model: entry.uvHints?.model ?? path.basename(new URL(entry.assets.geometry.url).pathname), fileVersion: entry.uvHints?.fileVersion ?? entry.geometryMetadata?.fileVersion, lobbyAtlasName: entry.uvHints?.lobbyAtlasName });
       const derived = materialSlotDefinitions(materialDocument, { cdnOrigin: new URL(entry.assets.geometry.url).origin, assets: entry.assets, uvSource });
       materialSlots = derived.slots;
       entry.assets.materials = { ...(entry.assets.materials ?? {}), ...derived.referencedAssets };

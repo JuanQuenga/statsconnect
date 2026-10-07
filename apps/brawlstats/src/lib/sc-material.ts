@@ -63,7 +63,11 @@ export function createScMaterial(metadata: ScMaterialMetadata, textures: ScMater
   // Opacity 0 marks geometry the game keeps hidden (e.g.
   // character_invisible_mat, Toon/Onceupon opac_mat); the reference viewer
   // never shows it, so hide the mesh rather than forcing it opaque.
-  const hidden = metadata.opacity === 0 || metadata.normalOutline === true;
+  // Outline hulls render only when the catalog carries the reference width
+  // and colour; without them a hull would sit coincident with the body.
+  // A zero width would leave the hull coincident with the body (z-fighting), so it counts as none.
+  const outline = metadata.normalOutline === true && metadata.outline && metadata.outline.width !== 0 ? metadata.outline : undefined;
+  const hidden = metadata.opacity === 0 || (metadata.normalOutline === true && outline === undefined);
   const opacity = metadata.opacity === 0 ? 1 : metadata.opacity ?? 1;
   // Stencil is an in-place colour overlay. The reference uber material keeps
   // depth testing/writes enabled while applying it; treating stencil as
@@ -78,6 +82,7 @@ export function createScMaterial(metadata: ScMaterialMetadata, textures: ScMater
     USE_LIGHTMAP: metadata.lightmapDiffuse === true && textures.diffuseLightmap !== undefined ? 1 : 0,
     USE_SPECULAR: metadata.specular === true && textures.specularLightmap !== undefined ? 1 : 0,
     USE_STENCIL: metadata.stencil === true ? 1 : 0,
+    USE_OUTLINE: outline ? 1 : 0,
   };
   const material = new THREE.ShaderMaterial({
     // Three.js adds USE_SKINNING from the actual SkinnedMesh. Defining it here
@@ -91,11 +96,14 @@ export function createScMaterial(metadata: ScMaterialMetadata, textures: ScMater
       diffuseUvTransform: { value: new THREE.Vector4(...transform) },
       stencilUvTransform: { value: new THREE.Vector4(...stencilTransform) },
       opacity: { value: opacity },
+      outlineWidth: { value: outline?.width ?? 0 },
+      outlineColor: { value: new THREE.Vector3(...(outline?.color.slice(0, 3) ?? [0, 0, 0])) },
     },
     vertexShader: `#include <common>
 #include <skinning_pars_vertex>
 uniform vec4 diffuseUvTransform;
 uniform vec4 stencilUvTransform;
+uniform float outlineWidth;
 varying vec2 vDiffuseUv;
 varying vec2 vLightUv;
 varying vec2 vStencilUv;
@@ -107,6 +115,12 @@ void main(){
   #include <skinnormal_vertex>
   #include <skinning_vertex>
   vSkinnedNormal = normalize(objectNormal);
+#if USE_OUTLINE
+  // Reference uber.vert: lift by the width, then move along the skinned
+  // normal by -width (the in-game multiplier is fixed to 1 in the menu).
+  transformed.y += outlineWidth;
+  transformed -= vSkinnedNormal * outlineWidth;
+#endif
   vDiffuseUv=uv*diffuseUvTransform.xy+diffuseUvTransform.zw;
   vLightUv=normalize(mat3(modelViewMatrix)*vSkinnedNormal).xy*vec2(0.5,-0.5)+vec2(0.5);
   // The reference viewer composes its diffuse and stencil UV transforms;
@@ -119,10 +133,15 @@ uniform sampler2D diffuseLightmap;
 uniform sampler2D specularLightmap;
 uniform sampler2D stencilTex;
 uniform float opacity;
+uniform vec3 outlineColor;
 varying vec2 vDiffuseUv;
 varying vec2 vLightUv;
 varying vec2 vStencilUv;
 void main(){
+#if USE_OUTLINE
+  gl_FragColor=vec4(outlineColor,1.0);
+  return;
+#endif
   vec4 color=vec4(1.0);
 #if USE_DIFFUSE
   color*=texture2D(diffuseTex,vDiffuseUv);

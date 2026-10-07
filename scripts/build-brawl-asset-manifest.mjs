@@ -164,12 +164,15 @@ const validFrameRate = (value) => Number.isFinite(value) && value > 0;
 const convertedAnimation = (key, field, source) => {
   const relative = `animations/${key}/${field}.glb`;
   const file = convertedDir ? path.join(convertedDir, relative) : null;
-  if (!file || !existsSync(file)) return unavailable("not-captured");
+  if (!file || !existsSync(file)) return { exported: unavailable("not-captured") };
   const metadata = sourceMetadata(`animations/${key}/${field}.meta.json`, source);
-  if (!metadata) return unavailable("animation-source-mismatch");
-  if (!validFrameRate(metadata.fps)) return unavailable("animation-frame-rate-not-captured");
-  const validation = validateBrawlAnimationGlb(readFileSync(file));
-  return validation.ok ? contentAddressedAsset(relative) : unavailable(validation.reason);
+  if (!metadata) return { exported: unavailable("animation-source-mismatch") };
+  if (!validFrameRate(metadata.fps)) return { exported: unavailable("animation-frame-rate-not-captured") };
+  const bytes = readFileSync(file);
+  const validation = validateBrawlAnimationGlb(bytes);
+  return validation.ok
+    ? { exported: contentAddressedAsset(relative), contentHash: createHash("sha256").update(bytes).digest("hex") }
+    : { exported: unavailable(validation.reason) };
 };
 const convertedFace = (key, field) => {
   const relative = `faces/${key}/${field}.bin`;
@@ -331,7 +334,9 @@ const bridgeRuntimeEntry = (entry) => {
     const field = animationMap[sourceKey] ?? `ReferenceAnim:${sourceKey}`;
     if (!asset) continue;
     const detail = metadata[sourceKey] ?? {};
-    animationOutput[field] = { symbol: null, exported: bridgeAsset(asset, ".glb"), label: detail.label ?? animationLabels[field] ?? field, startFrame: detail.startFrame ?? 0, endFrame: detail.endFrame ?? -1, fps: detail.fps ?? 60, faceField: typeof detail.face === "string" && detail.face ? faceField(detail.face) : null };
+    const exported = bridgeAsset(asset, ".glb");
+    // validateReferenceBridge verifies this full digest and its asset provenance.
+    animationOutput[field] = { symbol: null, exported, ...(exported.kind === "ready" ? { contentHash: asset.sha256.toLowerCase() } : {}), label: detail.label ?? animationLabels[field] ?? field, startFrame: detail.startFrame ?? 0, endFrame: detail.endFrame ?? -1, fps: detail.fps ?? 60, faceField: typeof detail.face === "string" && detail.face ? faceField(detail.face) : null };
   }
   const atlas = assets.faceAtlas;
   const atlasForFace = (asset) => assets.faceAtlases?.[asset?.faceAtlasKey] ?? atlas;
@@ -456,7 +461,7 @@ const entries = confs.map((conf) => {
   if (!diffuse) unavailableReasons.push("diffuse-texture-not-present-in-pinned-source");
   if (!conf.PortraitCameraFile || !sourceFiles.has(`${version}/sc3d/${conf.PortraitCameraFile}`)) unavailableReasons.push("portrait-camera-not-captured");
   if (!idleSource) unavailableReasons.push("idle-animation-not-present-in-pinned-source");
-  const exportedAnimations = Object.fromEntries(animationFields.map((field) => [field, !animationSymbols[field] ? unavailable("not-configured") : !animationSources[field] ? unavailable("animation-symbol-not-resolved") : convertedAnimation(key, field, { input: sourcePath(animationSources[field]), symbol: animationSymbols[field] })]));
+  const exportedAnimations = Object.fromEntries(animationFields.map((field) => [field, !animationSymbols[field] ? { exported: unavailable("not-configured") } : !animationSources[field] ? { exported: unavailable("animation-symbol-not-resolved") } : convertedAnimation(key, field, { input: sourcePath(animationSources[field]), symbol: animationSymbols[field] })]));
   const exportedFaces = Object.fromEntries(faceFields.map((field) => {
     const symbol = faceSymbols[field];
     const exportName = faceExportNames[field];
@@ -468,7 +473,7 @@ const entries = confs.map((conf) => {
     if (metadata.export_name_reference_base !== 0 || !Number.isInteger(metadata.export_object_id) || metadata.export_object_id < 0) return [field, { atlas: unavailable("face-export-name-mapping-unverified"), binary: unavailable("face-export-name-mapping-unverified") }];
     return [field, { atlas: convertedFaceAtlas(key, field), binary: convertedFace(key, field) }];
   }));
-  if (Object.entries(animationSymbols).some(([field, symbol]) => symbol && exportedAnimations[field].kind !== "ready")) unavailableReasons.push("animation-export-not-run");
+  if (Object.entries(animationSymbols).some(([field, symbol]) => symbol && exportedAnimations[field].exported.kind !== "ready")) unavailableReasons.push("animation-export-not-run");
   if (Object.values(faceSymbols).some((symbol) => symbol && !faceExportBySymbol.has(symbol))) unavailableReasons.push("face-symbol-not-mapped");
   if (Object.entries(faceExportNames).some(([field, exportName]) => exportName && exportedFaces[field].binary.kind !== "ready")) unavailableReasons.push("face-export-not-captured");
   return {
@@ -481,7 +486,7 @@ const entries = confs.map((conf) => {
     baseModel: baseModelAsset,
     diffuseTexture: diffuseTextureAsset,
     source: { model: conf.Model || null, modelFile: modelSourceFile, compositeModel, portraitCamera: conf.PortraitCameraFile || null, diffuse: skin?.DiffuseTexture || null, diffuseFile: diffuse, specular: skin?.SpecularTexture || null, materials: skin?.MaterialsFile || null, customShader: skin?.CustomShader || null, outlineShader: skin?.OutlineShader || null, animations: animationSources, idle: idleSource },
-    animations: Object.fromEntries(animationFields.map((field) => [field, { symbol: animationSymbols[field], exported: exportedAnimations[field], label: animationLabels[field] ?? field, ...animationPlayback(field) }])),
+    animations: Object.fromEntries(animationFields.map((field) => [field, { symbol: animationSymbols[field], ...exportedAnimations[field], label: animationLabels[field] ?? field, ...animationPlayback(field) }])),
     faces: Object.fromEntries(faceFields.map((field) => { const face = exportedFaces[field]; const exportName = faceExportNames[field]; return [field, { symbol: faceSymbols[field], exportName, resolved: Boolean(exportName), ready: Boolean(exportName && face.atlas.kind === "ready" && face.binary.kind === "ready"), atlas: face.atlas, binary: face.binary, startFrame: 0, endFrame: -1, fps: convertedFaceFps(key, field) ?? 60 }]; })),
     capabilities: { outline: { kind: "postprocess", enabled: baseModelAsset.kind === "ready" && diffuseTextureAsset.kind === "ready" } },
     materialSlots,

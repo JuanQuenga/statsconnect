@@ -412,7 +412,12 @@ test("integrates a complete reference bridge only with explicit diagnostic opt-i
   const directory = mkdtempSync(path.join(tmpdir(), "reference-bridge-manifest-test-"));
   try {
     const bridgePath = path.join(directory, "bridge.json");
-    writeFileSync(bridgePath, JSON.stringify(bridgeFixture()));
+    const bridge = bridgeFixture();
+    const hash = bridge.entries[0].assets.animations.idle.sha256;
+    bridge.entries[0].assets.animations.idle.sha256 = hash.toUpperCase();
+    const outline = { width: 0.0075, color: [0.1, 0.2, 0.3, 1] };
+    Object.assign(bridge.entries[0].materialSlots[0], { scBooleans: { enableNormalOutline: true }, outline });
+    writeFileSync(bridgePath, JSON.stringify(bridge));
     const output = path.join(directory, "manifest.json");
     const command = [script, "--mirror", source.root, "--commit", source.commit, "--reference-bridge", bridgePath, "--allow-diagnostic-reference-assets", "--output", output];
     execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
@@ -420,11 +425,22 @@ test("integrates a complete reference bridge only with explicit diagnostic opt-i
     const crow = manifest.defaults.find((entry) => entry.character === "Crow");
     assert.equal(crow.baseModel.url.includes("reference-bridge"), true);
     assert.equal(crow.animations.IdleAnim.exported.kind, "ready");
+    assert.equal(crow.animations.IdleAnim.contentHash, hash);
     assert.match(crow.faces.IdleFace.binary.url, /\.bin$/);
     assert.equal(crow.assetGroup, "reference-bridge");
     assert.equal(crow.materialSlots[0].stencilUvPolicy, "identity");
+    assert.deepEqual(crow.materialSlots[0].outline, outline);
     assert.equal(manifest.source.diagnosticReferenceBridge.assetSetId, "bridge-fixture");
     assert.throws(() => execFileSync(process.execPath, [script, "--mirror", source.root, "--commit", source.commit, "--reference-bridge", bridgePath, "--output", output], { cwd: repositoryRoot, stdio: "pipe" }), /requires --allow-diagnostic-reference-assets/);
+    const shards = path.join(directory, "catalog");
+    execFileSync(process.execPath, [...command, "--shards-dir", shards], { cwd: repositoryRoot, stdio: "pipe" });
+    const index = JSON.parse(readFileSync(output, "utf8"));
+    const shardReference = index.brawlers.find((entry) => entry.brawlerId === 16000001).shard;
+    const shard = JSON.parse(readFileSync(path.join(directory, shardReference.replace("/assets/brawlers/3d/", "")), "utf8"));
+    for (const entry of [...shard.defaults, ...shard.releasedSkins]) {
+      assert.equal(entry.animations.IdleAnim.contentHash, hash);
+      assert.deepEqual(entry.materialSlots[0].outline, outline);
+    }
     const mixed = bridgeFixture();
     mixed.entries[0].assets.texture.sourceKind = "pinned-local";
     writeFileSync(bridgePath, JSON.stringify(mixed));
@@ -603,11 +619,27 @@ test("converted animations are rejected until every quaternion is finite and uni
     let manifest = JSON.parse(readFileSync(output, "utf8"));
     let crow = manifest.defaults.find((entry) => entry.character === "Crow");
     assert.deepEqual(crow.animations.IdleAnim.exported, { kind: "unavailable", reason: "animation-quaternion-not-unit" });
+    assert.equal("contentHash" in crow.animations.IdleAnim, false);
     writeFileSync(animation, animationFixtureGlb([0, 0, 0, 1]));
     execFileSync(process.execPath, command, { cwd: repositoryRoot, stdio: "pipe" });
     manifest = JSON.parse(readFileSync(output, "utf8"));
     crow = manifest.defaults.find((entry) => entry.character === "Crow");
     assert.equal(crow.animations.IdleAnim.exported.kind, "ready");
+    const expectedHash = createHash("sha256").update(readFileSync(animation)).digest("hex");
+    assert.equal(crow.animations.IdleAnim.contentHash, expectedHash);
+    assert.match(crow.animations.IdleAnim.contentHash, /^[a-f0-9]{64}$/);
+    const exportedFile = path.join(directory, crow.animations.IdleAnim.exported.url.replace("/assets/brawlers/3d/", ""));
+    assert.equal(createHash("sha256").update(readFileSync(exportedFile)).digest("hex"), expectedHash);
+    const firstHash = crow.animations.IdleAnim.contentHash;
+    writeFileSync(animation, animationFixtureGlb([0, 1, 0, 0]));
+    const shards = path.join(directory, "catalog");
+    execFileSync(process.execPath, [...command, "--shards-dir", shards], { cwd: repositoryRoot, stdio: "pipe" });
+    const index = JSON.parse(readFileSync(output, "utf8"));
+    const shardReference = index.brawlers.find((entry) => entry.brawlerId === 16000001).shard;
+    const shard = JSON.parse(readFileSync(path.join(directory, shardReference.replace("/assets/brawlers/3d/", "")), "utf8"));
+    const updatedHash = createHash("sha256").update(readFileSync(animation)).digest("hex");
+    assert.notEqual(updatedHash, firstHash);
+    for (const entry of [...shard.defaults, ...shard.releasedSkins]) assert.equal(entry.animations.IdleAnim.contentHash, updatedHash);
   } finally {
     rmSync(directory, { recursive: true, force: true });
     rmSync(source.root, { recursive: true, force: true });
