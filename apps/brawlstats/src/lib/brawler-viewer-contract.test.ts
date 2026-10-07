@@ -121,8 +121,8 @@ test("configures face textures for the native transparent pass", async () => {
   const texture = configureFaceTexture(new THREE.Texture());
   assert.equal(texture.flipY, false);
   assert.equal(texture.colorSpace, THREE.NoColorSpace);
-  assert.equal(texture.magFilter, THREE.NearestFilter);
-  assert.equal(texture.minFilter, THREE.NearestFilter);
+  assert.equal(texture.magFilter, THREE.LinearFilter);
+  assert.equal(texture.minFilter, THREE.LinearFilter);
   texture.dispose();
 });
 

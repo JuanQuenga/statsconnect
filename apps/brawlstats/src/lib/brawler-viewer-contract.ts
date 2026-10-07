@@ -59,6 +59,13 @@ export type ScMaterialMetadata = {
   readonly stencil?: boolean;
   readonly stencilUvPolicy?: StencilUvPolicy;
   readonly uvSource?: "KHR_texture_transform" | "COLLADA2GLTF" | "67/68" | "default";
+  /**
+   * SC `enableNormalOutline`: the mesh is an outline hull the game inflates
+   * along its normals and draws in an outline colour. The catalog does not
+   * carry the width/colour, so the viewer hides these shells instead of
+   * drawing them coincident with the body (which z-fights as it moves).
+   */
+  readonly normalOutline?: boolean;
 };
 
 export type ScMaterialSlot = ScMaterialMetadata & {
@@ -327,8 +334,10 @@ export function configureFaceTexture(texture: THREE.Texture): THREE.Texture {
   // Match the reference viewer's SC shader inputs; renderer output encoding
   // handles display conversion rather than texture color management.
   texture.colorSpace = THREE.NoColorSpace;
-  texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
+  // Linear, as in the reference viewer: face quads move by sub-pixel amounts,
+  // and nearest sampling makes the eyes shimmer as they do.
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
   texture.needsUpdate = true;
   return texture;
 }

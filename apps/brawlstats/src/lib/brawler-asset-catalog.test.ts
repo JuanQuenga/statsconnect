@@ -325,3 +325,25 @@ test("evicts rejected catalog requests so a later load can retry", async () => {
   assert.equal(attempts, 2);
   assert.deepEqual(catalog.defaults, []);
 });
+
+test("animation options collapse clips with identical motion and drop near-static windows", () => {
+  const source = fixture();
+  const file = ready("/assets/brawlers/3d/animations/16000012-CrowDefault/attack.glb");
+  source.defaults[0].animations = {
+    IdleAnim: { symbol: "CrowIdle", label: "Idle", exported: ready("/assets/brawlers/3d/animations/16000012-CrowDefault/IdleAnim.glb") },
+    AttackAnim: { symbol: "CrowAttack", label: "Attack", exported: file, startFrame: 0, endFrame: 21 },
+    UltiAnim: { symbol: "CrowUlti", label: "Ulti", exported: file, startFrame: 0, endFrame: 21 },
+    WinAnim: { symbol: "CrowWin", label: "Win", exported: file, startFrame: 30, endFrame: 80 },
+    TwitchAnim: { symbol: "CrowTwitch", label: "Twitch", exported: file, startFrame: 9, endFrame: 11 },
+  } as never;
+  const options = catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]);
+  assert.deepEqual(options.map((option) => option.label), ["Idle", "Attack / Ulti", "Win"]);
+  assert.equal(options[1].key, "AttackAnim");
+});
+
+test("normal-outline material flags survive parsing into the viewer manifest", () => {
+  const source = fixture();
+  source.defaults[0].materialSlots = [{ ...source.defaults[0].materialSlots[0], scBooleans: { enableNormalOutline: true } }] as never;
+  const manifest = catalogEntryToViewerManifest(parseBrawlerAssetCatalog(source).defaults[0]);
+  assert.equal(manifest?.materialSlots?.[0].normalOutline, true);
+});

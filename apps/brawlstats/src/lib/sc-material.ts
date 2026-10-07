@@ -60,8 +60,10 @@ export function createScMaterial(metadata: ScMaterialMetadata, textures: ScMater
   void skinned;
   const transform = diffuseUvTransform(metadata);
   const stencilTransform = faceRenderTargetUvTransform(metadata);
-  // Source material opacity 0 is an unanimated fade-in state in some mirrored
-  // skins. The viewer has no material-opacity track, so render their body opaque.
+  // Opacity 0 marks geometry the game keeps hidden (e.g.
+  // character_invisible_mat, Toon/Onceupon opac_mat); the reference viewer
+  // never shows it, so hide the mesh rather than forcing it opaque.
+  const hidden = metadata.opacity === 0 || metadata.normalOutline === true;
   const opacity = metadata.opacity === 0 ? 1 : metadata.opacity ?? 1;
   // Stencil is an in-place colour overlay. The reference uber material keeps
   // depth testing/writes enabled while applying it; treating stencil as
@@ -148,7 +150,11 @@ void main(){
 }`,
     transparent,
     depthWrite: !transparent,
-    side: THREE.DoubleSide,
+    // Front faces only, as in the reference uber shader. Double-sided
+    // transparent layers blend front and back faces in triangle order, which
+    // changes as the mesh deforms and reads as flicker.
+    side: THREE.FrontSide,
   });
+  material.visible = !hidden;
   return material;
 }

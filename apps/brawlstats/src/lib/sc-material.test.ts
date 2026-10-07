@@ -72,12 +72,26 @@ test("keeps stencil overlays opaque for stable depth composition", () => {
   material.dispose();
 });
 
-test("renders mirrored zero-opacity body slots when no material fade track is available", () => {
+test("hides zero-opacity slots, which the game and reference viewer never show", () => {
   const material = createScMaterial({ diffuse: true, stencil: true, opacity: 0 });
-  assert.equal(material.uniforms.opacity.value, 1);
+  assert.equal(material.visible, false);
   assert.equal(material.transparent, false);
-  assert.equal(material.depthWrite, true);
   material.dispose();
+});
+
+test("hides normal-outline hulls instead of drawing them coincident with the body", () => {
+  const material = createScMaterial({ diffuse: false, normalOutline: true });
+  assert.equal(material.visible, false);
+  material.dispose();
+});
+
+test("draws front faces only, matching the reference uber shader", async () => {
+  const THREE = await import("three");
+  for (const material of [createScMaterial({ diffuse: true }), createScMaterial({ diffuse: true, opacity: 0.5 })]) {
+    assert.equal(material.side, THREE.FrontSide);
+    assert.equal(material.visible, true);
+    material.dispose();
+  }
 });
 
 test("uses premultiplied stencil alpha exactly once", () => {

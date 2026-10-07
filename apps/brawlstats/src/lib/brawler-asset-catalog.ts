@@ -49,6 +49,7 @@ type CatalogMaterialSlot = {
   readonly stencil?: boolean;
   readonly stencilUvPolicy?: StencilUvPolicy;
   readonly uvSource?: ScMaterialMetadata["uvSource"];
+  readonly normalOutline?: boolean;
   readonly diffuseTexture?: CatalogAsset;
   readonly diffuseLightmap?: CatalogAsset;
   readonly specularLightmap?: CatalogAsset;
@@ -175,6 +176,7 @@ function catalogMaterialSlot(value: unknown): CatalogMaterialSlot {
     stencil: typeof source.stencil === "boolean" ? source.stencil : undefined,
     stencilUvPolicy: stencilPolicy(source.stencilUvPolicy),
     uvSource: materialUvSource(source.uvSource),
+    normalOutline: record(source.scBooleans ?? {}).enableNormalOutline === true ? true : undefined,
     diffuseTexture: optionalAsset(source, "diffuseTexture"),
     diffuseLightmap: optionalAsset(source, "diffuseLightmap"),
     specularLightmap: optionalAsset(source, "specularLightmap"),
@@ -291,6 +293,7 @@ function viewerMaterialSlot(source: CatalogMaterialSlot, assetGroup: ViewerAsset
     // skin unless its material metadata overrides it.
     stencilUvPolicy: source.stencilUvPolicy ?? (assetGroup === "reference-bridge" ? "flip-y" : "2x-flip-y"),
     uvSource: source.uvSource,
+    ...(source.normalOutline ? { normalOutline: true } : {}),
     ...(source.diffuseTexture === undefined ? {} : { diffuseTexture: viewerAsset(source.diffuseTexture) }),
     ...(source.diffuseLightmap === undefined ? {} : { diffuseLightmap: viewerAsset(source.diffuseLightmap) }),
     ...(source.specularLightmap === undefined ? {} : { specularLightmap: viewerAsset(source.specularLightmap) }),
@@ -318,7 +321,11 @@ export function catalogEntryToViewerManifest(entry: BrawlerAssetCatalogEntry): B
     // The body animation window controls the loop clock. Face start/end
     // metadata describes the native face export, but the reference viewer
     // resets that export when the selected body clip loops.
-    animations[key] = [viewerAsset(source.exported), viewerAsset(faceAtlas), viewerAsset(faceBinary), source.startFrame, source.endFrame, source.label, source.fps, face?.fps ?? source.fps, source.speed ?? 1];
+    // The importer stamps bridged faces with 60 fps, but the reference viewer
+    // steps them at a fixed 1/30 s, so 60 runs faces twice as fast and lands on
+    // the wrong expressions and closed-eye frames.
+    const faceFps = entry.assetGroup === "reference-bridge" && face ? 30 : face?.fps ?? source.fps;
+    animations[key] = [viewerAsset(source.exported), viewerAsset(faceAtlas), viewerAsset(faceBinary), source.startFrame, source.endFrame, source.label, source.fps, faceFps, source.speed ?? 1];
   }
   const faceAvailable = Object.values(entry.faces).some((face) => face.ready && face.resolved && face.atlas.kind === "ready" && face.binary.kind === "ready");
   return {
@@ -346,11 +353,31 @@ export function catalogAnimationKeys(entry: BrawlerAssetCatalogEntry): readonly 
 
 export type CatalogAnimationOption = { readonly key: string; readonly label: string };
 
-/** Keep the machine key for loading while presenting the source catalog label in the UI. */
+/** Clips this short read as a still pose rather than an animation. */
+const MIN_ANIMATION_FRAMES = 4;
+
+/**
+ * Keep the machine key for loading while presenting the source catalog label
+ * in the UI. The source maps several actions to the same clip (Attack and
+ * Ulti share a file and frame window on hundreds of skins), so options that
+ * would play identical motion collapse into one ("Attack / Ulti"), and
+ * windows too short to read as motion are left out.
+ */
 export function catalogAnimationOptions(entry: BrawlerAssetCatalogEntry): readonly CatalogAnimationOption[] {
-  return Object.entries(entry.animations)
-    .filter(([, animation]) => animation.exported.kind === "ready")
-    .map(([key, animation]) => ({ key, label: animation.label }));
+  const byMotion = new Map<string, { key: string; labels: string[] }>();
+  for (const [key, animation] of Object.entries(entry.animations)) {
+    if (animation.exported.kind !== "ready") continue;
+    const frames = animation.endFrame < 0 ? Infinity : animation.endFrame - animation.startFrame + 1;
+    if (frames < MIN_ANIMATION_FRAMES) continue;
+    const motion = `${animation.exported.url}#${animation.startFrame}-${animation.endFrame}`;
+    const existing = byMotion.get(motion);
+    if (existing) {
+      if (!existing.labels.includes(animation.label)) existing.labels.push(animation.label);
+    } else {
+      byMotion.set(motion, { key, labels: [animation.label] });
+    }
+  }
+  return [...byMotion.values()].map(({ key, labels }) => ({ key, label: labels.join(" / ") }));
 }
 
 /** Return catalog records for one stable game brawler ID, default skin first. */

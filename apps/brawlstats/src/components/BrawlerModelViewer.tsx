@@ -77,7 +77,9 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas }); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.setClearAlpha(0); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
         const root = runtime?.root ?? legacyModel!; root.updateMatrixWorld(true); const currentBounds = runtime?.getFramingBounds() ?? new THREE.Box3().setFromObject(root, true); const { wrapper, bounds: centered, largestDimension: largest } = centerModelForFraming(root, idleFramingBounds ?? currentBounds); const startupBounds = idleFramingBounds ? startupFramingBounds(idleFramingBounds, currentBounds).applyMatrix4(wrapper.matrixWorld) : centered;
         const scene = new THREE.Scene(); scene.add(wrapper); const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(3, 5, 4); scene.add(key); const fill = new THREE.DirectionalLight(0xb8d5ff, 0.35); fill.position.set(-4, 2, 1); scene.add(fill); scene.add(new THREE.HemisphereLight(0xffffff, 0x26364a, 0.55));
-        const camera = new THREE.PerspectiveCamera(runtime ? 20 : 32, 1, 0.01, largest * 20); const direction = new THREE.Vector3(0.18, 0.05, 1.18).normalize();
+        // Near plane scales with the model: 0.01 left layered parts (brows, hats,
+        // hair) without enough depth precision, so they z-fought while animating.
+        const camera = new THREE.PerspectiveCamera(runtime ? 20 : 32, 1, largest * 0.05, largest * 20); const direction = new THREE.Vector3(0.18, 0.05, 1.18).normalize();
         // HomeScreenScale is a source-authored framing hint. Apply it relative to
         // the reference 290 value, but cap the zoom so tall/wide skins never clip.
         const scaleHint = runtime ? THREE.MathUtils.clamp((manifest?.cameraScale ?? 290) / 290, 0.72, 1.05) : 1;
