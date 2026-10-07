@@ -104,9 +104,9 @@
     letter-spacing: 0.005em;
   }
 
-  /* Page and section titles carry the game's outlined lettering. */
-  h1,
-  h2 {
+  /* Page and section titles carry the game's outlined lettering — but not
+     inside Clerk's sign-in modal, which keeps its own typography. */
+  :is(h1, h2):not([class*="cl-"] *, [class^="cl-"]) {
     -webkit-text-stroke: 0.14em var(--ink);
     paint-order: stroke fill;
     text-shadow: 0 0.09em 0 var(--ink);
