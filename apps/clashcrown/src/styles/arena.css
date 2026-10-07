@@ -6,7 +6,7 @@
  * hard bottom lip the game's panels sit on. Buttons are the game's gold and
  * blue chunky buttons. The stone wall and battlement art stay as the ground. */
 
-.site-frame-clash {
+:root {
   --cr-ink: #0e2546;
   --cr-ink-soft: #2b4a73;
   --cr-bar-top: #4a9bf0;
@@ -21,6 +21,9 @@
   --cr-blue-bottom: #2479e0;
   --cr-blue-lip: #134c96;
   --cr-copy: #3d5470;
+}
+
+.site-frame-clash {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -253,7 +256,7 @@
 .site-frame-clash .royale-hero .royale-hero-copy h1 {
   max-width: none;
   font-size: clamp(44px, 5.2vw, 80px);
-  line-height: .95;
+  line-height: 1.08;
   letter-spacing: .01em;
   -webkit-text-stroke: .1em var(--cr-ink);
   paint-order: stroke fill;
@@ -262,7 +265,7 @@
 
 .site-frame-clash .royale-hero .royale-hero-sub {
   max-width: 38ch;
-  margin-top: 18px;
+  margin-top: 20px;
   color: #fff;
   font: 700 clamp(16px, 1.4vw, 19px)/1.45 var(--font-ui);
   text-shadow: 0 2px 0 var(--cr-ink), 0 0 12px rgba(14, 37, 70, .55);
@@ -301,8 +304,97 @@
 .site-frame-clash .royale-hero-copy form[role="search"] button:hover { filter: brightness(1.05); }
 .site-frame-clash .royale-hero-copy form[role="search"] button svg { width: 24px; height: 24px; stroke-width: 2.75; }
 
-.site-frame-clash .royale-hero-copy details { color: #fff; font-weight: 650; text-shadow: 0 1px 0 var(--cr-ink), 0 0 8px rgba(14, 37, 70, .6); }
-.site-frame-clash .royale-hero-copy details p { max-width: 42ch; }
+/* "Where is my player tag?" — a floating game panel with the walkthrough GIF. */
+.cr-tag-guide-trigger {
+  margin-top: 14px;
+  padding: 4px 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  color: #fff;
+  background: none;
+  font: 700 14px/1.3 var(--font-ui);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+  text-shadow: 0 1px 0 var(--cr-ink), 0 0 8px rgba(14, 37, 70, .6);
+  cursor: pointer;
+}
+
+.cr-tag-guide-trigger svg { filter: drop-shadow(0 1px 0 var(--cr-ink)); }
+.cr-tag-guide-trigger:focus-visible { outline: 3px solid var(--cr-gold-bottom); outline-offset: 3px; border-radius: 6px; }
+
+.cr-tag-guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(8, 20, 40, .55);
+  transition: opacity .16s ease;
+}
+
+.cr-tag-guide-backdrop[data-starting-style],
+.cr-tag-guide-backdrop[data-ending-style] { opacity: 0; }
+
+.cr-tag-guide {
+  position: fixed;
+  z-index: 91;
+  top: 50%;
+  left: 50%;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overflow: hidden;
+  border: 3px solid var(--cr-ink);
+  border-radius: 16px;
+  color: var(--cr-ink);
+  background: var(--cr-body);
+  box-shadow: 0 5px 0 var(--cr-ink), 0 24px 48px rgba(14, 37, 70, .4);
+  transform: translate(-50%, -50%);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.cr-tag-guide[data-starting-style],
+.cr-tag-guide[data-ending-style] { opacity: 0; transform: translate(-50%, -48%) scale(.96); }
+
+.cr-tag-guide header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 3px solid var(--cr-ink);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .22), transparent 48%),
+    linear-gradient(180deg, var(--cr-bar-top), var(--cr-bar-bottom));
+}
+
+.cr-tag-guide-title {
+  margin: 0;
+  color: #fff;
+  font: 400 17px/1.1 var(--font-display);
+  -webkit-text-stroke: .14em var(--cr-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 .1em 0 var(--cr-ink);
+}
+
+.cr-tag-guide-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--cr-ink);
+  border-radius: 9px;
+  color: #fff;
+  background: linear-gradient(180deg, #ff7f6b, #d93c3c);
+  box-shadow: inset 0 -3px 0 #8f1f24;
+  cursor: pointer;
+}
+
+.cr-tag-guide img { display: block; width: 100%; height: auto; aspect-ratio: 1; border-bottom: 3px solid var(--cr-ink); }
+
+.cr-tag-guide-copy { margin: 0; padding: 12px 16px 14px; color: var(--cr-copy); font: 550 14px/1.5 var(--font-ui); }
+.cr-tag-guide-copy strong { color: var(--cr-ink); }
 
 .site-frame-clash .arena-route-hero h1 {
   font-size: clamp(30px, 4vw, 50px);

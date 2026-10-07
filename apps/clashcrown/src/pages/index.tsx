@@ -9,6 +9,7 @@ import { AdSenseUnit } from "@statsconnect/monetization";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
+import { PlayerTagGuide } from "@/components/portfolio/PlayerTagGuide";
 import { PersonalDashboard } from "@/components/personalization/PersonalDashboard";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
@@ -93,15 +94,6 @@ function ExploreTiles() {
         </Link>
       ))}
     </nav>
-  );
-}
-
-function PlayerTagGuide() {
-  return (
-    <details className={styles.tagGuide}>
-      <summary>Where is my player tag?</summary>
-      <p>Open your in-game profile and copy the tag beneath your name. It starts with #.</p>
-    </details>
   );
 }
 

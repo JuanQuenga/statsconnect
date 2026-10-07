@@ -51,10 +51,6 @@
   .hero:global(.royale-hero):global(.arena-hero-frame) > .heroDeck { display: none; }
 }
 
-.tagGuide { margin-top: 14px; max-width: 490px; color: #e3edf6; font: 400 13px/1.6 var(--font-ui); }
-.tagGuide summary { width: fit-content; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.tagGuide summary:focus-visible { outline: 2px solid #75c5ff; outline-offset: 4px; }
-.tagGuide p { margin: 8px 0 0; }
 
 .deckPresentation { width: min(860px, 100%); margin-inline: auto; }
 .deckTools { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
