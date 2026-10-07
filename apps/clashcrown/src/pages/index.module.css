@@ -24,18 +24,27 @@
 .hero:global(.royale-hero):global(.arena-hero-frame) > .heroDeck {
   position: absolute;
   z-index: 1;
-  right: 24px;
-  bottom: 44px;
+  right: max(48px, calc((100vw - var(--page-width)) / 2 + 36px));
+  bottom: 104px;
   display: flex;
   align-items: end;
   pointer-events: none;
-  transform: rotate(-4deg);
-  filter: drop-shadow(0 28px 24px rgba(3, 10, 22, .4));
+  filter: drop-shadow(0 22px 20px rgba(14, 37, 70, .38));
 }
-.heroDeck img { width: clamp(120px, 13vw, 176px); height: auto; margin-left: -7%; }
-.heroDeck img:first-child { margin-left: 0; }
+/* Fanned like a hand of cards, pivoting from a point below the tray so the
+ * outer cards drop and tilt outward the way they do in-game. */
+.heroDeck img {
+  width: clamp(112px, 11vw, 158px);
+  height: auto;
+  margin-left: -3.2vw;
+  transform-origin: 50% 130%;
+}
+.heroDeck img:first-child { margin-left: 0; transform: rotate(-12deg); }
+.heroDeck img:nth-child(2) { transform: rotate(-4deg) translateY(-10px); }
+.heroDeck img:nth-child(3) { transform: rotate(4deg) translateY(-10px); }
+.heroDeck img:nth-child(4) { transform: rotate(12deg); }
 @media (max-width: 1180px) {
-  .heroDeck img { width: clamp(96px, 10.5vw, 140px); }
+  .heroDeck img { width: clamp(92px, 10vw, 128px); }
 }
 @media (max-width: 980px) {
   /* Same compound as above: a plain .heroDeck would lose to its display: flex. */
