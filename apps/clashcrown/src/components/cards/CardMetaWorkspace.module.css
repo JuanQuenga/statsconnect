@@ -379,3 +379,21 @@
   .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cardTile { padding: 9px; }
 }
+
+/* Game panels: navy outline and lip, steel body (see styles/arena.css). */
+.controls,
+.panel {
+  border: 3px solid var(--cr-ink);
+  border-radius: 16px;
+  background: var(--cr-body);
+  box-shadow: 0 5px 0 var(--cr-ink), 0 18px 30px rgba(40, 24, 60, .22);
+}
+
+.rankingRow {
+  border: 2px solid var(--cr-rule);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.rankingRow:hover { border-color: var(--cr-blue-bottom); }

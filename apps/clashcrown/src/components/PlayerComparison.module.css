@@ -30,25 +30,25 @@
 .field {
   display: grid;
   gap: 8px;
-  color: #9aacca;
-  font: 12px var(--font-ui);
+  color: var(--cr-copy);
+  font: 650 12px var(--font-ui);
   text-align: left;
 }
 
 .field input {
   min-width: 0;
   height: 46px;
-  border: 1px solid rgba(62, 88, 128, .48);
-  border-radius: 6px;
+  border: 2px solid var(--cr-rule);
+  border-radius: 10px;
   padding: 0 14px;
-  color: white;
-  background: rgba(8, 24, 44, .78);
+  color: var(--cr-ink);
+  background: #fff;
   outline: none;
 }
 
 .field input:focus {
-  border-color: rgba(31, 147, 255, .7);
-  box-shadow: 0 0 0 2px rgba(31, 147, 255, .12);
+  border-color: var(--cr-blue-bottom);
+  box-shadow: 0 0 0 3px rgba(36, 121, 224, .25);
 }
 
 .error {

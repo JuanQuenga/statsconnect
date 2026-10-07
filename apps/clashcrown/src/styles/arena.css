@@ -415,7 +415,7 @@
   color: #fff;
   text-align: center;
   background:
-    url("/images/theme/subreddit/arena-wall-upscaled.png") center top / auto 100% repeat-x,
+    url("/images/theme/subreddit/arena-wall.png") center top / auto 100% repeat-x,
     #8e8399;
 }
 
@@ -626,4 +626,273 @@
   .site-frame-clash .home-data-message[data-state="loading"] { animation: none; }
   .cr-explore a:hover,
   .cr-explore a:hover img { transform: none; }
+}
+
+/* --- Content panels -----------------------------------------------------
+ * Every route's .profile-section becomes the same game panel as the home
+ * page: navy outline, steel body, lip. The heading that opens a panel turns
+ * into its blue title bar; headings deeper inside are set in the game font in
+ * navy. The player page's .profile-story wrapper becomes a plain stack so its
+ * sections get their own panels like every other page. */
+
+.site-frame-clash .profile-section:not(.profile-section .profile-section) {
+  --background: var(--cr-body);
+  --card: #fff;
+  --border: var(--cr-rule);
+  --line-soft: var(--cr-rule);
+  --muted-foreground: var(--cr-copy);
+  --foreground: var(--cr-ink);
+  position: relative;
+  margin: 0 0 28px;
+  padding: 24px 26px 26px;
+  overflow: hidden;
+  border: 3px solid var(--cr-ink);
+  border-radius: 16px;
+  color: var(--cr-ink);
+  background: var(--cr-body);
+  box-shadow: 0 5px 0 var(--cr-ink), 0 18px 30px rgba(40, 24, 60, .24);
+}
+
+.site-frame-clash .profile-story {
+  display: grid;
+  gap: 28px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.site-frame-clash .profile-story > .profile-section { margin: 0; border-top: 3px solid var(--cr-ink); }
+
+/* Opening heading → title bar. */
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading, h2):first-child {
+  min-height: 60px;
+  margin: -24px -26px 22px;
+  padding: 10px 16px 10px 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  border-bottom: 3px solid var(--cr-ink);
+  color: #e6f2ff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .22), transparent 48%),
+    linear-gradient(180deg, var(--cr-bar-top), var(--cr-bar-bottom));
+  text-align: left;
+}
+
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child :is(h2, h3),
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > h2:first-child {
+  margin: 0;
+  color: #fff;
+  font: 400 clamp(19px, 2vw, 24px)/1.15 var(--font-display);
+  letter-spacing: .01em;
+  -webkit-text-stroke: .14em var(--cr-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 .1em 0 var(--cr-ink);
+}
+
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child :is(p, span:not(button span), small, time) {
+  max-width: 64ch;
+  margin: 0;
+  color: #e6f2ff;
+  font-size: 13px;
+  text-shadow: 0 1px 0 var(--cr-blue-lip);
+}
+
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child > div:first-child { display: grid; gap: 3px; }
+
+/* Buttons and selects that live in a title bar read as bar controls. */
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child :is(button, select, a):not(.primary-button, .cr-tabs > *) {
+  min-height: 36px;
+  border: 2px solid var(--cr-ink);
+  border-radius: 9px;
+  color: var(--cr-ink);
+  background: var(--cr-body);
+  box-shadow: 0 2px 0 var(--cr-ink);
+  text-shadow: none;
+}
+
+/* Headings inside a panel body: game font, navy, no outline. */
+.site-frame-clash .profile-section :is(h2, h3) {
+  color: var(--cr-ink);
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+
+.site-frame-clash .profile-section :is(h2, h3):not(.profile-section > :first-child *, .profile-section > h2:first-child) {
+  font-size: clamp(17px, 1.6vw, 21px);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+/* Explanatory notes read left-aligned at body size. */
+.site-frame-clash .profile-section :is(.table-note, .card-report-note) { text-align: left; }
+
+/* Title bars always span the panel, whatever the heading's own sizing. */
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading, h2):first-child {
+  width: calc(100% + 52px);
+  max-width: none;
+  box-sizing: border-box;
+  align-self: stretch;
+  justify-self: stretch;
+}
+
+.site-frame-clash .profile-section:is(.empty-panel, :has(> h2:first-child + p:last-child)) { text-align: center; }
+.site-frame-clash .profile-section:not(.profile-section .profile-section):is(.empty-panel, :has(> h2:first-child + p:last-child)) > h2:first-child { justify-content: center; }
+
+.site-frame-clash .cr-tabs > :is(button, a) { white-space: nowrap; }
+
+/* Every route hero title carries the game lettering, not just the list pages. */
+.site-frame-clash :is(.editorial-hero, .guide-detail-hero, .card-detail-hero, .clan-hero, .profile-hero) h1 {
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: .01em;
+  line-height: 1.1;
+  -webkit-text-stroke: .12em var(--cr-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 .08em 0 var(--cr-ink);
+}
+
+/* Small copy on the bright sky gets the same navy edge as the hero copy. */
+.site-frame-clash :is(.arena-hero-frame, .card-detail-hero, .clan-hero, .guide-detail-hero) :is(p, small, span, time):not(.cr-tabs *, button *, .primary-button *, .summary-tile *) {
+  text-shadow: 0 1px 0 var(--cr-ink), 0 0 10px rgba(14, 37, 70, .55);
+}
+
+/* Clan hero stat tiles: steel chips with navy values (the legacy rules left
+   the value white on a white tile). */
+.site-frame-clash .summary-tile {
+  min-height: 60px;
+  height: auto;
+  padding: 8px 16px;
+  border: 2px solid var(--cr-ink);
+  border-radius: 12px;
+  background: var(--cr-body);
+  box-shadow: 0 3px 0 var(--cr-ink);
+  text-shadow: none;
+}
+
+.site-frame-clash .summary-tile strong { display: block; color: var(--cr-ink); font: 400 18px/1.1 var(--font-display); text-shadow: none; }
+.site-frame-clash .summary-tile span { color: var(--cr-copy); font: 650 12px/1.3 var(--font-ui); text-shadow: none; }
+.site-frame-clash .summary-tile > div,
+.site-frame-clash .summary-tile { justify-content: flex-start; }
+
+.site-frame-clash .clan-progress .progress-item strong { color: var(--cr-ink); }
+.site-frame-clash .clan-progress .progress-item strong span { color: var(--cr-copy); font: 650 13px/1.3 var(--font-ui); }
+.site-frame-clash .summary-tile {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-content: center;
+  align-items: center;
+}
+.site-frame-clash .summary-tile > img { grid-row: 1 / span 2; }
+.site-frame-clash .summary-tile > strong { align-self: end; }
+.site-frame-clash .summary-tile > span { align-self: start; }
+
+
+/* Remaining white cards that sit straight on the stone become game panels. */
+.site-frame-clash .history-coverage { padding: 18px 22px; }
+
+.site-frame-clash :is(.meta-controls, .history-coverage, .discovery-filter-panel, .tool-card, .tool-explainer, .utility-links > a, .news-card) {
+  border: 3px solid var(--cr-ink);
+  border-radius: 16px;
+  color: var(--cr-ink);
+  background: var(--cr-body);
+  box-shadow: 0 5px 0 var(--cr-ink), 0 18px 30px rgba(40, 24, 60, .22);
+}
+
+.site-frame-clash .news-card { overflow: hidden; transition: transform .14s ease; }
+.site-frame-clash .news-card:hover { transform: translateY(-3px); }
+.site-frame-clash .news-card :is(h2, h3) { color: var(--cr-ink); font-family: var(--font-display); font-weight: 400; letter-spacing: .01em; }
+.site-frame-clash .news-card img { border-bottom: 3px solid var(--cr-ink); }
+
+.site-frame-clash .utility-links > a { transition: transform .14s ease; }
+.site-frame-clash .utility-links > a:hover { transform: translateY(-3px); }
+.site-frame-clash :is(.tool-card, .tool-explainer, .utility-links > a, .discovery-filter-panel) :is(h2, h3) {
+  color: var(--cr-ink);
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+
+.site-frame-clash .tool-icon {
+  border: 2px solid var(--cr-ink);
+  background: linear-gradient(180deg, var(--cr-blue-top), var(--cr-blue-bottom));
+  box-shadow: inset 0 -3px 0 var(--cr-blue-lip);
+}
+
+/* Deck results: each deck is a white card inside the results panel. */
+.site-frame-clash .observed-deck-card {
+  border: 2px solid var(--cr-rule);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--cr-rule);
+}
+
+/* Secondary buttons (Use in builder, Matchups, Copy, Share…) get the game's
+   steel button so they read as buttons next to the gold ones. */
+.site-frame-clash main :is(.secondary-button, .ghost-button, .deck-action, .matchup-button) {
+  border: 2px solid var(--cr-ink);
+  border-radius: 10px;
+  color: var(--cr-ink);
+  background: var(--cr-body);
+  box-shadow: 0 2px 0 var(--cr-ink);
+}
+
+/* An empty-state heading is a message, not a panel title: keep it plain. */
+.site-frame-clash .profile-section:not(.profile-section .profile-section):is(.empty-panel, :has(> h2:first-child + p:last-child)) > h2:first-child {
+  width: auto;
+  min-height: 0;
+  margin: 8px 0 10px;
+  padding: 0;
+  justify-content: center;
+  border: 0;
+  color: var(--cr-ink);
+  background: none;
+  font-size: clamp(19px, 2vw, 23px);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+/* Clan members: the static sort label moves after the title so the bar
+   reads title-first, left aligned. */
+.site-frame-clash .profile-section > .section-heading:first-child { display: flex; }
+.site-frame-clash .profile-section > .section-heading:first-child > h2 { order: -1; text-align: left; }
+.site-frame-clash .profile-section:not(.profile-section .profile-section) > .section-heading:first-child > .filter-button.static {
+  margin-left: auto;
+  width: auto;
+  height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid var(--cr-ink);
+  border-radius: 9px;
+  color: var(--cr-ink);
+  background: var(--cr-body);
+  font: 750 13px/1 var(--font-ui);
+  text-shadow: none;
+}
+.site-frame-clash .profile-section > .section-heading:first-child > .update-tools { display: flex; align-items: center; gap: 10px; }
+
+/* Copy sitting directly on the stone needs the hero treatment to read. */
+.site-frame-clash main > :is(.page, .editorial-page, .profile-page, .decks-page) > :is(p, small, .table-note, .history-summary *) {
+  color: #fff;
+  text-shadow: 0 1px 0 var(--cr-ink), 0 0 8px rgba(14, 37, 70, .6);
+}
+
+@media (max-width: 600px) {
+  .site-frame-clash .profile-section:not(.profile-section .profile-section) { padding: 18px 16px 20px; }
+  .site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading, h2):first-child {
+    width: calc(100% + 32px);
+    margin: -18px -16px 18px;
+    padding: 10px 12px 10px 16px;
+  }
+  .site-frame-clash :is(.meta-controls, .history-coverage, .discovery-filter-panel, .tool-card, .tool-explainer) { padding: 16px; }
 }
