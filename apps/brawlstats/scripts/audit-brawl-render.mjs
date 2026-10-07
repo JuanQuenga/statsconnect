@@ -272,7 +272,13 @@ async function main() {
     await page.goto(url); await page.waitForFunction(() => Boolean(window.audit)); messages.length = 0;
   }
   try {
-    browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage'] });
+    // SwiftShader works everywhere (Linux ARM64 has no GPU path); set
+    // AUDIT_ANGLE=metal on macOS to render on the GPU, which is far faster.
+    const angle = process.env.AUDIT_ANGLE || 'swiftshader';
+    const glArgs = angle === 'swiftshader'
+      ? ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+      : ['--use-gl=angle', `--use-angle=${angle}`];
+    browser = await chromium.launch({ headless: true, args: [...glArgs, '--disable-dev-shm-usage'] });
     const context = await browser.newContext({ viewport: { width: 512, height: 512 }, deviceScaleFactor: 1, serviceWorkers: 'block' });
     page = await context.newPage(); page.setDefaultTimeout(120000);
     page.on('pageerror', error => { console.error('page exception:',String(error));if(messages.length<100) messages.push(String(error)); }); page.on('console', msg => { if (msg.type() === 'error' && messages.length<100) messages.push(msg.text()); });
