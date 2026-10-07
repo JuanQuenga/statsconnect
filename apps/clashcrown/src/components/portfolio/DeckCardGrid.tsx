@@ -1,3 +1,4 @@
+import { isUnreportedCard } from "@/lib/clash/assets";
 import Link from "@/components/Link";
 import { GameCardArt } from "@/components/portfolio/GameCardArt";
 import { cardSlug } from "@/lib/clash/cards";
@@ -30,6 +31,18 @@ export function DeckCardGrid({
       aria-label={label}
     >
       {cards.map((card, index) => {
+        if (isUnreportedCard(card)) {
+          return (
+            <span
+              className="profile-deck-grid-slot cr-deck-unreported"
+              title="Supercell's profile data left this card out. It fills in once this deck shows up in the player's battle log."
+              key={`unreported-${index}`}
+            >
+              <span aria-hidden="true">?</span>
+              <small>Not reported</small>
+            </span>
+          );
+        }
         const evolve = typeof card.id === "number" && evolvedIds.has(card.id);
         const cardLabel = evolve ? `${card.name} (Evolution)` : card.variant ? `${card.name} (${card.variant})` : card.name;
         const art = <GameCardArt card={card} size={size === "compact" ? "library" : "deck"} evolve={evolve} priority={index < priorityCount} />;

@@ -3,7 +3,7 @@ import Link from "@/components/Link";
 import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { RefreshCcw, Shield } from "lucide-react";
-import { leagueImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
+import { isUnreportedCard, leagueImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
 import { analyzePlayerBattles, battleModeLabel } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
@@ -36,8 +36,9 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
   const recentBattles = player.battles.slice(0, 10);
   const performance = analyzePlayerBattles(recentBattles);
   const deck = player.deck.slice(0, 8);
-  const averageElixir = deck.length
-    ? deck.reduce((total, card) => total + card.elixir, 0) / deck.length
+  const knownDeck = deck.filter((card) => !isUnreportedCard(card));
+  const averageElixir = knownDeck.length
+    ? knownDeck.reduce((total, card) => total + card.elixir, 0) / knownDeck.length
     : undefined;
   const deckHasActions = deckLinkForCards(deck) !== undefined;
   const leagueLabel = currentLeague?.leagueNumber === undefined
@@ -446,8 +447,9 @@ export function PathOfLegendsSeasons({ player }: { player: Player }) {
 export function DeckOverview({ cards, supportCards = [] }: { cards: Card[]; supportCards?: Card[] }) {
   const { locale, t } = useI18n();
   if (!cards.length) return <EmptyPanel title={t("player.noDeck")} copy={t("player.noDeckCopy")} />;
-  const average = cards.reduce((sum, card) => sum + card.elixir, 0) / cards.length;
-  const cycle = [...cards].map((card) => card.elixir).filter((cost) => cost > 0).sort((a, b) => a - b).slice(0, 4).reduce((total, cost) => total + cost, 0);
+  const known = cards.filter((card) => !isUnreportedCard(card));
+  const average = known.reduce((sum, card) => sum + card.elixir, 0) / Math.max(known.length, 1);
+  const cycle = [...known].map((card) => card.elixir).filter((cost) => cost > 0).sort((a, b) => a - b).slice(0, 4).reduce((total, cost) => total + cost, 0);
   return (
     <section className="profile-section deck-overview">
       <div className="profile-section-heading current-deck-heading">

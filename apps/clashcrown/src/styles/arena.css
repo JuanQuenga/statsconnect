@@ -1055,3 +1055,20 @@
   .site-frame-clash .collection-select { flex: 1 1 45%; }
   .site-frame-clash .collection-select select { flex: 1; }
 }
+
+/* A deck slot Supercell's profile data left out: an empty slot, not a card. */
+.site-frame-clash .cr-deck-unreported {
+  aspect-ratio: 5 / 6;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  border: 2px dashed rgba(191, 227, 255, .55);
+  border-radius: 10px;
+  color: #bfe3ff;
+  background: rgba(14, 37, 70, .35);
+  cursor: help;
+}
+.site-frame-clash .cr-deck-unreported > span { font: 400 26px/1 var(--font-display); }
+.site-frame-clash .cr-deck-unreported small { font: 700 10px/1.2 var(--font-ui); text-align: center; }
+.site-frame-clash .profile-section .cr-deck-unreported { border-color: var(--cr-rule); color: var(--cr-copy); background: var(--cr-body-inset); }

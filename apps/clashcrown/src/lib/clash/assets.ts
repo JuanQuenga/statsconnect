@@ -16,6 +16,15 @@
 import type { ApiArena, ApiCard, ApiIconUrls } from "./types";
 
 export const UNKNOWN_CARD_IMAGE = "/images/cards/unknown.png";
+
+/**
+ * The padding slot `mapPlayerBundle` adds when Supercell's profile reports a
+ * seven-card deck and the battle log can't name the eighth card. It has no id,
+ * so it must never count toward elixir, cycle, or copy-deck links.
+ */
+export function isUnreportedCard(card: { id?: number; name: string }) {
+  return card.id === undefined && card.name === "Unknown Card";
+}
 export const NO_CLAN_BADGE_IMAGE = "/images/clan-badges/0.png";
 
 /** Normalizes a display name into the filename convention used by cr-api-assets. */
