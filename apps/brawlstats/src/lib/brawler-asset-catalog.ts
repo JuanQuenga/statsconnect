@@ -26,6 +26,10 @@ type CatalogAnimation = {
   readonly faceField?: string | null;
   /** sha256 of the exported GLB bytes; identical motion can live in different files. */
   readonly contentHash?: string;
+  /** sha256 of the quantised bone motion over the playback window. */
+  readonly motionHash?: string;
+  /** False when the exported GLB carries no animation clip (a static pose). */
+  readonly hasClip?: boolean;
 };
 
 type CatalogFace = {
@@ -223,7 +227,9 @@ function catalogEntry(value: unknown): BrawlerAssetCatalogEntry {
       const faceField = animation.faceField;
       if (faceField !== undefined && faceField !== null && typeof faceField !== "string") throw new Error("animation face association must be a field name or null");
       const contentHash = typeof animation.contentHash === "string" && /^[0-9a-f]{64}$/.test(animation.contentHash) ? animation.contentHash : undefined;
-      return [key, { symbol: typeof animation.symbol === "string" ? animation.symbol : null, exported: catalogAsset(animation.exported), label: typeof animation.label === "string" ? animation.label : key, startFrame: frameStart, endFrame: frameEnd, fps, speed, faceField, contentHash }];
+      const motionHash = typeof animation.motionHash === "string" && /^[0-9a-f]{64}$/.test(animation.motionHash) ? animation.motionHash : undefined;
+      const hasClip = animation.hasClip === false ? false : undefined;
+      return [key, { symbol: typeof animation.symbol === "string" ? animation.symbol : null, exported: catalogAsset(animation.exported), label: typeof animation.label === "string" ? animation.label : key, startFrame: frameStart, endFrame: frameEnd, fps, speed, faceField, contentHash, motionHash, hasClip }];
     })),
     faces: Object.fromEntries(Object.entries(faces).map(([key, value]) => {
       const face = record(value);
@@ -382,11 +388,22 @@ const SAME_MOTION_FRAME_SLACK = 5;
  * windows too short to read as motion are left out.
  */
 export function catalogAnimationOptions(entry: BrawlerAssetCatalogEntry): readonly CatalogAnimationOption[] {
-  const groups: { key: string; source: string; start: number; end: number; labels: string[] }[] = [];
+  const groups: { key: string; source: string; motion?: string; start: number; end: number; labels: string[] }[] = [];
   for (const [key, animation] of Object.entries(entry.animations)) {
     if (animation.exported.kind !== "ready") continue;
     const frames = animation.endFrame < 0 ? Infinity : animation.endFrame - animation.startFrame + 1;
     if (frames < MIN_ANIMATION_FRAMES) continue;
+    // A clipless export is a static pose; only Idle keeps it (as the rest pose).
+    if (animation.hasClip === false && key !== "IdleAnim") continue;
+    // The motion hash catches identical bone motion stored in different bytes
+    // (Secondary Skill == Idle, Hero Screen == Happy on some skins).
+    if (animation.motionHash) {
+      const sameMotion = groups.find((group) => group.motion === animation.motionHash);
+      if (sameMotion) {
+        if (!sameMotion.labels.includes(animation.label)) sameMotion.labels.push(animation.label);
+        continue;
+      }
+    }
     // Prefer the content hash: Hero Screen and Win clips are separate files
     // with byte-identical motion on dozens of skins, and their windows can
     // differ by a couple of trailing frames (Gus: 0-262 vs 0-260).
@@ -399,7 +416,7 @@ export function catalogAnimationOptions(entry: BrawlerAssetCatalogEntry): readon
     if (existing) {
       if (!existing.labels.includes(animation.label)) existing.labels.push(animation.label);
     } else {
-      groups.push({ key, source, start: animation.startFrame, end: animation.endFrame, labels: [animation.label] });
+      groups.push({ key, source, motion: animation.motionHash, start: animation.startFrame, end: animation.endFrame, labels: [animation.label] });
     }
   }
   return groups.map(({ key, labels }) => ({ key, label: labels.join(" / ") }));

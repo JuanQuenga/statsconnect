@@ -360,3 +360,24 @@ test("animation options also collapse different files whose bytes hash the same"
   const options = catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]);
   assert.deepEqual(options.map((option) => option.label), ["Win / Hero Screen", "Long Win", "Idle"]);
 });
+
+test("animation options merge identical bone motion and hide clipless non-idle exports", () => {
+  const source = fixture();
+  const motion = "c".repeat(64);
+  source.defaults[0].animations = {
+    IdleAnim: { symbol: "Idle", label: "Idle", exported: ready("/a/idle.glb"), startFrame: 0, endFrame: 60, motionHash: motion },
+    SecondarySkillAnim: { symbol: "Skill2", label: "Skill 2", exported: ready("/a/skill2.glb"), startFrame: 10, endFrame: 70, motionHash: motion },
+    PrimarySkillAnim: { symbol: "Skill1", label: "Skill 1", exported: ready("/a/skill1.glb"), startFrame: 0, endFrame: 30, hasClip: false },
+    WinAnim: { symbol: "Win", label: "Win", exported: ready("/a/win.glb"), startFrame: 0, endFrame: 90, motionHash: "d".repeat(64) },
+  } as never;
+  const options = catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]);
+  assert.deepEqual(options.map((option) => option.label), ["Idle / Skill 2", "Win"]);
+});
+
+test("a clipless idle stays available as the rest pose", () => {
+  const source = fixture();
+  source.defaults[0].animations = {
+    IdleAnim: { symbol: "Idle", label: "Idle", exported: ready("/a/idle.glb"), startFrame: 0, endFrame: 60, hasClip: false },
+  } as never;
+  assert.deepEqual(catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]).map((option) => option.label), ["Idle"]);
+});
