@@ -85,7 +85,7 @@ function Beta() {
 
         <section className="profile-section">
           <div className="beta-controls">
-            <div className="beta-tabs" role="group" aria-label="Battle mode">
+            <div className="beta-tabs cr-tabs" role="group" aria-label="Battle mode">
               {META_MODES.map((item) => (
                 <button
                   key={item}
@@ -97,7 +97,7 @@ function Beta() {
                 </button>
               ))}
             </div>
-            <div className="beta-tabs" role="group" aria-label="Time window">
+            <div className="beta-tabs cr-tabs" role="group" aria-label="Time window">
               {WINDOWS.map((item) => (
                 <button
                   key={item}

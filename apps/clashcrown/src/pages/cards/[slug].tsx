@@ -197,7 +197,7 @@ function CardStats({
             {isTowerTroop ? "Tower Troop usage in real battles" : "Usage in real battles"}
           </h2>
         </div>
-        <div className="card-mode-switch" role="group" aria-label="Battle mode">
+        <div className="card-mode-switch cr-tabs" role="group" aria-label="Battle mode">
           {META_MODES.map((item) => (
             <button
               key={item}

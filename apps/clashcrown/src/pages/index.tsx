@@ -143,7 +143,7 @@ function MetaTopDeck() {
         <h2>Top observed deck</h2>
         <Link href="/meta" className="primary-button">Full meta</Link>
       </div>
-      <div className="archetype-tabs" aria-label="Battle mode">
+      <div className="archetype-tabs cr-tabs" aria-label="Battle mode">
         {HOME_MODES.map((item) => (
           <Button
             key={item}

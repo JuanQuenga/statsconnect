@@ -157,7 +157,7 @@ function DeckPerformance({ cards }: { cards: Card[] }) {
   return (
     <section className="profile-section">
       <div className="section-heading discovery-heading"><h2>Exact-deck performance</h2></div>
-      <div className="beta-tabs" role="group" aria-label="Battle mode">
+      <div className="beta-tabs cr-tabs" role="group" aria-label="Battle mode">
         {META_MODES.map((item) => <button key={item} type="button" className={item === mode ? "beta-tab beta-tab-on" : "beta-tab"} onClick={() => setMode(item)}>{modeLabel(item)}</button>)}
       </div>
       {!complete ? <p className="empty-results">Pick all eight cards to look this deck up in the battle-log statistics.</p>

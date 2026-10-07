@@ -188,10 +188,10 @@ export function MetaAnalytics({ mode, windowDays, byId }: { mode: MetaMode; wind
       <section className="profile-section">
         <div className="section-heading"><h2>Daily usage trends</h2><span>{modeLabel(mode)} · {windowDays === 1 ? "24 hours" : `${windowDays} days`}</span></div>
         <div className="analytics-trend-controls">
-          <div className="beta-tabs" role="group" aria-label="Trend type">
+          <div className="beta-tabs cr-tabs" role="group" aria-label="Trend type">
             {(["card", "tower", "deck"] as const).map((kind) => <button key={kind} type="button" className={trendKind === kind ? "beta-tab beta-tab-on" : "beta-tab"} onClick={() => setTrendKind(kind)}>{kind === "tower" ? "Tower Troops" : `${kind}s`}</button>)}
           </div>
-          <div className="beta-tabs" role="group" aria-label="Trend metric">
+          <div className="beta-tabs cr-tabs" role="group" aria-label="Trend metric">
             <button type="button" className={trendMetric === "usageRate" ? "beta-tab beta-tab-on" : "beta-tab"} onClick={() => setTrendMetric("usageRate")}>Usage</button>
             <button type="button" className={trendMetric === "winRate" ? "beta-tab beta-tab-on" : "beta-tab"} onClick={() => setTrendMetric("winRate")}>Win rate</button>
           </div>

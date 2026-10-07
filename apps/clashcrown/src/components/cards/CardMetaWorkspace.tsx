@@ -110,48 +110,54 @@ export function CardMetaWorkspace({ library }: { library: CardLibrary }) {
       <section className={styles.controls} aria-label="Meta workspace controls">
         <div className={styles.controlRow}>
           <span className={styles.controlLabel}>Mode</span>
-          {META_MODES.map((item) => (
-            <button
-              className={item === mode ? `${styles.pill} ${styles.active}` : styles.pill}
-              key={item}
-              type="button"
-              aria-pressed={item === mode}
-              onClick={() => setMode(item)}
-            >
-              {modeLabel(item)}
-            </button>
-          ))}
+          <div className="cr-tabs" role="group" aria-label="Mode">
+            {META_MODES.map((item) => (
+              <button
+                className={item === mode ? `${styles.pill} ${styles.active}` : styles.pill}
+                key={item}
+                type="button"
+                aria-pressed={item === mode}
+                onClick={() => setMode(item)}
+              >
+                {modeLabel(item)}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={styles.controlRow}>
           <span className={styles.controlLabel}>Window</span>
-          {[1, 7].map((days) => (
-            <button
-              className={days === windowDays ? `${styles.pill} ${styles.active}` : styles.pill}
-              key={days}
-              type="button"
-              aria-pressed={days === windowDays}
-              onClick={() => setWindowDays(days === 1 ? 1 : 7)}
-            >
-              {days === 1 ? "24 hours" : "7 days"}
-            </button>
-          ))}
+          <div className="cr-tabs" role="group" aria-label="Window">
+            {[1, 7].map((days) => (
+              <button
+                className={days === windowDays ? `${styles.pill} ${styles.active}` : styles.pill}
+                key={days}
+                type="button"
+                aria-pressed={days === windowDays}
+                onClick={() => setWindowDays(days === 1 ? 1 : 7)}
+              >
+                {days === 1 ? "24 hours" : "7 days"}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={styles.controlRow}>
-              <span className={styles.controlLabel}>Browse</span>
-          {CATALOG_SEGMENTS.map((item) => (
-            <button
-              className={item === segment ? `${styles.pill} ${styles.active}` : styles.pill}
-              key={item}
-              type="button"
-              aria-pressed={item === segment}
-              onClick={() => {
-                setSegment(item);
-                setFilters((current) => normalizeFiltersForSegment(item, current));
-              }}
-            >
-              {item === "cards" ? "Cards" : "Tower Troops"}
-            </button>
-          ))}
+          <span className={styles.controlLabel}>Browse</span>
+          <div className="cr-tabs" role="group" aria-label="Browse">
+            {CATALOG_SEGMENTS.map((item) => (
+              <button
+                className={item === segment ? `${styles.pill} ${styles.active}` : styles.pill}
+                key={item}
+                type="button"
+                aria-pressed={item === segment}
+                onClick={() => {
+                  setSegment(item);
+                  setFilters((current) => normalizeFiltersForSegment(item, current));
+                }}
+              >
+                {item === "cards" ? "Cards" : "Tower Troops"}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -169,7 +175,7 @@ export function CardMetaWorkspace({ library }: { library: CardLibrary }) {
             <Link className={styles.detailLink} href="/meta">Open full meta report →</Link>
           </div>
 
-          <div className={styles.tabs} role="tablist" aria-label="Card ranking type">
+          <div className={`${styles.tabs} cr-tabs`} role="tablist" aria-label="Card ranking type">
             {CARD_META_TABS.map((item) => (
               <button
                 className={item === tab ? `${styles.tab} ${styles.active}` : styles.tab}
