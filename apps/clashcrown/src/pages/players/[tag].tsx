@@ -112,26 +112,28 @@ function PlayerDashboard({
             <PlayerProfileDetails player={player} />
             <ProgressionChart player={player} />
             <PathOfLegendsSeasons player={player} />
-            <section className="history-callout">
+            <section className="profile-section cr-callout">
               <div>
                 <h2>Profile history</h2>
                 <p>See when trophies, deck, clan, and collection totals changed across observed profile checks.</p>
               </div>
-              <Link href={`/players/${player.tag.replace(/^#/, "")}/history`} className="primary-button">Open history</Link>
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/history`} className="primary-button cr-button-blue">Open history</Link>
             </section>
             <PlayerBadgeSection badges={player.badges} />
             <PlayerAchievementsSection achievements={player.achievements} />
           </div>
         ) : null}
         {activeTab === "Battles" ? <BattleHistory battles={player.battles} playerName={player.name} /> : null}
-        {activeTab === "Decks" ? <><DeckAnalyticsSection battles={player.battles} /><DeckOverview cards={player.deck} supportCards={player.supportCards} /></> : null}
+        {activeTab === "Decks" ? <><DeckOverview cards={player.deck} supportCards={player.supportCards} /><DeckAnalyticsSection battles={player.battles} /></> : null}
         {activeTab === "Cards" ? (
           <>
-            <div className="section-heading compact-heading">
-              <span />
-              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="primary-button">{t("player.upgradePlanner")}</Link>
-              <span />
-            </div>
+            <section className="profile-section cr-callout">
+              <div>
+                <h2>{t("player.upgradePlanner")}</h2>
+                <p>What {player.name} can upgrade today, what&rsquo;s close, and the gold left to max the collection.</p>
+              </div>
+              <Link href={`/players/${player.tag.replace(/^#/, "")}/upgrades`} className="primary-button">Open planner</Link>
+            </section>
             <CardCollection player={player} catalogCards={catalogCards} catalogLoading={catalogLoading} catalogError={catalogError} />
           </>
         ) : null}

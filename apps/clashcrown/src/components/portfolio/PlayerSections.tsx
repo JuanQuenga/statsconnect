@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { RefreshCcw, Shield } from "lucide-react";
 import { leagueImage, NO_CLAN_BADGE_IMAGE } from "@/lib/clash/assets";
-import { analyzePlayerBattles } from "@/lib/clash/battles";
+import { analyzePlayerBattles, battleModeLabel } from "@/lib/clash/battles";
 import { cardSlug } from "@/lib/clash/cards";
 import { isConvexConfigured, profileHistoryQuery } from "@/lib/convex";
 import { CardArt } from "@/components/portfolio/CardArt";
@@ -20,6 +20,7 @@ import { Card as UiCard, CardContent, CardFooter, CardHeader, CardTitle } from "
 import type { Battle, Card, Chest, PathOfLegendsResult, Player } from "@/lib/clash/domain";
 import type { ProfileHistoryPoint } from "@/lib/clash/types";
 import { useI18n, type Locale, type MessageKey } from "@/lib/i18n";
+import heroStyles from "./PlayerHero.module.css";
 
 const tabItems = [
   { label: "Statistics", message: "player.statistics", icon: "/images/ui-icons/trophies.png" },
@@ -62,124 +63,82 @@ export function PlayerHero({ player, actions }: { player: Player; actions?: Reac
   );
 
   return (
-    <ArenaHeroFrame className="profile-hero">
-      <div className="profile-hero-glow" aria-hidden="true" />
-      <div className="profile-hero-proposal">
-        <header className="profile-hero-identity">
-          <div className="profile-hero-nameplate">
-            <div className="profile-hero-title">
-              <h1>{player.name}</h1>
-              {player.level !== undefined ? (
-                <span className="profile-hero-level" aria-label={`${spanish ? "Nivel del rey" : "King level"} ${player.level}`}>
-                  <Image src="/images/ui-icons/playerlevel.png" alt="" width={52} height={52} />
-                  <strong aria-hidden="true">{player.level}</strong>
-                </span>
-              ) : null}
-            </div>
+    <ArenaHeroFrame className={heroStyles.hero}>
+      <div className={heroStyles.inner}>
+        <header className={heroStyles.identity}>
+          {player.level !== undefined ? (
+            <span className={heroStyles.level} aria-label={`${spanish ? "Nivel del rey" : "King level"} ${player.level}`}>
+              <Image src="/images/ui-icons/playerlevel.png" alt="" width={64} height={64} />
+              <strong aria-hidden="true">{player.level}</strong>
+            </span>
+          ) : null}
+          <div className={heroStyles.nameplate}>
+            <h1>{player.name}</h1>
             <p>
-              <strong>#{player.tag}</strong>
-              <span aria-hidden="true">·</span>
+              <span>#{player.tag}</span>
               {player.clanTag ? (
-                <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`}>
+                <Link href={`/clans/${player.clanTag.replace(/^#/, "")}`} className={heroStyles.clan}>
                   <CardArt src={player.clanBadge ?? NO_CLAN_BADGE_IMAGE} alt="" width={20} height={22} fallback={NO_CLAN_BADGE_IMAGE} />
                   {clanLabel}
                 </Link>
-              ) : <span><Shield size={13} /> {clanLabel}</span>}
+              ) : <span className={heroStyles.clan}><Shield size={14} aria-hidden="true" /> {clanLabel}</span>}
             </p>
           </div>
-          <div className="profile-hero-standing">
-            {currentLeague ? (
-              <div className="profile-standing-lockup">
-                <Image src={leagueImage(currentLeague.leagueNumber)} alt="" width={60} height={60} priority />
-                <div>
-                  <small>Path of Legends</small>
-                  <strong>{leagueLabel}</strong>
-                  <span>
-                    {currentLeague.trophies !== undefined ? formatNumber(currentLeague.trophies) : "—"}
-                    {currentLeague.rank ? ` · #${formatNumber(currentLeague.rank)}` : ""}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="profile-standing-lockup">
-                <Image src={player.arenaImage} alt="" width={60} height={60} priority />
-                <div>
-                  <small>{spanish ? "Camino de trofeos" : "Trophy Road"}</small>
-                  <strong>{player.arena}</strong>
-                </div>
-              </div>
-            )}
-            <span className="profile-hero-freshness">{updatedLabel(player.fetchedAt, locale)}</span>
+          <div className={heroStyles.standing}>
+            <Image src={currentLeague ? leagueImage(currentLeague.leagueNumber) : player.arenaImage} alt="" width={64} height={64} priority />
+            <div>
+              <small>{currentLeague ? "Path of Legends" : spanish ? "Camino de trofeos" : "Trophy Road"}</small>
+              <strong>{currentLeague ? leagueLabel : player.arena}</strong>
+              {currentLeague?.rank ? <span>#{formatNumber(currentLeague.rank)}</span> : null}
+            </div>
           </div>
         </header>
 
         {ledger.length ? (
-          <section className="profile-hero-ledger" aria-label={spanish ? "Trayectoria" : "Career ledger"}>
+          <dl className={heroStyles.ledger} aria-label={spanish ? "Trayectoria" : "Career ledger"}>
             {ledger.map((tile) => (
-              <div className="profile-ledger-tile" key={tile.label} data-gold={tile.gold ? "" : undefined}>
-                <small>{tile.label}</small>
-                <strong>{formatNumber(tile.value)}</strong>
+              <div key={tile.label} data-gold={tile.gold ? "" : undefined}>
+                <dt>{tile.label}</dt>
+                <dd>{formatNumber(tile.value)}</dd>
               </div>
             ))}
-          </section>
+          </dl>
         ) : null}
 
-        <div className="profile-hero-main">
-          <section className="profile-hero-deck" aria-label={spanish ? "Mazo actual" : "Current deck"}>
-            <header>
-              <div
-                className="profile-hero-elixir"
-                aria-label={averageElixir === undefined
-                  ? (spanish ? "Elixir promedio no disponible" : "Average elixir unavailable")
-                  : `${averageElixir.toFixed(1)} ${spanish ? "de elixir promedio" : "average elixir"}`}
-              >
-                <Image src="/images/ui-icons/elixir.png" alt="" width={46} height={55} />
-                <span aria-hidden="true">
-                  <strong>{averageElixir?.toFixed(1) ?? "—"}</strong>
-                  <small>{spanish ? "Elixir prom." : "Avg. elixir"}</small>
-                </span>
-              </div>
-              <div className="profile-hero-deck-tools">
-                {deckHasActions ? <DeckActions cards={deck} label={spanish ? "mazo actual" : "current deck"} compact /> : null}
-              </div>
-            </header>
+        <div className={heroStyles.deckRow} data-has-form={performance.recent.length ? "" : undefined}>
+          <section className={heroStyles.deck} aria-label={spanish ? "Mazo actual" : "Current deck"}>
+            <div className={heroStyles.deckMeta}>
+              <span className={heroStyles.elixir}>
+                <Image src="/images/ui-icons/elixir.png" alt="" width={30} height={36} />
+                <strong>{averageElixir?.toFixed(1) ?? "—"}</strong>
+              </span>
+              <small>{spanish ? "Mazo actual" : "Current deck"}</small>
+              {deckHasActions ? <DeckActions cards={deck} label={spanish ? "mazo actual" : "current deck"} compact /> : null}
+            </div>
             {deck.length ? (
-              <DeckCardGrid cards={deck} label={spanish ? "Cartas del mazo actual" : "Current deck cards"} size="compact" priorityCount={4} className="profile-hero-deck-grid" />
+              <DeckCardGrid cards={deck} label={spanish ? "Cartas del mazo actual" : "Current deck cards"} size="compact" priorityCount={8} className={heroStyles.deckGrid} />
             ) : <p>{spanish ? "El perfil no incluye un mazo actual." : "This profile does not include a current deck."}</p>}
           </section>
 
-          <section className="profile-recent-form" aria-label={spanish ? "Forma reciente" : "Recent form"}>
-            <small className="profile-form-title">{spanish ? "Forma reciente" : "Recent form"}</small>
-            {performance.recent.length ? (
-              <>
-                <div className="profile-form-record">
-                  <strong>{`${performance.wins}–${performance.losses}${performance.draws ? `–${performance.draws}` : ""}`}</strong>
-                  <div className="profile-form-pips" role="list" aria-label={`${spanish ? "Últimas" : "Last"} ${performance.recent.length} ${spanish ? "batallas registradas" : "recorded battles"}`}>
-                    {performance.recent.map((battle, index) => (
-                      <span key={`${battle.date}-${battle.opponent}-${index}`} className={battle.result.toLowerCase()} role="listitem" aria-label={battle.result}>
-                        {battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L"}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="profile-form-side">
-                  <div>
-                    <small>{spanish ? "Victorias" : "Win rate"}</small>
-                    <strong>{performance.winRate.toFixed(0)}%</strong>
-                  </div>
-                  <div>
-                    <small>{spanish ? "Racha" : "Streak"}</small>
-                    <strong>{resultStreak(recentBattles)}</strong>
-                  </div>
-                </div>
-                <p>{spanish ? `Últimas ${performance.recent.length} batallas registradas` : `Last ${performance.recent.length} recorded battles`}</p>
-              </>
-            ) : <p>{spanish ? "Sin batallas recientes registradas" : "No recent battles recorded"}</p>}
-          </section>
+          {performance.recent.length ? (
+            <section className={heroStyles.form} aria-label={spanish ? "Forma reciente" : "Recent form"}>
+              <small>{spanish ? `Últimas ${performance.recent.length}` : `Last ${performance.recent.length} battles`}</small>
+              <strong>{`${performance.wins}–${performance.losses}${performance.draws ? `–${performance.draws}` : ""}`}</strong>
+              <div className={heroStyles.pips} role="list">
+                {performance.recent.map((battle, index) => (
+                  <span key={`${battle.date}-${battle.opponent}-${index}`} data-result={battle.result.toLowerCase()} role="listitem" aria-label={battle.result}>
+                    {battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L"}
+                  </span>
+                ))}
+              </div>
+              <span>{performance.winRate.toFixed(0)}% {spanish ? "victorias" : "win rate"} · {spanish ? "racha" : "streak"} {resultStreak(recentBattles)}</span>
+            </section>
+          ) : null}
         </div>
 
-        <div className="profile-hero-actions" aria-label={spanish ? "Acciones del perfil" : "Profile actions"}>
-          {actions ? <div className="profile-primary-actions">{actions}</div> : null}
+        <div className={heroStyles.actions} aria-label={spanish ? "Acciones del perfil" : "Profile actions"}>
+          {actions ? <div>{actions}</div> : null}
+          <span className={heroStyles.freshness}>{updatedLabel(player.fetchedAt, locale)}</span>
           <PlayerShareActions player={player} compact />
         </div>
       </div>
@@ -306,20 +265,23 @@ function profileStatGroups(
           : (spanish ? "Total del catálogo no disponible" : "Catalog total unavailable")
       );
 
+  // Trophies, best, wins, three-crown wins, cards found, and battles already
+  // headline the hero ledger, so this section carries everything else.
+  const wins = stat("Wins");
+  const losses = stat("Losses");
+  const decided = (wins ?? 0) + (losses ?? 0);
+  const threeCrowns = stat("3 crown wins");
   const core = [
-    numberStat(spanish ? "Máximo de trofeos" : "Highest trophies", player.bestTrophies, "/images/icons/trophy.png"),
-    numberStat(spanish ? "Victorias" : "Wins", stat("Wins"), "/images/icons/sword.png"),
-    numberStat(spanish ? "Derrotas" : "Losses", stat("Losses"), "/images/icons/sword.png"),
-    numberStat(spanish ? "Victorias de 3 coronas" : "Three-crown wins", stat("3 crown wins"), "/images/icons/crown-gold.png"),
-    numberStat(spanish ? "Batallas" : "Battles", stat("Battles"), "/images/icons/sword.png"),
+    decided ? { label: spanish ? "Porcentaje de victorias" : "Career win rate", value: `${((wins ?? 0) / decided * 100).toFixed(1)}%`, icon: "/images/ui-icons/trophies.png", note: `${formatNumber(wins ?? 0)}W · ${formatNumber(losses ?? 0)}L` } : undefined,
+    numberStat(spanish ? "Derrotas" : "Losses", losses, "/images/icons/sword.png"),
+    wins && threeCrowns !== undefined ? { label: spanish ? "Victorias de 3 coronas" : "Three-crown rate", value: `${(threeCrowns / wins * 100).toFixed(1)}%`, icon: "/images/icons/crown-gold.png", note: spanish ? "de las victorias" : "of wins" } : undefined,
     numberStat(spanish ? "Donaciones totales" : "Total donations", stat("Total donations"), "/images/icons/crown-2d.png"),
     streak ? { label: spanish ? "Racha actual" : "Current streak", value: streak.value, icon: "/images/icons/crown-gold.png", note: streak.note } : undefined,
-    cardsFound,
-    stringStat(spanish ? "Carta favorita" : "Favorite card", player.favoriteCard?.name, "/images/icons/cardsq.png")
+    cardsFound && catalogCards.length ? cardsFound : undefined,
   ].filter((value): value is ProfileStat => value !== undefined);
 
   const groups: ProfileStatGroup[] = [
-    { title: spanish ? "Estadísticas principales" : "Core stats", icon: "/images/icons/trophy.png", stats: core },
+    { title: spanish ? "Carrera" : "Career", icon: "/images/icons/trophy.png", stats: core },
     {
       title: spanish ? "Guerras de clanes" : "Clan Wars",
       icon: "/images/icons/clans.png",
@@ -346,7 +308,8 @@ function profileStatGroups(
     }
   ];
 
-  return groups.filter((group) => group.stats.length);
+  // A group of all zeros (never played Clan Wars, say) is noise, not a stat.
+  return groups.filter((group, index) => group.stats.length && (index === 0 || group.stats.some((item) => item.value !== "0")));
 }
 
 function readPlayerStat(stats: Record<string, string>, label: string) {
@@ -372,9 +335,8 @@ function currentStreak(player: Player, formatNumber: (value: number) => string, 
 }
 
 export function PerformanceSection({ battles }: { battles: Battle[] }) {
-  const { locale } = useI18n();
   const performance = analyzePlayerBattles(battles);
-  if (!performance.games) return <EmptyPanel title={locale === "es" ? "Sin rendimiento de batallas" : "No battle performance yet"} copy={locale === "es" ? "El rendimiento aparecerá cuando el registro de este jugador tenga resultados." : "Performance will appear when this player's battle log has a result."} />;
+  if (!performance.games) return null;
 
   return (
     <section className="profile-section performance-section">
@@ -401,7 +363,7 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
               <tbody>
                 {performance.modes.map((mode) => (
                   <tr key={mode.mode}>
-                    <td>{mode.mode}</td>
+                    <td>{battleModeLabel(mode.mode)}</td>
                     <td>{mode.wins}–{mode.losses}</td>
                     <td>{mode.winRate.toFixed(1)}%</td>
                   </tr>
@@ -418,8 +380,8 @@ export function PerformanceSection({ battles }: { battles: Battle[] }) {
                 key={`${battle.date}-${battle.opponent}-${index}`}
                 className={`form-pip ${battle.result.toLowerCase()}`}
                 role="listitem"
-                title={`${battle.result} · ${battle.mode}`}
-                aria-label={`${battle.result}, ${battle.mode}`}
+                title={`${battle.result} · ${battleModeLabel(battle.mode)}`}
+                aria-label={`${battle.result}, ${battleModeLabel(battle.mode)}`}
               >
                 {battle.result === "Win" ? "W" : battle.result === "Draw" ? "D" : "L"}
               </span>
@@ -567,23 +529,6 @@ function winRateTone(winRate: number) {
   return "";
 }
 
-const BATTLE_MODE_LABELS: Record<string, string> = {
-  Ranked1v1_NewArena: "Ranked 1v1",
-  Ranked1v1: "Ranked 1v1",
-  Friendly: "Friendly battle",
-  clanWarCollectionDay: "Clan War collection",
-  clanWarWarDay: "Clan War battle",
-};
-
-function battleModeLabel(mode: string) {
-  return BATTLE_MODE_LABELS[mode] ?? mode
-    .replaceAll("_", " ")
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .replace(/\bNew Arena\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 export function CardCollection({
   player,
   catalogCards,
@@ -610,7 +555,7 @@ function updatedLabel(fetchedAt: number | undefined, locale: Locale) {
 }
 
 /** A single real snapshot is still more trustworthy than an inferred battle curve. */
-const MIN_OBSERVED_POINTS = 1;
+const MIN_OBSERVED_POINTS = 2;
 
 /**
  * Trophy chart for the Statistics tab. Prefers the real, visit-triggered
@@ -691,6 +636,7 @@ function InferredProgressionChart({ player }: { player: Player }) {
     return <EmptyPanel title="No trophy activity available" copy="A current Trophy Road total is not available for this player." />;
   }
   const recentBattles = player.battles.filter((battle) => battle.trophyChange !== undefined).slice(0, 10).reverse();
+  if (recentBattles.length < 2) return null;
   const startingTrophies = player.trophies - recentBattles.reduce((total, battle) => total + (battle.trophyChange ?? 0), 0);
   const values = recentBattles.reduce<number[]>((points, battle) => {
     points.push((points.at(-1) ?? startingTrophies) + (battle.trophyChange ?? 0));

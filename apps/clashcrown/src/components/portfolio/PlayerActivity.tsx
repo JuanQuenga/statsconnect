@@ -92,6 +92,15 @@ function ActivityGrid({
   const winRate = totalBattles ? Math.round((totalWins / totalBattles) * 100) : 0;
   const observed = source === "observed";
 
+  if (!totalBattles) {
+    return (
+      <section className="profile-section cr-activity-none">
+        <h2>Battle activity</h2>
+        <p>StatsConnect hasn&rsquo;t recorded any battles for this player in the last 90 days yet. Activity fills in as their battles are seen.</p>
+      </section>
+    );
+  }
+
   return (
     <ActivityFrame
       title="90-day battle activity"

@@ -286,3 +286,28 @@ export function modeLabel(mode: MetaMode) {
   };
   return labels[mode];
 }
+
+const BATTLE_MODE_LABELS: Record<string, string> = {
+  Ranked1v1_NewArena: "Ranked 1v1",
+  Ranked1v1_NewArena2: "Ranked 1v1",
+  Ranked1v1: "Ranked 1v1",
+  Ladder: "Trophy Road",
+  pathOfLegend: "Path of Legends",
+  PvP: "Trophy Road",
+  Friendly: "Friendly battle",
+  clanWarCollectionDay: "Clan War collection",
+  clanWarWarDay: "Clan War battle",
+  riverRacePvP: "River Race",
+  riverRaceDuel: "River Race duel",
+  boatBattle: "Boat battle",
+};
+
+/** Human label for a raw battle-log mode name such as `Ranked1v1_NewArena`. */
+export function battleModeLabel(mode: string) {
+  return BATTLE_MODE_LABELS[mode] ?? mode
+    .replaceAll("_", " ")
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/\bNew Arena\s*\d*\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}

@@ -913,3 +913,145 @@
   padding: 0 14px;
   border-bottom: 0;
 }
+
+/* --- Player profile ------------------------------------------------------ */
+
+/* Footer spacing already separates the page from the wall; drop the extra
+   page padding and trailing section margin that stacked on top of it. */
+.site-frame-clash .profile-page { padding-bottom: 0; }
+.site-frame-clash .profile-page > :last-child,
+.site-frame-clash .profile-story > :last-child { margin-bottom: 0; }
+.site-frame-clash .cr-footer { margin-top: clamp(56px, 6vw, 96px); }
+
+/* Career stats: one even grid of tiles instead of bordered list rows. */
+.site-frame-clash .profile-stat-groups { display: grid; gap: 22px; }
+.site-frame-clash .profile-stat-group { margin: 0; padding: 0; border: 0; }
+.site-frame-clash .profile-stat-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.site-frame-clash .profile-stat-group-heading img { width: 28px; height: 28px; }
+.site-frame-clash .profile-stat-group-heading h3 { margin: 0; font-size: 18px; }
+
+.site-frame-clash .profile-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0;
+  border: 0;
+}
+
+.site-frame-clash .profile-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px 14px;
+  border: 2px solid var(--cr-rule);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.site-frame-clash .profile-stat-card img { width: 32px; height: 32px; flex: none; }
+.site-frame-clash .profile-stat-card dt { color: var(--cr-copy); font: 700 12px/1.2 var(--font-ui); }
+.site-frame-clash .profile-stat-card dd { margin: 3px 0 0; color: var(--cr-ink); font: 400 22px/1.05 var(--font-display); }
+.site-frame-clash .profile-stat-card small { display: block; margin-top: 3px; color: var(--cr-copy); font: 600 12px/1.2 var(--font-ui); }
+
+/* Clan Wars, Challenges, and Tournaments sit side by side as smaller groups. */
+@media (min-width: 900px) {
+  .site-frame-clash .profile-stat-groups { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .site-frame-clash .profile-stat-group:first-child { grid-column: 1 / -1; }
+  .site-frame-clash .profile-stat-group:not(:first-child) .profile-stat-grid { grid-template-columns: 1fr 1fr; }
+  .site-frame-clash .profile-stat-group:not(:first-child) .profile-stat-card { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
+/* Callout panels (profile history, upgrade planner): one row, action right. */
+.site-frame-clash .profile-section.cr-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px 28px;
+  padding: 22px 26px;
+}
+
+.site-frame-clash .profile-section.cr-callout > div > h2:first-child {
+  width: auto;
+  min-height: 0;
+  margin: 0 0 6px;
+  padding: 0;
+  display: block;
+  border: 0;
+  color: var(--cr-ink);
+  background: none;
+  font-size: 20px;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.site-frame-clash .cr-callout p { margin: 0; color: var(--cr-copy); font: 550 14px/1.5 var(--font-ui); }
+.site-frame-clash .profile-page > .cr-callout { margin-bottom: 24px; }
+
+/* No observed activity: a single line, not an empty calendar. */
+.site-frame-clash .profile-section.cr-activity-none > h2:first-child { margin-bottom: 14px; }
+.site-frame-clash .cr-activity-none p { margin: 0; color: var(--cr-copy); font: 550 14px/1.5 var(--font-ui); }
+
+/* The activity card nests its own bordered card inside the panel; flatten it. */
+.site-frame-clash .cc-activity-section > .cc-activity-card { border: 0; border-radius: 0; background: none; box-shadow: none; }
+
+@media (max-width: 640px) {
+  .site-frame-clash .profile-section.cr-callout { flex-direction: column; align-items: flex-start; padding: 18px 16px; }
+}
+
+@media (min-width: 900px) {
+  .site-frame-clash .profile-stat-group:first-child .profile-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Card collection tab: labelled filters and collection-sized tiles. */
+.site-frame-clash .collection-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.site-frame-clash .collection-toolbar .collection-search { flex: 1 1 220px; }
+.site-frame-clash .collection-select { display: inline-flex; align-items: center; gap: 8px; width: auto; }
+.site-frame-clash .collection-select-label { color: var(--cr-copy); font: 700 13px/1 var(--font-ui); white-space: nowrap; }
+.site-frame-clash .collection-select select { width: auto; min-width: 0; }
+
+.site-frame-clash .collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.site-frame-clash .collection-card {
+  min-height: 0;
+  padding: 12px 8px 10px;
+  border: 2px solid var(--cr-rule);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+  transition: transform .12s ease, border-color .12s ease;
+}
+.site-frame-clash .collection-card:hover { border-color: var(--cr-ink); transform: translateY(-3px); }
+.site-frame-clash .collection-card .game-card-art { width: 92px; }
+.site-frame-clash .collection-card strong { font-size: 13px; }
+.site-frame-clash .collection-status-ready { color: #12804a; font-weight: 800; }
+
+/* Current deck tab: one row of eight, at a size that fits the panel. */
+.site-frame-clash .current-deck-cluster {
+  --deck-grid-max-width: 900px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.site-frame-clash .current-deck-support { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.site-frame-clash .current-deck-support h3 { margin: 0; font-size: 18px; }
+
+@media (max-width: 760px) {
+  .site-frame-clash .current-deck-cluster { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .site-frame-clash .collection-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .site-frame-clash .collection-card .game-card-art { width: 72px; }
+  .site-frame-clash .collection-select { flex: 1 1 45%; }
+  .site-frame-clash .collection-select select { flex: 1; }
+}

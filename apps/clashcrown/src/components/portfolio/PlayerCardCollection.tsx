@@ -145,7 +145,7 @@ export function PlayerCardCollection({
           disabledOptions={hasCatalog ? [] : ["Missing"]}
         />
         <SelectControl label="Level" value={level} onChange={(value) => setLevel(value as LevelFilter)} options={LEVELS} />
-        <SelectControl label="Sort collection" value={sort} onChange={(value) => setSort(value as Sort)} options={SORTS} />
+        <SelectControl label="Sort" value={sort} onChange={(value) => setSort(value as Sort)} options={SORTS} />
         <button type="button" className={onlyReady ? "toolbar-toggle toolbar-toggle-on" : "toolbar-toggle"} aria-pressed={onlyReady} onClick={() => setOnlyReady((value) => !value)}>Upgrade ready</button>
         <button type="button" className={onlyEvolutions ? "toolbar-toggle toolbar-toggle-on" : "toolbar-toggle"} aria-pressed={onlyEvolutions} onClick={() => setOnlyEvolutions((value) => !value)}>Evolution available</button>
       </div>
@@ -174,7 +174,7 @@ function SelectControl({
 }) {
   return (
     <label className="rarity-filter collection-select">
-      <span className="sr-only">{label}</span>
+      <span className="collection-select-label">{label}</span>
       <select value={value} aria-label={label} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => <option key={option} disabled={disabledOptions.includes(option)}>{option}</option>)}
       </select>
