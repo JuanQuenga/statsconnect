@@ -82,33 +82,42 @@ function MapDetailPage() {
 
       {map ? (
         <>
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
-            <div
-              className="relative aspect-video max-h-[360px] w-full overflow-hidden md:aspect-[21/9]"
+          {/* The whole map stays in view (sticky on wide screens) while the
+              stats scroll beside it; tap it to open the full-size image. */}
+          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-24">
+            <a
+              href={map.imageUrl || mapImageUrl(map.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="brawl-map-frame block"
               style={{ background: map.gameMode?.bgColor || "#1c2a44" }}
+              aria-label={`${map.name}: open the full-size map`}
             >
               <ImageWithFallback
                 src={map.imageUrl || mapImageUrl(map.id)}
                 fallbackSrc={mapImageUrl(map.id)}
-                alt={map.name}
-                className="h-full w-full object-cover"
+                alt={`${map.name} map layout`}
+                className="mx-auto block h-auto max-h-[78vh] w-full object-contain"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-transparent" />
-              <div className="absolute right-0 bottom-0 left-0 p-4 md:p-8">
-                <div className="mb-2 flex flex-wrap gap-2">
-                  <Badge style={{ background: map.gameMode?.color || "#ffd166", color: "#141414" }}>
-                    {map.gameMode?.name || t("common.mode")}
-                  </Badge>
-                  {map.disabled ? <Badge variant="secondary">{t("common.disabled")}</Badge> : null}
-                  {map.new ? <Badge>{t("common.new")}</Badge> : null}
-                </div>
-                <h1 className="font-display text-3xl md:text-5xl">{map.name}</h1>
-                <p className="mt-1 max-w-3xl text-xs text-foreground/75 md:mt-2 md:text-sm">
-                  {t("maps.sampleSummary", { samples: trophies(sampleSize), minimum: minPicks })}
-                </p>
-              </div>
+              <span className="brawl-map-zoom">Open full size</span>
+            </a>
+          </aside>
+
+          <div className="min-w-0 space-y-6">
+          <header>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Badge style={{ background: map.gameMode?.color || "#ffd166", color: "#141414" }}>
+                {map.gameMode?.name || t("common.mode")}
+              </Badge>
+              {map.disabled ? <Badge variant="secondary">{t("common.disabled")}</Badge> : null}
+              {map.new ? <Badge>{t("common.new")}</Badge> : null}
             </div>
-          </section>
+            <h1 className="font-display text-4xl md:text-5xl">{map.name}</h1>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              {t("maps.sampleSummary", { samples: trophies(sampleSize), minimum: minPicks })}
+            </p>
+          </header>
 
           <div className="flex flex-wrap gap-2">
             {(["all", "0-499", "500-999", "1000+"] as const).map((bucket) => (
@@ -185,10 +194,13 @@ function MapDetailPage() {
             </Tabs>
           )}
 
+          </div>
+          </div>
+
           {related.length ? (
             <section>
               <h2 className="mb-4 font-display text-2xl">{t("maps.moreMode", { mode: map.gameMode?.name || t("common.mode") })}</h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {related.map((item) => (
                   <Link
                     key={item.id}
@@ -200,7 +212,7 @@ function MapDetailPage() {
                       src={item.imageUrl || mapImageUrl(item.id)}
                       fallbackSrc={mapImageUrl(item.id)}
                       alt={item.name}
-                      className="aspect-video w-full object-cover"
+                      className="aspect-[69/105] w-full bg-[#0d1b3d] object-contain p-2"
                     />
                     <div className="p-3">
                       <p className="font-display text-lg">{item.name}</p>

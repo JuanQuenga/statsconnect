@@ -158,7 +158,7 @@ function MapsPage() {
           {visibleMaps.length} / {filtered.length} {t("common.maps").toLocaleLowerCase()}
         </p>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
           {visibleMaps.map((map) => (
             <Link
               key={map.id}
@@ -167,14 +167,14 @@ function MapsPage() {
               className="group overflow-hidden rounded-xl border border-border bg-card transition hover:border-primary/50"
             >
               <div
-                className="relative aspect-[16/10] overflow-hidden"
-                style={{ background: map.gameMode?.bgColor || map.gameMode?.color || "#1c2a44" }}
+                className="relative grid aspect-[69/105] place-items-center overflow-hidden border-t-4 bg-[#0d1b3d] p-2"
+                style={{ borderTopColor: map.gameMode?.color || "#3d7bf2" }}
               >
                 <ImageWithFallback
                   src={map.imageUrl || mapImageUrl(map.id)}
                   fallbackSrc={mapImageUrl(map.id)}
                   alt={map.name}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                   loading="lazy"
                 />
                 {map.disabled ? (

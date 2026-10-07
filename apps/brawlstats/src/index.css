@@ -453,3 +453,31 @@
 }
 .brawl-hero-news a:hover strong { color: var(--primary); }
 .brawl-hero-news-read { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 0.85rem; font-weight: 700; }
+
+/* Map detail: the full map, framed like an in-game event card. */
+.brawl-map-frame {
+  position: relative;
+  overflow: hidden;
+  padding: 10px;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 5px 0 var(--ink), 0 24px 40px rgba(2, 6, 20, .45);
+}
+.brawl-map-frame img { border-radius: 10px; }
+.brawl-map-zoom {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  padding: 4px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.brawl-map-frame:is(:hover, :focus-visible) .brawl-map-zoom { opacity: 1; }
+@media (hover: none) { .brawl-map-zoom { opacity: 1; } }
+
