@@ -24,6 +24,8 @@ type CatalogAnimation = {
   readonly fps: number;
   readonly speed?: number;
   readonly faceField?: string | null;
+  /** sha256 of the exported GLB bytes; identical motion can live in different files. */
+  readonly contentHash?: string;
 };
 
 type CatalogFace = {
@@ -50,6 +52,7 @@ type CatalogMaterialSlot = {
   readonly stencilUvPolicy?: StencilUvPolicy;
   readonly uvSource?: ScMaterialMetadata["uvSource"];
   readonly normalOutline?: boolean;
+  readonly outline?: ScMaterialMetadata["outline"];
   readonly diffuseTexture?: CatalogAsset;
   readonly diffuseLightmap?: CatalogAsset;
   readonly specularLightmap?: CatalogAsset;
@@ -163,6 +166,15 @@ function optionalAsset(source: Record<string, unknown>, key: string): CatalogAss
   return source[key] === undefined ? undefined : catalogAsset(source[key]);
 }
 
+function outlineParams(value: unknown): ScMaterialMetadata["outline"] {
+  if (value === undefined || value === null) return undefined;
+  const source = record(value);
+  const color = source.color;
+  if (typeof source.width !== "number" || !Number.isFinite(source.width) || source.width < 0) return undefined;
+  if (!Array.isArray(color) || color.length !== 4 || !color.every((part) => typeof part === "number" && Number.isFinite(part))) return undefined;
+  return { width: source.width, color: [color[0], color[1], color[2], color[3]] };
+}
+
 function catalogMaterialSlot(value: unknown): CatalogMaterialSlot {
   const source = record(value);
   if (typeof source.materialName !== "string" || source.materialName.length === 0) throw new Error("catalog material slot is missing its name");
@@ -177,6 +189,7 @@ function catalogMaterialSlot(value: unknown): CatalogMaterialSlot {
     stencilUvPolicy: stencilPolicy(source.stencilUvPolicy),
     uvSource: materialUvSource(source.uvSource),
     normalOutline: record(source.scBooleans ?? {}).enableNormalOutline === true ? true : undefined,
+    outline: outlineParams(source.outline),
     diffuseTexture: optionalAsset(source, "diffuseTexture"),
     diffuseLightmap: optionalAsset(source, "diffuseLightmap"),
     specularLightmap: optionalAsset(source, "specularLightmap"),
@@ -208,7 +221,8 @@ function catalogEntry(value: unknown): BrawlerAssetCatalogEntry {
       if (typeof speed !== "number" || !Number.isFinite(speed) || speed <= 0) throw new Error("animation speed must be a positive finite multiplier");
       const faceField = animation.faceField;
       if (faceField !== undefined && faceField !== null && typeof faceField !== "string") throw new Error("animation face association must be a field name or null");
-      return [key, { symbol: typeof animation.symbol === "string" ? animation.symbol : null, exported: catalogAsset(animation.exported), label: typeof animation.label === "string" ? animation.label : key, startFrame: frameStart, endFrame: frameEnd, fps, speed, faceField }];
+      const contentHash = typeof animation.contentHash === "string" && /^[0-9a-f]{64}$/.test(animation.contentHash) ? animation.contentHash : undefined;
+      return [key, { symbol: typeof animation.symbol === "string" ? animation.symbol : null, exported: catalogAsset(animation.exported), label: typeof animation.label === "string" ? animation.label : key, startFrame: frameStart, endFrame: frameEnd, fps, speed, faceField, contentHash }];
     })),
     faces: Object.fromEntries(Object.entries(faces).map(([key, value]) => {
       const face = record(value);
@@ -294,6 +308,7 @@ function viewerMaterialSlot(source: CatalogMaterialSlot, assetGroup: ViewerAsset
     stencilUvPolicy: source.stencilUvPolicy ?? (assetGroup === "reference-bridge" ? "flip-y" : "2x-flip-y"),
     uvSource: source.uvSource,
     ...(source.normalOutline ? { normalOutline: true } : {}),
+    ...(source.outline ? { outline: source.outline } : {}),
     ...(source.diffuseTexture === undefined ? {} : { diffuseTexture: viewerAsset(source.diffuseTexture) }),
     ...(source.diffuseLightmap === undefined ? {} : { diffuseLightmap: viewerAsset(source.diffuseLightmap) }),
     ...(source.specularLightmap === undefined ? {} : { specularLightmap: viewerAsset(source.specularLightmap) }),
@@ -369,7 +384,9 @@ export function catalogAnimationOptions(entry: BrawlerAssetCatalogEntry): readon
     if (animation.exported.kind !== "ready") continue;
     const frames = animation.endFrame < 0 ? Infinity : animation.endFrame - animation.startFrame + 1;
     if (frames < MIN_ANIMATION_FRAMES) continue;
-    const motion = `${animation.exported.url}#${animation.startFrame}-${animation.endFrame}`;
+    // Prefer the content hash: Hero Screen and Win clips are separate files
+    // with byte-identical motion on dozens of skins.
+    const motion = `${animation.contentHash ?? animation.exported.url}#${animation.startFrame}-${animation.endFrame}`;
     const existing = byMotion.get(motion);
     if (existing) {
       if (!existing.labels.includes(animation.label)) existing.labels.push(animation.label);

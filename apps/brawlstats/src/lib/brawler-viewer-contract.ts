@@ -66,6 +66,8 @@ export type ScMaterialMetadata = {
    * drawing them coincident with the body (which z-fights as it moves).
    */
   readonly normalOutline?: boolean;
+  /** Reference outline-hull parameters, when the catalog carries them. */
+  readonly outline?: { readonly width: number; readonly color: readonly [number, number, number, number] };
 };
 
 export type ScMaterialSlot = ScMaterialMetadata & {

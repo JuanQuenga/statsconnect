@@ -347,3 +347,15 @@ test("normal-outline material flags survive parsing into the viewer manifest", (
   const manifest = catalogEntryToViewerManifest(parseBrawlerAssetCatalog(source).defaults[0]);
   assert.equal(manifest?.materialSlots?.[0].normalOutline, true);
 });
+
+test("animation options also collapse different files whose bytes hash the same", () => {
+  const source = fixture();
+  const hash = "a".repeat(64);
+  source.defaults[0].animations = {
+    WinAnim: { symbol: "CrowWin", label: "Win", exported: ready("/a/win.glb"), startFrame: 0, endFrame: 260, contentHash: hash },
+    HeroScreenAnim: { symbol: "CrowHero", label: "Hero Screen", exported: ready("/a/hero.glb"), startFrame: 0, endFrame: 260, contentHash: hash },
+    IdleAnim: { symbol: "CrowIdle", label: "Idle", exported: ready("/a/idle.glb"), startFrame: 0, endFrame: 60, contentHash: "b".repeat(64) },
+  } as never;
+  const options = catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]);
+  assert.deepEqual(options.map((option) => option.label), ["Win / Hero Screen", "Idle"]);
+});
