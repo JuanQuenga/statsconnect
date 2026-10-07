@@ -68,7 +68,7 @@ const baseEnglish = {
   "search.exactTag": "Exact player tag",
   "search.empty": "No tracked players yet. Try an exact #tag.",
   "home.description":
-    "Track players, clubs, event rotation, map meta, and official rankings — powered by the Brawl Stars API and first-party battle aggregation.",
+    "Look up any player or club, see which maps are live right now, and find the brawlers that are winning them.",
   "home.viewPlayer": "View player",
   "home.mapsMeta": "Maps & meta",
   "home.heroAlt": "Colt, Shelly, and Spike from Brawl Stars",
@@ -87,6 +87,7 @@ const baseEnglish = {
   "home.globalRankings": "Global rankings",
   "home.topPlayers": "Top players",
   "home.topClub": "Top club",
+  "home.topClubs": "Top clubs",
   "player.title": "Find any tracked player",
   "player.searchTitle": "Search by player name or tag",
   "player.searchDetail":
@@ -467,6 +468,7 @@ const esBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Clasificaciones globales",
   "home.topPlayers": "Los mejores jugadores",
   "home.topClub": "club superior",
+  "home.topClubs": "Mejores clubes",
   "player.title": "Encuentra cualquier jugador rastreado",
   "player.searchTitle": "Buscar por nombre o etiqueta de jugador",
   "player.searchDetail":
@@ -851,6 +853,7 @@ const deBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Globale Rankings",
   "home.topPlayers": "Top-Spieler",
   "home.topClub": "Spitzenverein",
+  "home.topClubs": "Top-Clubs",
   "player.title": "Finden Sie einen beliebigen getrackten Player",
   "player.searchTitle": "Suche nach Spielernamen oder Tag",
   "player.searchDetail":
@@ -1233,6 +1236,7 @@ const frBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Classements mondiaux",
   "home.topPlayers": "Meilleurs joueurs",
   "home.topClub": "Meilleur club",
+  "home.topClubs": "Meilleurs clubs",
   "player.title": "Trouvez n'importe quel joueur suivi",
   "player.searchTitle": "Rechercher par nom de joueur ou par tag",
   "player.searchDetail":
@@ -1616,6 +1620,7 @@ const ptBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "Classificações globais",
   "home.topPlayers": "Melhores jogadores",
   "home.topClub": "Melhor clube",
+  "home.topClubs": "Melhores clubes",
   "player.title": "Encontre qualquer jogador rastreado",
   "player.searchTitle": "Pesquise por nome ou tag do jogador",
   "player.searchDetail":
@@ -1999,6 +2004,7 @@ const jaBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "世界ランキング",
   "home.topPlayers": "トッププレイヤー",
   "home.topClub": "トップクラブ",
+  "home.topClubs": "トップクラブ",
   "player.title": "追跡されているプレーヤーを検索する",
   "player.searchTitle": "プレイヤー名やタグで検索",
   "player.searchDetail":
@@ -2379,6 +2385,7 @@ const koBase: Record<BaseTranslationKey, string> = {
   "home.globalRankings": "글로벌 순위",
   "home.topPlayers": "최고의 선수",
   "home.topClub": "최고의 클럽",
+  "home.topClubs": "상위 클럽",
   "player.title": "추적된 플레이어 찾기",
   "player.searchTitle": "플레이어 이름이나 태그로 검색",
   "player.searchDetail":
@@ -2697,9 +2704,9 @@ const featureEnglish = {
   "brawlers.earlySample": "Early sample",
   "brawlers.picks": "{count} picks",
   "brawlers.noMatches": "No brawlers match these filters",
-  "meta.title": "Interrogate the live StatsConnect Brawl Stars dataset",
+  "meta.title": "Brawler meta explorer",
   "meta.description":
-    "Change the date window, metric, grouping, trophy range, and confidence floor. Compare with the preceding period or another trophy bracket, share the exact query, or export CSV.",
+    "Win rates, pick rates, and star player rates from recent ranked battles. Filter by trophy range and date, compare periods, and share or export what you find.",
   "meta.winRate": "Win rate",
   "meta.useRate": "Use rate",
   "meta.sampleSize": "Sample size",

@@ -86,3 +86,28 @@ export function eventModeId(mode?: string | null) {
   if (!mode) return 48000000;
   return EVENT_MODE_IDS[mode] || 48000000;
 }
+
+/** Banner colours the game uses for each mode's event slot. */
+const EVENT_MODE_COLORS: Readonly<Record<string, string>> = {
+  basketBrawl: "#e8a334",
+  bigGame: "#dc2423",
+  bossFight: "#dc2423",
+  bounty: "#24c6f2",
+  brawlBall: "#8ca0e0",
+  duels: "#d3aa27",
+  duoShowdown: "#81d621",
+  gemGrab: "#9a3df5",
+  heist: "#d65cd3",
+  hotZone: "#e33c50",
+  knockout: "#f7831c",
+  roboRumble: "#dc2423",
+  showdown: "#81d621",
+  soloShowdown: "#81d621",
+  trioShowdown: "#81d621",
+  volleyBrawl: "#e8a334",
+  wipeout: "#5bc9e8",
+};
+
+export function eventModeColor(mode?: string | null) {
+  return (mode && EVENT_MODE_COLORS[mode]) || "#3d7bf2";
+}

@@ -50,10 +50,10 @@ export function SiteNav() {
     { href: "/meta", label: t("nav.meta") },
     { href: "/progression", label: t("nav.progression") },
     { href: "/leaderboards", label: t("nav.leaderboards") },
+    { href: "/assistant", label: t("nav.assistant") },
   ];
   const mobileLinks = [
     ...links,
-    { href: "/assistant", label: t("nav.assistant") },
     { href: "/settings", label: t("nav.settings") },
     ...preferences.savedProfiles.slice(0, 5).map((profile) => ({
       href: `/players?tag=${encodeURIComponent(`#${profile.tag}`)}`,
@@ -62,7 +62,7 @@ export function SiteNav() {
   ];
   return (
     <SiteNavigation
-      accentColor="#f5c85b"
+      accentColor="#ffd21f"
       currentSite="brawl-stars"
       account={auth.account ? {
         avatarUrl: auth.account.image ?? undefined,

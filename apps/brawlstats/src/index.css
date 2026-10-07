@@ -44,30 +44,34 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: #0a101a;
-  --foreground: #f4f1e9;
-  --card: #101926;
-  --card-foreground: #f4f1e9;
-  --popover: #111b29;
-  --popover-foreground: #f4f1e9;
-  --primary: #f5c85b;
-  --primary-foreground: #1a1200;
-  --secondary: #172235;
-  --secondary-foreground: #e8edf6;
-  --muted: #151f2e;
-  --muted-foreground: #99a7bc;
-  --accent: #4ac7b7;
-  --accent-foreground: #04201c;
-  --destructive: #ff5c7a;
-  --border: #253249;
-  --input: #2c3a52;
-  --ring: #f5c85b;
-  --chart-1: #f5c85b;
-  --chart-2: #4ac7b7;
-  --chart-3: #7aa2ff;
-  --chart-4: #ff7a59;
-  --chart-5: #c4f542;
+  /* Brawl Stars menu blues: saturated cobalt panels on a night-sky ground,
+     outlined in near-black ink the way the in-game UI is. */
+  --radius: 0.75rem;
+  --background: #0b1838;
+  --foreground: #ffffff;
+  --card: #15306b;
+  --card-foreground: #ffffff;
+  --popover: #15306b;
+  --popover-foreground: #ffffff;
+  --primary: #ffd21f;
+  --primary-foreground: #1c1400;
+  --secondary: #1d3f86;
+  --secondary-foreground: #ffffff;
+  --muted: #112654;
+  --muted-foreground: #b4c6ee;
+  --accent: #3ad6ff;
+  --accent-foreground: #03263a;
+  --destructive: #ff4f6d;
+  --border: #29498f;
+  --input: #2f57a8;
+  --ring: #ffd21f;
+  --ink: #050c22;
+  --panel-top: #1a3a80;
+  --chart-1: #ffd21f;
+  --chart-2: #3ad6ff;
+  --chart-3: #b26bff;
+  --chart-4: #ff7a3d;
+  --chart-5: #7dff6b;
 }
 
 @layer base {
@@ -84,6 +88,7 @@
     font-family: var(--font-sans);
     background: var(--background);
     min-height: 100vh;
+    overflow-x: clip;
   }
 
   h1,
@@ -96,7 +101,15 @@
     font-family: var(--font-display);
     font-weight: 400;
     font-synthesis: none;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.005em;
+  }
+
+  /* Page and section titles carry the game's outlined lettering. */
+  h1,
+  h2 {
+    -webkit-text-stroke: 0.14em var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 0 0.09em 0 var(--ink);
   }
 
   .game-rank,
@@ -113,29 +126,18 @@
 @layer components {
   .brawl-site-frame {
     background:
-      linear-gradient(
-        180deg,
-        rgba(6, 13, 24, 0.18) 0,
-        rgba(10, 16, 26, 0.3) 18rem,
-        rgba(10, 16, 26, 0.82) 40rem,
-        var(--background) 58rem,
-        var(--background) 100%
-      ),
-      linear-gradient(
-        90deg,
-        rgba(6, 13, 24, 0.56) 0,
-        transparent 18%,
-        transparent 82%,
-        rgba(6, 13, 24, 0.56) 100%
-      ),
+      linear-gradient(180deg, rgba(11, 24, 56, 0.2) 0, rgba(11, 24, 56, 0.55) 16rem, rgba(11, 24, 56, 0.92) 34rem, var(--background) 48rem),
       var(--brawl-arena-image) top center / 1920px auto no-repeat,
       var(--background);
   }
 
+  /* Hero: the night arena behind the brawler lineup, graded to cobalt so it
+     hands off to the page instead of to a grey slab. */
   .brawl-hero {
     position: relative;
     isolation: isolate;
     overflow: hidden;
+    border-bottom: 3px solid var(--ink);
     background: var(--background);
   }
 
@@ -153,16 +155,22 @@
     inset: 0;
     content: "";
     background:
-      linear-gradient(90deg, rgba(6, 13, 24, 0.96) 0%, rgba(6, 13, 24, 0.88) 28%, rgba(6, 13, 24, 0.48) 58%, rgba(6, 13, 24, 0.2) 100%),
-      linear-gradient(180deg, rgba(10, 16, 26, 0.08) 35%, var(--background) 100%);
-  }
-
-  .brawl-hero-copy {
-    text-shadow: 0 2px 22px rgba(3, 8, 15, 0.62);
+      linear-gradient(90deg, rgba(8, 20, 50, 0.94) 0%, rgba(8, 20, 50, 0.8) 32%, rgba(8, 20, 50, 0.3) 62%, rgba(8, 20, 50, 0.08) 100%),
+      linear-gradient(180deg, transparent 55%, rgba(11, 24, 56, 0.85) 100%);
   }
 
   .brawl-hero-art {
-    filter: drop-shadow(0 28px 32px rgba(0, 0, 0, 0.4));
+    filter: drop-shadow(0 24px 28px rgba(2, 6, 20, 0.5));
+  }
+
+  .brawl-hero-title {
+    color: var(--primary);
+    font-size: clamp(3.4rem, 8vw, 6.5rem);
+    line-height: 0.92;
+    -webkit-text-stroke: 0.12em var(--ink);
+    text-shadow: 0 0.07em 0 var(--ink);
+    transform: rotate(-2deg);
+    transform-origin: left bottom;
   }
 
   .brawl-eyebrow {
@@ -172,55 +180,109 @@
     line-height: 1.5;
   }
 
-  .brawl-hero-copy > .brawl-eyebrow {
-    color: var(--foreground);
-    border-left: 3px solid var(--primary);
-    padding-left: 0.75rem;
+  /* Panels: cobalt, ink-outlined, with the hard drop the game's menus use. */
+  .brawl-panel,
+  .data-surface {
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(180deg, var(--panel-top), var(--card) 3.5rem);
+    box-shadow: 0 4px 0 var(--ink), inset 0 2px 0 rgba(255, 255, 255, 0.08);
   }
 
-  .brawl-search-panel {
-    padding: 0.5rem;
-    border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
-    border-radius: 1rem;
-    background: rgba(7, 12, 21, 0.85);
-    box-shadow: 0 8px 0 rgba(0, 0, 0, 0.16);
+  .brawl-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.25rem;
+    padding: 0 0.875rem;
+    border: 2px solid var(--ink);
+    border-radius: 0.625rem;
+    color: #fff;
+    background: var(--secondary);
+    box-shadow: 0 3px 0 var(--ink);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
   }
 
+  .brawl-chip:hover {
+    background: #2650a6;
+  }
+
+  .brawl-chip:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--ink);
+  }
+
+  /* Roster tiles read like the in-game brawler cards: rarity-coloured backing,
+     portrait on top, name on an ink strip. */
   .brawler-roster-card {
-    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
-    transition: border-color 160ms ease, transform 160ms ease;
+    --rarity: #b9eaff;
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-xl);
+    background: var(--rarity);
+    box-shadow: 0 4px 0 var(--ink);
+    transition: transform 140ms ease, box-shadow 140ms ease;
   }
 
-  .brawler-roster-card:is(:hover, :focus-within) {
-    border-color: var(--primary);
+  .brawler-roster-card::before {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background:
+      radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.45), transparent 60%),
+      repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 10px, transparent 10px 20px);
+    pointer-events: none;
+  }
+
+  .brawler-roster-card:is(:hover, :focus-visible) {
     transform: translateY(-3px);
+    box-shadow: 0 7px 0 var(--ink);
+  }
+
+  .brawler-roster-card img {
+    position: relative;
+  }
+
+  .brawler-roster-card figcaption {
+    position: relative;
+    border-top: 2px solid var(--ink);
+    background: var(--ink);
+  }
+
+  /* Small outlined labels: mode banners and roster names. */
+  .event-slot-mode,
+  .brawler-roster-card figcaption > span:first-child {
+    -webkit-text-stroke: 0.16em var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 0 2px 0 var(--ink);
   }
 
   a:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 4px;
+    outline: 3px solid var(--ring);
+    outline-offset: 3px;
   }
 
   .page-shell {
-    @apply mx-auto w-full max-w-7xl space-y-8 px-4 py-8 md:px-6 md:py-12;
-  }
-
-  .page-intro :is(h1, .text-muted-foreground),
-  .brawl-hero-copy :is(h1, .text-muted-foreground) {
-    text-shadow: 0 2px 18px rgba(2, 7, 14, 0.92);
+    @apply mx-auto w-full max-w-7xl space-y-10 px-4 py-8 md:px-6 md:py-12;
   }
 
   .page-intro .text-muted-foreground,
   .brawl-hero-copy .text-muted-foreground {
-    color: #d5dde9;
+    color: #dbe5ff;
+    text-shadow: 0 2px 10px rgba(5, 12, 34, 0.9);
+  }
+
+  .page-intro h1 {
+    color: #fff;
   }
 
   .section-title {
-    @apply font-display text-2xl leading-tight md:text-3xl;
-  }
-
-  .data-surface {
-    @apply rounded-xl border border-border bg-card;
+    @apply font-display text-[1.75rem] leading-tight md:text-[2.125rem];
   }
 
   .player-profile-shell {
@@ -237,9 +299,9 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    border-bottom: 1px solid color-mix(in srgb, var(--player-accent) 24%, var(--border));
+    border-bottom: 3px solid var(--ink);
     background:
-      linear-gradient(90deg, rgba(7, 12, 21, 0.96) 0%, rgba(8, 14, 24, 0.86) 52%, rgba(8, 14, 24, 0.58) 100%),
+      linear-gradient(90deg, rgba(8, 20, 50, 0.95) 0%, rgba(10, 24, 58, 0.84) 52%, rgba(10, 24, 58, 0.5) 100%),
       var(--brawl-arena-image) center 38% / cover no-repeat;
   }
 
@@ -307,7 +369,8 @@
     transition-duration: 0.01ms !important;
   }
 
-  .brawler-roster-card:is(:hover, :focus-within) {
+  .brawler-roster-card:is(:hover, :focus-visible),
+  .brawl-chip:active {
     transform: none;
   }
 }
@@ -315,7 +378,46 @@
 @media (max-width: 63.999rem) {
   .brawl-hero::after {
     background:
-      linear-gradient(180deg, rgba(6, 13, 24, 0.84) 0%, rgba(6, 13, 24, 0.62) 54%, var(--background) 100%),
-      linear-gradient(90deg, rgba(6, 13, 24, 0.72), rgba(6, 13, 24, 0.38));
+      linear-gradient(180deg, rgba(8, 20, 50, 0.82) 0%, rgba(8, 20, 50, 0.55) 54%, var(--background) 100%);
   }
 }
+
+/* Outside the layers on purpose: the shared Site Navigation stylesheet is
+   unlayered, so layered rules could never restyle its search bar. */
+/* The search bar is the one thing the hero asks visitors to do, so it gets
+   the game's chunky treatment: white field, ink outline, yellow button. */
+.brawl-search-panel .sc-search__bar {
+  min-height: 56px;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 0 var(--ink);
+}
+
+.brawl-search-panel .sc-search__bar input {
+  color: #10204a;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.brawl-search-panel .sc-search__bar input::placeholder {
+  color: #6b7aa3;
+}
+
+.brawl-search-panel .sc-search__bar button {
+  margin: 0;
+  border-left: 3px solid var(--ink);
+  border-radius: 0;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+
+.brawl-search-panel .sc-search__bar button:hover {
+  background: #ffe04f;
+  filter: none;
+}
+

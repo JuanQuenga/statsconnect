@@ -14,11 +14,11 @@ export function PageStatus({
     <div
       role="status"
       className={cn(
-        "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
-        tone === "error" && "border-destructive/40 bg-destructive/10 text-destructive",
-        tone === "loading" && "border-border/60 bg-card/50 text-muted-foreground",
-        tone === "success" && "border-accent/40 bg-accent/10 text-accent",
-        tone === "info" && "border-border/60 bg-card/40 text-muted-foreground",
+        "flex items-center gap-2.5 rounded-xl border-2 px-3.5 py-2.5 text-sm font-medium",
+        tone === "error" && "border-destructive/70 bg-[#3a1033] text-[#ffc2cd]",
+        tone === "loading" && "border-[var(--ink)] bg-muted text-muted-foreground",
+        tone === "success" && "border-accent/60 bg-accent/10 text-accent",
+        tone === "info" && "border-[var(--ink)] bg-muted text-muted-foreground",
         className,
       )}
     >
@@ -31,8 +31,8 @@ export function PageStatus({
 
 export function EmptyState({ title, detail }: { title: string; detail?: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border/70 bg-card/30 px-6 py-10 text-center">
-      <p className="font-display text-xl text-foreground">{title}</p>
+    <div className="rounded-[var(--radius-xl)] border-2 border-dashed border-border bg-muted/70 px-6 py-10 text-center">
+      <p className="font-display text-2xl text-foreground">{title}</p>
       {detail ? <p className="mt-2 text-sm text-muted-foreground">{detail}</p> : null}
     </div>
   );

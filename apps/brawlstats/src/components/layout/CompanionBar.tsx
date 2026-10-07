@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Bell, FlaskConical, Settings, Star } from "lucide-react";
+import { Bell, Settings, Star } from "lucide-react";
 import { useEffect } from "react";
 import { brawlData } from "@/lib/game-data";
 import { useI18n } from "@/lib/i18n";
@@ -49,34 +49,28 @@ export function CompanionBar() {
     document.documentElement.lang = locale;
   }, [locale]);
 
+  // Only worth a row of chrome once there is something personal to show.
+  if (!preferences.savedProfiles.length) return null;
+
   return (
-    <div className="border-b border-border bg-background/90 backdrop-blur max-[860px]:hidden">
+    <div className="border-b-2 border-[var(--ink)] bg-muted max-[860px]:hidden">
       <div className="mx-auto flex min-h-11 max-w-7xl items-center gap-2 overflow-x-auto px-4 py-2 md:px-6">
-        <Link
-          to="/assistant"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-        >
-          <FlaskConical className="size-3.5" />
-          {t("nav.assistant")}
-        </Link>
-        {preferences.savedProfiles.length ? (
-          <div className="flex items-center gap-1.5" aria-label={t("nav.savedProfiles")}>
-            <Star className="size-3.5 shrink-0 text-primary" />
-            {preferences.savedProfiles.slice(0, 5).map((profile) => (
-              <Link
-                key={profile.tag}
-                to="/players"
-                search={{ tag: `#${profile.tag}` }}
-                className="max-w-32 shrink-0 truncate rounded-full border border-border bg-card px-2.5 py-1 text-xs hover:border-primary/70"
-              >
-                {profile.name || `#${profile.tag}`}
-              </Link>
-            ))}
-          </div>
-        ) : null}
+        <div className="flex items-center gap-1.5" aria-label={t("nav.savedProfiles")}>
+          <Star className="size-4 shrink-0 fill-primary text-primary" aria-hidden />
+          {preferences.savedProfiles.slice(0, 5).map((profile) => (
+            <Link
+              key={profile.tag}
+              to="/players"
+              search={{ tag: `#${profile.tag}` }}
+              className="max-w-36 shrink-0 truncate rounded-lg border-2 border-[var(--ink)] bg-secondary px-2.5 py-0.5 font-display text-sm hover:bg-[#2650a6]"
+            >
+              {profile.name || `#${profile.tag}`}
+            </Link>
+          ))}
+        </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {preferences.alertsEnabled ? <Bell className="size-3.5 text-accent" aria-label={t("common.alerts")} /> : null}
-          <Link to="/settings" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-foreground" aria-label={t("nav.settings")}>
+          {preferences.alertsEnabled ? <Bell className="size-4 text-accent" aria-label={t("common.alerts")} /> : null}
+          <Link to="/settings" className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground" aria-label={t("nav.settings")}>
             <Settings className="size-4" />
           </Link>
         </div>

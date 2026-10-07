@@ -15,6 +15,7 @@ import {
   BrawlStatsFatalError,
   BrawlStatsRouteError,
 } from "./components/AppErrorPage";
+import "@fontsource/lilita-one/latin-400.css";
 import "./index.css";
 import { initializePwa } from "./lib/pwa";
 import { routeTree } from "./routeTree.gen";
