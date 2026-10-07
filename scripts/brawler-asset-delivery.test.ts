@@ -25,7 +25,7 @@ test("brawler 3D requests redirect to owned static hosting before SPA rewrites",
       permanent: false,
     });
   }
-  assert.equal(vercel.rewrites.at(-1)?.destination, "/index.html");
+  assert.equal(vercel.rewrites.at(-1)?.destination, "/");
 });
 
 test("storage configuration is server-only and local assets are opt-in", async () => {

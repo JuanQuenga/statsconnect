@@ -168,8 +168,8 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   }
 
   const expectedGameRewrites = deliveryApps.slice(1).flatMap((app) => [
-    { source: app.routePrefix, destination: "/index.html" },
-    { source: `${app.routePrefix}/:path*`, destination: "/index.html" },
+    { source: app.routePrefix, destination: "/" },
+    { source: `${app.routePrefix}/:path*`, destination: "/" },
   ]);
   const seoFileRewrites = [
     { source: "/robots.txt", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/seo/robots-cr.txt" },
@@ -200,7 +200,8 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: "/service-worker.js", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/service-worker.js" },
     { source: "/manifest.webmanifest", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/subdomain.webmanifest" },
     ...expectedGameRewrites,
-    { source: "/:path*", destination: "/index.html" },
+    // With cleanUrls on, "/index.html" is no longer a servable path; "/" is.
+    { source: "/:path*", destination: "/" },
   ]);
   assert.deepEqual(vercel.headers.map((header) => header.source), [
     "/beta",
