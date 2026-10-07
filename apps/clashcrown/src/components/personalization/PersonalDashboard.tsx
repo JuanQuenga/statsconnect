@@ -218,7 +218,7 @@ export function TrackingControls({ profile }: { profile: Pick<ProfileInput, "tag
     setActionError(null);
     if (!authenticated) {
       try {
-        await auth.signInWithGoogle();
+        await auth.signIn();
       } catch (error) {
         setActionError(error instanceof Error ? error.message : "Sign-in could not be started.");
       }

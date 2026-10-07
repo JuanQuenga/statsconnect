@@ -2,7 +2,6 @@ import {
   ClerkProvider,
   useAuth as useClerkAuth,
   useClerk,
-  useSignIn,
 } from "@clerk/clerk-react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexProvider, ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
@@ -66,7 +65,8 @@ export type StatsConnectAuthState = {
   plusOffer: StatsConnectPlusOffer | null;
   saveProfile: (profile: ConnectedProfile) => Promise<void>;
   removeProfile: (game: ConnectedProfileGame, tag: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  /** Opens Clerk's sign-in modal (every sign-in method enabled in Clerk). */
+  signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -120,7 +120,7 @@ const defaultState: StatsConnectAuthState = {
   plusOffer: null,
   saveProfile: async () => undefined,
   removeProfile: async () => undefined,
-  signInWithGoogle: async () => {
+  signIn: async () => {
     throw new StatsConnectAuthConfigurationError();
   },
   signOut: async () => undefined,
@@ -248,7 +248,7 @@ function GuestProfiles({
     },
     saveProfile: profiles.module.save,
     removeProfile: profiles.module.remove,
-    signInWithGoogle: async () => {
+    signIn: async () => {
       throw new StatsConnectAuthConfigurationError();
     },
     signOut: async () => profiles.module.signOut(),
@@ -263,7 +263,6 @@ function GuestProfiles({
 function ConfiguredAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading: isConvexAuthLoading } = useConvexAuth();
   const clerk = useClerk();
-  const { signIn } = useSignIn();
   const [accessNow] = useState(() => Date.now());
   const access = useQuery(accessRef, isAuthenticated ? { now: accessNow } : "skip");
   const accountState = useQuery(accountStateRef, isAuthenticated ? {} : "skip");
@@ -332,13 +331,12 @@ function ConfiguredAuth({ children }: { children: ReactNode }) {
     plusOffer: access?.offer ?? null,
     saveProfile: profiles.module.save,
     removeProfile: profiles.module.remove,
-    signInWithGoogle: async () => {
-      if (!signIn) throw new StatsConnectAuthConfigurationError();
-      await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: window.location.href,
-        redirectUrlComplete: window.location.href,
-      });
+    // Clerk's own modal, not a headless Google redirect: it shows the
+    // StatsConnect Clerk branding and every enabled method, and completes
+    // the OAuth round trip itself before returning to this page.
+    signIn: async () => {
+      const returnTo = window.location.href;
+      clerk.openSignIn({ fallbackRedirectUrl: returnTo, signUpFallbackRedirectUrl: returnTo });
     },
     signOut: async () => {
       await clerk.signOut();
@@ -348,7 +346,6 @@ function ConfiguredAuth({ children }: { children: ReactNode }) {
     access,
     accountState,
     clerk,
-    signIn,
     isAuthenticated,
     isConvexAuthLoading,
     accountTrackedProfiles,

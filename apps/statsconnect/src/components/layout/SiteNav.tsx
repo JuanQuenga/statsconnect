@@ -47,8 +47,8 @@ export function SiteNav() {
         onSignOut: () => void auth.signOut(),
       } : undefined}
       authAction={!auth.account && !auth.isLoading ? {
-        label: "Sign in with Google",
-        onClick: () => void auth.signInWithGoogle(),
+        label: "Sign in",
+        onClick: () => void auth.signIn(),
       } : undefined}
       hubOrigin={window.location.origin}
       profiles={auth.profiles}

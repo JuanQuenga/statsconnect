@@ -47,7 +47,7 @@ export function ProfileActions({ profile, size = "sm" }: ProfileActionsProps) {
     setTrackError(false);
     try {
       if (!tracking.authenticated) {
-        await auth.signInWithGoogle();
+        await auth.signIn();
       } else if (tracked) {
         await tracking.untrackProfile("brawl-stars", cleanTag);
       } else {
