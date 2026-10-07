@@ -16,41 +16,22 @@
 }
 .hero :global(.royale-hero-copy .search-wrap) { margin-top: 24px; }
 
-/* A tilted tray of vendored card portraits fills the hero's art column — the
- * same bright frames the deck trays and share image draw. The long compound
- * outbids the frame rule `.site-frame-clash .arena-hero-frame >
- * :not(.arena-hero-frame-art) { position: relative }`, which would otherwise
- * pin the tray into the copy flow. */
-.hero:global(.royale-hero):global(.arena-hero-frame) > .heroDeck {
-  position: absolute;
-  z-index: 1;
-  right: max(48px, calc((100vw - var(--page-width)) / 2 + 36px));
-  bottom: 104px;
-  display: flex;
-  align-items: end;
-  pointer-events: none;
-  filter: drop-shadow(0 22px 20px rgba(14, 37, 70, .38));
-}
-/* Fanned like a hand of cards, pivoting from a point below the tray so the
- * outer cards drop and tilt outward the way they do in-game. */
-.heroDeck img {
-  width: clamp(112px, 11vw, 158px);
-  height: auto;
-  margin-left: -3.2vw;
-  transform-origin: 50% 130%;
-}
-.heroDeck img:first-child { margin-left: 0; transform: rotate(-12deg); }
-.heroDeck img:nth-child(2) { transform: rotate(-4deg) translateY(-10px); }
-.heroDeck img:nth-child(3) { transform: rotate(4deg) translateY(-10px); }
-.heroDeck img:nth-child(4) { transform: rotate(12deg); }
-@media (max-width: 1180px) {
-  .heroDeck img { width: clamp(92px, 10vw, 128px); }
-}
-@media (max-width: 980px) {
-  /* Same compound as above: a plain .heroDeck would lose to its display: flex. */
-  .hero:global(.royale-hero):global(.arena-hero-frame) > .heroDeck { display: none; }
+/* Copy and search on the left, the latest official news on the right. */
+.hero :global(.royale-hero-inner).heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  align-items: start;
+  gap: 40px;
 }
 
+/* Clear the battlement: the wall overlaps the hero's bottom 94px. */
+.hero :global(.royale-hero-inner).heroGrid > :global(.cr-hero-news) { margin: 44px 0 124px; }
+
+@media (max-width: 980px) {
+  .hero :global(.royale-hero-inner).heroGrid { grid-template-columns: 1fr; gap: 0; }
+  .hero :global(.royale-hero-inner).heroGrid > :global(.cr-hero-news) { margin: 0 0 118px; }
+  .hero :global(.royale-hero-inner).heroGrid :global(.royale-hero-copy) { padding-bottom: 28px; }
+}
 
 .deckPresentation { width: min(860px, 100%); margin-inline: auto; }
 .deckTools { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }

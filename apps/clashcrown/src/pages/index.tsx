@@ -10,6 +10,7 @@ import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { Layout } from "@/components/portfolio/Layout";
 import { ProfileSearch } from "@/components/portfolio/ProfileSearch";
 import { PlayerTagGuide } from "@/components/portfolio/PlayerTagGuide";
+import { HeroNews } from "@/components/portfolio/HeroNews";
 import { PersonalDashboard } from "@/components/personalization/PersonalDashboard";
 import { usePersonalization } from "@/components/personalization/PersonalizationProvider";
 import { modeLabel, type MetaMode } from "@/lib/clash/battles";
@@ -33,21 +34,16 @@ export default function HomePage() {
   return (
     <Layout variant="home">
       <ArenaHeroFrame className={`royale-hero ${styles.hero}`}>
-        <div className="royale-hero-inner">
+        <div className={`royale-hero-inner ${styles.heroGrid}`}>
           <div className="royale-hero-copy">
-            <h1>Clash Royale<br />stats</h1>
+            <h1>Clash Royale</h1>
             <p className="royale-hero-sub">
               Live meta decks, card rankings, and every player&apos;s battle history — look up any tag.
             </p>
             <ProfileSearch />
             <PlayerTagGuide />
           </div>
-        </div>
-        <div className={styles.heroDeck} aria-hidden="true">
-          <Image src="/images/cards/mega-knight.png" alt="" width={150} height={180} />
-          <Image src="/images/cards/little-prince.png" alt="" width={150} height={180} />
-          <Image src="/images/cards/rune-giant.png" alt="" width={150} height={180} />
-          <Image src="/images/cards/barbarian-barrel-hero.png" alt="" width={150} height={180} />
+          <HeroNews />
         </div>
       </ArenaHeroFrame>
 

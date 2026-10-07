@@ -4,6 +4,7 @@ import { AdSenseUnit } from "@statsconnect/monetization";
 import type { CSSProperties, ReactNode } from "react";
 import { Clock, Trophy } from "lucide-react";
 import { PlayerSearch } from "@/components/PlayerSearch";
+import { HeroNews } from "@/components/HeroNews";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import {
@@ -63,15 +64,20 @@ function HomePage() {
             </div>
           </div>
 
-          <div className="pointer-events-none relative h-[280px] self-end sm:h-[380px] lg:h-[560px]">
+          {/* The brawler lineup stands behind; the latest news card sits in
+              front of it on the left of this column. */}
+          <div className="relative flex min-h-[280px] items-center justify-start self-stretch sm:min-h-[380px] lg:min-h-[560px]">
             <img
               src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-hero-official.webp`}
               alt={t("home.heroAlt")}
               width={900}
               height={1125}
               fetchPriority="high"
-              className="brawl-hero-art absolute right-1/2 bottom-0 h-[330px] w-auto max-w-none translate-x-1/2 sm:h-[440px] lg:right-[-1rem] lg:h-[600px] lg:translate-x-0"
+              className="brawl-hero-art pointer-events-none absolute right-1/2 bottom-0 h-[330px] w-auto max-w-none translate-x-1/2 sm:h-[440px] lg:right-[-3rem] lg:h-[600px] lg:translate-x-0"
             />
+            <div className="relative z-10 w-full max-w-[360px] py-6 max-lg:mx-auto max-lg:mb-[260px] max-sm:mb-[200px] lg:py-0">
+              <HeroNews />
+            </div>
           </div>
         </div>
       </section>

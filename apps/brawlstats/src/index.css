@@ -421,3 +421,35 @@
   filter: none;
 }
 
+/* Home hero: latest news card, drawn like the game's event panels. */
+.brawl-hero-news {
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 5px 0 var(--ink), 0 22px 40px rgba(2, 6, 20, .45);
+}
+.brawl-hero-news a { display: grid; gap: 8px; padding-bottom: 14px; color: var(--foreground); }
+.brawl-hero-news img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-bottom: 3px solid var(--ink); }
+.brawl-hero-news a > :not(img) { margin-inline: 16px; }
+.brawl-hero-news a:not(:has(img)) { padding-top: 14px; }
+.brawl-hero-news-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+.brawl-hero-news-meta span {
+  padding: 3px 10px 4px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+}
+.brawl-hero-news-meta time { color: var(--muted-foreground); font-size: 0.8rem; font-weight: 700; }
+.brawl-hero-news strong {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.brawl-hero-news a:hover strong { color: var(--primary); }
+.brawl-hero-news-read { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 0.85rem; font-weight: 700; }
