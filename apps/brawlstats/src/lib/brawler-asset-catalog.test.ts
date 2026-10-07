@@ -353,9 +353,10 @@ test("animation options also collapse different files whose bytes hash the same"
   const hash = "a".repeat(64);
   source.defaults[0].animations = {
     WinAnim: { symbol: "CrowWin", label: "Win", exported: ready("/a/win.glb"), startFrame: 0, endFrame: 260, contentHash: hash },
-    HeroScreenAnim: { symbol: "CrowHero", label: "Hero Screen", exported: ready("/a/hero.glb"), startFrame: 0, endFrame: 260, contentHash: hash },
+    HeroScreenAnim: { symbol: "CrowHero", label: "Hero Screen", exported: ready("/a/hero.glb"), startFrame: 0, endFrame: 262, contentHash: hash },
+    LongWinAnim: { symbol: "CrowLongWin", label: "Long Win", exported: ready("/a/win.glb"), startFrame: 0, endFrame: 400, contentHash: hash },
     IdleAnim: { symbol: "CrowIdle", label: "Idle", exported: ready("/a/idle.glb"), startFrame: 0, endFrame: 60, contentHash: "b".repeat(64) },
   } as never;
   const options = catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]);
-  assert.deepEqual(options.map((option) => option.label), ["Win / Hero Screen", "Idle"]);
+  assert.deepEqual(options.map((option) => option.label), ["Win / Hero Screen", "Long Win", "Idle"]);
 });

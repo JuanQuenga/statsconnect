@@ -371,6 +371,8 @@ export type CatalogAnimationOption = { readonly key: string; readonly label: str
 
 /** Clips this short read as a still pose rather than an animation. */
 const MIN_ANIMATION_FRAMES = 4;
+/** Windows on the same bytes this close together play the same motion. */
+const SAME_MOTION_FRAME_SLACK = 5;
 
 /**
  * Keep the machine key for loading while presenting the source catalog label
@@ -380,22 +382,27 @@ const MIN_ANIMATION_FRAMES = 4;
  * windows too short to read as motion are left out.
  */
 export function catalogAnimationOptions(entry: BrawlerAssetCatalogEntry): readonly CatalogAnimationOption[] {
-  const byMotion = new Map<string, { key: string; labels: string[] }>();
+  const groups: { key: string; source: string; start: number; end: number; labels: string[] }[] = [];
   for (const [key, animation] of Object.entries(entry.animations)) {
     if (animation.exported.kind !== "ready") continue;
     const frames = animation.endFrame < 0 ? Infinity : animation.endFrame - animation.startFrame + 1;
     if (frames < MIN_ANIMATION_FRAMES) continue;
     // Prefer the content hash: Hero Screen and Win clips are separate files
-    // with byte-identical motion on dozens of skins.
-    const motion = `${animation.contentHash ?? animation.exported.url}#${animation.startFrame}-${animation.endFrame}`;
-    const existing = byMotion.get(motion);
+    // with byte-identical motion on dozens of skins, and their windows can
+    // differ by a couple of trailing frames (Gus: 0-262 vs 0-260).
+    const source = animation.contentHash ?? animation.exported.url;
+    const existing = groups.find((group) => group.source === source
+      && Math.abs(group.start - animation.startFrame) <= SAME_MOTION_FRAME_SLACK
+      && (group.end < 0 || animation.endFrame < 0
+        ? group.end === animation.endFrame
+        : Math.abs(group.end - animation.endFrame) <= SAME_MOTION_FRAME_SLACK));
     if (existing) {
       if (!existing.labels.includes(animation.label)) existing.labels.push(animation.label);
     } else {
-      byMotion.set(motion, { key, labels: [animation.label] });
+      groups.push({ key, source, start: animation.startFrame, end: animation.endFrame, labels: [animation.label] });
     }
   }
-  return [...byMotion.values()].map(({ key, labels }) => ({ key, label: labels.join(" / ") }));
+  return groups.map(({ key, labels }) => ({ key, label: labels.join(" / ") }));
 }
 
 /** Return catalog records for one stable game brawler ID, default skin first. */
