@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline';
 import path from 'node:path';
 import http from 'node:http';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -95,26 +96,30 @@ async function atomic(file, value) { await fs.writeFile(`${file}.tmp`, value); a
 async function exists(file) { try { await fs.access(file); return true; } catch { return false; } }
 
 /** Disk cache bounds RAM. A single global queue serializes reference AND CDN requests. */
-function networkCache(out) {
+function networkCache(out, roots = []) {
   let queue = Promise.resolve(), lastRequest = 0;
   const dir = path.join(out, 'cache/http');
   async function get(url) {
     const cdn = new URL(url).hostname === 'cdn.brawlbox.com.cn';
     const key = digest(url + (cdn ? '|referer=mv.brawlstars.top' : '')), metadata = path.join(dir, `${key}.json`), bodyFile = path.join(dir, `${key}.body`);
     if (await exists(metadata) && await exists(bodyFile)) return { ...JSON.parse(await fs.readFile(metadata, 'utf8')), body: await fs.readFile(bodyFile) };
+    for (const root of roots) {
+      const m = path.join(root, `${key}.json`), b = path.join(root, `${key}.body`);
+      if (await exists(m) && await exists(b)) return { ...JSON.parse(await fs.readFile(m, 'utf8')), body: await fs.readFile(b) };
+    }
     const polite = /(^|\.)(mv\.brawlstars\.top|brawlbox\.com\.cn)$/.test(new URL(url).hostname);
     const download = async () => {
       // Check again after taking the queue, since multiple materials share URLs.
       if (await exists(metadata) && await exists(bodyFile)) return { ...JSON.parse(await fs.readFile(metadata, 'utf8')), body: await fs.readFile(bodyFile) };
       for (let attempt = 0; attempt < 5; attempt++) {
-        if (polite) await delay(Math.max(0, 300 - (Date.now() - lastRequest)));
+        if (polite) await delay(Math.max(0, 500 - (Date.now() - lastRequest)));
         lastRequest = Date.now();
         const response = await fetch(url, { redirect: 'follow', headers: cdn ? { Referer: 'https://mv.brawlstars.top/', Origin: 'https://mv.brawlstars.top' } : {}, signal: AbortSignal.timeout(90000) });
         const body = Buffer.from(await response.arrayBuffer());
         if ([429, 503].includes(response.status)) {
           const retry = response.headers.get('retry-after');
           const retryMs = retry && /^\d+$/.test(retry) ? +retry * 1000 : retry ? Math.max(0, Date.parse(retry) - Date.now()) : 1000 * 2 ** attempt;
-          await delay(Math.max(300, retryMs || 1000)); continue;
+          await delay(Math.max(500, retryMs || 1000)); continue;
         }
         const result = { status: response.status, finalUrl: response.url, headers: { 'content-type': response.headers.get('content-type') || 'application/octet-stream' }, sha256: digest(body) };
         await fs.mkdir(dir, { recursive: true }); await atomic(bodyFile, body); await atomic(metadata, JSON.stringify(result));
@@ -229,8 +234,9 @@ async function readRows(file, includeFrames = false) {
   return rows;
 }
 async function main() {
-  const { values } = parseArgs({ options: { shard: { type: 'string', default: '1/1' }, limit: { type: 'string' }, skins: { type: 'string' }, resume: { type: 'boolean' }, out: { type: 'string', default: DEFAULT_OUT }, toolchain: { type: 'string', default: `${DEFAULT_OUT}/toolchain` }, phase: { type: 'string', default: 'all' }, smoke: { type: 'boolean' }, 'report-only': { type: 'boolean' }, 'reference-all': { type: 'boolean' }, 'retry-reference-failures': { type: 'boolean' }, seed: { type: 'string', default: 'brawl-render-2026-10-07' } } });
+  const { values } = parseArgs({ options: { shard: { type: 'string', default: '1/1' }, limit: { type: 'string' }, skins: { type: 'string' }, resume: { type: 'boolean' }, out: { type: 'string', default: DEFAULT_OUT }, toolchain: { type: 'string', default: `${DEFAULT_OUT}/toolchain` }, phase: { type: 'string', default: 'all' }, 'faces-stage': { type: 'string', default: 'all' }, 'retry-local': { type: 'boolean' }, 'cache-roots': { type: 'string' }, 'harness-cache': { type: 'string' }, smoke: { type: 'boolean' }, 'report-only': { type: 'boolean' }, 'reference-all': { type: 'boolean' }, 'retry-reference-failures': { type: 'boolean' }, seed: { type: 'string', default: 'brawl-render-2026-10-07' } } });
   shardIncludes(0, values.shard);
+  if (values.phase === 'faces') return facesMain(values);
   if (!['all', 'render', 'reference'].includes(values.phase)) throw new Error('--phase must be all, render, or reference');
   if (values.limit && (!/^\d+$/.test(values.limit) || +values.limit < 1)) throw new Error('--limit must be positive');
   const out = path.resolve(values.out), tag = values.shard.replace('/', '-');
@@ -432,4 +438,374 @@ async function main() {
     const totals = await report(); await atomic(stateFile, JSON.stringify({config,pid:process.pid,status:stopping?'interrupted':'complete',phase:values.phase,totals,updatedAt:new Date().toISOString()})); console.log(totals);
   } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }
 }
+
+export const FACE_THRESHOLDS = Object.freeze({ ssim: .72, edgeIoU: .56, noiseRatio: 1.65, noiseDelta: .008, temporalFace: .24, temporalBody: .025 });
+export function faceOptions(entry) {
+  return Object.entries(entry.animations || {}).filter(([key, a]) => {
+    if (!/^(IdleAnim|HappyAnim|HeroScreenAnim)$/.test(key) || a.exported?.kind !== 'ready') return false;
+    const field = a.faceField || ({ IdleAnim: 'IdleFace', HappyAnim: 'HappyFace', HeroScreenAnim: 'HeroScreenFace' })[key];
+    const f = entry.faces?.[field];
+    return f?.atlas?.kind === 'ready' && f?.binary?.kind === 'ready';
+  }).map(([key, a]) => ({ key, label: a.label }));
+}
+export function faceLuma(image) {
+  const a = new Float32Array(image.width * image.height);
+  for (let i = 0; i < a.length; i++) {
+    const p = i * 4, alpha = image.data[p + 3] / 255;
+    a[i] = ((image.data[p] * .2126 + image.data[p + 1] * .7152 + image.data[p + 2] * .0722) * alpha + 127 * (1 - alpha)) / 255;
+  }
+  return a;
+}
+function resampleLuma(a, width, height, size, transform = { dx: 0, dy: 0, scale: 1 }) {
+  const out = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const px = ((x + .5) / size - .5) * width / transform.scale + width / 2 + transform.dx - .5;
+    const py = ((y + .5) / size - .5) * height / transform.scale + height / 2 + transform.dy - .5;
+    const ix = Math.floor(px), iy = Math.floor(py), fx = px - ix, fy = py - iy;
+    const at = (xx, yy) => a[Math.max(0, Math.min(height - 1, yy)) * width + Math.max(0, Math.min(width - 1, xx))];
+    out[y * size + x] = at(ix, iy) * (1-fx)*(1-fy) + at(ix+1, iy)*fx*(1-fy) + at(ix,iy+1)*(1-fx)*fy + at(ix+1,iy+1)*fx*fy;
+  }
+  return out;
+}
+/** Mean local-window SSIM, C1=(.01)^2 and C2=(.03)^2 on normalized luma. */
+export function lumaSSIM(a, b, width, tile = 8) {
+  if (a.length !== b.length || a.length % width) throw new Error('invalid SSIM dimensions');
+  let sum = 0, tiles = 0;
+  for (let y = 0; y < a.length/width; y += tile) for (let x = 0; x < width; x += tile) {
+    let sa=0,sb=0,saa=0,sbb=0,sab=0,n=0;
+    for (let yy=y; yy<Math.min(y+tile,a.length/width); yy++) for(let xx=x;xx<Math.min(x+tile,width);xx++) {
+      const p=yy*width+xx, av=a[p],bv=b[p];sa+=av;sb+=bv;saa+=av*av;sbb+=bv*bv;sab+=av*bv;n++;
+    }
+    const ma=sa/n,mb=sb/n,va=Math.max(0,saa/n-ma*ma),vb=Math.max(0,sbb/n-mb*mb),cov=sab/n-ma*mb;
+    sum+=((2*ma*mb+.0001)*(2*cov+.0009))/((ma*ma+mb*mb+.0001)*(va+vb+.0009));tiles++;
+  }
+  return sum/tiles;
+}
+export function sobelEdges(a, w) {
+  const out=new Uint8Array(a.length);
+  for(let y=1;y<a.length/w-1;y++)for(let x=1;x<w-1;x++) {
+    const p=y*w+x, gx=-a[p-w-1]+a[p-w+1]-2*a[p-1]+2*a[p+1]-a[p+w-1]+a[p+w+1];
+    const gy=-a[p-w-1]-2*a[p-w]-a[p-w+1]+a[p+w-1]+2*a[p+w]+a[p+w+1];
+    out[p]=Math.hypot(gx,gy)>.28?1:0;
+  }
+  return out;
+}
+export function edgeIoU(a,b) {let intersection=0,union=0;for(let i=0;i<a.length;i++){intersection+=a[i]&&b[i]?1:0;union+=a[i]||b[i]?1:0;}return union?intersection/union:1;}
+/** Dark Laplacian energy inside the central eye band, independent of exposure. */
+export function strokeNoise(a,w) {
+  let sum=0,n=0;
+  for(let y=Math.floor(w*.2);y<Math.floor(w*.65);y++)for(let x=Math.floor(w*.15);x<Math.floor(w*.85);x++){
+    const p=y*w+x, mean=(a[p-1]+a[p+1]+a[p-w]+a[p+w])/4;
+    sum+=Math.max(0,mean-a[p])*(1-a[p]);n++;
+  }
+  return sum/Math.max(1,n);
+}
+function eyeLuma(a, width, transform = {dx:0,dy:0,scale:1}) {
+  const out=new Float32Array(128*128);
+  for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+    const px=Math.round((x/128*.65+.175-.5)*width/transform.scale+width/2+transform.dx);
+    const py=Math.round((y/128*.35+.4-.5)*width/transform.scale+width/2+transform.dy);
+    out[y*128+x]=a[Math.min(width-1,Math.max(0,py))*width+Math.min(width-1,Math.max(0,px))];
+  }
+  return out;
+}
+export function compareFaces(local, reference) {
+  if(local.width!==local.height||reference.width!==reference.height)throw new Error('face crops must be square');
+  const l=faceLuma(local),r=faceLuma(reference),le=eyeLuma(l,local.width);
+  let best=-Infinity,alignment,re;
+  for(const scale of [1,.94,1.06])for(const dx of [0,-4,4,-8,8])for(const dy of [0,-4,4,-8,8]){
+    const t={dx,dy,scale},candidate=eyeLuma(r,reference.width,t),score=lumaSSIM(le,candidate,128,16);
+    if(score>best){best=score;alignment=t;re=candidate;}
+  }
+  const ll=resampleLuma(l,local.width,local.height,256),rr=resampleLuma(r,reference.width,reference.height,256,alignment);
+  const localNoise=strokeNoise(le,128),referenceNoise=strokeNoise(re,128);
+  const ssim=lumaSSIM(ll,rr,256),iou=edgeIoU(sobelEdges(ll,256),sobelEdges(rr,256));
+  const eyeEdgeIoU=edgeIoU(sobelEdges(le,128),sobelEdges(re,128)),noiseRatio=(localNoise+.001)/(referenceNoise+.001),noiseDelta=localNoise-referenceNoise;
+  return {ssim,edgeIoU:iou,eyeSSIM:best,eyeEdgeIoU,localNoise,referenceNoise,noiseRatio,noiseDelta,alignment,
+    flagged:(best<FACE_THRESHOLDS.ssim&&eyeEdgeIoU<FACE_THRESHOLDS.edgeIoU)||(noiseRatio>FACE_THRESHOLDS.noiseRatio&&noiseDelta>FACE_THRESHOLDS.noiseDelta)};
+}
+export function bodyMotionDifference(previous, current) {
+  const a=analyzeRGBA(previous),b=analyzeRGBA(current),raw=signatureDistance(a.signature,b.signature);
+  const coverage=(a.silhouettePixels+b.silhouettePixels)/(2*previous.width*previous.height);
+  return {raw,coverage,difference:raw/Math.max(1/(previous.width*previous.height),coverage)};
+}
+export function faceTemporal(previous, current, bodyDifference) {
+  const difference=1-lumaSSIM(faceLuma(previous),faceLuma(current),previous.width);
+  return {difference,bodyDifference,flagged:difference>FACE_THRESHOLDS.temporalFace&&bodyDifference<FACE_THRESHOLDS.temporalBody};
+}
+/** Project actual skinned vertices. Head weights restrict a stencil mesh that also contains the body. */
+export function projectedFaceBounds(root,camera,size,indices=referenceVertexIndices) {
+  root.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+  const pools={face:[],head:[]},names=[];
+  root.traverseVisible(o=>{
+    if(!o.isMesh||!o.geometry?.attributes.position)return;
+    if(o.skeleton)o.skeleton.update();
+    const geometry=o.geometry,materials=Array.isArray(o.material)?o.material:[o.material];
+    if(materials.every(m=>m?.visible===false))return;
+    const facePattern=/(^|[|_: ])(?:face(?:geo|mesh)?|eyes?(?:geo|mesh)?|stencil)([|_: ]|$)/i;
+    const bones=o.skeleton?.bones||[],headBones=new Set();
+    bones.forEach((b,i)=>{if(/^(head(?:_fixed|_no_turn|_joint|_special)?|upper_head|lower_head|skull|face)(?:_s|_bone|bone)?(?:_hc|_transform)?$/i.test(b.name))headBones.add(i);});
+    // Meg's palette contains both rider head_s and mech head_s_hc. Her face
+    // belongs to the rider; including both makes the crop cover the whole rig.
+    const primary=[...headBones].filter(i=>!/_hc$/i.test(bones[i].name));
+    if(primary.length){headBones.clear();for(const i of primary)headBones.add(i);}
+    // A material called "face" can cover an entire body primitive. Named
+    // geometry is explicit; material names are a fallback only without a head.
+    const faceName=facePattern.test(o.name)||(!headBones.size&&facePattern.test(materials.map(m=>m.name).join(' ')));
+    const si=geometry.attributes.skinIndex,sw=geometry.attributes.skinWeight;
+    if(!faceName&&!headBones.size)return;
+    const v=camera.position.clone();let used=0;
+    for(const index of indices(geometry)){
+      let weight=0;
+      if(si&&sw)for(let j=0;j<4;j++)if(headBones.has(si.getComponent(index,j)))weight+=sw.getComponent(index,j);
+      if(!faceName&&weight<.35)continue;
+      try{if(o.getVertexPosition)o.getVertexPosition(index,v);else v.fromBufferAttribute(geometry.attributes.position,index);}catch{continue;}
+      v.applyMatrix4(o.matrixWorld).project(camera);
+      if(!Number.isFinite(v.x)||v.z < -1 || v.z > 1)continue;
+      pools[faceName?'face':'head'].push([(v.x+1)*size/2,(1-v.y)*size/2]);used++;
+    }
+    if(used)names.push({mesh:o.name,headBones:[...headBones].map(i=>bones[i].name),vertices:used});
+  });
+  const points=pools.face.length?pools.face:pools.head;
+  if(points.length<3)return {valid:false,source:'unlocated',meshes:names};
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const [x,y]of points){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+  const side=Math.max(maxX-minX,maxY-minY)*1.12,cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+  return {valid:side>0&&side<=size*1.5,x:cx-side/2,y:cy-side/2,width:side,height:side,source:pools.face.length?'face-mesh':'head-bone-vertices',meshes:names};
+}
+// Robots may have no head bone or named face mesh. Locate only triangles whose
+// stencil UVs overlap the alpha footprint actually rendered by the face player.
+export function referenceSkinSlug(entry) {
+  const name=entry.displayName||(entry.skinId.endsWith('Default')&&entry.publicCharacter?`${entry.publicCharacter} (Default)`:entry.skinId);
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_');
+}
+export function projectedStencilBounds(root,camera,size,renderer,target) {
+  if(!target?.width||!target?.height)return {valid:false,source:'unlocated'};
+  const pixels=new Uint8Array(target.width*target.height*4);
+  renderer.readRenderTargetPixels(target,0,0,target.width,target.height,pixels);
+  let u0=1,v0=1,u1=0,v1=0;
+  for(let y=0;y<target.height;y+=2)for(let x=0;x<target.width;x+=2)if(pixels[(y*target.width+x)*4+3]>32){
+    u0=Math.min(u0,x/target.width);u1=Math.max(u1,(x+2)/target.width);
+    v0=Math.min(v0,y/target.height);v1=Math.max(v1,(y+2)/target.height);
+  }
+  if(u1<=u0||v1<=v0)return {valid:false,source:'empty-stencil'};
+  const points=[],names=[];root.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+  root.traverseVisible(o=>{
+    const g=o.geometry,uv=g?.attributes.uv;if(!o.isMesh||!uv)return;
+    if(o.skeleton)o.skeleton.update();
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    const count=g.index?.count??g.attributes.position.count,start=g.drawRange?.start??0,end=Math.min(count,start+(g.drawRange?.count??Infinity));
+    const vertex=camera.position.clone();let used=0;
+    for(let offset=start;offset+2<end;offset+=3){
+      const group=g.groups.find(p=>offset>=p.start&&offset<p.start+p.count),m=materials[group?.materialIndex??0];
+      if(m?.visible===false||!(m?.defines?.USE_STENCIL||m?.defines?.sc3d_material_stencil))continue;
+      let t=m.uniforms?.stencilUvTransform?.value;
+      if(!t){const d=m.uniforms?.u_diffuseUVTransform?.value,s=m.uniforms?.u_stencilScaleOffset?.value;if(!d||!s)continue;t={x:d.x*s.x,y:d.y*s.y,z:d.z*s.x+s.z,w:d.w*s.y+s.w};}
+      const ids=[0,1,2].map(j=>g.index?g.index.getX(offset+j):offset+j);
+      const coords=ids.map(i=>[uv.getX(i)*t.x+t.z,uv.getY(i)*t.y+t.w]);
+      if(Math.max(...coords.map(p=>p[0]))<u0||Math.min(...coords.map(p=>p[0]))>u1||Math.max(...coords.map(p=>p[1]))<v0||Math.min(...coords.map(p=>p[1]))>v1)continue;
+      for(const i of ids){if(o.getVertexPosition)o.getVertexPosition(i,vertex);else vertex.fromBufferAttribute(g.attributes.position,i);vertex.applyMatrix4(o.matrixWorld).project(camera);if(Number.isFinite(vertex.x)&&vertex.z>=-1&&vertex.z<=1){points.push([(vertex.x+1)*size/2,(1-vertex.y)*size/2]);used++;}}
+    }
+    if(used)names.push({mesh:o.name,vertices:used});
+  });
+  if(points.length<3)return {valid:false,source:'unlocated-stencil',stencilUV:[u0,v0,u1,v1]};
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;for(const [x,y]of points){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}
+  const side=Math.max(x1-x0,y1-y0)*1.3;
+  return {valid:side>0&&side<=size*1.5,x:(x0+x1-side)/2,y:(y0+y1-side)/2,width:side,height:side,source:'stencil-uv-triangles',meshes:names,stencilUV:[u0,v0,u1,v1]};
+}
+function faceHarnessSource() {
+  let source=harnessSource().replaceAll('512','1024');
+  const extra=`
+const referenceVertexIndices=${referenceVertexIndices.toString()};
+const projectedFaceBounds=${projectedFaceBounds.toString()};
+const projectedStencilBounds=${projectedStencilBounds.toString()};
+const locateFace=()=>{const b=projectedFaceBounds(runtime.root,camera,1024);return b.valid?b:projectedStencilBounds(runtime.root,camera,1024,renderer,runtime.faceTarget);};
+window.audit.faceFrame=async function(args){
+ const {skinId,animationKey,time}=args;
+ if(skinId!==entry?.skinId)throw Error('loadSkin before faceFrame');
+ if(key!==animationKey||time<elapsed-1e-9)await this.selectAnimation(animationKey);
+ const delta=1/60;while(elapsed+delta<time-1e-9){runtime.update(delta);elapsed+=delta;}runtime.update(Math.max(0,time-elapsed));elapsed=time;
+ draw();
+ const bounds=locateFace();
+ const faceCanvas=document.createElement('canvas');faceCanvas.width=faceCanvas.height=256;const fc=faceCanvas.getContext('2d');
+
+ const bodyCanvas=document.createElement('canvas');bodyCanvas.width=bodyCanvas.height=64;const bc=bodyCanvas.getContext('2d');
+ bc.drawImage(canvas,0,0,64,64);if(bounds.valid)bc.clearRect(bounds.x/16,bounds.y/16,bounds.width/16,bounds.height/16);
+ let captureBounds=bounds;
+ if(bounds.valid){const zoom=Math.min(12,320/bounds.width);camera.zoom=zoom;camera.setViewOffset(1024,1024,(bounds.x+bounds.width/2-512)*zoom,(bounds.y+bounds.height/2-512)*zoom,1024,1024);camera.updateProjectionMatrix();draw();
+ captureBounds=locateFace();fc.drawImage(canvas,captureBounds.x,captureBounds.y,captureBounds.width,captureBounds.height,0,0,256,256);
+ camera.zoom=1;camera.clearViewOffset();camera.updateProjectionMatrix();}
+ return {face:faceCanvas.toDataURL(),body:bodyCanvas.toDataURL(),bounds,captureBounds,state:runtime.getState(),full:bounds.valid?undefined:canvas.toDataURL()};
+};`;
+  return source+extra;
+}
+function faceReferenceSource(source) {
+  return instrumentReference(source).replace('Xg.scene.scale.setScalar(1);Xg.scene.updateMatrixWorld(true);', 'Xg.scene.scale.setScalar(1);t_();Xg.scene.updateMatrixWorld(true);Xg.scene.traverse(o=>{if(o.skeleton)o.skeleton.update();});')+`\nconst projectedFaceBounds=${projectedFaceBounds.toString()};
+const projectedStencilBounds=${projectedStencilBounds.toString()};
+const locateFace=()=>{const b=projectedFaceBounds(Xg.scene,dg,1024);return b.valid?b:projectedStencilBounds(Xg.scene,dg,1024,ug,Rg?.renderTarget);};
+window.referenceAudit.faceFrame=function(time){
+ const png=this.render(time),bounds=locateFace();
+ const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');
+ let captureBounds=bounds;
+ if(bounds.valid){const zoom=Math.min(12,320/bounds.width);dg.zoom=zoom;dg.setViewOffset(1024,1024,(bounds.x+bounds.width/2-512)*zoom,(bounds.y+bounds.height/2-512)*zoom,1024,1024);dg.updateProjectionMatrix();mg.render();
+ captureBounds=locateFace();ctx.drawImage(Yf,captureBounds.x,captureBounds.y,captureBounds.width,captureBounds.height,0,0,256,256);
+ dg.zoom=1;dg.clearViewOffset();dg.updateProjectionMatrix();}
+ return {face:c.toDataURL(),bounds,captureBounds,full:bounds.valid?undefined:png};};
+const originalFrame=window.referenceAudit.frame;
+window.referenceAudit.frame=function(f){
+ const r=originalFrame(f);ug.setSize(1024,1024,false);mg.setSize(1024,1024);
+ // Center on the actual head bone, avoiding shared-buffer/accessory framing extremes.
+ const bounds=projectedFaceBounds(Xg.scene,dg,1024);
+ if(bounds.valid&&bounds.x+bounds.width>0&&bounds.x<1024&&bounds.y+bounds.height>0&&bounds.y<1024)return r;
+ let head;Xg.scene.traverse(o=>{if(!head&&/^(head|head_s|skull|skull_s)$/i.test(o.name))head=o;});
+ if(head){const center=head.getWorldPosition(dg.position.clone());dg.position.set(.18,.05,1.18).normalize().multiplyScalar(f.distance).add(center);dg.lookAt(center);dg.updateMatrixWorld(true);return {...r,source:'head-bone-anchor',center:center.toArray()};}
+ return r;
+};`;
+}
+async function facesMain(values) {
+  const out=path.resolve(values.out===DEFAULT_OUT?'/tmp/brawl-audit/faces':values.out),stage=values['faces-stage'];
+  if(!['all','local','reference','report'].includes(stage))throw Error('--faces-stage must be all, local, reference, or report');
+  shardIncludes(0,values.shard);await fs.mkdir(out,{recursive:true});
+  const toolImport=name=>import(pathToFileURL(path.join(path.resolve(values.toolchain),'node_modules',name,name==='playwright'?'index.mjs':name==='pngjs'?'lib/png.js':'lib/main.js')).href);
+  const [{chromium},{default:{PNG}},esbuild]=await Promise.all([toolImport('playwright'),toolImport('pngjs'),toolImport('esbuild')]);
+  const png=data=>Buffer.from(data.split(',')[1],'base64'),decode=data=>PNG.sync.read(png(data));
+  const get=networkCache(out,(values['cache-roots']||'').split(',').filter(Boolean));
+  const snapshot=await catalogSnapshot(out,get),all=snapshot.entries.filter(e=>faceOptions(e).length);
+  const selected=all.filter((e,i)=>shardIncludes(i,values.shard)&&(!values.skins||values.skins.split(',').includes(e.skinId))).slice(0,values.limit?+values.limit:Infinity);
+  const tag=values.shard.replace('/','-'),resultFile=path.join(out,`faces-${tag}.jsonl`),adapterHash=digest(faceReferenceSource.toString());
+  const rowCache=new Map();
+  const readAll=async()=>{
+    for(const file of(await fs.readdir(out)).filter(f=>/^faces-.*\.jsonl$/.test(f))){
+      const full=path.join(out,file),stat=await fs.stat(full);let cached=rowCache.get(file);
+      if(!cached||stat.size<cached.offset){cached={offset:0,rows:[]};rowCache.set(file,cached);}
+      if(stat.size===cached.offset)continue;
+      const handle=await fs.open(full,'r'),bytes=Buffer.alloc(stat.size-cached.offset);
+      try{const {bytesRead}=await handle.read(bytes,0,bytes.length,cached.offset),complete=bytes.subarray(0,bytesRead).lastIndexOf(10)+1;
+        if(!complete)continue;
+        for(const line of bytes.subarray(0,complete).toString().split('\n').filter(Boolean)){
+          try{cached.rows.push(JSON.parse(line));}catch{console.warn('Ignoring interrupted face JSONL record',file);}
+        }
+        cached.offset+=complete;
+      }finally{await handle.close();}
+    }
+    return [...rowCache.values()].flatMap(c=>c.rows);
+  };
+  let appendPrepared=false;
+  const append=async row=>{
+    if(!appendPrepared){const stat=await fs.stat(resultFile).catch(()=>null);if(stat?.size){const handle=await fs.open(resultFile,'r');try{const byte=Buffer.alloc(1);await handle.read(byte,0,1,stat.size-1);if(byte[0]!==10)await fs.appendFile(resultFile,'\n');}finally{await handle.close();}}appendPrepared=true;}
+    await fs.appendFile(resultFile,JSON.stringify({recordedAt:new Date().toISOString(),...row})+'\n');
+  };
+  const sheet=async(images,file)=>{const s=new PNG({width:256*8,height:Math.max(1,Math.ceil(images.length/8))*256});images.forEach((im,i)=>PNG.bitblt(im,s,0,0,256,256,i%8*256,Math.floor(i/8)*256));await fs.writeFile(file,PNG.sync.write(s));};
+  const report=async()=>{
+    const rows=await readAll(),local=[...new Map(rows.filter(r=>r.kind==='face-local').map(r=>[r.skinId+'/'+r.animationKey,r])).values()],refs=[...new Map(rows.filter(r=>r.kind==='face-reference').map(r=>[r.skinId+'/'+r.animationKey,r])).values()];
+    const refKeys=new Set(refs.map(r=>r.skinId+'/'+r.animationKey)),localKeys=new Set(local.map(r=>r.skinId+'/'+r.animationKey));
+    const failureAttempts=rows.filter(r=>r.kind==='face-failure');
+    const failures=[...new Map(failureAttempts.map(r=>[r.stage+'/'+r.skinId+'/'+r.animationKey,r])).values()].filter(r=>r.stage==='reference'?!refKeys.has(r.skinId+'/'+r.animationKey):r.stage==='local'?!localKeys.has(r.skinId+'/'+r.animationKey):!local.some(l=>l.skinId===r.skinId));
+    const attemptedReference=new Set([...refKeys,...failures.filter(r=>r.stage==='reference').map(r=>r.skinId+'/'+r.animationKey)]);
+    const attemptedSkins=all.filter(e=>faceOptions(e).every(o=>attemptedReference.has(e.skinId+'/'+o.key))).length;
+    const totals={eligibleSkins:all.length,eligibleOptions:all.reduce((n,e)=>n+faceOptions(e).length,0),localSkins:new Set(local.map(r=>r.skinId)).size,localOptions:local.length,localFrames:local.reduce((n,r)=>n+r.frames.length,0),referenceSkins:new Set(refs.map(r=>r.skinId)).size,referenceOptions:refs.length,referenceFrames:refs.reduce((n,r)=>n+r.frames.length,0),flaggedSkins:new Set(refs.filter(r=>r.flagged).map(r=>r.skinId)).size,flaggedOptions:refs.filter(r=>r.flagged).length,temporalOptions:local.filter(r=>r.temporal.some(t=>t.flagged)).length,pendingReference:local.filter(r=>!refKeys.has(r.skinId+'/'+r.animationKey)).length,failures:failures.length,failureAttempts:failureAttempts.length,attemptedReferenceOptions:attemptedReference.size,attemptedReferenceSkins:attemptedSkins,unlocatedLocalFrames:local.reduce((n,r)=>n+r.frames.filter(f=>!f.bounds.valid).length,0),unlocatedReferenceFrames:refs.reduce((n,r)=>n+r.frames.filter(f=>f.unlocated).length,0)};
+    await atomic(path.join(out,'face-totals.json'),JSON.stringify(totals,null,2));
+    await atomic(path.join(out,'flagged.json'),JSON.stringify(refs.filter(r=>r.flagged),null,2));
+    return totals;
+  };
+  if(stage==='report'||values['report-only']){console.log(await report());return;}
+  if(!values.resume&&!values.skins&&await exists(resultFile))throw Error('face results exist; use --resume, or --skins for a selected recapture');
+  const bundleFile=values['harness-cache']||path.join(out,'face-harness.js');
+  if(!await exists(bundleFile)){
+    const build=await esbuild.build({stdin:{contents:faceHarnessSource(),resolveDir:path.join(repo,'apps/brawlstats'),sourcefile:'face-audit.ts',loader:'ts'},bundle:true,write:false,format:'esm',platform:'browser',define:{'import.meta.env.BASE_URL':'"/"'},logLevel:'warning'});
+    await atomic(bundleFile,build.outputFiles[0].contents);
+    const files=['brawler-viewer-runtime.ts','brawler-viewer-contract.ts','sc-material.ts','brawler-asset-catalog.ts'];
+    await atomic(bundleFile+'.json',JSON.stringify({head:execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim(),createdAt:new Date().toISOString(),bundleSha256:digest(build.outputFiles[0].contents),sources:Object.fromEntries(await Promise.all(files.map(async f=>[f,digest(await fs.readFile(path.join(repo,'apps/brawlstats/src/lib',f)))])))},null,2));
+  }
+  const bundle=await fs.readFile(bundleFile);
+  const server=http.createServer(async(req,res)=>{try{
+    if(req.url==='/harness.js'){res.setHeader('content-type','text/javascript');res.end(bundle);return;}
+    if(req.url.startsWith('/assets/')){const r=await get(new URL(req.url,CATALOG).href);res.writeHead(r.status,r.headers);res.end(r.body);return;}
+    res.setHeader('content-type','text/html');res.end('<canvas id="canvas" width="1024" height="1024"></canvas><script type="module" src="/harness.js"></script>');
+  }catch(e){res.writeHead(502);res.end(String(e));}});
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  const url=`http://127.0.0.1:${server.address().port}`,angle=process.env.AUDIT_ANGLE||'swiftshader';
+  let browser,lock,stopping=false;process.on('SIGTERM',()=>{stopping=true;});process.on('SIGINT',()=>{stopping=true;});
+  try{
+    browser=await chromium.launch({headless:true,handleSIGTERM:false,handleSIGINT:false,args:['--use-gl=angle',`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader']:[])]});
+    const context=await browser.newContext({viewport:{width:1024,height:1024},deviceScaleFactor:1,serviceWorkers:'block'}),page=await context.newPage();page.setDefaultTimeout(90000);
+    await page.goto(url);await page.waitForFunction(()=>Boolean(window.audit?.faceFrame));
+    const smoke=await page.evaluate(()=>window.audit.smoke());await atomic(path.join(out,`face-gpu-${tag}.json`),JSON.stringify({renderer:smoke.renderer,bundleSha256:digest(bundle)}));
+    console.log('face GPU',smoke.renderer);
+    let rows=await readAll(),localDone=new Set(rows.filter(r=>r.kind==='face-local').map(r=>r.skinId+'/'+r.animationKey));
+    if(stage==='all'||stage==='local')for(const entry of selected){
+      if(stopping)break;const options=faceOptions(entry).filter(o=>values['retry-local']||!localDone.has(entry.skinId+'/'+o.key));if(!options.length)continue;
+      const folder=path.join(out,'skins',safe(entry.skinId));await fs.mkdir(folder,{recursive:true});
+      try{
+        await page.evaluate(e=>window.audit.loadSkin(e),entry);
+        for(const option of options){
+          if(stopping)break;
+          try{
+            const meta=await page.evaluate(key=>window.audit.selectAnimation(key),option.key),times=sampleTimes(meta.duration),frames=[],images=[],temporal=[];let prev;
+            for(const [index,time]of times.entries()){
+              const f=await page.evaluate(args=>window.audit.faceFrame(args),{skinId:entry.skinId,animationKey:option.key,time});
+              const face=decode(f.face),body=decode(f.body),facePath=path.join(folder,`${option.key}-${index}-local.png`);
+              await fs.writeFile(facePath,png(f.face));
+              if(!f.bounds.valid)await fs.writeFile(path.join(folder,`${option.key}-${index}-unlocated.png`),png(f.full));
+              if(prev){const motion=bodyMotionDifference(prev.body,body);temporal.push({index,...faceTemporal(prev.face,face,motion.difference),bodyDifferenceRaw:motion.raw,bodyCoverage:motion.coverage});}
+              frames.push({index,time,facePath,bounds:f.bounds,captureBounds:f.captureBounds,state:f.state,noise:strokeNoise(faceLuma(face),256)});images.push(face);prev={face,body};
+            }
+            const contactSheet=path.join(folder,`${option.key}-local-contact.png`);await sheet(images,contactSheet);
+            await append({kind:'face-local',skinId:entry.skinId,animationKey:option.key,label:option.label,...meta,times,frames,temporal,contactSheet,bundleSha256:digest(bundle)});
+            console.log(`face local ${entry.skinId}/${option.key}`);
+          }catch(e){await append({kind:'face-failure',stage:'local',skinId:entry.skinId,animationKey:option.key,error:String(e)});console.log('face failure',entry.skinId,option.key,String(e));}
+        }
+      }catch(e){await append({kind:'face-failure',stage:'load',skinId:entry.skinId,error:String(e)});}
+      finally{await page.evaluate(()=>window.audit.dispose()).catch(()=>{});}
+    }
+    if((stage==='all'||stage==='reference')&&!stopping){
+      // A machine-wide lock rejects a second reference worker, including shards using another --out.
+      const lockPath='/tmp/brawl-audit/faces-reference.lock';
+      try{lock=await fs.open(lockPath,'wx');await lock.writeFile(String(process.pid));}catch{throw Error(`another reference worker owns ${lockPath}`);}
+      await context.addInitScript(()=>{window.requestAnimationFrame=()=>0;window.__faceReferenceError=null;window.addEventListener('error',e=>{if(e.message)window.__faceReferenceError=e.message;});window.addEventListener('unhandledrejection',e=>{window.__faceReferenceError=String(e.reason);});});
+      await context.route('**/*',async route=>{
+        const requested=route.request().url();if(requested.startsWith(url))return route.continue();
+        if(!/^(mv\.brawlstars\.top|cdn\.brawlbox\.com\.cn)$/.test(new URL(requested).hostname)||/cdn-cgi|beacon/.test(requested))return route.abort();
+        try{const cached=await get(requested.split('#')[0]);let body=cached.body;
+          if(cached.headers['content-type'].includes('text/html'))body=Buffer.from(body.toString().replace(/type="[^"]*-module"/g,'type="module"').replace(/<script\b[^>]*src="[^\"]*(?:rocket-loader|beacon)[^\"]*"[^>]*>[^<]*<\/script>/g,'')+'<style>#glCanvas,#canvas-container{width:1024px!important;height:1024px!important}</style>');
+          else if(new URL(requested).pathname.includes('sc3dWebGLContext'))body=Buffer.from(faceReferenceSource(body.toString()));
+          await route.fulfill({status:cached.status,headers:{...cached.headers,'access-control-allow-origin':'*'},body});
+        }catch(e){console.error('reference route',requested,String(e));await route.abort();}
+      });
+      rows=await readAll();let locals=new Map(rows.filter(r=>r.kind==='face-local').map(r=>[r.skinId+'/'+r.animationKey,r]));
+      // The stencil fallback changes only unlocated captures; valid captures
+      // from the previous adapter retain identical framing, times and metrics.
+      const compatible=new Set([adapterHash,'0803735c7781789085263dc3661382b3fd6982e9207e06cf05e7a21d1cad32ec']);
+      const done=new Set((values.resume?rows:[]).filter(r=>(r.kind==='face-reference'&&compatible.has(r.adapterHash)&&!r.frames.some(f=>f.unlocated))||(!values['retry-reference-failures']&&r.kind==='face-failure'&&r.stage==='reference')).map(r=>r.skinId+'/'+r.animationKey));
+      let referenceSkinCount=0;
+      for(const entry of selected){
+        if(stopping)break;rows=await readAll();locals=new Map(rows.filter(r=>r.kind==='face-local').map(r=>[r.skinId+'/'+r.animationKey,r]));
+        const pending=faceOptions(entry).map(o=>locals.get(entry.skinId+'/'+o.key)).filter(o=>o&&!done.has(o.skinId+'/'+o.animationKey));if(!pending.length)continue;
+        let loadError;const slug=referenceSkinSlug(entry);
+        try{const response=await page.goto(`https://mv.brawlstars.top/skins/${encodeURIComponent(slug)}#${encodeURIComponent(pending[0].label.replaceAll(' ',''))}`,{waitUntil:'domcontentloaded',timeout:90000});if(response?.status()>=400)throw Error('reference page HTTP '+response.status());await page.waitForFunction(()=>Boolean(window.referenceAudit?.faceFrame||window.__faceReferenceError),null,{timeout:90000,polling:100});const startupError=await page.evaluate(()=>window.__faceReferenceError);if(startupError)throw Error('reference startup: '+startupError);}catch(e){loadError=e;await page.goto('about:blank',{timeout:10000}).catch(()=>{});}
+        for(const option of pending){
+          if(stopping)break;
+          try{
+            if(loadError)throw loadError;
+            const referenceLabel=option.animationKey==='HeroScreenAnim'?'Win Anim':option.label;
+            await page.evaluate(label=>window.referenceAudit.select(label),referenceLabel);const referenceFraming=await page.evaluate(f=>window.referenceAudit.frame(f),option.framing);
+            const frames=[],images=[],folder=path.join(out,'skins',safe(entry.skinId));
+            for(const [index,time]of option.times.entries()){
+              const f=await page.evaluate(t=>window.referenceAudit.faceFrame(t),time),ref=decode(f.face),local=PNG.sync.read(await fs.readFile(option.frames[index].facePath));
+              const referenceFacePath=path.join(folder,`${option.animationKey}-${index}-reference.png`);await fs.writeFile(referenceFacePath,png(f.face));if(f.full)await fs.writeFile(path.join(folder,`${option.animationKey}-${index}-reference-full.png`),png(f.full));
+              const valid=f.bounds.valid&&option.frames[index].bounds.valid,metrics=valid?compareFaces(local,ref):{flagged:false,unlocated:true};
+              frames.push({index,time,...metrics,localFacePath:option.frames[index].facePath,referenceFacePath,bounds:f.bounds,captureBounds:f.captureBounds});images.push(local,ref);
+            }
+            const contactSheet=path.join(folder,`${option.animationKey}-comparison.png`);await sheet(images,contactSheet);
+            await append({kind:'face-reference',skinId:entry.skinId,animationKey:option.animationKey,referenceUrl:page.url(),referenceLabel,referenceFraming,adapterHash,thresholds:FACE_THRESHOLDS,frames,flagged:frames.some(f=>f.flagged),contactSheet});
+            console.log(`face reference ${entry.skinId}/${option.animationKey}: ${frames.filter(f=>f.flagged).length}/8 flagged`);
+          }catch(e){await append({kind:'face-failure',stage:'reference',skinId:entry.skinId,animationKey:option.animationKey,error:String(e)});console.log('reference failure',entry.skinId,option.animationKey,String(e));}
+        }
+        if(++referenceSkinCount%10===0)await report();
+      }
+    }
+    console.log(await report());
+  }finally{if(lock){await lock.close();await fs.unlink('/tmp/brawl-audit/faces-reference.lock');}await browser?.close();await new Promise(r=>server.close(r));}
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) main().catch(error => { console.error(error); process.exitCode = 1; });
