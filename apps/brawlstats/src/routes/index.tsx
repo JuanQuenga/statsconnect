@@ -64,16 +64,16 @@ function HomePage() {
             </div>
           </div>
 
-          {/* The brawler lineup stands behind; the latest news card sits in
-              front of it on the left of this column. */}
-          <div className="relative flex min-h-[280px] items-center justify-start self-stretch sm:min-h-[380px] lg:min-h-[560px]">
+          {/* The latest news card takes the same right-edge slot as on the
+              Clash site; the brawler lineup peeks out from behind it. */}
+          <div className="relative flex min-h-[280px] items-center justify-end self-stretch sm:min-h-[380px] lg:min-h-[560px]">
             <img
               src={`${import.meta.env.BASE_URL}assets/generated/brawlstats-hero-official.webp`}
               alt={t("home.heroAlt")}
               width={900}
               height={1125}
               fetchPriority="high"
-              className="brawl-hero-art pointer-events-none absolute right-1/2 bottom-0 h-[330px] w-auto max-w-none translate-x-1/2 sm:h-[440px] lg:right-[-3rem] lg:h-[600px] lg:translate-x-0"
+              className="brawl-hero-art pointer-events-none absolute right-1/2 bottom-0 h-[330px] w-auto max-w-none translate-x-1/2 sm:h-[440px] lg:right-[12.5rem] lg:h-[540px] lg:translate-x-0"
             />
             <div className="relative z-10 w-full max-w-[360px] py-6 max-lg:mx-auto max-lg:mb-[260px] max-sm:mb-[200px] lg:py-0">
               <HeroNews />
