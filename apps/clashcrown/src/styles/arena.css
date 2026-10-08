@@ -411,9 +411,12 @@
 
 .cr-footer {
   margin-top: clamp(72px, 9vw, 140px);
-  padding-top: 40px;
+  /* Clear the wall's top ledge (~3.5% of the art's height) before any content. */
+  padding-top: 46px;
   color: #fff;
   text-align: center;
+  /* A crisp one-pixel drop reads like carved-in game text; blurred halos don't. */
+  --cr-footer-shadow: 0 1px 0 rgba(38, 28, 54, .6);
   background:
     url("/images/theme/subreddit/arena-wall.png") center top / auto 100% repeat-x,
     #8e8399;
@@ -434,7 +437,7 @@
   display: block;
   margin-bottom: 4px;
   font: 700 14px/1.4 var(--font-ui);
-  text-shadow: 1px 1px 5px #000;
+  text-shadow: var(--cr-footer-shadow);
 }
 
 .cr-footer-col ul { margin: 0; padding: 0; list-style: none; }
@@ -442,7 +445,7 @@
 .cr-footer-col a {
   color: #e6e6e6;
   font: 500 13px/1.75 var(--font-ui);
-  text-shadow: 2px 2px 5px #333;
+  text-shadow: var(--cr-footer-shadow);
 }
 
 .cr-footer-col a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
@@ -451,21 +454,21 @@
   width: 123px;
   height: 205px;
   flex: none;
-  margin: -28px 18px 0;
-  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, .35));
+  margin: 0 18px;
+  filter: drop-shadow(0 3px 4px rgba(38, 28, 54, .3));
 }
 
 /* Everything sits on the wall; the lances get their own band below with no
  * text over them, like the original. */
 .cr-footer-legal {
-  width: min(820px, calc(100% - 32px));
+  width: min(900px, calc(100% - 32px));
   margin: 4px auto 0;
   padding-bottom: 14px;
   display: grid;
   justify-items: center;
   gap: 6px;
   font: 500 13px/1.5 var(--font-ui);
-  text-shadow: 1px 1px 4px rgba(0, 0, 0, .7);
+  text-shadow: var(--cr-footer-shadow);
 }
 
 .cr-footer-legal p { margin: 0; }
@@ -473,7 +476,7 @@
 
 /* Support links read as one quiet row of footer links; their required
  * disclosures run together as a single block of fine print. */
-.cr-footer .statsconnect-community { margin: 0; text-align: center; font-size: 11.5px; line-height: 1.5; color: #ddd8e4; }
+.cr-footer .statsconnect-community { margin: 0; text-align: center; font-size: 11.5px; line-height: 1.5; color: #f1edf6; }
 .cr-footer .statsconnect-community .community-actions { justify-content: center; gap: 0 22px; margin-bottom: 2px; }
 .cr-footer .statsconnect-community .community-actions a { min-height: 32px; color: #fff; font: 600 13px/1.4 var(--font-ui); }
 .cr-footer .statsconnect-community .community-notice { display: inline; margin: 0; font-size: inherit; }
@@ -487,7 +490,7 @@
 
 @media (max-width: 760px) {
   .cr-footer-columns { flex-wrap: wrap; row-gap: 18px; }
-  .cr-footer-king { order: -1; width: 82px; height: auto; margin: -20px calc(50% - 41px) 0; }
+  .cr-footer-king { order: -1; width: 82px; height: auto; margin: 0 calc(50% - 41px); }
   .cr-footer-col { width: 50%; max-width: 180px; }
   .cr-footer-lances { height: 76px; }
 }
