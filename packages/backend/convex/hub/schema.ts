@@ -19,6 +19,12 @@ export const entitlementStatusValidator = v.union(
   v.literal("expired"),
 );
 
+export const feedbackSiteValidator = v.union(
+  v.literal("hub"),
+  v.literal("clash-royale"),
+  v.literal("brawl-stars"),
+);
+
 export const watchEntityValidator = v.union(
   v.literal("player"),
   v.literal("club"),
@@ -202,4 +208,21 @@ export const hubTables = {
     reservedTargets: v.number(),
     updatedAt: v.number(),
   }).index("by_day_started_at", ["dayStartedAt"]),
+
+  /**
+   * Visitor feedback from every site's "Send feedback" form. `clientId` is a
+   * random per-browser id used only for rate limiting; `subject` is the Clerk
+   * user when the visitor is signed in. Read it in the Convex dashboard.
+   */
+  feedback: defineTable({
+    site: feedbackSiteValidator,
+    message: v.string(),
+    email: v.optional(v.string()),
+    page: v.optional(v.string()),
+    subject: v.optional(v.string()),
+    clientId: v.string(),
+    status: v.union(v.literal("new"), v.literal("read"), v.literal("archived")),
+  })
+    .index("by_client_id", ["clientId"])
+    .index("by_status", ["status"]),
 };

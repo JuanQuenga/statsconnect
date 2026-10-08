@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COMMUNITY_COOLDOWN, emptyCommunityState, feedbackHref, nextCommunityRequest, parseCommunityState, publicSupportUrl, resolveSupportLinks } from "./community-policy.ts";
+import { COMMUNITY_COOLDOWN, emptyCommunityState, feedbackSite, nextCommunityRequest, parseCommunityState, publicSupportUrl, resolveSupportLinks } from "./community-policy.ts";
 
 const now = 10 * COMMUNITY_COOLDOWN;
 const returning = { ...emptyCommunityState, successfulSessions: 2, firstSuccessAt: now - COMMUNITY_COOLDOWN };
@@ -53,13 +53,12 @@ test("checkout links reject test mode, credentials, trackers, lookalike hosts an
   assert.equal(publicSupportUrl(" https://buy.stripe.com/abcdefghijk "), "https://buy.stripe.com/abcdefghijk");
 });
 
-test("feedback uses the existing public contact and contains no browsing or profile context", () => {
-  const destination = new URL(feedbackHref);
-  assert.equal(destination.pathname, "harmiox@gmail.com");
-  assert.equal(destination.searchParams.get("subject"), "StatsConnect feedback");
-  assert.equal(destination.searchParams.has("cc"), false);
-  assert.equal(destination.searchParams.has("bcc"), false);
-  assert.match(destination.searchParams.get("body") ?? "", /leave out passwords/);
+test("feedback is tagged with the site it was sent from", () => {
+  assert.equal(feedbackSite({ hostname: "cr.statsconnect.app", pathname: "/players/ABC" }), "clash-royale");
+  assert.equal(feedbackSite({ hostname: "bs.statsconnect.app", pathname: "/" }), "brawl-stars");
+  assert.equal(feedbackSite({ hostname: "statsconnect-x.vercel.app", pathname: "/cr/cards" }), "clash-royale");
+  assert.equal(feedbackSite({ hostname: "statsconnect-x.vercel.app", pathname: "/bs" }), "brawl-stars");
+  assert.equal(feedbackSite({ hostname: "statsconnect.app", pathname: "/crowns" }), "hub");
 });
 
 const supportUrls = {

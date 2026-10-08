@@ -479,7 +479,7 @@
  * disclosures run together as a single block of fine print. */
 .cr-footer .statsconnect-community { margin: 0; text-align: center; font-size: 12.5px; line-height: 1.55; color: #f1edf6; }
 .cr-footer .statsconnect-community .community-actions { justify-content: center; gap: 0 22px; margin-bottom: 2px; }
-.cr-footer .statsconnect-community .community-actions a { min-height: 34px; color: #fff; font: 600 14.5px/1.4 var(--font-ui); }
+.cr-footer .statsconnect-community .community-actions > :is(a, button) { min-height: 34px; color: #fff; font: 600 14.5px/1.4 var(--font-ui); }
 .cr-footer .statsconnect-community .community-notice { display: inline; margin: 0; font-size: inherit; }
 .cr-footer .statsconnect-community .community-notice::after { content: " "; }
 .cr-footer .statsconnect-community .community-manage { display: inline; min-height: 0; font-size: inherit; color: #cfe9ff; }

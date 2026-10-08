@@ -9,3 +9,18 @@
 .community-panel h2, .community-request .community-request-title { font-size: 1rem; font-weight: 650; margin: 0 0 .4rem; }
 .community-panel p, .community-request p { margin: .4rem 0; }
 .community-request { width: min(calc(100% - 2rem), 60rem); margin: 1.5rem auto; padding: 1rem 1.25rem; border: 1px solid #8885; border-radius: 12px; background: #8881; }
+
+/* Feedback form: a light, self-contained card so it reads the same on every site. */
+.community-feedback { position: fixed; inset: 0; margin: auto; width: min(calc(100vw - 2rem), 30rem); height: fit-content; max-height: calc(100dvh - 2rem); padding: 0; border: 0; border-radius: 16px; color: #142033; background: #fff; box-shadow: 0 24px 60px rgba(4, 10, 24, .45); color-scheme: light; text-align: left; text-shadow: none; }
+.community-feedback::backdrop { background: rgba(4, 10, 24, .62); }
+.community-feedback-body { display: grid; gap: .55rem; padding: 1.35rem 1.4rem 1.2rem; font: 500 .9rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.statsconnect-community .community-feedback-title { margin: 0 0 .2rem; font-size: 1.15rem; font-weight: 750; }
+.community-feedback label { font-weight: 650; }
+.community-feedback textarea, .community-feedback input { width: 100%; box-sizing: border-box; border: 1px solid #c7d0dd; border-radius: 10px; padding: .6rem .7rem; color: inherit; background: #f8fafc; font: inherit; resize: vertical; }
+.community-feedback textarea:focus-visible, .community-feedback input:focus-visible { outline: 2px solid #2f6fed; outline-offset: 1px; }
+.statsconnect-community .community-feedback-note { margin: 0; color: #5b6778; font-size: .78rem; }
+.statsconnect-community .community-feedback-error { margin: 0; color: #c0263a; font-weight: 650; }
+.community-feedback-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .4rem; }
+.statsconnect-community .community-feedback-actions button { min-height: 40px; padding: 0 1rem; border: 1px solid #c7d0dd; border-radius: 10px; color: #142033; background: #fff; font-weight: 700; text-decoration: none; }
+.statsconnect-community .community-feedback-actions button.is-primary { border-color: #2f6fed; color: #fff; background: #2f6fed; }
+.statsconnect-community .community-feedback-actions button:disabled { opacity: .65; cursor: progress; }

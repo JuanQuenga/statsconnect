@@ -100,4 +100,11 @@ export function resolveSupportLinks({ supportUrl, monthlySupportUrl, supportPort
   return { oneTime, monthly, portal };
 }
 
-export const feedbackHref = "mailto:harmiox@gmail.com?subject=StatsConnect%20feedback&body=What%20were%20you%20trying%20to%20do%3F%0A%0AWhat%20worked%20or%20should%20change%3F%0A%0APlease%20leave%20out%20passwords%2C%20account%20details%2C%20and%20payment%20information.";
+export type FeedbackSite = "hub" | "clash-royale" | "brawl-stars";
+
+/** Which site a feedback message came from: cr./bs. hosts, or the /cr and /bs preview paths. */
+export function feedbackSite({ hostname, pathname }: { hostname: string; pathname: string }): FeedbackSite {
+  if (hostname.startsWith("cr.") || /^\/cr(\/|$)/.test(pathname)) return "clash-royale";
+  if (hostname.startsWith("bs.") || /^\/bs(\/|$)/.test(pathname)) return "brawl-stars";
+  return "hub";
+}
