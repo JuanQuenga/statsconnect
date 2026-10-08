@@ -18,7 +18,44 @@ import {
   sanitizedNodeName,
   referenceSkinIsLocallyCapturable,
   unavailableSkinManifest,
+  ReferenceBoneSynchronizer,
+  viewerPlaybackWindow,
 } from "./brawler-viewer-contract.ts";
+
+test("reference windows preserve outer periods independently of the exported clip", () => {
+  const source = { assetGroup: "reference-bridge" as const, startFrame: 0, endFrame: 338, fps: 30, clipDuration: 1.4 };
+  assert.deepEqual(viewerPlaybackWindow(source), { start: 0, duration: 338 / 30 });
+  assert.deepEqual(viewerPlaybackWindow({ ...source, startFrame: 15, endFrame: -1 }), { start: 0.5, duration: 1.4 });
+  assert.deepEqual(viewerPlaybackWindow({ ...source, startFrame: 90, endFrame: 150 }), { start: 3, duration: 2 });
+  assert.deepEqual(viewerPlaybackWindow({ ...source, assetGroup: "pinned-local" }), { start: 0, duration: 1.4 });
+  assert.deepEqual(viewerPlaybackWindow({ ...source, assetGroup: "pinned-local", startFrame: 15, endFrame: -1 }), { start: 0.5, duration: 0.8999999999999999 });
+});
+
+test("reference bone synchronization copies raw world matrices while retaining unmatched base helpers", () => {
+  const base = new THREE.Group(); base.position.set(8, 3, -4); base.scale.setScalar(2);
+  const hand = new THREE.Bone(); hand.name = "hand_s"; hand.position.set(1, 2, 3);
+  const helper = new THREE.Bone(); helper.name = "weapon_split_tip_s"; helper.position.set(4, 5, 6); hand.add(helper);
+  const mesh = new THREE.SkinnedMesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
+  base.add(hand, mesh); base.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton([hand, helper]));
+  const helperRest = helper.matrix.clone();
+  const animation = new THREE.Group(); animation.position.set(-50, 7, 2);
+  const source = new THREE.Bone(); source.name = "hand_s"; source.position.set(5, 9, 3); source.quaternion.set(.7, .4, .1, .9); animation.add(source);
+  const synchronizer = new ReferenceBoneSynchronizer(base); synchronizer.setAnimation(animation);
+  const skeleton = mesh.skeleton;
+  for (let frame = 0; frame < 3; frame++) {
+    source.position.x += 2; synchronizer.update();
+    const expected = base.matrixWorld.clone().multiply(animation.matrixWorld.clone().invert()).multiply(source.matrixWorld);
+    assert.ok(hand.matrixWorld.elements.every((value, index) => Math.abs(value - expected.elements[index]!) < 1e-10));
+    assert.ok(helper.matrix.equals(helperRest));
+    assert.ok(helper.matrixWorld.equals(hand.matrixWorld.clone().multiply(helperRest)));
+    assert.equal(mesh.skeleton, skeleton);
+    assert.equal(skeleton.bones[1], helper);
+    assert.equal(hand.matrixAutoUpdate, false);
+  }
+  synchronizer.setAnimation(new THREE.Group());
+  assert.deepEqual(hand.position.toArray(), [1, 2, 3]);
+  assert.ok(helper.matrix.equals(helperRest));
+});
 
 test("keeps uncaptured skins unavailable until assets and transforms are proven", () => {
   const manifest = unavailableSkinManifest(16000012, "regression-fixture");

@@ -944,7 +944,7 @@ test("fallback stencil materials preserve source UV scale and precision", async 
   }
 });
 
-test("reference imports normalize the real Shelly and Spike non-unit rotation values before playback", async () => {
+test("reference imports retain normalization for non-skeleton transforms", async () => {
   const base = new THREE.Group();
   base.quaternion.set(-0.0059287757612764835, -0.08970484137535095, 0.5365720987319946, -0.00472392188385129);
   const animation = new THREE.Group();
@@ -962,6 +962,78 @@ test("reference imports normalize the real Shelly and Spike non-unit rotation va
   assert.ok(Math.abs(base.quaternion.length() - 1) < 1e-6);
   assert.ok(Math.abs(bone.quaternion.length() - 1) < 1e-6);
   assert.ok(Math.abs(Math.hypot(...track.values.slice(0, 4)) - 1) < 1e-6);
+  runtime.dispose();
+});
+
+test("reference outer windows repeat the source clip without resetting the face or completion clock", async () => {
+  const base = new THREE.Group();
+  const animation = new THREE.Group();
+  const bone = new THREE.Bone(); bone.name = "armSSC"; animation.add(bone);
+  const clip = new THREE.AnimationClip("short", 1, [new THREE.VectorKeyframeTrack("armSSC.position", [0, 1], [0, 0, 0, 60, 0, 0])]);
+  const ready = (url: string) => ({ kind: "ready" as const, url });
+  const runtime = new BrawlerViewerRuntime({ ...fixtureManifest(), assetGroup: "reference-bridge",
+    animations: { long: [ready("/short.glb"), ready("/face.png"), ready("/face.bin"), 15, 135, "Long", 60, 30] },
+  }, {
+    loadModel: async (url) => url.endsWith("base.glb") ? { scene: base, animations: [] } : { scene: animation, animations: [clip] },
+    loadTexture: async () => new THREE.Texture(), loadBinary: async () => faceFixtureBuffer(100),
+  });
+  await runtime.selectAnimation("long");
+  runtime.update(1.1);
+  assert.ok(Math.abs(bone.position.x - 21) < 1e-6);
+  assert.equal(runtime.getCompletedAnimationCycles(), 0);
+  assert.equal(runtime.getState().faceFrame, 33);
+  runtime.setPlaying(false); runtime.update(10); runtime.setPlaying(true);
+  runtime.update(1);
+  assert.ok(Math.abs(bone.position.x - 21) < 1e-6);
+  assert.equal(runtime.getCompletedAnimationCycles(), 1);
+  assert.equal(runtime.getState().faceFrame, 3);
+  runtime.dispose();
+});
+
+test("reference negative ends retain the full source period after a nonzero start", async () => {
+  const animation = new THREE.Group();
+  const bone = new THREE.Bone(); bone.name = "armSSC"; animation.add(bone);
+  const clip = new THREE.AnimationClip("short", 1, [new THREE.VectorKeyframeTrack("armSSC.position", [0, 1], [0, 0, 0, 60, 0, 0])]);
+  const source = fixtureManifest();
+  const runtime = new BrawlerViewerRuntime({ ...source, assetGroup: "reference-bridge",
+    animations: { ...source.animations, idle: [source.animations.idle![0], source.animations.idle![1], source.animations.idle![2], 30, -1, "Idle", 60] },
+  }, {
+    loadModel: async (url) => url.endsWith("base.glb") ? { scene: new THREE.Group(), animations: [] } : { scene: animation, animations: [clip] },
+    loadTexture: async () => new THREE.Texture(), loadBinary: async () => new ArrayBuffer(0),
+  });
+  await runtime.selectAnimation("idle"); runtime.update(0.75);
+  assert.equal(runtime.getCompletedAnimationCycles(), 0);
+  assert.ok(Math.abs(bone.position.x - 15) < 1e-6);
+  runtime.update(0.5);
+  assert.equal(runtime.getCompletedAnimationCycles(), 1);
+  assert.ok(Math.abs(bone.position.x - 45) < 1e-6);
+  runtime.dispose();
+});
+
+test("Trixie's book retains authored non-unit samples and raw deformation across animation changes", async () => {
+  const base = new THREE.Group();
+  const book = new THREE.Bone(); book.name = "book_s"; base.add(book);
+  const mesh = new THREE.SkinnedMesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
+  base.add(mesh); mesh.bind(new THREE.Skeleton([book]));
+  const samples = [.7, .4, .1, .9, .7, .4, .1, .9];
+  let source: THREE.Bone | undefined;
+  let track: THREE.QuaternionKeyframeTrack | undefined;
+  const runtime = new BrawlerViewerRuntime({ ...fixtureManifest(), skinId: "PercenterTrixie", assetGroup: "reference-bridge" }, {
+    loadModel: async (url) => {
+      if (url.endsWith("base.glb")) return { scene: base, animations: [] };
+      const scene = new THREE.Group(); source = new THREE.Bone(); source.name = "book_s"; scene.add(source);
+      track = new THREE.QuaternionKeyframeTrack("book_s.quaternion", [0, 1], samples);
+      return { scene, animations: [new THREE.AnimationClip("book", 1, [track])] };
+    }, loadTexture: async () => new THREE.Texture(), loadBinary: async () => new ArrayBuffer(0),
+  });
+  for (const key of ["idle", "custom_pose", "idle"]) {
+    await runtime.selectAnimation(key); runtime.update(0.01); runtime.root.updateMatrixWorld(true);
+    assert.ok(source && track);
+    assert.ok(Math.abs(Math.hypot(...track.values.slice(0, 4)) - Math.hypot(...samples.slice(0, 4))) < 1e-7);
+    assert.ok(book.matrix.elements.every((value, index) => Math.abs(value - source!.matrix.elements[index]!) < 1e-9));
+    assert.equal(mesh.skeleton.bones[0], book);
+    assert.equal(book.matrixAutoUpdate, false);
+  }
   runtime.dispose();
 });
 

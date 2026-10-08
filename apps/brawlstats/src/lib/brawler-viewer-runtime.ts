@@ -16,6 +16,9 @@ import {
   removeRenderableAnimationNodes,
   retargetAnimationClip,
   isStrictLocalAssetUrl,
+  ReferenceBoneSynchronizer,
+  viewerPlaybackWindow,
+  shouldPreserveReferenceRotation,
 } from "./brawler-viewer-contract.ts";
 import { createScMaterial, faceRenderTargetUvTransform } from "./sc-material.ts";
 import { appPath } from "./paths.ts";
@@ -77,7 +80,7 @@ export function compactReferenceGeometry(model: LoadedModel): number {
 }
 
 /** Repair mirrored reference rotations in memory, without rewriting source assets. */
-export function normalizeReferenceModelRotations(model: LoadedModel): {
+export function normalizeReferenceModelRotations(model: LoadedModel, preserveNodeNames: ReadonlySet<string> = new Set()): {
   readonly normalizedNodeCount: number;
   readonly normalizedSampleCount: number;
   readonly maximumNormDeviation: number;
@@ -104,6 +107,7 @@ export function normalizeReferenceModelRotations(model: LoadedModel): {
       return;
     }
     const norm = rotationNorm(node.quaternion.toArray(), node.name);
+    if (preserveNodeNames.has(node.name)) return;
     if (Math.abs(norm - 1) <= 1e-6) return;
     const { x, y, z, w } = node.quaternion;
     node.quaternion.set(x / norm, y / norm, z / norm, w / norm);
@@ -121,6 +125,7 @@ export function normalizeReferenceModelRotations(model: LoadedModel): {
     if (!Array.from(track.values).every(Number.isFinite)) throw new Error(`reference rotation is zero or non-finite: ${track.name}`);
     for (let offset = cubic ? 4 : 0; offset < track.values.length; offset += stride) {
       const norm = rotationNorm(Array.from(track.values.slice(offset, offset + 4)), track.name);
+      if (preserveNodeNames.has(track.name.slice(0, track.name.lastIndexOf(".")))) continue;
       if (Math.abs(norm - 1) <= 1e-6) continue;
       const interpolation = track.getInterpolation();
       if (cubic || (interpolation !== THREE.InterpolateLinear && interpolation !== THREE.InterpolateDiscrete)) {
@@ -352,6 +357,8 @@ export class BrawlerViewerRuntime {
   private bodyLocalTime = 0;
   private completedAnimationCycles = 0;
   private animationDuration = 0;
+  private sourceClipDuration = 0;
+  private referenceBones: ReferenceBoneSynchronizer | undefined;
   private playbackSpeed = 1;
   private faceFps = 60;
   private referenceFaceTiming = false;
@@ -430,12 +437,15 @@ export class BrawlerViewerRuntime {
     for (let sample = 0; sample < sampleCount; sample += 1) {
       const progress = sampleCount === 1 ? 0 : sample / (sampleCount - 1);
       action.time = (startFrame + (endFrame - startFrame) * progress) / this.animationFps;
+      if (this.manifest.assetGroup === "reference-bridge" && this.sourceClipDuration > 0) action.time %= this.sourceClipDuration;
       this.mixer.update(0);
+      this.referenceBones?.update();
       this.root.updateMatrixWorld(true);
       bounds.union(meshes.length ? boundsForMeshes(meshes) : boundsForObject(this.root));
     }
     action.time = originalTime;
     this.mixer.update(0);
+    this.referenceBones?.update();
     this.root.updateMatrixWorld(true);
     return bounds;
   }
@@ -451,6 +461,7 @@ export class BrawlerViewerRuntime {
     }
     this.prepareLoadedModel(baseModel);
     this.baseModel = baseModel;
+    if (this.manifest.assetGroup === "reference-bridge") this.referenceBones = new ReferenceBoneSynchronizer(baseModel.scene);
     this.root.add(this.baseModel.scene);
     const effectSpec = ALWAYS_BONE_EFFECTS[`${this.manifest.brawlerId}:${this.manifest.skinId}`];
     if (effectSpec) {
@@ -510,6 +521,7 @@ export class BrawlerViewerRuntime {
     for (const [mesh, visible] of this.suppressedMeshes) mesh.visible = visible;
     this.suppressedMeshes.clear();
     this.action?.stop();
+    this.referenceBones?.restore();
     this.restoreBaseAttachments();
     this.boneEffect?.sprite.parent?.remove(this.boneEffect.sprite);
     if (this.animationModel) {
@@ -525,10 +537,16 @@ export class BrawlerViewerRuntime {
     this.prepareLoadedModel(animationModel);
     const sourceClip = animationModel.animations[0];
     this.animationModel = animationModel;
-    const nodeMap = mergeAnimationHierarchy(this.baseModel.scene, this.animationModel.scene);
-    rebindSkinnedMeshes(this.baseModel.scene, nodeMap);
+    const nodeMap = new Map<string, THREE.Object3D>();
+    if (this.referenceBones) {
+      this.baseModel.scene.traverse((node) => nodeMap.set(node.name.replaceAll(":", ""), node));
+    } else {
+      for (const [name, node] of mergeAnimationHierarchy(this.baseModel.scene, this.animationModel.scene)) nodeMap.set(name, node);
+      rebindSkinnedMeshes(this.baseModel.scene, nodeMap);
+    }
     removeRenderableAnimationNodes(this.animationModel.scene).forEach(disposeObject);
     this.root.add(this.animationModel.scene);
+    this.referenceBones?.setAnimation(this.animationModel.scene);
     attachNamedObjects(this.baseModel.scene, nodeMap, this.manifest.attachments);
     if (this.boneEffect) {
       const anchor = nodeMap.get(this.boneEffect.spec.bone);
@@ -561,16 +579,16 @@ export class BrawlerViewerRuntime {
     this.animationFps = entry[6] && Number.isFinite(entry[6]) && entry[6] > 0 ? entry[6] : 60;
     this.playbackSpeed = entry[8] ?? 1;
     if (!Number.isFinite(this.playbackSpeed) || this.playbackSpeed <= 0) throw new Error("animation speed must be a positive finite multiplier");
+    const window = viewerPlaybackWindow({ assetGroup: this.manifest.assetGroup, startFrame: entry[3], endFrame: entry[4], fps: this.animationFps, clipDuration: sourceClip.duration });
+    this.animationDuration = window.duration;
+    this.sourceClipDuration = sourceClip.duration;
     const lastClipFrame = sourceClip.duration * this.animationFps;
-    const clipEnd = entry[4] < 0 ? lastClipFrame : Math.min(entry[4], lastClipFrame);
-    if (entry[3] > lastClipFrame) throw new Error("animation frame range starts beyond the clip");
-    this.animationRange = [Math.max(0, entry[3]), Math.max(Math.max(0, entry[3]), clipEnd)];
-    this.animationDuration = Math.max(1 / this.animationFps, Math.min(
-      (this.animationRange[1] - this.animationRange[0] + (this.manifest.assetGroup === "reference-bridge" ? 0 : 1)) / this.animationFps,
-      sourceClip.duration - this.animationRange[0] / this.animationFps,
-    ));
-    this.action.time = this.animationRange[0] / this.animationFps;
+    this.animationRange = [window.start * this.animationFps, this.manifest.assetGroup === "reference-bridge"
+      ? (window.start + window.duration) * this.animationFps
+      : Math.max(window.start * this.animationFps, entry[4] < 0 ? lastClipFrame : Math.min(entry[4], lastClipFrame))];
+    this.action.time = this.sourceTime(window.start);
     this.mixer.update(0);
+    this.referenceBones?.update();
     this.state = { ...this.state, animationKey: key, playing: true };
     await this.loadFace(entry);
     this.faceFps = entry[7] && Number.isFinite(entry[7]) && entry[7] > 0 ? entry[7] : this.animationFps;
@@ -663,11 +681,12 @@ export class BrawlerViewerRuntime {
         this.completedAnimationCycles += Math.floor(elapsed / this.animationDuration);
         this.bodyLocalTime = elapsed % this.animationDuration;
       }
-      // Wrap the source clock before evaluating the body. Letting Three advance
-      // first renders an out-of-range pose while the face uses the wrapped time.
-      this.action.time = this.animationRange[0] / this.animationFps + this.bodyLocalTime;
+      // The face and completion counter follow the outer window. The mixer
+      // repeats its source clip independently inside that window.
+      this.action.time = this.sourceTime(this.animationRange[0] / this.animationFps + this.bodyLocalTime);
       this.mixer.update(0);
     }
+    this.referenceBones?.update();
     if (!this.faceMesh || !this.faceFrames || !this.state.faceEnabled) return;
     // The native viewer advances the face at its own FPS but resets it with
     // the selected body animation loop. This keeps long face exports (for
@@ -751,6 +770,10 @@ export class BrawlerViewerRuntime {
     if (this.disposed) throw new Error("viewer runtime is disposed");
   }
 
+  private sourceTime(time: number): number {
+    return this.manifest.assetGroup === "reference-bridge" && this.sourceClipDuration > 0 ? time % this.sourceClipDuration : time;
+  }
+
   private prepareLoadedModel(model: LoadedModel): void {
     try {
       compactReferenceGeometry(model);
@@ -758,7 +781,13 @@ export class BrawlerViewerRuntime {
       model.scene.traverse((object) => {
         if (object instanceof THREE.SkinnedMesh) object.frustumCulled = false;
       });
-      if (this.manifest.assetGroup === "reference-bridge") normalizeReferenceModelRotations(model);
+      if (this.manifest.assetGroup === "reference-bridge") {
+        // Trixie's book_s keys author a non-rigid book deformation. Reference
+        // a_ copies that raw matrix; unit normalization changes its shape.
+        // Keep the established repair for other mirrored rotations.
+        const preserved = shouldPreserveReferenceRotation(this.manifest.skinId, this.manifest.assetGroup, "book_s") ? new Set(["book_s"]) : new Set<string>();
+        normalizeReferenceModelRotations(model, preserved);
+      }
     } catch (error) {
       disposeObject(model.scene);
       throw error;

@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { canonicalMotion, motionHash, createDownloads, enrichCatalog, enrichSlots, outlineParameters, referencePage, referenceUvSource } from "./enrich-brawl-catalog.mjs";
+import * as THREE from "three";
+import { normalizeReferenceModelRotations } from "../src/lib/brawler-viewer-runtime.ts";
+import { shouldPreserveReferenceRotation } from "../src/lib/brawler-viewer-contract.ts";
+import { canonicalMotion, motionHash, motionCacheKey, refreshMotionHashes, createDownloads, enrichCatalog, enrichSlots, outlineParameters, referencePage, referenceUvSource } from "./enrich-brawl-catalog.mjs";
 
 function glbBytes(document, binary = Buffer.alloc(0)) {
   const json = Buffer.from(JSON.stringify({ asset: { version: "2.0" }, ...document }));
@@ -58,6 +61,126 @@ test("quaternion signs represent the same rotation, and STEP/cubic differences s
   assert.notEqual(motionHash(bodyClip(), window), motionHash(bodyClip([{ ...bodyTrack(), interpolation: "STEP" }]), window));
   const cubic = { ...bodyTrack(), interpolation: "CUBICSPLINE", values: Float64Array.from([0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]) };
   assert.notEqual(motionHash(bodyClip(), window), motionHash(bodyClip([cubic]), window));
+});
+
+test("reference hashes sample the requested outer window through repeated source clips", () => {
+  const clip = bodyClip([{ ...bodyTrack("bone", [0, 0, 0, 2, 0, 0]), times: [0, 2] }], 2);
+  const longWindow = { startFrame: 0, endFrame: 12, fps: 2 };
+  const canonical = canonicalMotion(clip, longWindow, "reference-bridge");
+  assert.equal(canonical.duration, 60000);
+  const samples = canonical.tracks[0][2];
+  assert.equal(samples.length, 25);
+  assert.deepEqual(samples[4], [10000, 0, 0]);
+  assert.deepEqual(samples[8], [0, 0, 0]);
+  assert.deepEqual(samples[12], [10000, 0, 0]);
+  assert.deepEqual(samples[24], [0, 0, 0]);
+  assert.notEqual(motionHash(clip, longWindow, "reference-bridge"), motionHash(clip, longWindow));
+  assert.notEqual(motionCacheKey(clip, longWindow, "reference-bridge"), motionCacheKey(clip, longWindow));
+});
+
+test("reference negative ends keep the full source period with nonzero or wrapped starts", () => {
+  const clip = bodyClip([{ ...bodyTrack("bone", [0, 0, 0, 2, 0, 0]), times: [0, 2] }], 2);
+  const animation = { startFrame: 2, endFrame: -1, fps: 2 };
+  const canonical = canonicalMotion(clip, animation, "reference-bridge");
+  assert.equal(canonical.duration, 20000);
+  assert.deepEqual(canonical.tracks[0][2][0], [10000, 0, 0]);
+  assert.deepEqual(canonical.tracks[0][2][4], [0, 0, 0]);
+  assert.deepEqual(canonical.tracks[0][2].at(-1), [10000, 0, 0]);
+  assert.equal(canonicalMotion(clip, animation).duration, 10000);
+  assert.equal(motionHash(clip, animation, "reference-bridge"), motionHash(clip, { ...animation, startFrame: 6 }, "reference-bridge"));
+});
+
+test("Trixie's reference book quaternion hashes retain authored norms and interpolator output", () => {
+  const rotation = { ...bodyTrack("book_s"), path: "rotation", size: 4, values: Float64Array.from([0, 0, 0, 1.234, 0, 0, 0, 1.234]) };
+  const normalized = { ...rotation, values: Float64Array.from([0, 0, 0, 1, 0, 0, 0, 1]) };
+  const raw = canonicalMotion(bodyClip([rotation]), window, "reference-bridge", "PercenterTrixie");
+  assert.deepEqual(raw.tracks[0][2][0], [0, 0, 0, 12340]);
+  assert.deepEqual(raw.tracks[0][2][1], [0, 0, 0, 12340]);
+  assert.notEqual(motionHash(bodyClip([rotation]), window, "reference-bridge", "PercenterTrixie"), motionHash(bodyClip([normalized]), window, "reference-bridge", "PercenterTrixie"));
+  assert.notEqual(motionHash(bodyClip([rotation]), window), motionHash(bodyClip([normalized]), window), "pinned runtime leaves raw keys unchanged");
+  assert.equal(motionHash(bodyClip([rotation]), window, "reference-bridge"), motionHash(bodyClip([normalized]), window, "reference-bridge"));
+  assert.equal(motionHash(bodyClip([rotation]), window, "reference-bridge", "PercenterTrixie"), motionHash(bodyClip([{ ...rotation, values: rotation.values.map((value) => -value) }]), window, "reference-bridge", "PercenterTrixie"));
+  assert.notEqual(motionCacheKey(bodyClip([rotation]), window, "reference-bridge", "PercenterTrixie"), motionCacheKey(bodyClip([rotation]), window, "reference-bridge"));
+  const otherBone = { ...rotation, name: "other" }, normalizedOther = { ...normalized, name: "other" };
+  assert.equal(motionHash(bodyClip([otherBone]), window, "reference-bridge", "PercenterTrixie"), motionHash(bodyClip([normalizedOther]), window, "reference-bridge", "PercenterTrixie"));
+  const interpolated = { ...rotation, values: Float64Array.from([0, 0, 0, 1.234, 0, 0, 1.234, 0]) };
+  assert.deepEqual(canonicalMotion(bodyClip([interpolated]), window, "reference-bridge", "PercenterTrixie").tracks[0][2][30], [0, 0, 8726, 8726]);
+  const unequalNorms = { ...rotation, values: Float64Array.from([0, 0, 0, 1.234, 0, 0, 0.9, 0]) };
+  assert.deepEqual(canonicalMotion(bodyClip([unequalNorms]), window, "reference-bridge").tracks[0][2][30], [0, 0, 7071, 7071], "normalization happens before interpolation");
+});
+
+test("canonical rotation samples agree with the runtime preparation and Three mixer", () => {
+  for (const interpolation of [THREE.InterpolateLinear, THREE.InterpolateDiscrete]) {
+    for (const [assetGroup, skinId] of [["reference-bridge", "PercenterTrixie"], ["reference-bridge", "other"], ["pinned-local", "PercenterTrixie"]]) {
+      const scene = new THREE.Group(), bone = new THREE.Bone();
+      bone.name = "book_s";
+      scene.add(bone);
+      const rotation = new THREE.QuaternionKeyframeTrack("book_s.quaternion", [0, 1], [0, 0, 0, 1.234, 0, 0, 0.9, 0], interpolation);
+      const clip = new THREE.AnimationClip("body", 1, [rotation]);
+      const parsed = bodyClip([{ ...bodyTrack("book_s"), path: "rotation", size: 4, times: [...rotation.times], values: Float64Array.from(rotation.values), interpolation: interpolation === THREE.InterpolateDiscrete ? "STEP" : "LINEAR" }]);
+      if (assetGroup === "reference-bridge") normalizeReferenceModelRotations({ scene, animations: [clip] },
+        shouldPreserveReferenceRotation(skinId, assetGroup, bone.name) ? new Set([bone.name]) : new Set());
+      const mixer = new THREE.AnimationMixer(scene), action = mixer.clipAction(clip);
+      action.play();
+      const canonical = canonicalMotion(parsed, window, assetGroup, skinId);
+      for (const index of [0, 15, 30, 45, 60]) {
+        action.time = (index / 60) % 1;
+        mixer.update(0);
+        const actual = bone.quaternion.toArray().map((value) => Math.round(value / 1e-4));
+        assert.deepEqual(canonical.tracks[0][2][index], actual, `${assetGroup} ${skinId} ${interpolation} sample ${index}`);
+      }
+      mixer.stopAllAction();
+      mixer.uncacheRoot(scene);
+    }
+  }
+});
+
+test("offline motion refresh normalizes native bridge markers, preserves repaired faces and is idempotent", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "enrich-offline-motion-test-"));
+  const directory = path.join(root, "out"), cacheDir = path.join(root, "cache"), workerOrigin = "https://worker.test/";
+  const nativeUrl = "/assets/brawlers/3d/native/kaze.glb", mirroredUrl = "/assets/brawlers/3d/reference-bridge/objects/kaze.glb";
+  const binary = Buffer.alloc(32);
+  [0, 10, 0, 0, 0, 10, 0, 0].forEach((value, index) => binary.writeFloatLE(value, index * 4));
+  const document = { buffers: [{ byteLength: 32 }], bufferViews: [{ buffer: 0, byteLength: 8 }, { buffer: 0, byteOffset: 8, byteLength: 24 }],
+    accessors: [{ bufferView: 0, componentType: 5126, type: "SCALAR", count: 2 }, { bufferView: 1, componentType: 5126, type: "VEC3", count: 2 }],
+    nodes: [{ name: "bone" }], animations: [{ samplers: [{ input: 0, output: 1 }], channels: [{ sampler: 0, target: { node: 0, path: "translation" } }] }] };
+  const bytes = glbBytes(document, binary);
+  const original = { schemaVersion: 1, defaults: [{ skinId: "GeishaDefault", character: "Geisha", brawlerId: 16000094, assetGroup: "reference-bridge",
+    retained: "native repair", faces: { HappyFace: { atlas: { kind: "unavailable" }, binary: { kind: "ready", url: "/assets/brawlers/3d/faces/repaired.bin" }, fps: 30, retained: "keep" } },
+    baseModel: { kind: "unavailable" }, diffuseTexture: { kind: "unavailable" },
+    animations: { HappyAnim: { startFrame: 0, endFrame: 1138, fps: 120, exported: { kind: "ready", url: mirroredUrl }, motionHash: "a".repeat(64) },
+      HeroScreenAnim: { startFrame: 0, endFrame: 1140, fps: 120, exported: { kind: "ready", url: nativeUrl }, motionHash: "b".repeat(64), contentHash: "c".repeat(64), hasClip: true },
+      HeroScreenLoopAnim: { startFrame: 1020, endFrame: 1140, fps: 120, exported: { kind: "ready", url: nativeUrl }, motionHash: "d".repeat(64) },
+      MirroredLoop: { startFrame: 1019, endFrame: 1138, fps: 120, exported: { kind: "ready", url: mirroredUrl } } } }] };
+  const index = { schemaVersion: 1, kind: "index", brawlers: [{ brawlerId: 16000094, shard: "/assets/brawlers/3d/catalog/94.json" }] };
+  const strip = (value) => { const copy = structuredClone(value); for (const entry of copy.defaults) for (const animation of Object.values(entry.animations)) delete animation.motionHash; return copy; };
+  try {
+    await mkdir(path.join(directory, "catalog"), { recursive: true });
+    await mkdir(path.join(cacheDir, "worker"), { recursive: true });
+    await writeFile(path.join(directory, "catalog.json"), JSON.stringify(index));
+    await writeFile(path.join(directory, "catalog/94.json"), JSON.stringify(original));
+    for (const url of [nativeUrl, mirroredUrl]) {
+      const cachedUrl = new URL(url.replace("/assets/brawlers/3d/", ""), workerOrigin).href;
+      await writeFile(path.join(cacheDir, "worker", `${createHash("sha256").update(cachedUrl).digest("hex")}.bin`), bytes);
+    }
+    const options = { directory, cacheDir, workerOrigin, workDir: root };
+    const result = await refreshMotionHashes(options);
+    const output = JSON.parse(await readFile(path.join(directory, "catalog/94.json")));
+    assert.deepEqual(strip(output), strip(original));
+    const animations = output.defaults[0].animations;
+    assert.equal(animations.HappyAnim.motionHash, animations.HeroScreenAnim.motionHash);
+    assert.equal(animations.HeroScreenLoopAnim.motionHash, animations.MirroredLoop.motionHash);
+    assert.equal(animations.HappyAnim.motionHash, motionHash(bodyClip([{ ...bodyTrack("bone", [0, 0, 0, 10, 0, 0]), times: [0, 10] }], 10), { startFrame: 0, endFrame: 1138, fps: 120 }, "reference-bridge", "GeishaDefault"));
+    assert.equal(result.counts.motionHashChanges, 4);
+    assert.equal(result.counts.preservedShards, 1);
+    assert.equal((await readFile(path.join(directory, "catalog.json"), "utf8")), JSON.stringify(index));
+    const firstBytes = await readFile(path.join(directory, "catalog/94.json"));
+    assert.equal((await refreshMotionHashes(options)).counts.motionHashChanges, 0);
+    assert.deepEqual(await readFile(path.join(directory, "catalog/94.json")), firstBytes);
+    await rm(path.join(cacheDir, "worker"), { recursive: true });
+    await assert.rejects(refreshMotionHashes(options), /offline animation cache miss/);
+    assert.deepEqual(await readFile(path.join(directory, "catalog/94.json")), firstBytes, "missing assets abort before any catalog write");
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("fresh animation-only enrichment preserves live round-one fields and groups first-clip motion across different bytes", async () => {

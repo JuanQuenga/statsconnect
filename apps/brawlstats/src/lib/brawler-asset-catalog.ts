@@ -341,6 +341,13 @@ const faceFieldForAnimation: Readonly<Record<string, string>> = {
   SignatureAnim: "SignatureFace", ProfileAnim: "ProfileFace", IntroAnim: "IntroFace",
 };
 
+/** Mirrored windows are already normalized; native bridge files retain game markers. */
+export function catalogAnimationFrameRange(entry: Pick<BrawlerAssetCatalogEntry, "assetGroup">, source: Pick<CatalogAnimation, "exported" | "startFrame" | "endFrame">): { readonly startFrame: number; readonly endFrame: number } {
+  const nativeBody = entry.assetGroup === "reference-bridge" && source.exported.kind === "ready" && !source.exported.url.includes("/reference-bridge/");
+  const startFrame = nativeBody ? Math.max(0, source.startFrame - 1) : source.startFrame;
+  return { startFrame, endFrame: nativeBody && source.endFrame >= 0 ? Math.max(startFrame, source.endFrame - 2) : source.endFrame };
+}
+
 export function catalogEntryToViewerManifest(entry: BrawlerAssetCatalogEntry): BrawlerSkinManifest | undefined {
   if (entry.brawlerId === null || entry.baseModel.kind !== "ready" || entry.diffuseTexture.kind !== "ready") return undefined;
   const animations: Record<string, AnimationEntry> = {};
@@ -362,9 +369,7 @@ export function catalogEntryToViewerManifest(entry: BrawlerAssetCatalogEntry): B
     // Native game definitions retain frame markers. Bridge imports have
     // already applied reference a_'s start-1/end-2 convention; normalize only
     // the native body files in a bridge entry, without changing its face role.
-    const nativeBody = entry.assetGroup === "reference-bridge" && !source.exported.url.includes("/reference-bridge/");
-    const startFrame = nativeBody ? Math.max(0, source.startFrame - 1) : source.startFrame;
-    const endFrame = nativeBody && source.endFrame >= 0 ? Math.max(startFrame, source.endFrame - 2) : source.endFrame;
+    const { startFrame, endFrame } = catalogAnimationFrameRange(entry, source);
     const playback = [viewerAsset(source.exported), viewerAsset(faceAtlas), viewerAsset(faceBinary), startFrame, endFrame, source.label, source.fps, faceFps, source.speed ?? 1] satisfies AnimationEntry;
     // Match the mirrored parser's live clock; native exports retain their
     // authored local frame clock, including a separate hero-loop face export.

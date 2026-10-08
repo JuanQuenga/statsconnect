@@ -33,6 +33,29 @@ export type ViewerFeature =
   | { readonly kind: "unavailable"; readonly reason: "not-captured" | "transform-unverified" };
 
 export type ViewerAssetGroup = "pinned-local" | "reference-bridge";
+
+/** Authored non-rigid rotations must retain their magnitude in raw bone matrices. */
+export function shouldPreserveReferenceRotation(skinId: string, assetGroup: ViewerAssetGroup, boneName: string): boolean {
+  return assetGroup === "reference-bridge" && skinId === "PercenterTrixie" && boneName === "book_s";
+}
+
+/** The selected window owns restarts; the source clip can repeat inside it. */
+export function viewerPlaybackWindow({ assetGroup, startFrame, endFrame, fps, clipDuration }: {
+  readonly assetGroup: ViewerAssetGroup;
+  readonly startFrame: number;
+  readonly endFrame: number;
+  readonly fps: number;
+  readonly clipDuration: number;
+}): { readonly start: number; readonly duration: number } {
+  const start = Math.max(0, startFrame) / fps;
+  if (assetGroup === "reference-bridge") {
+    return { start, duration: Math.max(1 / fps, endFrame < 0 ? clipDuration : (endFrame - Math.max(0, startFrame)) / fps) };
+  }
+  if (start > clipDuration) throw new Error("animation frame range starts beyond the clip");
+  const end = endFrame < 0 ? clipDuration : Math.min(endFrame / fps, clipDuration);
+  return { start, duration: Math.max(1 / fps, Math.min(Math.max(0, end - start) + 1 / fps, clipDuration - start)) };
+}
+
 export type StencilUvPolicy = "flip-y" | "identity" | "2x-flip-y" | "2x-identity";
 
 export type BrawlerSkinManifest = {
@@ -289,6 +312,76 @@ export function rebindSkinnedMeshes(root: THREE.Object3D, nodes: ReadonlyMap<str
     rebound += 1;
   });
   return rebound;
+}
+
+/** Match reference a_: retain the base skeleton and copy matching raw matrices. */
+export class ReferenceBoneSynchronizer {
+  readonly bones: readonly THREE.Bone[];
+  private readonly rest: ReadonlyMap<THREE.Bone, {
+    readonly position: THREE.Vector3; readonly quaternion: THREE.Quaternion;
+    readonly scale: THREE.Vector3; readonly matrix: THREE.Matrix4;
+  }>;
+  private animation: THREE.Object3D | undefined;
+  private readonly matches = new Map<THREE.Bone, THREE.Object3D>();
+  private readonly inverseAnimation = new THREE.Matrix4();
+  private readonly relative = new THREE.Matrix4();
+  private readonly world = new THREE.Matrix4();
+  private readonly inverseParent = new THREE.Matrix4();
+  private readonly base: THREE.Object3D;
+
+  constructor(base: THREE.Object3D) {
+    this.base = base;
+    const unique = new Set<THREE.Bone>();
+    base.traverse((node) => {
+      if (node instanceof THREE.SkinnedMesh) node.skeleton.bones.forEach((bone) => unique.add(bone));
+    });
+    const depth = (node: THREE.Object3D): number => { let value = 0; for (let parent = node.parent; parent; parent = parent.parent) value++; return value; };
+    this.bones = [...unique].sort((a, b) => depth(a) - depth(b));
+    this.rest = new Map(this.bones.map((bone) => {
+      if (bone.matrixAutoUpdate) bone.updateMatrix();
+      bone.matrixAutoUpdate = false;
+      return [bone, { position: bone.position.clone(), quaternion: bone.quaternion.clone(), scale: bone.scale.clone(), matrix: bone.matrix.clone() }];
+    }));
+  }
+
+  setAnimation(animation: THREE.Object3D): void {
+    this.animation = animation;
+    this.matches.clear();
+    const nodes = new Map<string, THREE.Object3D>();
+    animation.traverse((node) => { if (node.name && !nodes.has(node.name)) nodes.set(node.name, node); });
+    for (const bone of this.bones) {
+      const match = nodes.get(bone.name);
+      if (match) this.matches.set(bone, match);
+    }
+    this.update();
+  }
+
+  restore(): void {
+    for (const [bone, rest] of this.rest) {
+      bone.position.copy(rest.position); bone.quaternion.copy(rest.quaternion); bone.scale.copy(rest.scale); bone.matrix.copy(rest.matrix);
+    }
+    this.base.updateWorldMatrix(true, true);
+  }
+
+  update(): void {
+    this.restore();
+    const animation = this.animation;
+    if (!animation) return;
+    animation.updateWorldMatrix(true, true);
+    this.inverseAnimation.copy(animation.matrixWorld).invert();
+    for (const bone of this.bones) {
+      const source = this.matches.get(bone);
+      if (!source || !bone.parent) continue;
+      this.relative.multiplyMatrices(this.inverseAnimation, source.matrixWorld);
+      this.world.multiplyMatrices(this.base.matrixWorld, this.relative);
+      this.inverseParent.copy(bone.parent.matrixWorld).invert();
+      bone.matrix.multiplyMatrices(this.inverseParent, this.world);
+      // Decomposition is metadata only. matrixAutoUpdate=false retains shear
+      // and non-unit source rotations when Three next updates the skeleton.
+      bone.matrix.decompose(bone.position, bone.quaternion, bone.scale);
+      bone.updateMatrixWorld(true);
+    }
+  }
 }
 
 /**

@@ -6,10 +6,10 @@ import { promisify } from "node:util";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { decodeFaceBinary } from "../src/lib/brawler-viewer-contract.ts";
-import { parseBrawlerAssetCatalog } from "../src/lib/brawler-asset-catalog.ts";
+import { decodeFaceBinary, shouldPreserveReferenceRotation, viewerPlaybackWindow } from "../src/lib/brawler-viewer-contract.ts";
+import { catalogAnimationFrameRange, parseBrawlerAssetCatalog } from "../src/lib/brawler-asset-catalog.ts";
 import { atomicWrite, fetchWithRetry } from "../../../scripts/mv-download-cache.mjs";
-import { animationTracks, parseGlb, playbackWindow, sampleTrack } from "./lint-brawl-catalog.mjs";
+import { animationTracks, parseGlb, sampleTrack } from "./lint-brawl-catalog.mjs";
 
 const ROOT = "/assets/brawlers/3d/";
 const DEFAULT_URL = "https://bs.statsconnect.app/assets/brawlers/3d/catalog.json";
@@ -139,22 +139,49 @@ export async function repairNativeFaces({ directory, provenanceFile, scFile, par
 }
 
 export const MOTION_SAMPLING = {
-  version: 1, samplesPerFrame: 2, componentQuantum: 1e-4, durationQuantum: 1e-4,
-  quaternionNormalization: "unit length after interpolation",
+  version: 2, samplesPerFrame: 2, componentQuantum: 1e-4, durationQuantum: 1e-4,
+  playback: "effective viewer outer window; exact endpoint resets; reference source clips repeat",
+  quaternionNormalization: "reference endpoint-key normalization; authored Trixie book_s norms retained; pinned keys unchanged",
   quaternionSign: "largest-magnitude component positive; first component wins ties",
 };
 
-// Hash the first clip's local body transforms on the viewer's inclusive,
-// clamped playback window. Track storage order, key layout, file metadata,
+function motionWindow(clip, animation, assetGroup) {
+  const fps = Number.isFinite(animation.fps) && animation.fps > 0 ? animation.fps : 60;
+  const window = viewerPlaybackWindow({ assetGroup, fps, clipDuration: clip.maxTime,
+    startFrame: Number.isFinite(animation.startFrame) ? animation.startFrame : 0,
+    endFrame: Number.isFinite(animation.endFrame) ? animation.endFrame : -1 });
+  return { ...window, fps };
+}
+
+export function motionCacheKey(clip, animation, assetGroup = "pinned-local", skinId = "") {
+  const { fps, start, duration } = motionWindow(clip, animation, assetGroup);
+  const rawRotation = clip.tracks.some((track) => track.path === "rotation" && shouldPreserveReferenceRotation(skinId, assetGroup, track.name));
+  return JSON.stringify([MOTION_SAMPLING.version, assetGroup, rawRotation, fps, start, duration, clip.maxTime]);
+}
+
+function viewerRotationTrack(track, assetGroup, skinId) {
+  if (assetGroup !== "reference-bridge" || track.path !== "rotation") return track;
+  const values = track.values.slice(), cubic = track.interpolation === "CUBICSPLINE", stride = cubic ? 12 : 4;
+  if (!Array.from(values).every(Number.isFinite)) throw new Error("non-finite animation quaternion");
+  for (let offset = cubic ? 4 : 0; offset < values.length; offset += stride) {
+    const norm = Math.hypot(...values.subarray(offset, offset + 4));
+    if (!norm) throw new Error("zero-length animation quaternion");
+    if (Math.abs(norm - 1) <= 1e-6 || shouldPreserveReferenceRotation(skinId, assetGroup, track.name)) continue;
+    if (cubic || !["LINEAR", "STEP"].includes(track.interpolation)) throw new Error("non-unit rotation uses unsupported interpolation");
+    // The runtime repairs Float32 quaternion keys before creating the mixer.
+    for (let component = 0; component < 4; component++) values[offset + component] = Math.fround(values[offset + component] / norm);
+  }
+  return { ...track, values };
+}
+
+// Hash the first clip's local body transforms on the effective viewer window.
+// Reference outer windows survive source wrapping; pinned windows retain their
+// inclusive, clamped envelope. Track storage order, key layout, file metadata,
 // absolute start time, clip name, faces and playback speed are not hashed.
 // Nearest-grid quantisation suppresses floating noise inside a bin; like any
 // fixed grid it cannot equate EVERY pair <1e-4 apart across a bin boundary.
-export function canonicalMotion(clip, animation) {
-  const fps = Number.isFinite(animation.fps) && animation.fps > 0 ? animation.fps : 60;
-  const window = playbackWindow({ fps,
-    startFrame: Number.isFinite(animation.startFrame) ? animation.startFrame : 0,
-    endFrame: Number.isFinite(animation.endFrame) ? animation.endFrame : -1 }, clip);
-  if (window.start > clip.maxTime) throw new Error("animation frame range starts beyond the clip");
+export function canonicalMotion(clip, animation, assetGroup = "pinned-local", skinId = "") {
+  const window = motionWindow(clip, animation, assetGroup), { fps } = window;
   const quantise = (value) => {
     if (!Number.isFinite(value)) throw new Error("non-finite motion sample");
     const result = Math.round(value / MOTION_SAMPLING.componentQuantum);
@@ -165,15 +192,17 @@ export function canonicalMotion(clip, animation) {
   const steps = Math.ceil(duration * MOTION_SAMPLING.durationQuantum * fps * MOTION_SAMPLING.samplesPerFrame);
   const times = Array.from({ length: steps }, (_, index) => Math.min(index / (fps * MOTION_SAMPLING.samplesPerFrame), window.duration));
   times.push(window.duration);
-  const tracks = [...clip.tracks].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+  const sourceTime = (time) => {
+    const localTime = time % window.duration;
+    const absoluteTime = window.start + localTime;
+    return assetGroup === "reference-bridge" && clip.maxTime > 0 ? absoluteTime % clip.maxTime : absoluteTime;
+  };
+  const tracks = clip.tracks.map((track) => viewerRotationTrack(track, assetGroup, skinId)).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   return { ...MOTION_SAMPLING, fps, duration, tracks: tracks.map((track) => [track.name, track.path, times.map((time) => {
-    let values = sampleTrack(track, window.start + time);
+    let values = sampleTrack(track, sourceTime(time));
     if (track.path === "rotation") {
       const length = Math.hypot(...values);
       if (!length) throw new Error("zero-length animation quaternion");
-      // Canonicalise orientation so nearly-unit endpoint keys and the
-      // viewer's normalised slerpFlat interiors use the same representation.
-      values = values.map((value) => value / length);
       // q and -q describe the same orientation. Canonicalise AFTER rounding
       // so tiny noise in equal-magnitude components cannot change the pivot.
       values = values.map(quantise);
@@ -185,8 +214,8 @@ export function canonicalMotion(clip, animation) {
   })]) };
 }
 
-export function motionHash(clip, animation) {
-  return clip ? hash(JSON.stringify(canonicalMotion(clip, animation))) : undefined;
+export function motionHash(clip, animation, assetGroup = "pinned-local", skinId = "") {
+  return clip ? hash(JSON.stringify(canonicalMotion(clip, animation, assetGroup, skinId))) : undefined;
 }
 
 function decodeHtml(value) {
@@ -368,6 +397,92 @@ export function enrichSlots(entry, page, geometry, overrides, changes) {
   }
 }
 
+function effectiveCatalogAnimation(entry, animation) {
+  const source = { ...animation,
+    startFrame: Number.isFinite(animation.startFrame) ? animation.startFrame : 0,
+    endFrame: Number.isFinite(animation.endFrame) ? animation.endFrame : -1 };
+  return { ...source, ...catalogAnimationFrameRange(entry, source) };
+}
+
+function withoutMotionHashes(catalog) {
+  const copy = structuredClone(catalog);
+  for (const entry of entries(copy)) for (const animation of Object.values(entry.animations ?? {})) delete animation.motionHash;
+  return JSON.stringify(copy);
+}
+
+// Refresh staged shards rather than re-enriching downloaded catalog metadata.
+// Native face repairs and all other fields survive, and cache misses abort
+// before any shard write. This command has no network path.
+export async function refreshMotionHashes({ directory, cacheDir, workerOrigin = DEFAULT_WORKER, workDir } = {}) {
+  if (!directory) throw new Error("a staged catalog directory is required");
+  cacheDir ??= path.join(path.dirname(directory), "cache");
+  workDir ??= path.dirname(directory);
+  const indexFile = path.join(directory, "catalog.json"), indexBytes = await readFile(indexFile), index = JSON.parse(indexBytes);
+  if (index.schemaVersion !== 1 || index.kind !== "index" || !Array.isArray(index.brawlers)) throw new Error("expected staged catalog index");
+  const shards = [];
+  for (const item of index.brawlers) {
+    const relative = outputRelative(item.shard), file = path.join(directory, relative), bytes = await readFile(file), catalog = JSON.parse(bytes);
+    parseBrawlerAssetCatalog(catalog);
+    shards.push({ relative, file, bytes, catalog, preserved: withoutMotionHashes(catalog), changed: false });
+  }
+  const animations = shards.flatMap((shard) => entries(shard.catalog).flatMap((entry) => Object.entries(entry.animations ?? {})
+    .filter(([, animation]) => animation.exported?.kind === "ready").map(([key, animation]) => ({ shard, entry, key, animation }))));
+  const beforeMotions = new Set(animations.map(({ animation }) => animation.motionHash).filter(Boolean));
+  const byUrl = new Map();
+  for (const item of animations) {
+    const url = item.animation.exported.url;
+    if (!byUrl.has(url)) byUrl.set(url, []);
+    byUrl.get(url).push(item);
+  }
+  const changes = [];
+  let sampledWindows = 0, cliplessEntries = 0, parsed = 0;
+  for (const [url, items] of byUrl) {
+    const cachedUrl = new URL(outputRelative(url), workerOrigin).href;
+    let bytes;
+    try { bytes = await readFile(path.join(cacheDir, "worker", `${hash(cachedUrl)}.bin`)); }
+    catch (error) { if (error.code !== "ENOENT") throw error; throw new Error(`offline animation cache miss: ${url}`); }
+    const clip = animationTracks(parseGlb(bytes)), digests = new Map();
+    for (const { shard, entry, key, animation } of items) {
+      let digest;
+      if (clip) {
+        const effective = effectiveCatalogAnimation(entry, animation), assetGroup = entry.assetGroup ?? "pinned-local";
+        const cacheKey = motionCacheKey(clip, effective, assetGroup, entry.skinId);
+        if (!digests.has(cacheKey)) digests.set(cacheKey, motionHash(clip, effective, assetGroup, entry.skinId));
+        digest = digests.get(cacheKey);
+      } else cliplessEntries++;
+      if (animation.motionHash === digest) continue;
+      changes.push({ brawlerId: entry.brawlerId, skinId: entry.skinId, animation: key, url, before: animation.motionHash ?? null, after: digest ?? null });
+      if (digest) animation.motionHash = digest;
+      else delete animation.motionHash;
+      shard.changed = true;
+    }
+    sampledWindows += digests.size;
+    if (++parsed % 100 === 0) console.log(`offline animation GLBs ${parsed}/${byUrl.size}; sampled windows ${sampledWindows}`);
+  }
+  for (const shard of shards) {
+    if (withoutMotionHashes(shard.catalog) !== shard.preserved) throw new Error(`motion refresh changed another field: ${shard.relative}`);
+    parseBrawlerAssetCatalog(shard.catalog);
+    if (!(await readFile(shard.file)).equals(shard.bytes)) throw new Error(`staged shard changed during motion refresh: ${shard.relative}`);
+  }
+  if (!(await readFile(indexFile)).equals(indexBytes)) throw new Error("staged index changed during motion refresh");
+  for (const shard of shards) if (shard.changed) {
+    await atomicWrite(shard.file, `${JSON.stringify(shard.catalog, null, 2)}\n`);
+    const output = JSON.parse(await readFile(shard.file));
+    parseBrawlerAssetCatalog(output);
+    if (withoutMotionHashes(output) !== shard.preserved) throw new Error(`serialized motion refresh changed another field: ${shard.relative}`);
+  }
+  const report = { motionSampling: MOTION_SAMPLING, directory, cacheDir, workerOrigin, preservedIndexSha256: hash(indexBytes),
+    counts: { shards: shards.length, preservedShards: shards.length, changedShards: shards.filter((shard) => shard.changed).length,
+      skinRecords: shards.reduce((count, shard) => count + entries(shard.catalog).length, 0),
+      animationRecords: animations.length, uniqueAnimationGlbs: byUrl.size, sampledWindows,
+      motionHashChanges: changes.length, motionHashFieldsRemoved: changes.filter((change) => change.after === null).length,
+      motionHashEntries: animations.filter(({ animation }) => animation.motionHash).length, cliplessEntries,
+      distinctMotionsBefore: beforeMotions.size, distinctMotionsAfter: new Set(animations.map(({ animation }) => animation.motionHash).filter(Boolean)).size }, changes };
+  await atomicWrite(path.join(workDir, "motion-refresh.json"), `${JSON.stringify(report, null, 2)}\n`);
+  console.log(JSON.stringify(report.counts, null, 2));
+  return report;
+}
+
 export async function enrichCatalog({ catalogUrl = DEFAULT_URL, workerOrigin = DEFAULT_WORKER,
   cdnOrigin = "https://cdn.brawlbox.com.cn/", workDir = "/tmp/brawl-audit/enrich",
   diagnosticDir = "/tmp/brawl-diag/data", concurrency = 8, refreshCatalog = false, animationsOnly = false, fetchImpl = fetch } = {}) {
@@ -448,12 +563,9 @@ export async function enrichCatalog({ catalogUrl = DEFAULT_URL, workerOrigin = D
     }
     delete animation.hasClip;
     try {
-      const fps = Number.isFinite(animation.fps) && animation.fps > 0 ? animation.fps : 60;
-      const window = playbackWindow({ fps,
-        startFrame: Number.isFinite(animation.startFrame) ? animation.startFrame : 0,
-        endFrame: Number.isFinite(animation.endFrame) ? animation.endFrame : -1 }, clip);
-      const cacheKey = JSON.stringify([animation.exported.url, fps, window.start, window.duration]);
-      if (!motionHashes.has(cacheKey)) motionHashes.set(cacheKey, motionHash(clip, animation));
+      const effective = effectiveCatalogAnimation(entry, animation), assetGroup = entry.assetGroup ?? "pinned-local";
+      const cacheKey = JSON.stringify([animation.exported.url, motionCacheKey(clip, effective, assetGroup, entry.skinId)]);
+      if (!motionHashes.has(cacheKey)) motionHashes.set(cacheKey, motionHash(clip, effective, assetGroup, entry.skinId));
       const digest = motionHashes.get(cacheKey);
       if (animation.motionHash !== digest) changes.motionHashesAdded.push({ ...skin, motionHash: digest });
       animation.motionHash = digest;
@@ -510,7 +622,7 @@ export async function enrichCatalog({ catalogUrl = DEFAULT_URL, workerOrigin = D
     ...changes.missingOutlineParams.map((item) => `- ${item.displayName}, ${item.materialName}: ${item.reason}${item.sourceOutline ? `; raw ${JSON.stringify(item.sourceOutline)}` : ""}`), "", "## Skipped skins", "",
     ...changes.skippedSkins.map((item) => `- ${item.displayName} (${item.skinId}): ${item.reason}`), "", "## Hash failures", "",
     ...changes.hashFailures.map((item) => `- ${item.url}: ${item.reason}`), "", "## Motion sampling", "",
-    "First clip only; viewer-clamped inclusive playback window. Sample every half frame at entry fps, plus the exact endpoint. LINEAR rotations use the viewer's slerpFlat interpolator. Translation/scale components and unit-normalised quaternion components are quantised with Math.round(value / 1e-4), with negative zero replaced by zero. Quaternion sign: largest absolute quantised component positive, first wins ties. Duration is Math.round(seconds / 1e-4); sample count is derived from that duration. SHA-256 covers canonical JSON with sorted joint name/path tracks, fps, duration, sampling version and quantised samples. Speed and face tracks are excluded. Grid boundaries can separate values less than 1e-4 apart; finite samples cannot prove equality between sample points.", "", "## Duplicate motion groups per skin", "",
+    "First clip's bone-local tracks only; effective viewer windows, including start-1/end-2 for native body files in bridge entries. Reference windows retain their requested duration while the source clip repeats; pinned windows retain their inclusive source clamp. Sample every half frame at entry fps, plus the exact endpoint, which resets to the window start. LINEAR rotations use slerpFlat after reference endpoint-key normalization; Trixie's authored book_s norm remains intact, and pinned keys are unchanged. Interpolated quaternions are not normalized again. Components are quantised with Math.round(value / 1e-4), with negative zero replaced by zero. Quaternion sign: largest absolute quantised component positive, first wins ties. Duration is Math.round(seconds / 1e-4); sample count is derived from that duration. SHA-256 covers canonical JSON with sorted joint name/path tracks, fps, duration, sampling version and quantised samples. Speed and face tracks are excluded. Grid boundaries can separate values less than 1e-4 apart; finite samples cannot prove equality between sample points or full rendered geometry.", "", "## Duplicate motion groups per skin", "",
     ...changes.duplicateMotionCountsPerSkin.map((item) => `- ${item.displayName} (${item.skinId}): ${item.groups} groups`), "", "### Group members", "",
     ...changes.duplicateMotionGroups.map((item) => `- ${item.displayName} (${item.skinId}): ${item.animations.join(" = ")}; ${item.motionHash}`), "", "## Clipless entries", "",
     ...changes.cliplessEntries.map((item) => `- ${item.skinId}: ${item.animation}; ${item.url}`), "", "## Motion failures", "",
@@ -532,6 +644,11 @@ async function main() {
     const report = await repairNativeFaces({ directory: args.get("repair-native-faces-in"), provenanceFile: args.get("face-provenance"),
       scFile: args.get("sc-file"), parserRoot: args.get("parser-root"), workDir: args.get("work-dir") });
     console.log(JSON.stringify({ uniqueBinaries: report.uniqueBinaries, changedBinaries: report.changedBinaries, affectedSkinCount: report.affectedSkinCount, changedCatalogRecords: report.changes.length }));
+    return;
+  }
+  if (args.has("refresh-motion-in")) {
+    await refreshMotionHashes({ directory: args.get("refresh-motion-in"), cacheDir: args.get("cache-dir"),
+      workerOrigin: args.get("worker-origin"), workDir: args.get("work-dir") });
     return;
   }
   const changes = await enrichCatalog({ catalogUrl: args.get("catalog-url"), workerOrigin: args.get("worker-origin"),
