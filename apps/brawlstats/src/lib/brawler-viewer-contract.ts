@@ -24,6 +24,8 @@ export type AnimationEntry = readonly [
   animationFps?: number,
   faceFps?: number,
   playbackSpeed?: number,
+  /** Match the reference face parser's initial tick and body-loop reset. */
+  faceTiming?: "reference",
 ];
 
 export type ViewerFeature =

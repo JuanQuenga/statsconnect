@@ -383,6 +383,71 @@ test("resets long native face timelines with the looping body clip", async () =>
   runtime.dispose();
 });
 
+test("reference 120 fps body windows retain the 30 fps face phase through home loops and pauses", async () => {
+  const ready = (url: string) => ({ kind: "ready" as const, url });
+  const clip = new THREE.AnimationClip("win", 13, []);
+  const runtime = new BrawlerViewerRuntime({
+    ...fixtureManifest(), assetGroup: "reference-bridge",
+    animations: {
+      intro: [ready("/win.glb"), ready("/face.png"), ready("/face.bin"), 0, 1138, "Win", 120, 30, 1, "reference"],
+      loop: [ready("/win.glb"), ready("/face.png"), ready("/face.bin"), 1019, 1138, "Loop", 120, 30, 1, "reference"],
+    },
+  }, {
+    loadModel: async () => ({ scene: new THREE.Group(), animations: [clip] }),
+    loadTexture: async () => new THREE.Texture(),
+    loadBinary: async () => faceFixtureBuffer(293),
+  });
+  await runtime.selectAnimation("intro");
+  runtime.update(0.1);
+  assert.equal(runtime.getState().faceFrame, 2);
+  runtime.update(1138 / 120 - 0.1 + 1e-10);
+  assert.equal(runtime.getCompletedAnimationCycles(), 1);
+  assert.equal(runtime.getState().faceFrame, 0);
+  runtime.update(0.1);
+  assert.equal(runtime.getState().faceFrame, 3);
+  await runtime.selectAnimation("loop");
+  assert.equal(runtime.getState().faceFrame, 0);
+  runtime.update(0.1);
+  assert.equal(runtime.getState().faceFrame, 2);
+  runtime.setPlaying(false);
+  runtime.update(1);
+  assert.equal(runtime.getState().faceFrame, 2);
+  runtime.setPlaying(true);
+  runtime.update(119 / 120 - 0.1 + 1e-10);
+  assert.equal(runtime.getCompletedAnimationCycles(), 1);
+  assert.equal(runtime.getState().faceFrame, 0);
+  await runtime.selectAnimation("intro");
+  assert.equal(runtime.getState().faceFrame, 0);
+  runtime.dispose();
+});
+
+test("reference live faces roll over when shorter than the body instead of clamping to the seek endpoint", async () => {
+  const ready = (url: string) => ({ kind: "ready" as const, url });
+  const runtime = new BrawlerViewerRuntime({
+    ...fixtureManifest(), assetGroup: "reference-bridge",
+    animations: { win: [ready("/win.glb"), ready("/face.png"), ready("/face.bin"), 0, 300, "Win", 30, 30, 1, "reference"] },
+  }, {
+    loadModel: async () => ({ scene: new THREE.Group(), animations: [new THREE.AnimationClip("win", 12, [])] }),
+    loadTexture: async () => new THREE.Texture(),
+    loadBinary: async () => faceFixtureBuffer(5),
+  });
+  await runtime.selectAnimation("win");
+  runtime.update(4 / 30);
+  assert.equal(runtime.getState().faceFrame, 3);
+  runtime.update(1 / 30);
+  assert.equal(runtime.getState().faceFrame, 0);
+  runtime.update(4 / 30);
+  assert.equal(runtime.getState().faceFrame, 4);
+  runtime.update(1 / 30);
+  assert.equal(runtime.getState().faceFrame, 0);
+  runtime.update(10 - 10 / 30 + 1e-10);
+  assert.equal(runtime.getCompletedAnimationCycles(), 1);
+  assert.equal(runtime.getState().faceFrame, 0);
+  runtime.update(4 / 30);
+  assert.equal(runtime.getState().faceFrame, 0);
+  runtime.dispose();
+});
+
 test("keeps a static pose skeleton and attachments when an animation has no clip", async () => {
   const base = new THREE.Group();
   const weapon = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());

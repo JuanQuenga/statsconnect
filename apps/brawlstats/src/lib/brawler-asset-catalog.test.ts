@@ -24,6 +24,52 @@ test("retains the source viewer's human-readable skin name", () => {
   assert.equal(catalogEntryLabel(catalog.defaults[0]), "White Crow");
 });
 
+function mixedFaceFixture() {
+  const base = fixture().defaults[0];
+  const contentHash = "a".repeat(64);
+  const face = { symbol: null, resolved: true, ready: true, startFrame: 0, endFrame: -1, fps: 30 };
+  return parseBrawlerAssetCatalog({ schemaVersion: 1, skins: [{
+    ...base, assetGroup: "reference-bridge",
+    animations: {
+      HappyAnim: { exported: ready("/assets/brawlers/3d/reference-bridge/objects/win.glb"), label: "Win", startFrame: 0, endFrame: 1138, fps: 120, faceField: "HappyFace", contentHash },
+      HeroScreenAnim: { exported: ready("/assets/brawlers/3d/animations/hero.glb"), label: "Hero", startFrame: 0, endFrame: 1140, fps: 120, contentHash },
+      HeroScreenLoopAnim: { exported: ready("/assets/brawlers/3d/animations/loop.glb"), label: "Loop", startFrame: 1020, endFrame: 1140, fps: 120, contentHash },
+    },
+    faces: {
+      HappyFace: { ...face, atlas: ready("/assets/brawlers/3d/reference-bridge/objects/atlas.png"), binary: ready("/assets/brawlers/3d/reference-bridge/objects/win.bin") },
+      HeroScreenFace: { ...face, atlas: ready("/assets/brawlers/3d/faces/atlas.png"), binary: ready("/assets/brawlers/3d/faces/hero.bin") },
+      HeroScreenLoopFace: { ...face, atlas: ready("/assets/brawlers/3d/faces/atlas.png"), binary: ready("/assets/brawlers/3d/faces/loop.bin") },
+    },
+  }] }).skins[0]!;
+}
+
+test("native hero windows normalize frame markers and retain their authored face", () => {
+  const entry = mixedFaceFixture();
+  const manifest = catalogEntryToViewerManifest(entry)!;
+  const hero = manifest.animations.HeroScreenAnim!;
+  const loop = manifest.animations.HeroScreenLoopAnim!;
+  assert.deepEqual(hero.slice(3, 5), [0, 1138]);
+  assert.deepEqual(loop.slice(3, 5), [1019, 1138]);
+  assert.equal(hero[2].kind === "ready" ? hero[2].url : undefined, "/assets/brawlers/3d/faces/hero.bin");
+  assert.equal(loop[2].kind === "ready" ? loop[2].url : undefined, "/assets/brawlers/3d/faces/loop.bin");
+  assert.equal(hero[7], 30);
+  assert.equal(hero[9], undefined);
+  assert.equal(manifest.animations.HappyAnim?.[9], "reference");
+  assert.equal(manifest.animations.HappyAnim?.[4], 1138);
+});
+
+test("native window normalization preserves clip-end markers and face opt-outs", () => {
+  const entry = mixedFaceFixture();
+  const hero = entry.animations.HeroScreenAnim!;
+  const optedOut = { ...entry, animations: { ...entry.animations, HeroScreenAnim: { ...hero, faceField: null, endFrame: -1 } } };
+  const playback = catalogEntryToViewerManifest(optedOut)!.animations.HeroScreenAnim!;
+  assert.equal(playback[2].kind, "unavailable");
+  assert.equal(playback[4], -1);
+  const pinned = catalogEntryToViewerManifest({ ...entry, assetGroup: "pinned-local" })!.animations.HeroScreenAnim!;
+  assert.deepEqual(pinned.slice(3, 5), [0, 1140]);
+  assert.equal(pinned[9], undefined);
+});
+
 function fixture() {
   return {
     schemaVersion: 1,

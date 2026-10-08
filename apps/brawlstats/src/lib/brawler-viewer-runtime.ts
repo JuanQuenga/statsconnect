@@ -354,6 +354,7 @@ export class BrawlerViewerRuntime {
   private animationDuration = 0;
   private playbackSpeed = 1;
   private faceFps = 60;
+  private referenceFaceTiming = false;
   private readonly baseAttachments: {
     readonly object: THREE.Object3D;
     readonly parent: THREE.Object3D;
@@ -565,7 +566,7 @@ export class BrawlerViewerRuntime {
     if (entry[3] > lastClipFrame) throw new Error("animation frame range starts beyond the clip");
     this.animationRange = [Math.max(0, entry[3]), Math.max(Math.max(0, entry[3]), clipEnd)];
     this.animationDuration = Math.max(1 / this.animationFps, Math.min(
-      (this.animationRange[1] - this.animationRange[0] + 1) / this.animationFps,
+      (this.animationRange[1] - this.animationRange[0] + (this.manifest.assetGroup === "reference-bridge" ? 0 : 1)) / this.animationFps,
       sourceClip.duration - this.animationRange[0] / this.animationFps,
     ));
     this.action.time = this.animationRange[0] / this.animationFps;
@@ -580,6 +581,8 @@ export class BrawlerViewerRuntime {
     if (entry[1].kind !== "ready" || entry[2].kind !== "ready") return;
     this.faceTexture = await this.loadTextureAsset(entry[1], "face", configureFaceTexture);
     this.faceFrames = decodeFaceBinary(await this.loader.loadBinary(assetUrl(entry[2])));
+    this.faceFps = entry[7] && Number.isFinite(entry[7]) && entry[7] > 0 ? entry[7] : this.animationFps;
+    this.referenceFaceTiming = entry[9] === "reference";
     this.assertActive();
     this.faceMesh = this.createFaceMesh();
     this.faceRoot.add(this.faceMesh);
@@ -669,7 +672,16 @@ export class BrawlerViewerRuntime {
     // The native viewer advances the face at its own FPS but resets it with
     // the selected body animation loop. This keeps long face exports (for
     // example Colt's) from drifting into a later closed-eye state.
-    const next = Math.floor(this.bodyLocalTime * this.faceFps) % this.faceFrames.frames.length;
+    const ticks = Math.floor(this.bodyLocalTime * this.faceFps + 1e-9);
+    const count = this.faceFrames.frames.length;
+    // Reference setBuffer starts before binary frame 0. Its first tick draws
+    // frame 0, but a body-loop goToFrame(0) has already consumed that frame.
+    // Live playback keeps advancing when a face export is shorter than its
+    // body; the seek UI's N-2 clamp does not describe that rollover.
+    const referenceTicks = ticks + (this.completedAnimationCycles > 0 ? 1 : 0);
+    const next = this.referenceFaceTiming
+      ? referenceTicks < count ? Math.max(0, referenceTicks - 1) : referenceTicks % count
+      : ticks % count;
     if (next !== this.state.faceFrame) {
       this.state = { ...this.state, faceFrame: next };
       this.applyFaceFrame(next);

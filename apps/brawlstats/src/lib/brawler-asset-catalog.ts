@@ -359,7 +359,17 @@ export function catalogEntryToViewerManifest(entry: BrawlerAssetCatalogEntry): B
     // steps them at a fixed 1/30 s, so 60 runs faces twice as fast and lands on
     // the wrong expressions and closed-eye frames.
     const faceFps = entry.assetGroup === "reference-bridge" && face ? 30 : face?.fps ?? source.fps;
-    animations[key] = [viewerAsset(source.exported), viewerAsset(faceAtlas), viewerAsset(faceBinary), source.startFrame, source.endFrame, source.label, source.fps, faceFps, source.speed ?? 1];
+    // Native game definitions retain frame markers. Bridge imports have
+    // already applied reference a_'s start-1/end-2 convention; normalize only
+    // the native body files in a bridge entry, without changing its face role.
+    const nativeBody = entry.assetGroup === "reference-bridge" && !source.exported.url.includes("/reference-bridge/");
+    const startFrame = nativeBody ? Math.max(0, source.startFrame - 1) : source.startFrame;
+    const endFrame = nativeBody && source.endFrame >= 0 ? Math.max(startFrame, source.endFrame - 2) : source.endFrame;
+    const playback = [viewerAsset(source.exported), viewerAsset(faceAtlas), viewerAsset(faceBinary), startFrame, endFrame, source.label, source.fps, faceFps, source.speed ?? 1] satisfies AnimationEntry;
+    // Match the mirrored parser's live clock; native exports retain their
+    // authored local frame clock, including a separate hero-loop face export.
+    const referenceFace = entry.assetGroup === "reference-bridge" && faceBinary.kind === "ready" && faceBinary.url.includes("/reference-bridge/");
+    animations[key] = referenceFace ? [...playback, "reference"] : playback;
   }
   const faceAvailable = Object.values(entry.faces).some((face) => face.ready && face.resolved && face.atlas.kind === "ready" && face.binary.kind === "ready");
   return {

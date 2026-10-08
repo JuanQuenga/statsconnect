@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { decodeFaceBinary } from "../src/lib/brawler-viewer-contract.ts";
 import { parseBrawlerAssetCatalog } from "../src/lib/brawler-asset-catalog.ts";
 import { atomicWrite, fetchWithRetry } from "../../../scripts/mv-download-cache.mjs";
 import { animationTracks, parseGlb, playbackWindow, sampleTrack } from "./lint-brawl-catalog.mjs";
@@ -13,6 +16,127 @@ const DEFAULT_URL = "https://bs.statsconnect.app/assets/brawlers/3d/catalog.json
 const DEFAULT_WORKER = "https://statsconnect-brawl-assets.juanquenga.workers.dev/";
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const entries = (catalog) => ["defaults", "releasedSkins", "skins"].flatMap((group) => catalog[group] ?? []);
+
+// The pinned SC5 parser exposes serialized a,b,c,d coefficients but its
+// Matrix2x3 multiplication/apply methods expect row-major a,b,c,d. SC stores
+// column-major a,c,b,d. Transpose EACH source matrix before parent@child;
+// transposing the final composite leaves nested translations wrong.
+export const NATIVE_FACE_REPAIR_PYTHON = String.raw`
+import hashlib, importlib.util, json, sys
+from pathlib import Path
+
+job = json.loads(Path(sys.argv[1]).read_text())
+parser = Path(job["parserRoot"])
+if hashlib.sha256((parser / "src/sc5_parser/parser.py").read_bytes()).hexdigest() != "00a29f47ddecc8a336856e95aec4da8e888dfa5b20e18b0d54772038e84fb93b":
+    raise ValueError("native face repair requires sc5-parser 9108080256a0df6cd772d81afdbc26047d79d78d")
+sys.path[:0] = [str(parser / "src"), str(Path(job["exporter"]).parent)]
+from sc5_parser.parser import SC5File
+from sc5_parser.models import Matrix2x3
+from sc5_export_names import repair_sc5_export_names
+
+spec = importlib.util.spec_from_file_location("native_face_export", job["exporter"])
+exporter = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = exporter
+spec.loader.exec_module(exporter)
+source_hash = hashlib.sha256(Path(job["scFile"]).read_bytes()).hexdigest()
+sc = SC5File(Path(job["scFile"]))
+repair_sc5_export_names(sc, Path(job["scFile"]), parser)
+original_get_matrix = sc.get_matrix
+
+def corrected_matrix(movie_id, matrix_index):
+    m = original_get_matrix(movie_id, matrix_index)
+    return Matrix2x3(a=m.a, b=m.c, c=m.b, d=m.d, tx=m.tx, ty=m.ty)
+
+results = []
+for index, face in enumerate(job["faces"]):
+    if face["sourceSha256"] != source_hash:
+        raise ValueError("source SC SHA-256 does not match face provenance")
+    original = Path(face["binary"]).read_bytes()
+    if hashlib.sha256(original).hexdigest() != face["originalSha256"]:
+        raise ValueError("original face binary SHA-256 does not match provenance")
+    sc.get_matrix = original_get_matrix
+    reproduced = exporter.encode_face_binary(exporter.flatten_export(sc, face["export"]))
+    if reproduced != original:
+        raise ValueError("original face cannot be reproduced: " + face["export"])
+    sc.get_matrix = corrected_matrix
+    frames = exporter.flatten_export(sc, face["export"])
+    corrected = exporter.encode_face_binary(frames)
+    digest = hashlib.sha256(corrected).hexdigest()
+    output = Path(job["staging"]) / (digest + ".bin")
+    output.write_bytes(corrected)
+    results.append({"originalSha256": face["originalSha256"], "sha256": digest,
+                    "export": face["export"], "frames": len(frames),
+                    "changed": corrected != original, "file": str(output)})
+    if (index + 1) % 20 == 0:
+        print("regenerated native faces", index + 1, flush=True)
+Path(job["result"]).write_text(json.dumps(results))
+`;
+
+/** Offline, source-verified repair; retain the original native atlas and every catalog field. */
+export async function repairNativeFaces({ directory, provenanceFile, scFile, parserRoot, workDir }) {
+  const provenance = JSON.parse(await readFile(provenanceFile, "utf8"));
+  const unique = new Map();
+  for (const record of provenance.records) {
+    const metadata = record.metadata;
+    if (metadata.exportMode !== "vector-source-atlas") throw new Error("native face repair requires vector-source-atlas provenance");
+    const face = { export: metadata.export, sourceSha256: metadata.scFileSha256, binary: metadata.binary, originalSha256: metadata.binarySha256 };
+    const existing = unique.get(face.originalSha256);
+    if (existing && (existing.export !== face.export || existing.sourceSha256 !== face.sourceSha256)) throw new Error("conflicting native face provenance");
+    if (!existing) unique.set(face.originalSha256, face);
+  }
+  const staging = await mkdtemp(path.join(workDir, "native-face-repair-"));
+  try {
+    const resultFile = path.join(staging, "result.json");
+    const jobFile = path.join(staging, "job.json");
+    await atomicWrite(jobFile, JSON.stringify({ parserRoot: path.resolve(parserRoot), scFile: path.resolve(scFile),
+      exporter: fileURLToPath(new URL("../../../scripts/export-sc5-face.py", import.meta.url)),
+      staging, result: resultFile, faces: [...unique.values()] }));
+    const adapter = path.join(staging, "repair.py");
+    await atomicWrite(adapter, NATIVE_FACE_REPAIR_PYTHON);
+    await promisify(execFile)("uv", ["run", "--no-project", "--with", "numpy", "--with", "Pillow", "--with", "flatbuffers", "--with", "zstandard", "python", "-I", adapter, jobFile], { cwd: staging, maxBuffer: 1024 * 1024 });
+    const generated = new Map(JSON.parse(await readFile(resultFile, "utf8")).map((face) => [face.originalSha256, face]));
+    const replacements = new Map();
+    for (const record of provenance.records) {
+      const face = generated.get(record.metadata.binarySha256);
+      if (!face) throw new Error("native face regeneration missed a provenance record");
+      const bytes = await readFile(face.file);
+      if (hash(bytes) !== face.sha256 || decodeFaceBinary(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length)).frames.length !== face.frames) throw new Error("invalid regenerated face binary");
+      const url = record.binaryUrl.replace(/\.[0-9a-f]{16}\.bin$/, `.${face.sha256.slice(0, 16)}.bin`);
+      if (url === record.binaryUrl && face.changed) throw new Error("native binary URL lacks a content hash");
+      await atomicWrite(path.join(directory, outputRelative(url)), bytes);
+      replacements.set(`${record.brawlerId}:${record.skinId}:${record.faceField}`, { record, face, url });
+    }
+    const index = JSON.parse(await readFile(path.join(directory, "catalog.json"), "utf8"));
+    const shards = [];
+    const changes = [];
+    for (const item of index.brawlers) {
+      const file = path.join(directory, outputRelative(item.shard));
+      const catalog = JSON.parse(await readFile(file, "utf8"));
+      for (const entry of entries(catalog)) for (const [key, face] of Object.entries(entry.faces ?? {})) {
+        const replacement = replacements.get(`${entry.brawlerId}:${entry.skinId}:${key}`);
+        // Some duplicate skin records contain bridge faces in this role.
+        if (!replacement || face.binary?.kind !== "ready" || ![replacement.record.binaryUrl, replacement.url].includes(face.binary.url)) continue;
+        if (face.binary.url !== replacement.url) changes.push({ brawlerId: entry.brawlerId, skinId: entry.skinId,
+          faceField: key, previousUrl: face.binary.url, url: replacement.url, export: replacement.face.export });
+        face.binary.url = replacement.url;
+      }
+      parseBrawlerAssetCatalog(catalog);
+      shards.push({ file, catalog });
+    }
+    for (const { file, catalog } of shards) {
+      await atomicWrite(file, `${JSON.stringify(catalog, null, 2)}\n`);
+      parseBrawlerAssetCatalog(JSON.parse(await readFile(file, "utf8")));
+    }
+    const changed = [...replacements.values()].filter(({ face }) => face.changed);
+    const report = { matrixConvention: "source-column-major-to-parser-row-major-v1", sourceSha256: hash(await readFile(scFile)),
+      parserCommit: "9108080256a0df6cd772d81afdbc26047d79d78d", uniqueBinaries: generated.size,
+      changedBinaries: [...generated.values()].filter((face) => face.changed).length,
+      affectedSkinCount: new Set(changed.map(({ record }) => `${record.brawlerId}:${record.skinId}`)).size,
+      affectedSkins: [...new Set(changed.map(({ record }) => record.skinId))].sort(), changes };
+    await atomicWrite(path.join(directory, "native-face-repairs.json"), `${JSON.stringify(report, null, 2)}\n`);
+    return report;
+  } finally { await rm(staging, { recursive: true, force: true }); }
+}
 
 export const MOTION_SAMPLING = {
   version: 1, samplesPerFrame: 2, componentQuantum: 1e-4, durationQuantum: 1e-4,
@@ -151,7 +275,7 @@ export function createDownloads({ directory, diagnosticDir, workerOrigin, concur
   const workerGate = { nextRequestAt: 0 };
   // All reference requests, including material documents, share this serial
   // chain. Response bodies finish before the next request starts; retries also
-  // use the >=250ms gate and honour Retry-After in fetchWithRetry.
+  // use the >=500ms gate and honour Retry-After in fetchWithRetry.
   let referenceQueue = Promise.resolve();
   let activeWorkerRequests = 0;
   const waitingWorkers = [];
@@ -179,7 +303,7 @@ export function createDownloads({ directory, diagnosticDir, workerOrigin, concur
       let response;
       try { response = await fetchWithRetry(fetchImpl, url, {
         headers: reference ? { "User-Agent": "Mozilla/5.0", Origin: "https://mv.brawlstars.top", Referer: "https://mv.brawlstars.top/" } : {},
-        maxRetries: 4, retryDelayMs: 1000, requestDelayMs: reference ? 250 : 0,
+        maxRetries: 4, retryDelayMs: 1000, requestDelayMs: reference ? 500 : 0,
         requestTimeoutMs: 60000, requestGate: reference ? referenceGate : workerGate,
       }); } finally { if (!reference) releaseWorker(); }
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`);
@@ -402,6 +526,13 @@ async function main() {
     const key = process.argv[index];
     if (!key.startsWith("--") || !process.argv[index + 1]) throw new Error(`expected --option value: ${key}`);
     args.set(key.slice(2), process.argv[++index]);
+  }
+  if (args.has("repair-native-faces-in")) {
+    for (const key of ["face-provenance", "sc-file", "parser-root", "work-dir"]) if (!args.has(key)) throw new Error(`--${key} is required for native face repair`);
+    const report = await repairNativeFaces({ directory: args.get("repair-native-faces-in"), provenanceFile: args.get("face-provenance"),
+      scFile: args.get("sc-file"), parserRoot: args.get("parser-root"), workDir: args.get("work-dir") });
+    console.log(JSON.stringify({ uniqueBinaries: report.uniqueBinaries, changedBinaries: report.changedBinaries, affectedSkinCount: report.affectedSkinCount, changedCatalogRecords: report.changes.length }));
+    return;
   }
   const changes = await enrichCatalog({ catalogUrl: args.get("catalog-url"), workerOrigin: args.get("worker-origin"),
     cdnOrigin: args.get("cdn-origin"), workDir: args.get("work-dir"), diagnosticDir: args.get("diagnostic-dir"),
