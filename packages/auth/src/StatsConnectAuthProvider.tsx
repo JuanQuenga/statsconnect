@@ -2,6 +2,7 @@ import {
   ClerkProvider,
   useAuth as useClerkAuth,
   useClerk,
+  useUser,
 } from "@clerk/clerk-react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexProvider, ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
@@ -70,6 +71,8 @@ export type StatsConnectAuthState = {
   /** Opens Clerk's sign-in modal (every sign-in method enabled in Clerk). */
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Opens Clerk's account management (profile, email, connected accounts, security). */
+  manageAccount: () => void;
 };
 
 type AccountState = {
@@ -127,6 +130,7 @@ const defaultState: StatsConnectAuthState = {
     throw new StatsConnectAuthConfigurationError();
   },
   signOut: async () => undefined,
+  manageAccount: () => undefined,
 };
 
 const AuthContext = createContext<StatsConnectAuthState>(defaultState);
@@ -255,6 +259,7 @@ function GuestProfiles({
       throw new StatsConnectAuthConfigurationError();
     },
     signOut: async () => profiles.module.signOut(),
+    manageAccount: () => undefined,
   }), [profiles.module, profiles.snapshot]);
   // Guest mode has no Clerk tokens, so never leave a stale fetcher behind.
   useEffect(() => {
@@ -266,6 +271,7 @@ function GuestProfiles({
 function ConfiguredAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading: isConvexAuthLoading } = useConvexAuth();
   const clerk = useClerk();
+  const { user: clerkUser } = useUser();
   const [accessNow] = useState(() => Date.now());
   const access = useQuery(accessRef, isAuthenticated ? { now: accessNow } : "skip");
   const accountState = useQuery(accountStateRef, isAuthenticated ? {} : "skip");
@@ -312,7 +318,14 @@ function ConfiguredAuth({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<StatsConnectAuthState>(() => ({
-    account: accountState?.user ?? null,
+    // The Convex token carries only the subject, so names, emails and avatars
+    // come from Clerk's client-side user.
+    account: accountState ? {
+      ...accountState.user,
+      name: clerkUser?.fullName || clerkUser?.username || clerkUser?.primaryEmailAddress?.emailAddress?.split("@")[0] || accountState.user.name,
+      email: clerkUser?.primaryEmailAddress?.emailAddress ?? accountState.user.email,
+      image: clerkUser?.imageUrl ?? accountState.user.image,
+    } : null,
     isConfigured: true,
     isLoading: isConvexAuthLoading || (isAuthenticated && accountState === undefined),
     profiles: profiles.snapshot.profiles,
@@ -346,10 +359,12 @@ function ConfiguredAuth({ children }: { children: ReactNode }) {
       await clerk.signOut();
       profiles.module.signOut();
     },
+    manageAccount: () => clerk.openUserProfile(),
   }), [
     access,
     accountState,
     clerk,
+    clerkUser,
     isAuthenticated,
     isConvexAuthLoading,
     accountTrackedProfiles,

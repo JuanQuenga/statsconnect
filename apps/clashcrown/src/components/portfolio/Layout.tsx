@@ -83,6 +83,7 @@ export function Layout({ children, variant = "profile" }: { children: React.Reac
           avatarUrl: auth.account.image ?? undefined,
           displayName: auth.account.name,
           email: auth.account.email,
+          onManage: auth.manageAccount,
           onSignOut: () => void auth.signOut(),
         } : undefined}
         authAction={auth.isConfigured && !auth.account && !auth.isLoading ? {

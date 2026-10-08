@@ -448,6 +448,7 @@
   cursor: pointer;
 }
 .sc-nav__account-popover button { width: 100%; margin-top: 12px; padding: 8px 10px; }
+.sc-nav__account-popover .sc-nav__account-manage + button { margin-top: 6px; border-color: rgba(255, 255, 255, .14); background: transparent; }
 .sc-nav__sign-in { height: 30px; padding: 0 10px; white-space: nowrap; }
 .sc-nav__account-popover button:hover,
 .sc-nav__sign-in:hover { background: color-mix(in srgb, var(--sc-nav-accent) 22%, transparent); }

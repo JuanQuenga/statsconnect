@@ -39,6 +39,7 @@ export type SiteNavigationAccount = {
   displayName: string;
   email?: string;
   href?: string;
+  onManage?: () => void;
   onSignOut?: () => void;
 };
 
@@ -383,15 +384,16 @@ function AccountChip({ account }: { account: SiteNavigationAccount }) {
   );
   if (!account.onSignOut) {
     return account.href
-      ? <a className="sc-nav__account" href={account.href} aria-label={`Google account: ${account.displayName}`}>{content}</a>
-      : <div className="sc-nav__account" aria-label={`Google account: ${account.displayName}`}>{content}</div>;
+      ? <a className="sc-nav__account" href={account.href} aria-label={`Account: ${account.displayName}`}>{content}</a>
+      : <div className="sc-nav__account" aria-label={`Account: ${account.displayName}`}>{content}</div>;
   }
   return (
     <details ref={detailsRef} onToggle={(event) => syncOpen(event.currentTarget.open)} className="sc-nav__account-menu">
-      <summary className="sc-nav__account" aria-label={`Google account: ${account.displayName}`}>{content}</summary>
+      <summary className="sc-nav__account" aria-label={`Account: ${account.displayName}`}>{content}</summary>
       <div className="sc-nav__account-popover">
         <strong>{account.displayName}</strong>
         {account.email ? <small>{account.email}</small> : null}
+        {account.onManage ? <button type="button" className="sc-nav__account-manage" onClick={() => { if (detailsRef.current) detailsRef.current.open = false; account.onManage?.(); }}>Manage account</button> : null}
         <button type="button" onClick={account.onSignOut}>Sign out</button>
       </div>
     </details>
