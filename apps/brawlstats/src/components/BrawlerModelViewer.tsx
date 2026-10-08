@@ -5,7 +5,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { BrawlerViewerControls } from "@/components/BrawlerViewerControls";
 import { brawlerAssetCatalogUrl, catalogEntryLabel, catalogEntryToViewerManifest, createBrawlerAssetCatalogRequestCache, loadBrawlerAssetCatalog, selectCatalogViewerEntry, type BrawlerAssetCatalog, type BrawlerAssetCatalogEntry } from "@/lib/brawler-asset-catalog";
-import { BrawlerViewerRuntime, centerModelForFraming, fitPerspectiveCameraDistance, selectHomeAnimationSequence, startupFramingBounds, type LoadedModel } from "@/lib/brawler-viewer-runtime";
+import { BrawlerViewerRuntime, centerModelForFraming, fitPerspectiveCameraDistance, selectHomeAnimationSequence, startupFramingBounds, type LoadedModel, type ViewerFraming } from "@/lib/brawler-viewer-runtime";
 import { brawlerModel3dAsset, brawlerModel3dUrl } from "@/lib/brawler-models";
 import { createOutlineCompositeMaterial, type BrawlerSkinManifest, type ViewerFeature } from "@/lib/brawler-viewer-contract";
 
@@ -115,7 +115,7 @@ type Stage = {
   readonly outlineCamera: THREE.OrthographicCamera;
   readonly outlineMaterial: THREE.ShaderMaterial;
   shown?: Shown;
-  framing?: THREE.Box3;
+  framing?: ViewerFraming;
   targetDistance: number;
   refitting: boolean;
   dispose: () => void;
@@ -161,24 +161,43 @@ function createStage(canvas: HTMLCanvasElement, container: HTMLElement): Stage {
   return stage;
 }
 
-function fitCamera(stage: Stage, bounds: THREE.Box3, animate: boolean): void {
-  stage.framing = bounds;
+const ORIGIN = new THREE.Vector3();
+
+/** The follow track's point for an animation progress (0..1), or the origin. */
+function framingGoal(framing: ViewerFraming | undefined, progress: number, out: THREE.Vector3): THREE.Vector3 {
+  const track = framing?.follow;
+  if (!track?.length) return out.copy(ORIGIN);
+  const position = THREE.MathUtils.clamp(progress, 0, 1) * (track.length - 1);
+  const index = Math.floor(position);
+  return out.copy(track[index]).lerp(track[Math.min(index + 1, track.length - 1)], position - index);
+}
+
+function fitCamera(stage: Stage, framing: ViewerFraming, animate: boolean): void {
+  stage.framing = framing;
   const scaleHint = stage.shown?.scaleHint ?? 1;
-  const size = bounds.getSize(new THREE.Vector3());
+  // A travelling animation is framed on the body (with room for lag) and
+  // followed; anything else fits every sampled pose around the origin.
+  const fitted = framing.follow ? framing.body.clone().expandByScalar(framing.body.getSize(new THREE.Vector3()).length() * 0.06) : framing.bounds;
+  const size = fitted.getSize(new THREE.Vector3());
   const largest = Math.max(size.x, size.y, size.z, 1e-3);
   // Near plane scales with the model so layered parts keep depth precision.
   stage.camera.near = largest * 0.05;
   stage.camera.far = largest * 20;
   stage.camera.updateProjectionMatrix();
-  stage.targetDistance = fitPerspectiveCameraDistance(stage.camera, bounds, stage.direction) / scaleHint;
+  stage.targetDistance = fitPerspectiveCameraDistance(stage.camera, fitted, stage.direction) / scaleHint;
   stage.controls.minDistance = stage.targetDistance * 0.72;
   stage.controls.maxDistance = stage.targetDistance * 1.85;
   if (animate) { stage.refitting = true; return; }
   stage.refitting = false;
-  stage.camera.position.copy(stage.direction).multiplyScalar(stage.targetDistance);
-  stage.camera.lookAt(0, 0, 0);
-  stage.controls.target.set(0, 0, 0);
+  const goal = framingGoal(framing, stage.shown?.runtime?.getAnimationProgress() ?? 0, new THREE.Vector3());
+  stage.controls.target.copy(goal);
+  stage.camera.position.copy(stage.direction).multiplyScalar(stage.targetDistance).add(goal);
+  stage.camera.lookAt(goal);
   stage.controls.update();
+}
+
+function legacyFraming(bounds: THREE.Box3): ViewerFraming {
+  return { bounds, body: bounds.clone().translate(bounds.getCenter(new THREE.Vector3()).negate()) };
 }
 
 export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, artworkMaxWidth, artworkKind, className }: BrawlerModelViewerProps) {
@@ -222,6 +241,8 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
     let frame = 0;
     let visible = true;
     const clock = new THREE.Clock(false);
+    const offset = new THREE.Vector3();
+    const goal = new THREE.Vector3();
     const tick = () => {
       frame = 0;
       if (!stage || !visible || document.hidden) { clock.stop(); return; }
@@ -237,15 +258,28 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
           const loop = shown.home.loop;
           void runtime.selectAnimation(loop).then(() => {
             if (stageRef.current?.shown !== shown || animationRef.current !== undefined) return;
-            fitCamera(stageRef.current, runtime.getFramingBounds(), true);
+            fitCamera(stageRef.current, runtime.getFraming(), true);
             setUi((current) => ({ ...current, animationKey: loop }));
           }).catch((error: unknown) => reportFallback(brawlerId, "idle animation transition failed", error));
         }
+        // Ease the orbit target toward the follow track (or back to the
+        // origin), carrying the camera with it so user orbiting is kept.
+        const target = stage.controls.target;
+        offset.subVectors(stage.camera.position, target);
+        framingGoal(stage.framing, runtime?.getAnimationProgress() ?? 0, goal);
+        if (target.distanceToSquared(goal) > 1e-10) {
+          target.set(
+            THREE.MathUtils.damp(target.x, goal.x, 10, delta),
+            THREE.MathUtils.damp(target.y, goal.y, 10, delta),
+            THREE.MathUtils.damp(target.z, goal.z, 10, delta),
+          );
+        }
         if (stage.refitting) {
-          const distance = THREE.MathUtils.damp(stage.camera.position.length(), stage.targetDistance, 8, delta);
-          stage.camera.position.setLength(distance);
+          const distance = THREE.MathUtils.damp(offset.length(), stage.targetDistance, 8, delta);
+          offset.setLength(distance);
           if (Math.abs(distance - stage.targetDistance) <= 0.001) stage.refitting = false;
         }
+        stage.camera.position.addVectors(target, offset);
         stage.controls.update(delta);
         const state = runtime?.getState();
         if (state?.faceEnabled) runtime!.renderFace(stage.renderer);
@@ -293,7 +327,7 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
     setUi((current) => ({ ...current, status: current.status === "ready" ? "ready" : "loading", busy: true }));
     const load = async () => {
       let next: Shown;
-      let startupBounds: THREE.Box3;
+      let startup: ViewerFraming;
       let playback: string | undefined;
       if (manifest) {
         const requested = animationRef.current;
@@ -310,9 +344,14 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
           runtime.setFaceEnabled(hasFaceAsset(manifest, playback));
           runtime.setOutlineEnabled(manifest.outline.kind === "available");
           runtime.root.updateMatrixWorld(true);
-          const current = runtime.getFramingBounds();
-          const framed = centerModelForFraming(runtime.root, idleBounds ?? current);
-          startupBounds = idleBounds ? startupFramingBounds(idleBounds, current).applyMatrix4(framed.wrapper.matrixWorld) : framed.bounds;
+          const current = runtime.getFraming();
+          const framed = centerModelForFraming(runtime.root, idleBounds ?? current.bounds);
+          const matrix = framed.wrapper.matrixWorld;
+          startup = {
+            bounds: idleBounds && !current.follow ? startupFramingBounds(idleBounds, current.bounds).applyMatrix4(matrix) : current.bounds.clone().applyMatrix4(matrix),
+            body: current.body,
+            follow: current.follow?.map((point) => point.clone().applyMatrix4(matrix)),
+          };
           // HomeScreenScale is a source-authored framing hint relative to 290.
           const scaleHint = THREE.MathUtils.clamp((manifest.cameraScale ?? 290) / 290, 0.72, 1.05);
           next = { wrapper: framed.wrapper, runtime, skinKey, scaleHint, home: home && home.loop !== playback ? { loop: home.loop, transitioned: false } : undefined };
@@ -327,7 +366,7 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
         action.play();
         model.scene.updateMatrixWorld(true);
         const framed = centerModelForFraming(model.scene, new THREE.Box3().setFromObject(model.scene, true));
-        startupBounds = framed.bounds;
+        startup = legacyFraming(framed.bounds);
         next = { wrapper: framed.wrapper, legacy: { model: model.scene, mixer, action }, skinKey, scaleHint: 1 };
       }
       const previous = stage.shown;
@@ -339,7 +378,7 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
       stage.scene.add(next.wrapper);
       stage.shown = next;
       stage.camera.fov = next.runtime ? 20 : 32;
-      fitCamera(stage, startupBounds, false);
+      fitCamera(stage, startup, false);
       const state = next.runtime?.getState();
       setUi({
         status: "ready", busy: false,
@@ -374,7 +413,7 @@ export function BrawlerModelViewer({ brawlerId, alt, artworkSrc, fallbackSrc, ar
     void runtime.selectAnimation(selectedAnimation).then(() => {
       if (cancelled || stageRef.current?.shown !== shown) return;
       runtime.setFaceEnabled(hasFaceAsset(manifest, selectedAnimation));
-      fitCamera(stage, runtime.getFramingBounds(), true);
+      fitCamera(stage, runtime.getFraming(), true);
       const state = runtime.getState();
       setUi((current) => ({ ...current, busy: false, playing: state.playing, playbackAvailable: runtime.hasAnimationClip(), faceEnabled: state.faceEnabled, animationKey: selectedAnimation }));
     }).catch((error: unknown) => {

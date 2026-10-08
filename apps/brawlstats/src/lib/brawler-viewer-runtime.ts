@@ -247,6 +247,15 @@ function boundsForObject(root: THREE.Object3D): THREE.Box3 {
   }
 }
 
+type MeshSample = { readonly mesh: THREE.Mesh; readonly bounds: THREE.Box3; readonly center: THREE.Vector3; readonly extent: number };
+
+function sampleMeshes(meshes: readonly THREE.Mesh[]): readonly MeshSample[] {
+  return meshes.map((mesh) => {
+    const bounds = boundsForObject(mesh);
+    return { mesh, bounds, center: bounds.getCenter(new THREE.Vector3()), extent: bounds.getSize(new THREE.Vector3()).length() };
+  });
+}
+
 function framingMeshes(root: THREE.Object3D): readonly THREE.Mesh[] {
   const meshes: THREE.Mesh[] = [];
   root.traverse((object) => {
@@ -254,11 +263,12 @@ function framingMeshes(root: THREE.Object3D): readonly THREE.Mesh[] {
     for (let parent = object.parent; parent; parent = parent.parent) if (!parent.visible) return;
     meshes.push(object);
   });
-  if (meshes.length < 3) return meshes;
-  const samples = meshes.map((mesh) => {
-    const bounds = boundsForObject(mesh);
-    return { mesh, bounds, center: bounds.getCenter(new THREE.Vector3()), extent: bounds.getSize(new THREE.Vector3()).length() };
-  });
+  return focusedSamples(sampleMeshes(meshes)).map((sample) => sample.mesh);
+}
+
+/** The character's body cluster, without distant staged or thrown props. */
+function focusedSamples(samples: readonly MeshSample[]): readonly MeshSample[] {
+  if (samples.length < 3) return samples;
   const median = (values: readonly number[]) => {
     const sorted = [...values].sort((a, b) => a - b);
     return sorted[Math.floor(sorted.length / 2)];
@@ -276,15 +286,23 @@ function framingMeshes(root: THREE.Object3D): readonly THREE.Mesh[] {
   for (const sample of focusedCore) bodyBounds.union(sample.bounds);
   const margin = bodyBounds.getSize(new THREE.Vector3()).length() * 0.1;
   const nearby = bodyBounds.clone().expandByScalar(margin);
-  const focused = samples.filter((sample) => focusedCore.includes(sample) || (!core.includes(sample) && nearby.containsPoint(sample.center))).map((sample) => sample.mesh);
-  return focused.length ? focused : meshes;
+  const focused = samples.filter((sample) => focusedCore.includes(sample) || (!core.includes(sample) && nearby.containsPoint(sample.center)));
+  return focused.length ? focused : samples;
 }
 
-function boundsForMeshes(meshes: readonly THREE.Mesh[]): THREE.Box3 {
-  const bounds = new THREE.Box3();
-  for (const mesh of meshes) bounds.union(boundsForObject(mesh));
-  return bounds;
-}
+/**
+ * Camera framing for the selected animation. `follow` is set when the body
+ * travels far beyond its own size (Kaze's Win leap): the camera then tracks
+ * the body cluster's sampled centers instead of shrinking it to fit the
+ * whole path. `body` is the largest per-pose body box, centered on the origin.
+ */
+export type ViewerFraming = {
+  readonly bounds: THREE.Box3;
+  readonly body: THREE.Box3;
+  readonly follow?: readonly THREE.Vector3[];
+};
+
+const FOLLOW_TRAVEL_RATIO = 1.6;
 
 // Jester's source hero clips park unused candy, sad-ball, and surprise-box
 // parts below the character at 0.1 scale. Our closer viewer camera exposes
@@ -423,31 +441,59 @@ export class BrawlerViewerRuntime {
    * by a camera fitted only to the bind pose.
    */
   getFramingBounds(): THREE.Box3 {
+    return this.getFraming().bounds;
+  }
+
+  getFraming(): ViewerFraming {
     this.root.updateMatrixWorld(true);
     const meshes = framingMeshes(this.root);
-    const bounds = meshes.length ? boundsForMeshes(meshes) : boundsForObject(this.root);
+    const bodySize = new THREE.Vector3();
+    const centers: THREE.Vector3[] = [];
+    const measure = (): THREE.Box3 => {
+      if (!meshes.length) return boundsForObject(this.root);
+      const samples = sampleMeshes(meshes);
+      const body = new THREE.Box3();
+      for (const sample of focusedSamples(samples)) body.union(sample.bounds);
+      bodySize.max(body.getSize(new THREE.Vector3()));
+      centers.push(body.getCenter(new THREE.Vector3()));
+      const all = new THREE.Box3();
+      for (const sample of samples) all.union(sample.bounds);
+      return all;
+    };
+    const bounds = measure();
     const action = this.action;
     const range = this.animationRange;
-    if (!action || !range || !Number.isFinite(this.animationFps) || this.animationFps <= 0) return bounds;
-
-    const [startFrame, endFrame] = range;
-    const frameCount = Math.max(1, endFrame - startFrame + 1);
-    const sampleCount = Math.min(180, Math.max(2, Math.ceil(frameCount)));
-    const originalTime = action.time;
-    for (let sample = 0; sample < sampleCount; sample += 1) {
-      const progress = sampleCount === 1 ? 0 : sample / (sampleCount - 1);
-      action.time = (startFrame + (endFrame - startFrame) * progress) / this.animationFps;
-      if (this.manifest.assetGroup === "reference-bridge" && this.sourceClipDuration > 0) action.time %= this.sourceClipDuration;
+    if (action && range && Number.isFinite(this.animationFps) && this.animationFps > 0) {
+      centers.length = 0;
+      const [startFrame, endFrame] = range;
+      const frameCount = Math.max(1, endFrame - startFrame + 1);
+      const sampleCount = Math.min(180, Math.max(2, Math.ceil(frameCount)));
+      const originalTime = action.time;
+      for (let sample = 0; sample < sampleCount; sample += 1) {
+        const progress = sampleCount === 1 ? 0 : sample / (sampleCount - 1);
+        action.time = (startFrame + (endFrame - startFrame) * progress) / this.animationFps;
+        if (this.manifest.assetGroup === "reference-bridge" && this.sourceClipDuration > 0) action.time %= this.sourceClipDuration;
+        this.mixer.update(0);
+        this.referenceBones?.update();
+        this.root.updateMatrixWorld(true);
+        bounds.union(measure());
+      }
+      action.time = originalTime;
       this.mixer.update(0);
       this.referenceBones?.update();
       this.root.updateMatrixWorld(true);
-      bounds.union(meshes.length ? boundsForMeshes(meshes) : boundsForObject(this.root));
     }
-    action.time = originalTime;
-    this.mixer.update(0);
-    this.referenceBones?.update();
-    this.root.updateMatrixWorld(true);
-    return bounds;
+    const body = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(), bodySize);
+    const size = bounds.getSize(new THREE.Vector3());
+    const travels = centers.length > 1 && Math.max(size.x, size.y, size.z) > Math.max(bodySize.x, bodySize.y, bodySize.z) * FOLLOW_TRAVEL_RATIO;
+    return { bounds, body, follow: travels ? centers : undefined };
+  }
+
+  /** Position in the selected window, matching the `getFraming` samples (0..1). */
+  getAnimationProgress(): number {
+    const range = this.animationRange;
+    if (!range || range[1] <= range[0]) return 0;
+    return THREE.MathUtils.clamp(this.bodyLocalTime * this.animationFps / (range[1] - range[0]), 0, 1);
   }
 
   async loadBase(): Promise<void> {
