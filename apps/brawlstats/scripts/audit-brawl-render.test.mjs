@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeRGBA, duplicatePairs, sampleTimes, shardIncludes, signatureDistance, referenceSample } from './audit-brawl-render.mjs';
+import * as THREE from 'three';
+import { analyzeRGBA, duplicatePairs, sampleTimes, shardIncludes, signatureDistance, referenceSample, referenceVertexIndices } from './audit-brawl-render.mjs';
 const image = (width = 32, height = 32) => ({ width, height, data: new Uint8Array(width * height * 4) });
 function fill(a, color, x0 = 4, y0 = 4, x1 = 27, y1 = 27) {
   for (let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) a.data.set(color,(y*a.width+x)*4); return a;
@@ -27,4 +28,29 @@ test('motion comparison requires eight valid poses and detects luma/silhouette c
 test('reference sample is stable and approximately ten percent',()=>{
   const selections=Array.from({length:10000},(_,i)=>referenceSample(`skin${i}`,'seed'));
   const n=selections.filter(Boolean).length;assert.ok(n>900&&n<1100);assert.equal(referenceSample('a','seed'),referenceSample('a','seed'));
+});
+test('reference framing skins only indexed vertices in a shared buffer', () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([0,0,0, 1,0,0, 0,1,0, 1000,1000,1000], 3));
+  geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute([0,0,0,0, 0,0,0,0, 0,0,0,0, 9,0,0,0], 4));
+  geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute([1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0], 4));
+  geometry.setIndex([0,1,2,2,1,0]);
+  const bone = new THREE.Bone(), material = new THREE.MeshBasicMaterial();
+  const mesh = new THREE.SkinnedMesh(geometry, material);
+  mesh.add(bone); mesh.bind(new THREE.Skeleton([bone])); mesh.updateMatrixWorld(true);
+  assert.throws(() => mesh.getVertexPosition(3, new THREE.Vector3()), TypeError);
+  const bounds = new THREE.Box3();
+  for (const index of referenceVertexIndices(geometry)) bounds.expandByPoint(mesh.getVertexPosition(index, new THREE.Vector3()));
+  assert.deepEqual([...referenceVertexIndices(geometry)], [0,1,2]);
+  assert.deepEqual(bounds.min.toArray(), [0,0,0]); assert.deepEqual(bounds.max.toArray(), [1,1,0]);
+  mesh.skeleton.dispose(); geometry.dispose(); material.dispose();
+});
+test('reference framing respects draw ranges and nonindexed geometry', () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(18), 3));
+  geometry.setIndex([5,4,3,2,1,0]); geometry.setDrawRange(1,3);
+  assert.deepEqual([...referenceVertexIndices(geometry)], [4,3,2]);
+  geometry.setIndex(null); assert.deepEqual([...referenceVertexIndices(geometry)], [1,2,3]);
+  geometry.setDrawRange(4,Infinity); assert.deepEqual([...referenceVertexIndices(geometry)], [4,5]);
+  geometry.dispose();
 });

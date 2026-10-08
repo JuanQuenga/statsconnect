@@ -71,6 +71,19 @@ export function referenceSample(skinId, seed) {
   // Stable pseudorandom 10% Bernoulli sample, independent of shard/resume/order.
   return parseInt(createHash('sha256').update(`${seed}:${skinId}`).digest('hex').slice(0, 8), 16) / 2 ** 32 < 0.1;
 }
+/** Reference primitives share buffers; only drawn indices belong to this mesh's bone palette. */
+export function* referenceVertexIndices(geometry) {
+  const position = geometry.attributes.position;
+  if (!position) return;
+  const index = geometry.index, count = index?.count ?? position.count;
+  const start = Math.max(0, geometry.drawRange?.start ?? 0);
+  const end = Math.min(count, start + (geometry.drawRange?.count ?? Infinity));
+  const seen = new Set();
+  for (let offset = start; offset < end; offset++) {
+    const vertex = index ? index.getX(offset) : offset;
+    if (!seen.has(vertex)) { seen.add(vertex); yield vertex; }
+  }
+}
 const scriptPath = fileURLToPath(import.meta.url);
 const repo = path.resolve(path.dirname(scriptPath), '../../..');
 const DEFAULT_OUT = '/tmp/brawl-audit/render';
@@ -156,7 +169,7 @@ const gltf=new GLTFLoader();
 const reset=()=>{runtime?.dispose();runtime=undefined;scene?.clear();renderer.renderLists.dispose();entry=undefined;key=undefined;};
 function draw(jitter=0){camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),jitter*Math.PI/180);camera.lookAt(0,0,0);
  if(runtime.getState().faceEnabled)runtime.renderFace(renderer);
- if(runtime.getState().outlineEnabled){outlineMaterial.uniforms.tDiffuse.value=runtime.renderOutline(renderer,camera,wrapper);renderer.render(outlineScene,outlineCamera);}else renderer.render(scene,camera);
+ if(runtime.getState().outlineEnabled){outlineMaterial.uniforms.tDiffuse.value=runtime.renderOutline(renderer,camera,scene);renderer.render(outlineScene,outlineCamera);}else renderer.render(scene,camera);
  camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),-jitter*Math.PI/180);camera.lookAt(0,0,0);
  ctx.clearRect(0,0,512,512);ctx.drawImage(canvas,0,0);return ctx.getImageData(0,0,512,512);
 }
@@ -190,12 +203,12 @@ window.audit={
 // Adapter to the cached 2026-10 reference module. Fail explicitly if its lexical API changes.
 function instrumentReference(source) {
   for (const token of ['async function a_(e)', 'Rg&&Rg.goToFrame', 'const Xg=await', 'dg=new Ar(20']) if (!source.includes(token)) throw new Error(`reference adapter unsupported: missing ${token}`);
-  return source + `\n;__=false;window.referenceAudit={
+  return source + `\n;const referenceVertexIndices=${referenceVertexIndices.toString()};__=false;window.referenceAudit={
  async select(label){const pair=Object.entries(eg).find(([k,v])=>v[5]===label);if(!pair)throw Error('reference animation missing: '+label);await a_(pair[1]);__=false;return {duration:Kg,label:Qg};},
  render(time){__=false;g_=Math.max(0,time);qg.setTime($g/e_+g_);t_();if(Rg)Rg.goToFrame(Math.round(30*g_));for(const m of Jg)if(m.uniforms?.u_time)m.uniforms.u_time.value=g_;mg.render();return Yf.toDataURL('image/png');},
  frame(f){ug.setPixelRatio(1);ug.setSize(512,512,false);mg.setPixelRatio(1);mg.setSize(512,512);dg.clearViewOffset();dg.aspect=1;dg.fov=20;dg.near=f.near;dg.far=f.far;dg.position.set(.18,.05,1.18).normalize().multiplyScalar(f.distance);dg.lookAt(0,0,0);dg.updateProjectionMatrix();Xg.scene.scale.setScalar(1);Xg.scene.updateMatrixWorld(true);
  // Runtime/reference geometries use different origins. Center the reference's current visible pose.
- let lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];Xg.scene.traverseVisible(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position;if(!p)return;for(let i=0;i<p.count;i++){const v=new dg.position.constructor();if(o.getVertexPosition)o.getVertexPosition(i,v);else v.fromBufferAttribute(p,i);v.applyMatrix4(o.matrixWorld);for(let j=0;j<3;j++){lo[j]=Math.min(lo[j],v.getComponent(j));hi[j]=Math.max(hi[j],v.getComponent(j));}}});
+ let lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];Xg.scene.traverseVisible(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position;if(!p)return;for(const i of referenceVertexIndices(o.geometry)){const v=new dg.position.constructor();if(o.getVertexPosition)o.getVertexPosition(i,v);else v.fromBufferAttribute(p,i);v.applyMatrix4(o.matrixWorld);for(let j=0;j<3;j++){lo[j]=Math.min(lo[j],v.getComponent(j));hi[j]=Math.max(hi[j],v.getComponent(j));}}});
  const center=lo.map((v,i)=>(v+hi[i])/2);dg.position.add(new dg.position.constructor(...center));dg.lookAt(...center);dg.updateMatrixWorld(true);return {center,lo,hi};}
 };`;
 }

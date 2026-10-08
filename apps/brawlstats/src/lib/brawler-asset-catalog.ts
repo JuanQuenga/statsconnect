@@ -170,6 +170,18 @@ function optionalAsset(source: Record<string, unknown>, key: string): CatalogAss
   return source[key] === undefined ? undefined : catalogAsset(source[key]);
 }
 
+/**
+ * The reference shader only uses the authored opacity when the material has
+ * the OPACITY feature (and the value is below 1); otherwise alpha is 1. 72
+ * ordinary body slots carry a stray opacity 0 without OPACITY, and honouring
+ * it hid whole bodies. Slots without a constants list keep the raw value.
+ */
+function effectiveOpacity(source: Record<string, unknown>): number | undefined {
+  if (typeof source.opacity !== "number" || !Number.isFinite(source.opacity)) return undefined;
+  if (Array.isArray(source.scConstants) && !source.scConstants.includes("OPACITY")) return undefined;
+  return source.opacity;
+}
+
 function outlineParams(value: unknown): ScMaterialMetadata["outline"] {
   if (value === undefined || value === null) return undefined;
   const source = record(value);
@@ -189,7 +201,7 @@ function catalogMaterialSlot(value: unknown): CatalogMaterialSlot {
     ambient: typeof source.ambient === "boolean" ? source.ambient : undefined,
     lightmapDiffuse: typeof source.lightmapDiffuse === "boolean" ? source.lightmapDiffuse : undefined,
     specular: typeof source.specular === "boolean" ? source.specular : undefined,
-    opacity: typeof source.opacity === "number" && Number.isFinite(source.opacity) ? source.opacity : undefined,
+    opacity: effectiveOpacity(source),
     stencil: typeof source.stencil === "boolean" ? source.stencil : undefined,
     stencilUvPolicy: stencilPolicy(source.stencilUvPolicy),
     uvSource: materialUvSource(source.uvSource),
@@ -408,15 +420,17 @@ export function catalogAnimationOptions(entry: BrawlerAssetCatalogEntry): readon
     // with byte-identical motion on dozens of skins, and their windows can
     // differ by a couple of trailing frames (Gus: 0-262 vs 0-260).
     const source = animation.contentHash ?? animation.exported.url;
+    // Any negative end means "clip end" to the runtime (-1 and -3 alike).
+    const end = animation.endFrame < 0 ? -1 : animation.endFrame;
     const existing = groups.find((group) => group.source === source
       && Math.abs(group.start - animation.startFrame) <= SAME_MOTION_FRAME_SLACK
-      && (group.end < 0 || animation.endFrame < 0
-        ? group.end === animation.endFrame
-        : Math.abs(group.end - animation.endFrame) <= SAME_MOTION_FRAME_SLACK));
+      && (group.end < 0 || end < 0
+        ? group.end === end
+        : Math.abs(group.end - end) <= SAME_MOTION_FRAME_SLACK));
     if (existing) {
       if (!existing.labels.includes(animation.label)) existing.labels.push(animation.label);
     } else {
-      groups.push({ key, source, motion: animation.motionHash, start: animation.startFrame, end: animation.endFrame, labels: [animation.label] });
+      groups.push({ key, source, motion: animation.motionHash, start: animation.startFrame, end, labels: [animation.label] });
     }
   }
   return groups.map(({ key, labels }) => ({ key, label: labels.join(" / ") }));

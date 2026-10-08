@@ -381,3 +381,25 @@ test("a clipless idle stays available as the rest pose", () => {
   } as never;
   assert.deepEqual(catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]).map((option) => option.label), ["Idle"]);
 });
+
+test("opacity applies only to slots with the OPACITY feature", () => {
+  const source = fixture();
+  const base = source.defaults[0].materialSlots[0];
+  source.defaults[0].materialSlots = [
+    { ...base, materialName: "body_mat", opacity: 0, scConstants: ["DIFFUSE", "LIGHTMAP"] },
+    { ...base, materialName: "invisible_mat", opacity: 0, scConstants: ["DIFFUSE", "OPACITY"] },
+    { ...base, materialName: "legacy_mat", opacity: 0.5 },
+  ] as never;
+  const slots = catalogEntryToViewerManifest(parseBrawlerAssetCatalog(source).defaults[0])?.materialSlots ?? [];
+  assert.deepEqual(slots.map((slot) => slot.opacity), [undefined, 0, 0.5]);
+});
+
+test("negative end markers all mean clip end when merging same-content options", () => {
+  const source = fixture();
+  const hash = "e".repeat(64);
+  source.defaults[0].animations = {
+    HappyAnim: { symbol: "Happy", label: "Happy", exported: ready("/a/happy.glb"), startFrame: 0, endFrame: -3, contentHash: hash },
+    HeroScreenAnim: { symbol: "Hero", label: "Hero Screen", exported: ready("/a/hero.glb"), startFrame: 1, endFrame: -1, contentHash: hash },
+  } as never;
+  assert.deepEqual(catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]).map((option) => option.label), ["Happy / Hero Screen"]);
+});

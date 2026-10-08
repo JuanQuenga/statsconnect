@@ -774,7 +774,7 @@ export class BrawlerViewerRuntime {
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       const multiMaterial = Array.isArray(object.material);
       object.material = materials.map((material) => {
-        const slot = slots.find((candidate) => candidate.materialName === material.name);
+        const slot = materialSlotFor(slots, material.name);
         if (!slot) return material;
         const replacement = createScMaterial(slot, {}, object instanceof THREE.SkinnedMesh);
         replacements.push(textures(slot).then((loaded) => {
@@ -841,7 +841,7 @@ export class BrawlerViewerRuntime {
   }
 
   private stencilMetadataForMaterial(material: THREE.Material): Pick<ScMaterialMetadata, "stencilUvPolicy" | "uvSource"> {
-    const slot = this.manifest.materialSlots?.find((candidate) => candidate.materialName === material.name);
+    const slot = (this.manifest.materialSlots ? materialSlotFor(this.manifest.materialSlots, material.name) : undefined);
     return {
       stencilUvPolicy: slot?.stencilUvPolicy ?? (this.manifest.assetGroup === "reference-bridge" ? "flip-y" : "2x-flip-y"),
       uvSource: slot?.uvSource ?? this.manifest.material?.uvSource,
@@ -893,4 +893,19 @@ export class BrawlerViewerRuntime {
     this.faceTexture = undefined;
     this.state = { ...this.state, faceEnabled: false, faceFrame: 0 };
   }
+}
+
+/**
+ * Match a GLB material to its catalog slot. Some exports namespace material
+ * names ("brawl_shader_setup:character_mat") while the catalog does not;
+ * unmatched materials fall back to lit standard materials that render black
+ * in the SC pipeline. The namespace is stripped only when that is unambiguous.
+ */
+export function materialSlotFor(slots: readonly ScMaterialSlot[], name: string): ScMaterialSlot | undefined {
+  const exact = slots.find((candidate) => candidate.materialName === name);
+  if (exact) return exact;
+  const local = name.includes(":") ? name.slice(name.lastIndexOf(":") + 1) : undefined;
+  if (!local) return undefined;
+  const matches = slots.filter((candidate) => candidate.materialName === local);
+  return matches.length === 1 ? matches[0] : undefined;
 }

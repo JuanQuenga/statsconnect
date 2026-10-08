@@ -990,3 +990,13 @@ test("reference normalization does not bypass strict pinned-local materializatio
   assert.equal(base.quaternion.w, 0.54);
   runtime.dispose();
 });
+
+test("material slots match namespaced GLB material names only when unambiguous", async () => {
+  const { materialSlotFor } = await import("./brawler-viewer-runtime.ts");
+  const slots = [{ materialName: "character_mat" }, { materialName: "character_metal_mat" }] as const;
+  assert.equal(materialSlotFor(slots, "character_mat")?.materialName, "character_mat");
+  assert.equal(materialSlotFor(slots, "brawl_shader_setup:character_mat")?.materialName, "character_mat");
+  assert.equal(materialSlotFor(slots, "brawl_shader_setup:unknown_mat"), undefined);
+  const ambiguous = [{ materialName: "x_mat" }, { materialName: "x_mat" }] as const;
+  assert.equal(materialSlotFor(ambiguous, "ns:x_mat"), undefined);
+});
