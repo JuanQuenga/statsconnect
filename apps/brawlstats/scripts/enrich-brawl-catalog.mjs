@@ -235,7 +235,11 @@ export function referencePage(html) {
   if (!model) throw new Error("reference page has no model");
   const animations = JSON.parse(attributes["data-animations"] || "{}");
   return { model, materialsOverride: attributes["data-materials-file-override"] || null,
-    lobbyAtlasName: animations.lobby?.[1] ?? "", fileVersion: attributes["data-file-version"] ?? "" };
+    lobbyAtlasName: animations.lobby?.[1] ?? "", fileVersion: attributes["data-file-version"] ?? "",
+    // The source passes dataset strings directly to its face renderer. Every
+    // nonempty value, including uppercase TRUE, selects the corresponding branch.
+    faceFlags: { faceCoversWholeTexture: attributes["data-face-covers-whole-texture"] ? "true" : null,
+      faceScaledUpTexture: attributes["data-face-scaled-up-texture"] ? "true" : null } };
 }
 
 export function materialDocument(bytes) {
@@ -402,6 +406,55 @@ function effectiveCatalogAnimation(entry, animation) {
     startFrame: Number.isFinite(animation.startFrame) ? animation.startFrame : 0,
     endFrame: Number.isFinite(animation.endFrame) ? animation.endFrame : -1 };
   return { ...source, ...catalogAnimationFrameRange(entry, source) };
+}
+
+/** Repair source face coordinates from cached pages only; leave native entries intact. */
+export async function repairReferenceFaceFlags({ directory, cacheDir } = {}) {
+  if (!directory || !cacheDir) throw new Error("staged directory and reference cache directory are required");
+  const indexFile = path.join(directory, "catalog.json"), indexBytes = await readFile(indexFile), index = JSON.parse(indexBytes);
+  if (index.schemaVersion !== 1 || index.kind !== "index" || !Array.isArray(index.brawlers)) throw new Error("expected staged catalog index");
+  const shards = [], changes = [], skipped = [];
+  let verifiedRecords = 0;
+  for (const item of index.brawlers) {
+    const relative = outputRelative(item.shard), file = path.join(directory, relative), bytes = await readFile(file), catalog = JSON.parse(bytes);
+    parseBrawlerAssetCatalog(catalog);
+    const preserved = structuredClone(catalog);
+    let changed = false;
+    for (const entry of entries(catalog)) {
+      if (entry.assetGroup !== "reference-bridge") continue;
+      const url = pageUrl(entry), cacheFile = path.join(cacheDir, "reference", `${hash(url)}.bin`);
+      let pageBytes;
+      try { pageBytes = await readFile(cacheFile); }
+      catch (error) { if (error.code !== "ENOENT") throw error; skipped.push({ skinId: entry.skinId, url, reason: "offline-page-cache-miss" }); continue; }
+      const flags = referencePage(pageBytes.toString("utf8")).faceFlags;
+      verifiedRecords++;
+      const previous = Object.fromEntries(Object.keys(flags).map((key) => [key, entry.faceFlags?.[key] ?? null]));
+      if (JSON.stringify(previous) === JSON.stringify(flags)) continue;
+      changes.push({ brawlerId: entry.brawlerId, skinId: entry.skinId, url, cacheFile, sourceSha256: hash(pageBytes), previous, current: flags });
+      entry.faceFlags = { ...entry.faceFlags, ...flags };
+      changed = true;
+    }
+    // Strip only the two fields under repair before checking preservation.
+    const strip = (value) => {
+      const copy = structuredClone(value);
+      for (const entry of entries(copy)) if (entry.assetGroup === "reference-bridge" && entry.faceFlags) {
+        delete entry.faceFlags.faceCoversWholeTexture; delete entry.faceFlags.faceScaledUpTexture;
+        if (!Object.keys(entry.faceFlags).length) delete entry.faceFlags;
+      }
+      return JSON.stringify(copy);
+    };
+    if (strip(catalog) !== strip(preserved)) throw new Error(`face flag repair changed another field: ${relative}`);
+    parseBrawlerAssetCatalog(catalog);
+    shards.push({ relative, file, bytes, catalog, changed });
+  }
+  for (const shard of shards) if (!(await readFile(shard.file)).equals(shard.bytes)) throw new Error(`staged shard changed during face flag repair: ${shard.relative}`);
+  if (!(await readFile(indexFile)).equals(indexBytes)) throw new Error("staged index changed during face flag repair");
+  for (const shard of shards) if (shard.changed) await atomicWrite(shard.file, `${JSON.stringify(shard.catalog, null, 2)}\n`);
+  const report = { directory, cacheDir, preservedIndexSha256: hash(indexBytes),
+    counts: { verifiedRecords, changedRecords: changes.length, affectedSkins: new Set(changes.map((change) => change.skinId)).size,
+      changedShards: shards.filter((shard) => shard.changed).length, skippedRecords: skipped.length }, changes, skipped };
+  await atomicWrite(path.join(directory, "reference-face-flags-repairs.json"), `${JSON.stringify(report, null, 2)}\n`);
+  return report;
 }
 
 function withoutMotionHashes(catalog) {
@@ -649,6 +702,11 @@ async function main() {
   if (args.has("refresh-motion-in")) {
     await refreshMotionHashes({ directory: args.get("refresh-motion-in"), cacheDir: args.get("cache-dir"),
       workerOrigin: args.get("worker-origin"), workDir: args.get("work-dir") });
+    return;
+  }
+  if (args.has("repair-reference-face-flags-in")) {
+    const report = await repairReferenceFaceFlags({ directory: args.get("repair-reference-face-flags-in"), cacheDir: args.get("cache-dir") });
+    console.log(JSON.stringify(report.counts));
     return;
   }
   const changes = await enrichCatalog({ catalogUrl: args.get("catalog-url"), workerOrigin: args.get("worker-origin"),

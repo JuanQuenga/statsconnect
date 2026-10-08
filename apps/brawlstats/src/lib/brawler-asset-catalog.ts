@@ -348,6 +348,22 @@ export function catalogAnimationFrameRange(entry: Pick<BrawlerAssetCatalogEntry,
   return { startFrame, endFrame: nativeBody && source.endFrame >= 0 ? Math.max(startFrame, source.endFrame - 2) : source.endFrame };
 }
 
+/** A duplicated bridge Win body must keep its reference face timeline and palette. */
+function catalogFaceField(entry: BrawlerAssetCatalogEntry, key: string, source: CatalogAnimation): string | null | undefined {
+  if (source.faceField !== undefined) return source.faceField;
+  const win = entry.animations.HappyAnim;
+  const winField = win?.faceField;
+  const winFace = winField ? entry.faces[winField] : undefined;
+  if (key === "HeroScreenAnim" && entry.assetGroup === "reference-bridge"
+    && source.exported.kind === "ready" && source.exported.url.includes("/animations/")
+    && win?.exported.kind === "ready" && win.exported.url.includes("/reference-bridge/")
+    && source.motionHash && source.motionHash === win.motionHash && (source.speed ?? 1) === (win.speed ?? 1)
+    && winFace?.ready && winFace.resolved
+    && winFace.atlas.kind === "ready" && winFace.atlas.url.includes("/reference-bridge/")
+    && winFace.binary.kind === "ready" && winFace.binary.url.includes("/reference-bridge/")) return winField;
+  return faceFieldForAnimation[key];
+}
+
 export function catalogEntryToViewerManifest(entry: BrawlerAssetCatalogEntry): BrawlerSkinManifest | undefined {
   if (entry.brawlerId === null || entry.baseModel.kind !== "ready" || entry.diffuseTexture.kind !== "ready") return undefined;
   const animations: Record<string, AnimationEntry> = {};
@@ -355,7 +371,7 @@ export function catalogEntryToViewerManifest(entry: BrawlerAssetCatalogEntry): B
     if (source.exported.kind !== "ready") continue;
     // New exports declare the source association. Only older catalogs use the
     // fixed role mapping; null explicitly opts out of any face animation.
-    const faceField = source.faceField === undefined ? faceFieldForAnimation[key] : source.faceField;
+    const faceField = catalogFaceField(entry, key, source);
     const face = faceField ? entry.faces[faceField] : undefined;
     const faceAtlas = face?.atlas ?? { kind: "unavailable" as const, reason: "not-captured" as const };
     const faceBinary = face?.binary ?? { kind: "unavailable" as const, reason: "not-captured" as const };

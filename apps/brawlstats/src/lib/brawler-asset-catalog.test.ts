@@ -449,3 +449,29 @@ test("negative end markers all mean clip end when merging same-content options",
   } as never;
   assert.deepEqual(catalogAnimationOptions(parseBrawlerAssetCatalog(source).defaults[0]).map((option) => option.label), ["Happy / Hero Screen"]);
 });
+
+test("duplicated bridge Hero body keeps the reference Win face source, with native loops and explicit associations intact", () => {
+  const source = mixedFaceFixture();
+  const motionHash = "b".repeat(64);
+  const entry = { ...source, animations: {
+    ...source.animations,
+    HappyAnim: { ...source.animations.HappyAnim!, motionHash },
+    HeroScreenAnim: { ...source.animations.HeroScreenAnim!, motionHash },
+  } };
+  const playback = catalogEntryToViewerManifest(entry)!.animations;
+  assert.deepEqual(playback.HeroScreenAnim![1], playback.HappyAnim![1]);
+  assert.deepEqual(playback.HeroScreenAnim![2], playback.HappyAnim![2]);
+  assert.equal(playback.HeroScreenAnim![9], "reference");
+  assert.deepEqual(playback.HeroScreenAnim!.slice(3,5), [0,1138]);
+  assert.equal(playback.HeroScreenAnim![6], 120);
+  assert.equal(playback.HeroScreenLoopAnim![2].kind, "ready");
+  assert.deepEqual(playback.HeroScreenLoopAnim![2], source.faces.HeroScreenLoopFace!.binary);
+  for (const hero of [
+    { ...entry.animations.HeroScreenAnim, faceField: "HeroScreenFace" },
+    { ...entry.animations.HeroScreenAnim, motionHash: "c".repeat(64) },
+    { ...entry.animations.HeroScreenAnim, speed: 2 },
+  ]) assert.deepEqual(catalogEntryToViewerManifest({ ...entry, animations: { ...entry.animations, HeroScreenAnim: hero } })!.animations.HeroScreenAnim![2], source.faces.HeroScreenFace!.binary);
+  const optOut = catalogEntryToViewerManifest({ ...entry, animations: { ...entry.animations, HeroScreenAnim: { ...entry.animations.HeroScreenAnim, faceField: null } } })!.animations.HeroScreenAnim!;
+  assert.equal(optOut[2].kind, "unavailable");
+  assert.deepEqual(catalogEntryToViewerManifest({ ...entry, assetGroup: "pinned-local" })!.animations.HeroScreenAnim![2], source.faces.HeroScreenFace!.binary);
+});

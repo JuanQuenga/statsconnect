@@ -124,3 +124,12 @@ test('temporal body motion normalizes model coverage, including small silhouette
   assert.ok(motion.raw<.025);assert.ok(motion.difference>.025);
   assert.equal(motion.coverage,64/4096);
 });
+
+test('reference face capture follows live rollover instead of clamping short exports', async () => {
+  const { referenceLiveFaceFrame } = await import('./audit-brawl-render.mjs');
+  assert.deepEqual(Array.from({length:9},(_,tick)=>referenceLiveFaceFrame(tick/30,4)),[0,0,1,2,0,1,2,3,0]);
+  assert.equal(referenceLiveFaceFrame(100,1),0);
+  assert.equal(referenceLiveFaceFrame((3-1e-10)/30,4),2);
+  assert.throws(()=>referenceLiveFaceFrame(-1,4));
+  assert.throws(()=>referenceLiveFaceFrame(1,0));
+});

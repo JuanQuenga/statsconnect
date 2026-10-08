@@ -100,6 +100,14 @@ function networkCache(out, roots = []) {
   let queue = Promise.resolve(), lastRequest = 0;
   const dir = path.join(out, 'cache/http');
   async function get(url) {
+    const parsed = new URL(url);
+    if (process.env.BRAWL_3D_ASSET_DIR && parsed.hostname === 'bs.statsconnect.app') {
+      const relative = decodeURIComponent(parsed.pathname.replace(/^\/assets\/brawlers\/3d\//, ''));
+      const root = path.resolve(process.env.BRAWL_3D_ASSET_DIR), file = path.resolve(root, relative);
+      if (!file.startsWith(root + path.sep)) throw Error('asset path outside staged directory');
+      const body = await fs.readFile(file);
+      return { status: 200, finalUrl: url, headers: { 'content-type': file.endsWith('.json') ? 'application/json' : 'application/octet-stream' }, sha256: digest(body), body };
+    }
     const cdn = new URL(url).hostname === 'cdn.brawlbox.com.cn';
     const key = digest(url + (cdn ? '|referer=mv.brawlstars.top' : '')), metadata = path.join(dir, `${key}.json`), bodyFile = path.join(dir, `${key}.body`);
     if (await exists(metadata) && await exists(bodyFile)) return { ...JSON.parse(await fs.readFile(metadata, 'utf8')), body: await fs.readFile(bodyFile) };
@@ -191,7 +199,8 @@ window.audit={
  const scale=THREE.MathUtils.clamp((manifest.cameraScale??290)/290,.72,1.05);
  camera.position.copy(direction).multiplyScalar(fitPerspectiveCameraDistance(camera,framed.bounds,direction)/scale);camera.lookAt(0,0,0);
  // TS-private data is read only for duration metadata; animation is advanced exclusively with public update().
- return {duration:runtime.hasAnimationClip()?runtime.animationDuration/(a[8]??1):0,hasClip:runtime.hasAnimationClip(),framing:{bounds:[...framed.bounds.min.toArray(),...framed.bounds.max.toArray()],distance:camera.position.length(),near:camera.near,far:camera.far}};},
+ this.framing={bounds:[...framed.bounds.min.toArray(),...framed.bounds.max.toArray()],distance:camera.position.length(),near:camera.near,far:camera.far};
+ return {duration:runtime.hasAnimationClip()?runtime.animationDuration/(a[8]??1):0,hasClip:runtime.hasAnimationClip(),framing:this.framing};},
  async renderFrame({skinId,animationKey,time,jitter=.05}){if(skinId!==entry?.skinId)throw Error('loadSkin before renderFrame');if(key!==animationKey||time<elapsed-1e-9)await this.selectAnimation(animationKey);
  const delta=1/60;while(elapsed+delta<time-1e-9){runtime.update(delta);elapsed+=delta;}runtime.update(Math.max(0,time-elapsed));elapsed=time;
  const first=draw(),png=canvas.toDataURL('image/png');const second=draw(jitter),metrics=analyzeRGBA(first,second);
@@ -234,7 +243,7 @@ async function readRows(file, includeFrames = false) {
   return rows;
 }
 async function main() {
-  const { values } = parseArgs({ options: { shard: { type: 'string', default: '1/1' }, limit: { type: 'string' }, skins: { type: 'string' }, resume: { type: 'boolean' }, out: { type: 'string', default: DEFAULT_OUT }, toolchain: { type: 'string', default: `${DEFAULT_OUT}/toolchain` }, phase: { type: 'string', default: 'all' }, 'faces-stage': { type: 'string', default: 'all' }, 'retry-local': { type: 'boolean' }, 'cache-roots': { type: 'string' }, 'harness-cache': { type: 'string' }, smoke: { type: 'boolean' }, 'report-only': { type: 'boolean' }, 'reference-all': { type: 'boolean' }, 'retry-reference-failures': { type: 'boolean' }, seed: { type: 'string', default: 'brawl-render-2026-10-07' } } });
+  const { values } = parseArgs({ options: { shard: { type: 'string', default: '1/1' }, limit: { type: 'string' }, skins: { type: 'string' }, resume: { type: 'boolean' }, out: { type: 'string', default: DEFAULT_OUT }, toolchain: { type: 'string', default: `${DEFAULT_OUT}/toolchain` }, phase: { type: 'string', default: 'all' }, 'faces-stage': { type: 'string', default: 'all' }, 'retry-local': { type: 'boolean' }, 'cache-roots': { type: 'string' }, 'face-pairs': { type: 'string' }, 'harness-cache': { type: 'string' }, smoke: { type: 'boolean' }, 'report-only': { type: 'boolean' }, 'reference-all': { type: 'boolean' }, 'retry-reference-failures': { type: 'boolean' }, seed: { type: 'string', default: 'brawl-render-2026-10-07' } } });
   shardIncludes(0, values.shard);
   if (values.phase === 'faces') return facesMain(values);
   if (!['all', 'render', 'reference'].includes(values.phase)) throw new Error('--phase must be all, render, or reference');
@@ -626,7 +635,13 @@ window.audit.faceFrame=async function(args){
  if(key!==animationKey||time<elapsed-1e-9)await this.selectAnimation(animationKey);
  const delta=1/60;while(elapsed+delta<time-1e-9){runtime.update(delta);elapsed+=delta;}runtime.update(Math.max(0,time-elapsed));elapsed=time;
  draw();
- const bounds=locateFace();
+ let bounds=locateFace();
+ // Use the reference adapter's head anchor when animation framing parks the
+ // rider/head outside the body fit. A view offset alone changes viewing angle.
+ if(bounds.valid&&!(bounds.x+bounds.width>0&&bounds.x<1024&&bounds.y+bounds.height>0&&bounds.y<1024)){
+  let head;runtime.root.traverse(o=>{if(!head&&/^(head|head_s|skull|skull_s)$/i.test(o.name))head=o;});
+  if(head){const center=head.getWorldPosition(camera.position.clone());camera.position.set(.18,.05,1.18).normalize().multiplyScalar(window.audit.framing.distance).add(center);camera.lookAt(center);camera.updateMatrixWorld(true);draw();bounds=locateFace();}
+ }
  const faceCanvas=document.createElement('canvas');faceCanvas.width=faceCanvas.height=256;const fc=faceCanvas.getContext('2d');
 
  const bodyCanvas=document.createElement('canvas');bodyCanvas.width=bodyCanvas.height=64;const bc=bodyCanvas.getContext('2d');
@@ -639,8 +654,14 @@ window.audit.faceFrame=async function(args){
 };`;
   return source+extra;
 }
+/** Binary frame drawn by the reference's first live body cycle, not its seek clamp. */
+export function referenceLiveFaceFrame(time, count) {
+  if (!Number.isFinite(time) || time < 0 || !Number.isInteger(count) || count < 1) throw Error('invalid reference face clock');
+  const ticks = Math.floor(time * 30 + 1e-9);
+  return ticks < count ? Math.max(0, ticks - 1) : ticks % count;
+}
 function faceReferenceSource(source) {
-  return instrumentReference(source).replace('Xg.scene.scale.setScalar(1);Xg.scene.updateMatrixWorld(true);', 'Xg.scene.scale.setScalar(1);t_();Xg.scene.updateMatrixWorld(true);Xg.scene.traverse(o=>{if(o.skeleton)o.skeleton.update();});')+`\nconst projectedFaceBounds=${projectedFaceBounds.toString()};
+  return instrumentReference(source).replace('await a_(pair[1]);',"const previousClip=Yg;await a_(pair[1]);if(Yg===previousClip||Qg!==label)throw Error('reference has no clip: '+label);").replace('if(Rg)Rg.goToFrame(Math.round(30*g_));', `if(Rg){const frame=referenceLiveFaceFrame(g_,Rg.frameCount);if(frame===Rg.frameCount-1&&Rg.frameCount>1){Rg.setBuffer(Rg.arrayBuffer);for(let i=0;i<2*Rg.frameCount-1;i++)Rg.newFrame(1/30);}else Rg.goToFrame(frame+1);}`).replace('Xg.scene.scale.setScalar(1);Xg.scene.updateMatrixWorld(true);', 'Xg.scene.scale.setScalar(1);t_();Xg.scene.updateMatrixWorld(true);Xg.scene.traverse(o=>{if(o.skeleton)o.skeleton.update();});')+`\nconst referenceLiveFaceFrame=${referenceLiveFaceFrame.toString()};\nconst projectedFaceBounds=${projectedFaceBounds.toString()};
 const projectedStencilBounds=${projectedStencilBounds.toString()};
 const locateFace=()=>{const b=projectedFaceBounds(Xg.scene,dg,1024);return b.valid?b:projectedStencilBounds(Xg.scene,dg,1024,ug,Rg?.renderTarget);};
 window.referenceAudit.faceFrame=function(time){
@@ -650,7 +671,7 @@ window.referenceAudit.faceFrame=function(time){
  if(bounds.valid){const zoom=Math.min(12,320/bounds.width);dg.zoom=zoom;dg.setViewOffset(1024,1024,(bounds.x+bounds.width/2-512)*zoom,(bounds.y+bounds.height/2-512)*zoom,1024,1024);dg.updateProjectionMatrix();mg.render();
  captureBounds=locateFace();ctx.drawImage(Yf,captureBounds.x,captureBounds.y,captureBounds.width,captureBounds.height,0,0,256,256);
  dg.zoom=1;dg.clearViewOffset();dg.updateProjectionMatrix();}
- return {face:c.toDataURL(),bounds,captureBounds,full:bounds.valid?undefined:png};};
+ return {face:c.toDataURL(),bounds,captureBounds,faceState:Rg?{counter:Rg.frameIndex,count:Rg.frameCount,positions:Array.from(Rg.geometry.attributes.a_pos.array.slice(0,8)),uvs:Array.from(Rg.geometry.attributes.a_uv.array.slice(0,8))}:null,full:bounds.valid?undefined:png};};
 const originalFrame=window.referenceAudit.frame;
 window.referenceAudit.frame=function(f){
  const r=originalFrame(f);ug.setSize(1024,1024,false);mg.setSize(1024,1024);
@@ -670,7 +691,10 @@ async function facesMain(values) {
   const [{chromium},{default:{PNG}},esbuild]=await Promise.all([toolImport('playwright'),toolImport('pngjs'),toolImport('esbuild')]);
   const png=data=>Buffer.from(data.split(',')[1],'base64'),decode=data=>PNG.sync.read(png(data));
   const get=networkCache(out,(values['cache-roots']||'').split(',').filter(Boolean));
-  const snapshot=await catalogSnapshot(out,get),all=snapshot.entries.filter(e=>faceOptions(e).length);
+  const pairs=values['face-pairs'] ? new Set(JSON.parse(await fs.readFile(values['face-pairs'],'utf8')).map(p=>p.skinId+'/'+p.animationKey)) : undefined;
+  const optionsFor=entry=>faceOptions(entry).filter(o=>!pairs||pairs.has(entry.skinId+'/'+o.key));
+  const snapshot=await catalogSnapshot(out,get),all=snapshot.entries.filter(e=>optionsFor(e).length);
+  if(pairs){const available=new Set(all.flatMap(e=>optionsFor(e).map(o=>e.skinId+'/'+o.key)));for(const pair of pairs)if(!available.has(pair))throw Error('requested face option unavailable: '+pair);}
   const selected=all.filter((e,i)=>shardIncludes(i,values.shard)&&(!values.skins||values.skins.split(',').includes(e.skinId))).slice(0,values.limit?+values.limit:Infinity);
   const tag=values.shard.replace('/','-'),resultFile=path.join(out,`faces-${tag}.jsonl`),adapterHash=digest(faceReferenceSource.toString());
   const rowCache=new Map();
@@ -702,8 +726,8 @@ async function facesMain(values) {
     const failureAttempts=rows.filter(r=>r.kind==='face-failure');
     const failures=[...new Map(failureAttempts.map(r=>[r.stage+'/'+r.skinId+'/'+r.animationKey,r])).values()].filter(r=>r.stage==='reference'?!refKeys.has(r.skinId+'/'+r.animationKey):r.stage==='local'?!localKeys.has(r.skinId+'/'+r.animationKey):!local.some(l=>l.skinId===r.skinId));
     const attemptedReference=new Set([...refKeys,...failures.filter(r=>r.stage==='reference').map(r=>r.skinId+'/'+r.animationKey)]);
-    const attemptedSkins=all.filter(e=>faceOptions(e).every(o=>attemptedReference.has(e.skinId+'/'+o.key))).length;
-    const totals={eligibleSkins:all.length,eligibleOptions:all.reduce((n,e)=>n+faceOptions(e).length,0),localSkins:new Set(local.map(r=>r.skinId)).size,localOptions:local.length,localFrames:local.reduce((n,r)=>n+r.frames.length,0),referenceSkins:new Set(refs.map(r=>r.skinId)).size,referenceOptions:refs.length,referenceFrames:refs.reduce((n,r)=>n+r.frames.length,0),flaggedSkins:new Set(refs.filter(r=>r.flagged).map(r=>r.skinId)).size,flaggedOptions:refs.filter(r=>r.flagged).length,temporalOptions:local.filter(r=>r.temporal.some(t=>t.flagged)).length,pendingReference:local.filter(r=>!refKeys.has(r.skinId+'/'+r.animationKey)).length,failures:failures.length,failureAttempts:failureAttempts.length,attemptedReferenceOptions:attemptedReference.size,attemptedReferenceSkins:attemptedSkins,unlocatedLocalFrames:local.reduce((n,r)=>n+r.frames.filter(f=>!f.bounds.valid).length,0),unlocatedReferenceFrames:refs.reduce((n,r)=>n+r.frames.filter(f=>f.unlocated).length,0)};
+    const attemptedSkins=all.filter(e=>optionsFor(e).every(o=>attemptedReference.has(e.skinId+'/'+o.key))).length;
+    const totals={eligibleSkins:all.length,eligibleOptions:all.reduce((n,e)=>n+optionsFor(e).length,0),localSkins:new Set(local.map(r=>r.skinId)).size,localOptions:local.length,localFrames:local.reduce((n,r)=>n+r.frames.length,0),referenceSkins:new Set(refs.map(r=>r.skinId)).size,referenceOptions:refs.length,referenceFrames:refs.reduce((n,r)=>n+r.frames.length,0),flaggedSkins:new Set(refs.filter(r=>r.flagged).map(r=>r.skinId)).size,flaggedOptions:refs.filter(r=>r.flagged).length,temporalOptions:local.filter(r=>r.temporal.some(t=>t.flagged)).length,pendingReference:local.filter(r=>!refKeys.has(r.skinId+'/'+r.animationKey)).length,failures:failures.length,failureAttempts:failureAttempts.length,attemptedReferenceOptions:attemptedReference.size,attemptedReferenceSkins:attemptedSkins,unlocatedLocalFrames:local.reduce((n,r)=>n+r.frames.filter(f=>!f.bounds.valid).length,0),unlocatedReferenceFrames:refs.reduce((n,r)=>n+r.frames.filter(f=>f.unlocated).length,0)};
     await atomic(path.join(out,'face-totals.json'),JSON.stringify(totals,null,2));
     await atomic(path.join(out,'flagged.json'),JSON.stringify(refs.filter(r=>r.flagged),null,2));
     return totals;
@@ -734,7 +758,7 @@ async function facesMain(values) {
     console.log('face GPU',smoke.renderer);
     let rows=await readAll(),localDone=new Set(rows.filter(r=>r.kind==='face-local').map(r=>r.skinId+'/'+r.animationKey));
     if(stage==='all'||stage==='local')for(const entry of selected){
-      if(stopping)break;const options=faceOptions(entry).filter(o=>values['retry-local']||!localDone.has(entry.skinId+'/'+o.key));if(!options.length)continue;
+      if(stopping)break;const options=optionsFor(entry).filter(o=>values['retry-local']||!localDone.has(entry.skinId+'/'+o.key));if(!options.length)continue;
       const folder=path.join(out,'skins',safe(entry.skinId));await fs.mkdir(folder,{recursive:true});
       try{
         await page.evaluate(e=>window.audit.loadSkin(e),entry);
@@ -780,7 +804,7 @@ async function facesMain(values) {
       let referenceSkinCount=0;
       for(const entry of selected){
         if(stopping)break;rows=await readAll();locals=new Map(rows.filter(r=>r.kind==='face-local').map(r=>[r.skinId+'/'+r.animationKey,r]));
-        const pending=faceOptions(entry).map(o=>locals.get(entry.skinId+'/'+o.key)).filter(o=>o&&!done.has(o.skinId+'/'+o.animationKey));if(!pending.length)continue;
+        const pending=optionsFor(entry).map(o=>locals.get(entry.skinId+'/'+o.key)).filter(o=>o&&!done.has(o.skinId+'/'+o.animationKey));if(!pending.length)continue;
         let loadError;const slug=referenceSkinSlug(entry);
         try{const response=await page.goto(`https://mv.brawlstars.top/skins/${encodeURIComponent(slug)}#${encodeURIComponent(pending[0].label.replaceAll(' ',''))}`,{waitUntil:'domcontentloaded',timeout:90000});if(response?.status()>=400)throw Error('reference page HTTP '+response.status());await page.waitForFunction(()=>Boolean(window.referenceAudit?.faceFrame||window.__faceReferenceError),null,{timeout:90000,polling:100});const startupError=await page.evaluate(()=>window.__faceReferenceError);if(startupError)throw Error('reference startup: '+startupError);}catch(e){loadError=e;await page.goto('about:blank',{timeout:10000}).catch(()=>{});}
         for(const option of pending){
@@ -794,7 +818,7 @@ async function facesMain(values) {
               const f=await page.evaluate(t=>window.referenceAudit.faceFrame(t),time),ref=decode(f.face),local=PNG.sync.read(await fs.readFile(option.frames[index].facePath));
               const referenceFacePath=path.join(folder,`${option.animationKey}-${index}-reference.png`);await fs.writeFile(referenceFacePath,png(f.face));if(f.full)await fs.writeFile(path.join(folder,`${option.animationKey}-${index}-reference-full.png`),png(f.full));
               const valid=f.bounds.valid&&option.frames[index].bounds.valid,metrics=valid?compareFaces(local,ref):{flagged:false,unlocated:true};
-              frames.push({index,time,...metrics,localFacePath:option.frames[index].facePath,referenceFacePath,bounds:f.bounds,captureBounds:f.captureBounds});images.push(local,ref);
+              frames.push({index,time,...metrics,localFacePath:option.frames[index].facePath,referenceFacePath,bounds:f.bounds,captureBounds:f.captureBounds,faceState:f.faceState});images.push(local,ref);
             }
             const contactSheet=path.join(folder,`${option.animationKey}-comparison.png`);await sheet(images,contactSheet);
             await append({kind:'face-reference',skinId:entry.skinId,animationKey:option.animationKey,referenceUrl:page.url(),referenceLabel,referenceFraming,adapterHash,thresholds:FACE_THRESHOLDS,frames,flagged:frames.some(f=>f.flagged),contactSheet});

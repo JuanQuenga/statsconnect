@@ -7,7 +7,39 @@ import test from "node:test";
 import * as THREE from "three";
 import { normalizeReferenceModelRotations } from "../src/lib/brawler-viewer-runtime.ts";
 import { shouldPreserveReferenceRotation } from "../src/lib/brawler-viewer-contract.ts";
-import { canonicalMotion, motionHash, motionCacheKey, refreshMotionHashes, createDownloads, enrichCatalog, enrichSlots, outlineParameters, referencePage, referenceUvSource } from "./enrich-brawl-catalog.mjs";
+import { canonicalMotion, motionHash, motionCacheKey, refreshMotionHashes, repairReferenceFaceFlags, createDownloads, enrichCatalog, enrichSlots, outlineParameters, referencePage, referenceUvSource } from "./enrich-brawl-catalog.mjs";
+
+test("offline face flags use source dataset truthiness and preserve repaired faces and native entries", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "brawl-face-flags-")), directory = path.join(root, "out"), cacheDir = path.join(root, "cache");
+  const entry = (skinId, assetGroup = "reference-bridge") => ({ skinId, character: skinId, displayName: skinId, brawlerId: 1, assetGroup,
+    baseModel: { kind: "unavailable" }, diffuseTexture: { kind: "unavailable" }, animations: {},
+    faces: { HeroScreenFace: { binary: { kind: "ready", url: "/assets/brawlers/3d/faces/repaired.bin" }, atlas: { kind: "unavailable" }, fps: 30, retained: "native repair" } },
+    faceFlags: { faceCoversWholeTexture: null, faceScaledUpTexture: null, disableHeadRotation: "true" } });
+  const original = { schemaVersion: 1, defaults: [entry("Upper"), entry("Empty"), entry("Native", "pinned-local"), entry("Missing")] };
+  original.defaults[1].faceFlags.faceCoversWholeTexture = "true";
+  const index = { schemaVersion: 1, kind: "index", brawlers: [{ brawlerId: 1, shard: "/assets/brawlers/3d/catalog/1.json" }] };
+  try {
+    await mkdir(path.join(directory, "catalog"), { recursive: true }); await mkdir(path.join(cacheDir, "reference"), { recursive: true });
+    await writeFile(path.join(directory, "catalog.json"), JSON.stringify(index)); await writeFile(path.join(directory, "catalog/1.json"), JSON.stringify(original));
+    for (const [skin, flags] of [["Upper", 'data-face-covers-whole-texture="TRUE" data-face-scaled-up-texture="TRUE"'], ["Empty", 'data-face-covers-whole-texture data-face-scaled-up-texture=""']]) {
+      const url = `https://mv.brawlstars.top/skins/${skin}`;
+      await writeFile(path.join(cacheDir, "reference", `${createHash("sha256").update(url).digest("hex")}.bin`), `<canvas id="glCanvas" data-model-name="skin.glb" ${flags}></canvas>`);
+    }
+    const result = await repairReferenceFaceFlags({ directory, cacheDir });
+    assert.deepEqual(result.counts, { verifiedRecords: 2, changedRecords: 2, affectedSkins: 2, changedShards: 1, skippedRecords: 1 });
+    assert.match(result.changes[0].sourceSha256, /^[a-f0-9]{64}$/);
+    const expected = structuredClone(original);
+    expected.defaults[0].faceFlags.faceCoversWholeTexture = "true"; expected.defaults[0].faceFlags.faceScaledUpTexture = "true";
+    expected.defaults[1].faceFlags.faceCoversWholeTexture = null;
+    assert.deepEqual(JSON.parse(await readFile(path.join(directory, "catalog/1.json"))), expected);
+    assert.equal(await readFile(path.join(directory, "catalog.json"), "utf8"), JSON.stringify(index));
+    const first = await readFile(path.join(directory, "catalog/1.json"));
+    assert.equal((await repairReferenceFaceFlags({ directory, cacheDir })).counts.changedRecords, 0);
+    assert.deepEqual(await readFile(path.join(directory, "catalog/1.json")), first);
+    assert.deepEqual(referencePage('<canvas id="glCanvas" data-model-name="skin.glb" data-face-covers-whole-texture="false"></canvas>').faceFlags,
+      { faceCoversWholeTexture: "true", faceScaledUpTexture: null }, "source treats any nonempty dataset string as truthy");
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 
 function glbBytes(document, binary = Buffer.alloc(0)) {
   const json = Buffer.from(JSON.stringify({ asset: { version: "2.0" }, ...document }));
