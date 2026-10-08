@@ -378,7 +378,6 @@ function AccountChip({ account }: { account: SiteNavigationAccount }) {
       {account.avatarUrl ? <img src={account.avatarUrl} alt="" referrerPolicy="no-referrer" /> : <span aria-hidden>{initials}</span>}
       <span className="sc-nav__account-copy">
         <strong>{account.displayName}</strong>
-        {account.email ? <small>{account.email}</small> : null}
       </span>
     </>
   );
