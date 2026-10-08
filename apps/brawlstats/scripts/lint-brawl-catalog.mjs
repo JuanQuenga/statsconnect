@@ -169,7 +169,13 @@ export function sampleTrack(track, time) {
     if (track.path === 'rotation') { const length = Math.hypot(...result); if (length) return result.map((v) => v / length); }
     return result;
   }
-  if (track.path === 'rotation') return new Quaternion(...a).slerp(new Quaternion(...b), t).toArray();
+  if (track.path === 'rotation') {
+    // QuaternionKeyframeTrack uses slerpFlat. Instance slerp can freeze at the
+    // earlier key when slightly nonunit float32 exports have dot >= 1.
+    const result = new Array(4);
+    Quaternion.slerpFlat(result, 0, a, 0, b, 0, t);
+    return result;
+  }
   return a.map((v, k) => v + (b[k] - v) * t);
 }
 
@@ -529,7 +535,7 @@ export async function main(args = process.argv.slice(2)) {
     elapsedSeconds: Math.round((Date.now() - started) / 1000), downloads: download.stats,
     methodology: [
       'Uses the app catalog parser, option dedupe and viewer manifest mapping. All exported animation GLBs are inspected, including options hidden by app dedupe. Duplicate-motion comparisons use only surviving options and the first clip, as the viewer does.',
-      'Duplicate motion: same SHA-256 and frame/fps window, or identical complete bone-transform track sets within 1e-4 at every frame, half-frame and source key in equal-duration viewer-clamped playback windows. Quaternion LINEAR uses slerp; STEP and CUBICSPLINE are supported. Playback speed and face animation are intentionally excluded from body-motion comparison. Samples are evidence, not proof of equality between all sample points.',
+      'Duplicate motion: same SHA-256 and frame/fps window, or identical complete bone-transform track sets within 1e-4 at every frame, half-frame and source key in equal-duration viewer-clamped playback windows. Quaternion LINEAR uses the viewer keyframe interpolator slerpFlat; STEP and CUBICSPLINE are supported. Playback speed and face animation are intentionally excluded from body-motion comparison. Samples are evidence, not proof of equality between all sample points.',
       'Coverage is the fraction of base skeleton joints with transform tracks overlapping the requested window, including constant tracks. Coincident shells have exactly equal triangle multisets in the default world/bind pose, ignoring winding, UVs and material. This does not prove they remain coincident under different skin weights.',
       'Zero meshes is a base-model failure only; rig-only animation exports are valid. Negative end frames mean the clip end, matching the app. Out-of-range checks tolerate 1e-4 seconds of floating-point export drift.',
       'Face-fps findings compare raw catalog fps with 30; viewer manifests already correct reference-bridge faces. Missing per-animation face data excludes explicit faceField=null. UV evidence uses retained source/export names or geometry metadata, never hashed filenames. Missing provenance is reported explicitly. No face textures/binaries are downloaded.',

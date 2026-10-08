@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Matrix4 } from 'three';
+import { Matrix4, QuaternionKeyframeTrack } from 'three';
 import { catalogAnimationOptions, parseBrawlerAssetCatalog } from '../src/lib/brawler-asset-catalog.ts';
 import { assetRequestUrl, parseGlb, readAccessor, animationTracks, sampleTrack, clipWindow, windowFrameCount, playbackWindow, jointCoverage, motionsEqual, duplicateMotions, canonicalTriangleSignature, inspectGeometry, materialFindings, uvEvidence, parseArguments, summarizeReport } from './lint-brawl-catalog.mjs';
 
@@ -18,6 +18,17 @@ function glbBytes(document, binary = Buffer.alloc(0)) {
 const animation = (startFrame = 0, endFrame = 30, fps = 30) => ({ startFrame, endFrame, fps });
 const track = (name = 'bone', values = [0, 0, 0, 1, 0, 0], times = [0, 1]) => ({ key: `${name}/translation`, name, node: 0, path: 'translation', times: Float64Array.from(times), values: Float64Array.from(values), size: 3, interpolation: 'LINEAR' });
 const clip = (tracks = [track()], minTime = 0, maxTime = 1) => ({ tracks, minTime, maxTime });
+
+test('LINEAR rotation sampling matches viewer keyframe interpolants for nonunit exported quaternions', () => {
+  const times = [0.8999999761581421, 0.9333333373069763];
+  const values = [0.08148442, 0.08517716, 0.97708058, 0.17731254, 0.08072146, 0.08594012, 0.97714162, 0.17697683];
+  const source = { ...track(), path: 'rotation', size: 4, times: Float64Array.from(Float32Array.from(times)), values: Float64Array.from(Float32Array.from(values)) };
+  const viewer = new QuaternionKeyframeTrack('bone.quaternion', times, values).createInterpolant();
+  for (const time of [times[0], 0.9166666666666666, 0.9333333333333333, times[1]]) {
+    const expected = Array.from(viewer.evaluate(time)), actual = sampleTrack(source, time);
+    assert.ok(Math.max(...actual.map((value, i) => Math.abs(value - expected[i]))) < 1e-7);
+  }
+});
 
 test('GLB chunk reader validates version, lengths, JSON and binary', () => {
   const bytes = glbBytes({ nodes: [] });

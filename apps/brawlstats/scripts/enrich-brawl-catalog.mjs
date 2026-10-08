@@ -6,12 +6,64 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseBrawlerAssetCatalog } from "../src/lib/brawler-asset-catalog.ts";
 import { atomicWrite, fetchWithRetry } from "../../../scripts/mv-download-cache.mjs";
+import { animationTracks, parseGlb, playbackWindow, sampleTrack } from "./lint-brawl-catalog.mjs";
 
 const ROOT = "/assets/brawlers/3d/";
 const DEFAULT_URL = "https://bs.statsconnect.app/assets/brawlers/3d/catalog.json";
 const DEFAULT_WORKER = "https://statsconnect-brawl-assets.juanquenga.workers.dev/";
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const entries = (catalog) => ["defaults", "releasedSkins", "skins"].flatMap((group) => catalog[group] ?? []);
+
+export const MOTION_SAMPLING = {
+  version: 1, samplesPerFrame: 2, componentQuantum: 1e-4, durationQuantum: 1e-4,
+  quaternionNormalization: "unit length after interpolation",
+  quaternionSign: "largest-magnitude component positive; first component wins ties",
+};
+
+// Hash the first clip's local body transforms on the viewer's inclusive,
+// clamped playback window. Track storage order, key layout, file metadata,
+// absolute start time, clip name, faces and playback speed are not hashed.
+// Nearest-grid quantisation suppresses floating noise inside a bin; like any
+// fixed grid it cannot equate EVERY pair <1e-4 apart across a bin boundary.
+export function canonicalMotion(clip, animation) {
+  const fps = Number.isFinite(animation.fps) && animation.fps > 0 ? animation.fps : 60;
+  const window = playbackWindow({ fps,
+    startFrame: Number.isFinite(animation.startFrame) ? animation.startFrame : 0,
+    endFrame: Number.isFinite(animation.endFrame) ? animation.endFrame : -1 }, clip);
+  if (window.start > clip.maxTime) throw new Error("animation frame range starts beyond the clip");
+  const quantise = (value) => {
+    if (!Number.isFinite(value)) throw new Error("non-finite motion sample");
+    const result = Math.round(value / MOTION_SAMPLING.componentQuantum);
+    if (!Number.isSafeInteger(result)) throw new Error("motion sample exceeds safe quantisation range");
+    return result === 0 ? 0 : result;
+  };
+  const duration = Math.round(window.duration / MOTION_SAMPLING.durationQuantum);
+  const steps = Math.ceil(duration * MOTION_SAMPLING.durationQuantum * fps * MOTION_SAMPLING.samplesPerFrame);
+  const times = Array.from({ length: steps }, (_, index) => Math.min(index / (fps * MOTION_SAMPLING.samplesPerFrame), window.duration));
+  times.push(window.duration);
+  const tracks = [...clip.tracks].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+  return { ...MOTION_SAMPLING, fps, duration, tracks: tracks.map((track) => [track.name, track.path, times.map((time) => {
+    let values = sampleTrack(track, window.start + time);
+    if (track.path === "rotation") {
+      const length = Math.hypot(...values);
+      if (!length) throw new Error("zero-length animation quaternion");
+      // Canonicalise orientation so nearly-unit endpoint keys and the
+      // viewer's normalised slerpFlat interiors use the same representation.
+      values = values.map((value) => value / length);
+      // q and -q describe the same orientation. Canonicalise AFTER rounding
+      // so tiny noise in equal-magnitude components cannot change the pivot.
+      values = values.map(quantise);
+      let pivot = 0;
+      for (let index = 1; index < values.length; index++) if (Math.abs(values[index]) > Math.abs(values[pivot])) pivot = index;
+      return values[pivot] < 0 ? values.map((value) => value === 0 ? 0 : -value) : values;
+    }
+    return values.map(quantise);
+  })]) };
+}
+
+export function motionHash(clip, animation) {
+  return clip ? hash(JSON.stringify(canonicalMotion(clip, animation))) : undefined;
+}
 
 function decodeHtml(value) {
   return value.replace(/&quot;|&#34;|&#x22;/gi, '"').replace(/&#39;|&#x27;|&apos;/gi, "'")
@@ -111,12 +163,12 @@ export function createDownloads({ directory, diagnosticDir, workerOrigin, concur
     if (waitingWorkers.length) waitingWorkers.shift()();
     else activeWorkerRequests--;
   };
-  const get = (url, { reference = false, diagnosticFile = null } = {}) => {
+  const get = (url, { reference = false, diagnosticFile = null, fresh = false } = {}) => {
     if (pending.has(url)) return pending.get(url);
     const capture = async () => {
       const file = path.join(directory, reference ? "reference" : "worker", `${hash(url)}.bin`);
-      try { return await readFile(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
-      if (diagnosticFile) {
+      if (!fresh) try { return await readFile(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
+      if (!fresh && diagnosticFile) {
         try {
           const bytes = await readFile(diagnosticFile);
           await atomicWrite(file, bytes);
@@ -194,34 +246,41 @@ export function enrichSlots(entry, page, geometry, overrides, changes) {
 
 export async function enrichCatalog({ catalogUrl = DEFAULT_URL, workerOrigin = DEFAULT_WORKER,
   cdnOrigin = "https://cdn.brawlbox.com.cn/", workDir = "/tmp/brawl-audit/enrich",
-  diagnosticDir = "/tmp/brawl-diag/data", concurrency = 8, fetchImpl = fetch } = {}) {
+  diagnosticDir = "/tmp/brawl-diag/data", concurrency = 8, refreshCatalog = false, animationsOnly = false, fetchImpl = fetch } = {}) {
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 8) throw new Error("concurrency must be 1..8");
   const downloads = createDownloads({ directory: path.join(workDir, "cache"), diagnosticDir, workerOrigin, concurrency, fetchImpl });
-  const indexBytes = await downloads.get(catalogUrl);
+  const indexBytes = await downloads.get(catalogUrl, { fresh: refreshCatalog });
   const index = JSON.parse(indexBytes);
   if (index.schemaVersion !== 1 || index.kind !== "index" || !Array.isArray(index.brawlers)) throw new Error("expected published catalog index");
   const shards = [];
   await mapConcurrent(index.brawlers, concurrency, async (item) => {
     const relative = outputRelative(item.shard);
-    const bytes = await downloads.get(new URL(item.shard, catalogUrl).href, { diagnosticFile: path.join(diagnosticDir, "shards", path.basename(relative)) });
+    const bytes = await downloads.get(new URL(item.shard, catalogUrl).href, { fresh: refreshCatalog, diagnosticFile: path.join(diagnosticDir, "shards", path.basename(relative)) });
     shards.push({ relative, catalog: JSON.parse(bytes) });
   });
   shards.sort((a, b) => a.relative.localeCompare(b.relative));
   const allEntries = shards.flatMap(({ catalog }) => entries(catalog));
-  const changes = { schemaVersion: 1, catalogUrl, workerOrigin, outlineSlotsEnriched: [], missingOutlineParams: [], hashesAdded: [], uvSourceCorrections: [], skippedSkins: [], hashFailures: [] };
+  const changes = { schemaVersion: 1, catalogUrl, workerOrigin, refreshCatalog, animationsOnly, motionSampling: MOTION_SAMPLING, outlineSlotsEnriched: [], missingOutlineParams: [], hashesAdded: [], motionHashesAdded: [], duplicateMotionGroups: [], cliplessEntries: [], motionFailures: [], uvSourceCorrections: [], skippedSkins: [], hashFailures: [] };
   const animations = allEntries.flatMap((entry) => Object.entries(entry.animations ?? {}).filter(([, value]) => value.exported?.kind === "ready").map(([key, animation]) => ({ entry, key, animation })));
   const distinctUrls = [...new Set(animations.map(({ animation }) => animation.exported.url))];
   const hashes = new Map();
+  const clips = new Map();
   // Start hashing while the serial reference page enrichment runs. The same
   // download cache coalesces repeated URLs, including geometry/animation reuse.
   let hashed = 0;
   const hashing = mapConcurrent(distinctUrls, concurrency, async (url) => {
-    try { hashes.set(url, hash(await downloads.worker(url))); }
+    try {
+      const bytes = await downloads.worker(url);
+      hashes.set(url, hash(bytes));
+      try { clips.set(url, animationTracks(parseGlb(bytes))); }
+      catch (error) { changes.motionFailures.push({ url, reason: error.message }); }
+    }
     catch (error) { changes.hashFailures.push({ url, reason: error.message }); }
     if (++hashed % 100 === 0) console.log(`animation GLBs ${hashed}/${distinctUrls.length}`);
   });
   let selected = 0;
   for (const entry of allEntries) {
+    if (animationsOnly) continue;
     const slots = entry.materialSlots ?? [];
     const outlineSlots = slots.filter((slot) => slot.scBooleans?.enableNormalOutline === true);
     const reference = entry.assetGroup === "reference-bridge";
@@ -247,12 +306,57 @@ export async function enrichCatalog({ catalogUrl = DEFAULT_URL, workerOrigin = D
     if (++selected % 10 === 0) console.log(`reference skins ${selected}`);
   }
   await hashing;
+  const motionHashes = new Map();
+  let sampled = 0;
   for (const { entry, key, animation } of animations) {
     const contentHash = hashes.get(animation.exported.url);
     if (!contentHash) continue;
     if (animation.contentHash !== contentHash) changes.hashesAdded.push({ brawlerId: entry.brawlerId, skinId: entry.skinId, animation: key, url: animation.exported.url, contentHash });
     animation.contentHash = contentHash;
+    const skin = { brawlerId: entry.brawlerId, skinId: entry.skinId, animation: key, url: animation.exported.url };
+    if (!clips.has(animation.exported.url)) continue;
+    const clip = clips.get(animation.exported.url);
+    if (!clip) {
+      animation.hasClip = false;
+      delete animation.motionHash;
+      changes.cliplessEntries.push(skin);
+      continue;
+    }
+    delete animation.hasClip;
+    try {
+      const fps = Number.isFinite(animation.fps) && animation.fps > 0 ? animation.fps : 60;
+      const window = playbackWindow({ fps,
+        startFrame: Number.isFinite(animation.startFrame) ? animation.startFrame : 0,
+        endFrame: Number.isFinite(animation.endFrame) ? animation.endFrame : -1 }, clip);
+      const cacheKey = JSON.stringify([animation.exported.url, fps, window.start, window.duration]);
+      if (!motionHashes.has(cacheKey)) motionHashes.set(cacheKey, motionHash(clip, animation));
+      const digest = motionHashes.get(cacheKey);
+      if (animation.motionHash !== digest) changes.motionHashesAdded.push({ ...skin, motionHash: digest });
+      animation.motionHash = digest;
+    } catch (error) {
+      delete animation.motionHash;
+      changes.motionFailures.push({ ...skin, reason: error.message });
+    }
+    if (++sampled % 500 === 0) console.log(`animation windows ${sampled}/${animations.length}; unique sampled windows ${motionHashes.size}`);
   }
+  // Defaults can repeat released-skin records. Count groups once per skin,
+  // including short/non-menu windows, and list their exact animation keys.
+  const bySkin = new Map();
+  for (const { entry, key, animation } of animations) {
+    if (!animation.motionHash) continue;
+    const id = `${entry.brawlerId}:${entry.skinId}`;
+    if (!bySkin.has(id)) bySkin.set(id, { entry, motions: new Map() });
+    const motions = bySkin.get(id).motions;
+    if (!motions.has(animation.motionHash)) motions.set(animation.motionHash, new Set());
+    motions.get(animation.motionHash).add(key);
+  }
+  for (const { entry, motions } of bySkin.values()) for (const [digest, keys] of motions) {
+    if (keys.size > 1) changes.duplicateMotionGroups.push({ brawlerId: entry.brawlerId, skinId: entry.skinId, displayName: entry.displayName, motionHash: digest, animations: [...keys].sort() });
+  }
+  changes.duplicateMotionCountsPerSkin = [...bySkin.values()].map(({ entry, motions }) => ({
+    brawlerId: entry.brawlerId, skinId: entry.skinId, displayName: entry.displayName,
+    groups: [...motions.values()].filter((keys) => keys.size > 1).length,
+  })).filter((item) => item.groups > 0);
   const out = path.join(workDir, "out");
   for (const { relative, catalog } of shards) {
     parseBrawlerAssetCatalog(catalog);
@@ -266,6 +370,14 @@ export async function enrichCatalog({ catalogUrl = DEFAULT_URL, workerOrigin = D
     referenceSkinsFetchedOrCached: selected, outlineSlotsEnriched: changes.outlineSlotsEnriched.length,
     missingOutlineParams: changes.missingOutlineParams.length, hashesAdded: changes.hashesAdded.length,
     distinctAnimationGlbsHashed: hashes.size, uvSourceCorrections: changes.uvSourceCorrections.length,
+    motionHashAdded: changes.motionHashesAdded.length,
+    motionHashEntries: animations.filter(({ animation }) => animation.motionHash).length,
+    distinctMotions: new Set(animations.map(({ animation }) => animation.motionHash).filter(Boolean)).size,
+    duplicateMotionGroups: changes.duplicateMotionGroups.length,
+    skinsWithDuplicateMotions: new Set(changes.duplicateMotionGroups.map((item) => `${item.brawlerId}:${item.skinId}`)).size,
+    cliplessEntries: changes.cliplessEntries.length,
+    distinctCliplessGlbs: new Set(changes.cliplessEntries.map((item) => item.url)).size,
+    motionFailures: changes.motionFailures.length,
     uvSkinsCorrected: new Set(changes.uvSourceCorrections.map((item) => `${item.brawlerId}:${item.skinId}`)).size,
     skippedSkins: changes.skippedSkins.length, hashFailures: changes.hashFailures.length };
   await atomicWrite(path.join(workDir, "changes.json"), `${JSON.stringify(changes, null, 2)}\n`);
@@ -273,7 +385,12 @@ export async function enrichCatalog({ catalogUrl = DEFAULT_URL, workerOrigin = D
     ...changes.uvSourceCorrections.map((item) => `- ${item.displayName} (${item.skinId}), ${item.materialName}: ${item.from} -> ${item.to}; lobby atlas ${JSON.stringify(item.lobbyAtlasName)}`), "", "## Missing outline params", "",
     ...changes.missingOutlineParams.map((item) => `- ${item.displayName}, ${item.materialName}: ${item.reason}${item.sourceOutline ? `; raw ${JSON.stringify(item.sourceOutline)}` : ""}`), "", "## Skipped skins", "",
     ...changes.skippedSkins.map((item) => `- ${item.displayName} (${item.skinId}): ${item.reason}`), "", "## Hash failures", "",
-    ...changes.hashFailures.map((item) => `- ${item.url}: ${item.reason}`), "", "All output shards were read back and passed parseBrawlerAssetCatalog via Node type stripping.", ""];
+    ...changes.hashFailures.map((item) => `- ${item.url}: ${item.reason}`), "", "## Motion sampling", "",
+    "First clip only; viewer-clamped inclusive playback window. Sample every half frame at entry fps, plus the exact endpoint. LINEAR rotations use the viewer's slerpFlat interpolator. Translation/scale components and unit-normalised quaternion components are quantised with Math.round(value / 1e-4), with negative zero replaced by zero. Quaternion sign: largest absolute quantised component positive, first wins ties. Duration is Math.round(seconds / 1e-4); sample count is derived from that duration. SHA-256 covers canonical JSON with sorted joint name/path tracks, fps, duration, sampling version and quantised samples. Speed and face tracks are excluded. Grid boundaries can separate values less than 1e-4 apart; finite samples cannot prove equality between sample points.", "", "## Duplicate motion groups per skin", "",
+    ...changes.duplicateMotionCountsPerSkin.map((item) => `- ${item.displayName} (${item.skinId}): ${item.groups} groups`), "", "### Group members", "",
+    ...changes.duplicateMotionGroups.map((item) => `- ${item.displayName} (${item.skinId}): ${item.animations.join(" = ")}; ${item.motionHash}`), "", "## Clipless entries", "",
+    ...changes.cliplessEntries.map((item) => `- ${item.skinId}: ${item.animation}; ${item.url}`), "", "## Motion failures", "",
+    ...changes.motionFailures.map((item) => `- ${item.url}: ${item.reason}`), "", "All output shards were read back and passed parseBrawlerAssetCatalog via Node type stripping.", ""];
   await atomicWrite(path.join(workDir, "CHANGES.md"), markdown.join("\n"));
   console.log(JSON.stringify(changes.counts, null, 2));
   return changes;
@@ -288,8 +405,9 @@ async function main() {
   }
   const changes = await enrichCatalog({ catalogUrl: args.get("catalog-url"), workerOrigin: args.get("worker-origin"),
     cdnOrigin: args.get("cdn-origin"), workDir: args.get("work-dir"), diagnosticDir: args.get("diagnostic-dir"),
+    refreshCatalog: args.get("refresh-catalog") === "true", animationsOnly: args.get("animations-only") === "true",
     concurrency: args.has("concurrency") ? Number(args.get("concurrency")) : 8 });
-  if (changes.counts.skippedSkins || changes.counts.missingOutlineParams || changes.counts.hashFailures) process.exitCode = 1;
+  if (changes.counts.skippedSkins || changes.counts.missingOutlineParams || changes.counts.hashFailures || changes.counts.motionFailures) process.exitCode = 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => { console.error(error); process.exitCode = 1; });
