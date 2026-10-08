@@ -154,7 +154,7 @@ const FOOTER_COLUMNS = [
 ];
 
 /** The classic r/ClashRoyale footer: link columns around the King on the
- *  arena wall, legal copy resting on the lances. */
+ *  arena wall, then the legal copy, then a clear band of lances and grass. */
 function SiteFooter() {
   const { t, locale } = useI18n();
   const columns = FOOTER_COLUMNS.map((column) => (
@@ -193,6 +193,7 @@ function SiteFooter() {
           . © {new Date().getFullYear()} StatsConnect.
         </p>
       </div>
+      <div className="cr-footer-lances" aria-hidden="true" />
     </footer>
   );
 }
