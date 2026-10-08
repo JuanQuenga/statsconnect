@@ -160,8 +160,6 @@ h6 {
 .history-metrics strong,
 .management-observation-card strong,
 .management-metrics strong,
-.trend-numbers strong,
-.archetype-detail-chart strong,
 .observed-deck-rank strong,
 .observed-deck-metrics strong {
   font-family: var(--font-ui);
@@ -2054,22 +2052,6 @@ a:hover .entity-cell strong { color: #07569f; }
 
 .beta-controls { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
 
-/* Reads as a filter bar. Wrapping these pills in a full .profile-section gave
-   them 28px of padding, a 38px margin and a dashed divider — a lot of empty
-   page for two rows of buttons. */
-.meta-controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  margin: 0 0 32px;
-  padding: 14px 18px;
-  border: 1px solid #d5dce4;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 3px 0 rgba(129, 131, 147, .55);
-}
 .beta-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
 .beta-tab {
   padding: 9px 16px;
@@ -2763,59 +2745,7 @@ a:hover .entity-cell strong { color: #07569f; }
 .card-tile-meta { color: #5b6b80; font: 10px var(--font-ui); }
 .card-tile:hover .card-tile-meta { color: #07569f; }
 
-.meta-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid #c9d3dd;
-  border-radius: 999px;
-  color: #294763;
-  background: #fff;
-  font: 650 11px var(--font-ui);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color .15s ease, color .15s ease;
-}
-.meta-copy:hover { border-color: rgba(7, 86, 159, .55); color: #07569f; }
-
-/* Usage reads as a share of all decks, so it gets a bar as well as a number. */
-/* Sits beside the number, not stacked above it — a lone 4px rule floating over
-   the percentage read as a stray underline. */
-.usage-bar {
-  display: inline-block;
-  vertical-align: middle;
-  width: 64px;
-  height: 5px;
-  margin: 0 9px 2px 0;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #dbe3ea;
-}
-.usage-bar i { display: block; height: 100%; background: #07569f; }
-
 /* --- Deeper meta analytics ------------------------------------------------ */
-.trend-list { display: grid; gap: 10px; margin-top: 18px; }
-.analytics-trend-controls { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
-.trend-row {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(240px, 2fr) 110px;
-  gap: 20px;
-  align-items: center;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
-}
-.trend-row-deck {
-  grid-template-columns: minmax(316px, 1.2fr) minmax(240px, 2fr) 110px;
-}
-.analytics-card-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.analytics-card-id .game-card-art { flex: none; width: 42px; }
-.analytics-card-id img { flex: none; width: 42px; height: 52px; object-fit: contain; }
-.analytics-card-id > span { display: grid; gap: 3px; min-width: 0; }
-.analytics-card-id strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.analytics-card-id small { color: #5b6b80; font: 10px var(--font-ui); }
 .trend-chart {
   --trend-grid: rgba(20, 48, 76, .14);
   --trend-axis: #5b6b80;
@@ -2847,8 +2777,6 @@ a:hover .entity-cell strong { color: #07569f; }
   outline-offset: 3px;
   border-radius: 6px;
 }
-.trend-row .trend-chart-summary { display: none; }
-.trend-row .trend-chart-canvas { height: 88px; }
 .trend-chart-canvas .recharts-cartesian-grid-horizontal line { stroke: var(--trend-grid); }
 .trend-chart-canvas .recharts-cartesian-axis-tick-value { fill: var(--trend-axis); font: 10px var(--font-ui); }
 .trend-chart-canvas .recharts-xAxis .recharts-cartesian-axis-tick-value { font-size: 10px; }
@@ -2870,64 +2798,16 @@ a:hover .entity-cell strong { color: #07569f; }
 .trend-chart-tooltip i { width: 3px; height: 3px; border-radius: 50%; background: var(--color-value); }
 .trend-chart-tooltip strong { color: white; font: 750 16px/1 var(--font-ui); }
 .trend-empty { margin: 0; color: #5b6b80; font: 11px/1.5 var(--font-ui); }
-.trend-numbers { display: grid; gap: 4px; text-align: right; }
-.trend-numbers strong { font-size: 16px; }
-.trend-numbers span { color: #5b6b80; font: 10px var(--font-ui); }
-.mover-grid, .related-stats-grid, .card-trend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.mover-panel, .related-stats-panel, .card-trend-grid > div {
+.related-stats-grid, .card-trend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.related-stats-panel, .card-trend-grid > div {
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
 }
-.mover-panel h3, .related-stats-panel h3, .card-trend-grid h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; font-size: 15px; }
+.related-stats-panel h3, .card-trend-grid h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; font-size: 15px; }
 .card-trend-grid .trend-chart-canvas { height: 156px; }
-.mover-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px solid var(--border); }
-.mover-row > span { display: grid; flex: none; gap: 3px; text-align: right; font: 12px var(--font-ui); }
-.mover-row > span small { color: #5b6b80; font-size: 10px; }
-.analytics-up { color: #147a46 !important; }
-.analytics-down { color: #b03a4a !important; }
 .analytics-empty { margin: 12px 0 0; color: #5b6b80; font: 11px/1.55 var(--font-ui); }
-.analytics-caveat { margin: 14px 0; padding: 12px 14px; border-left: 3px solid #d9822b; color: #7a5210; background: #fdf3e0; font: 11px/1.55 var(--font-ui); }
-
-.tier-list { display: grid; gap: 8px; margin-top: 18px; }
-.tier-row { display: grid; grid-template-columns: 64px 1fr; min-height: 82px; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
-.tier-label { display: grid; place-items: center; color: #071524; font-size: 28px; }
-.tier-s .tier-label { background: #ff7a8a; }
-.tier-a .tier-label { background: #ffb45f; }
-.tier-b .tier-label { background: #ffe16a; }
-.tier-c .tier-label { background: #77d8a0; }
-.tier-row > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; }
-.tier-row .game-card-art { width: 52px; transition: transform .15s ease; }
-.tier-row a:hover .game-card-art { transform: translateY(-3px); }
-
-.archetype-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
-.archetype-card { display: grid; gap: 10px; padding: 18px; border: 1px solid var(--border); border-radius: 9px; color: inherit; background: #fff; transition: border-color .15s ease, transform .15s ease; }
-.archetype-card:hover { border-color: rgba(7, 86, 159, .55); transform: translateY(-2px); }
-.archetype-core { display: flex; gap: 2px; }
-.archetype-core img { width: 54px; height: 66px; object-fit: contain; }
-.archetype-card h3 { min-height: 34px; margin: 0; font-size: 14px; line-height: 1.3; }
-.archetype-card .trend-chart-summary { min-height: 22px; padding-bottom: 4px; }
-.archetype-card .trend-chart-summary span:first-child { display: none; }
-.archetype-card .trend-chart-summary strong { font-size: 16px; }
-.archetype-card .trend-chart-canvas { height: 72px; }
-.archetype-card .trend-chart .recharts-xAxis { display: none; }
-.archetype-card p { margin: 0; color: #5b6b80; font: 10px var(--font-ui); }
-.archetype-card p strong { color: var(--ink); }
-.archetype-card > small { font: 10px var(--font-ui); }
-.archetype-open { display: flex; align-items: center; justify-content: flex-end; color: #07569f; font: 650 10px var(--font-ui); }
-.archetype-detail-chart { display: grid; grid-template-columns: minmax(0, 1fr) 150px; align-items: center; gap: 24px; margin: 20px 0; padding: 18px; border-radius: 8px; background: var(--secondary); }
-.archetype-detail-chart .trend-chart-canvas { height: 168px; }
-.archetype-detail-chart > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
-.archetype-detail-chart > div strong { font-size: 18px; }
-.archetype-detail-chart > div span { color: #5b6b80; font: 10px var(--font-ui); }
-.analytics-deck-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.analytics-deck-card { padding: 14px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
-.analytics-deck-card > .profile-deck-grid { width: 100%; --deck-grid-max-width: 100%; }
-.analytics-deck-card > span { display: block; margin: 8px 0 0; color: #5b6b80; font: 10px var(--font-ui); }
-.analytics-deck-card p { display: block; margin: 8px 0 0; color: #5b6b80; font: 10px var(--font-ui); }
-.analytics-deck-card strong { color: inherit; }
-
 .related-stats-panel > p { min-height: 34px; margin: 0 0 10px; color: #5b6b80; font: 10px/1.5 var(--font-ui); }
 .related-stat-row { display: grid; grid-template-columns: 42px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); }
 .related-stat-row .game-card-art { width: 42px; }
@@ -2936,22 +2816,9 @@ a:hover .entity-cell strong { color: #07569f; }
 .related-stat-row small { color: #5b6b80; font: 10px var(--font-ui); }
 .related-stat-row b { font: 12px var(--font-ui); }
 
-@media (max-width: 900px) {
-  .archetype-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .trend-row { grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.5fr) 90px; gap: 12px; }
-  .trend-row-deck { grid-template-columns: minmax(232px, 1.2fr) minmax(0, 1.5fr) 84px; }
-}
-
 @media (max-width: 680px) {
-  .trend-row { grid-template-columns: 1fr; }
-  .trend-numbers { display: flex; justify-content: space-between; text-align: left; }
-  .trend-row .trend-chart .recharts-xAxis { display: none; }
   .card-trend-grid .trend-chart-canvas { height: 136px; }
-  .archetype-detail-chart .trend-chart-canvas { height: 148px; }
-  .mover-grid, .related-stats-grid, .card-trend-grid, .analytics-deck-list, .archetype-grid { grid-template-columns: 1fr; }
-  .archetype-detail-chart { grid-template-columns: 1fr; }
-  .tier-row { grid-template-columns: 48px 1fr; }
-  .tier-label { font-size: 22px; }
+  .related-stats-grid, .card-trend-grid { grid-template-columns: 1fr; }
 }
 
 /* --- Deck discovery ----------------------------------------------------- */

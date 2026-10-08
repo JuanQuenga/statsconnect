@@ -1,170 +1,262 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageStatus } from "@/components/ui-helpers";
-import { brawlerBorderUrl } from "@/lib/artwork";
+import { createFileRoute } from "@tanstack/react-router";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Info } from "lucide-react";
+import { useMemo } from "react";
+import { LiveRotation, LiveRotationSkeleton } from "@/components/meta/LiveRotation";
+import { BrawlerSheet } from "@/components/meta/BrawlerSheet";
+import { MetaControls } from "@/components/meta/MetaControls";
+import { MetaLeaderboard, MetaLeaderboardSkeleton } from "@/components/meta/MetaLeaderboard";
+import { MetaPulse, MetaPulseSkeleton, summarySentences } from "@/components/meta/MetaPulse";
+import { MetaScatter, MetaScatterSkeleton } from "@/components/meta/MetaScatter";
+import { MetaTierList, MetaTierListSkeleton } from "@/components/meta/MetaTierList";
+import { brawlerName, Panel, SectionHeader, type MetaLookups, type ModeInfo } from "@/components/meta/shared";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, PageStatus } from "@/components/ui-helpers";
 import { brawlData } from "@/lib/game-data";
-import { formatPercent, trophies } from "@/lib/format";
 import { useI18n, type Translator } from "@/lib/i18n";
-import { aggregateMeta, type AggregatedMetaRow, type TrophyBucket } from "@/lib/meta";
-import type { MetaDailyPoint, MetaTrendWindow } from "@/lib/types";
+import type { TrophyBucket } from "@/lib/meta";
+import { buildMetaBoard, metaHighlights, modesWithData, sortBoardRows, type BoardRow, type BoardSortKey, type SortDirection } from "@/lib/meta-board";
+import type { MetaTrendWindow, MetaTrendsResponse } from "@/lib/types";
 
-type Metric = "win" | "use" | "picks" | "star";
-type Grouping = "brawler" | "map" | "mode";
-type MetaSearch = { metric?: Metric; group?: Grouping; trophy?: TrophyBucket; compare?: TrophyBucket | "previous" | "off"; window?: MetaTrendWindow; min?: number; q?: string };
+/** Numeric windows stay numbers in the URL so they serialize as `window=30`, not `window="30"`. */
+type WindowParam = 7 | 30 | 90 | "all";
+type MetaSearch = {
+  trophy?: TrophyBucket;
+  window?: WindowParam;
+  mode?: number;
+  sort?: BoardSortKey;
+  dir?: SortDirection;
+  q?: string;
+  brawler?: number;
+};
 
 export const Route = createFileRoute("/meta")({
+  // Unknown or legacy params (metric, group, compare, min) are dropped here.
   validateSearch: (search: Record<string, unknown>): MetaSearch => ({
-    metric: isMetric(search.metric) ? search.metric : undefined,
-    group: isGrouping(search.group) ? search.group : undefined,
     trophy: isBucket(search.trophy) ? search.trophy : undefined,
-    compare: search.compare === "off" || search.compare === "previous" || isBucket(search.compare) ? search.compare : undefined,
-    window: isTrendWindow(search.window) ? search.window : undefined,
-    min: typeof search.min === "number" && Number.isFinite(search.min) ? Math.max(1, Math.floor(search.min)) : typeof search.min === "string" && /^\d+$/.test(search.min) ? Math.max(1, Number(search.min)) : undefined,
-    q: typeof search.q === "string" ? search.q : undefined,
+    window: windowParam(search.window),
+    mode: positiveInt(search.mode),
+    sort: isSortKey(search.sort) ? search.sort : undefined,
+    dir: search.dir === "asc" || search.dir === "desc" ? search.dir : undefined,
+    q: (typeof search.q === "string" || typeof search.q === "number") && String(search.q) ? String(search.q) : undefined,
+    brawler: positiveInt(search.brawler),
   }),
-  component: MetaResearchPage,
+  component: MetaBoardPage,
 });
 
-function MetaResearchPage() {
-  const { t, date } = useI18n();
+function MetaBoardPage() {
+  const { t, date, number } = useI18n();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const [copied, setCopied] = useState(false);
-  const metric = search.metric || "win";
-  const grouping = search.group || "brawler";
-  const trophyBucket = search.trophy || "all";
-  const compareBucket = search.compare || "previous";
-  const trendWindow = search.window || "30";
-  const minSamples = search.min || 25;
+  const trophy = search.trophy || "all";
+  const trendWindow: MetaTrendWindow = search.window === undefined ? "30" : search.window === "all" ? "all" : search.window === 7 ? "7" : search.window === 90 ? "90" : "30";
+  const sort = search.sort || "score";
+  const dir = search.dir || "desc";
+
   const catalogQuery = useQuery(brawlData.brawlers());
   const mapsQuery = useQuery(brawlData.maps());
-  const primaryQuery = useQuery(brawlData.metaTrends(trophyBucket, trendWindow));
-  const comparisonQuery = useQuery({ ...brawlData.metaTrends(compareBucket, trendWindow), enabled: compareBucket !== "off" && compareBucket !== "previous" && compareBucket !== trophyBucket });
-  const catalog = useMemo(() => new Map((catalogQuery.data || []).map((item) => [item.id, item])), [catalogQuery.data]);
-  const maps = useMemo(() => new Map((mapsQuery.data || []).map((item) => [item.id, item])), [mapsQuery.data]);
-  const rows = useMemo(() => {
-    const q = (search.q || "").trim().toLowerCase();
-    return aggregateMeta(primaryQuery.data?.current.stats || [], grouping, catalog, maps)
-      .filter((row) => row.picks >= minSamples && (!q || row.label.toLowerCase().includes(q)))
-      .sort((a, b) => metricValue(b, metric) - metricValue(a, metric) || b.picks - a.picks);
-  }, [catalog, grouping, maps, metric, minSamples, primaryQuery.data, search.q]);
-  const comparison = useMemo(() => {
-    const source = compareBucket === "previous"
-      ? primaryQuery.data?.previous?.stats
-      : compareBucket === trophyBucket
-        ? primaryQuery.data?.current.stats
-        : comparisonQuery.data?.current.stats;
-    return new Map(aggregateMeta(source || [], grouping, catalog, maps).map((row) => [row.key, row]));
-  }, [catalog, compareBucket, comparisonQuery.data, grouping, maps, primaryQuery.data, trophyBucket]);
-  const maxMetric = Math.max(1, ...rows.map((row) => metricValue(row, metric)));
-  const update = (patch: Partial<MetaSearch>) => void navigate({ search: { ...search, ...patch }, replace: true });
-  const formatDate = (value?: number | null) => value ? date(value, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : "—";
+  const eventsQuery = useQuery({ ...brawlData.events(), refetchInterval: 60_000 });
+  const trendsQuery = useQuery({ ...brawlData.metaTrends(trophy, trendWindow), placeholderData: keepPreviousData });
+  // Matchups are only returned for a single brawler, so the detail panel asks separately.
+  const brawlerQuery = useQuery({ ...brawlData.metaTrends(trophy, trendWindow, search.brawler), enabled: search.brawler !== undefined });
 
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1_500);
-  };
+  const lookups = useMemo<MetaLookups>(() => {
+    const maps = new Map((mapsQuery.data || []).map((map) => [map.id, map]));
+    const modes = new Map<number, ModeInfo>();
+    const mapModes = new Map<number, number | undefined>();
+    for (const map of maps.values()) {
+      mapModes.set(map.id, map.gameMode?.id);
+      if (map.gameMode && !modes.has(map.gameMode.id)) {
+        modes.set(map.gameMode.id, { id: map.gameMode.id, name: map.gameMode.name, imageUrl: map.gameMode.imageUrl, color: map.gameMode.color });
+      }
+    }
+    return { brawlers: new Map((catalogQuery.data || []).map((item) => [item.id, item])), maps, modes, mapModes };
+  }, [catalogQuery.data, mapsQuery.data]);
+
+  const data = trendsQuery.data;
+  const scope = useMemo(() => ({ mapModes: lookups.mapModes, modeId: search.mode }), [lookups.mapModes, search.mode]);
+  const board = useMemo(
+    () => buildMetaBoard({ current: data?.current.stats || [], previous: data?.previous?.stats, scope, minPicks: data?.minPicks ?? 25 }),
+    [data, scope],
+  );
+  const highlights = useMemo(() => metaHighlights(board), [board]);
+  const sortedRows = useMemo(() => sortBoardRows(board.rows, sort, dir), [board.rows, sort, dir]);
+  const rankedRows = useMemo(() => board.rows.filter((row) => row.qualified), [board.rows]);
+  const modes = useMemo(() => modesWithData(data?.current.stats || [], lookups.mapModes), [data, lookups.mapModes]);
+
+  const update = (patch: Partial<MetaSearch>, push = false) => void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: !push, resetScroll: false });
+  const select = (brawler: number) => update({ brawler }, true);
+  const ready = Boolean(data && catalogQuery.data && mapsQuery.data);
+  const error = trendsQuery.error || catalogQuery.error || mapsQuery.error;
+  const modeName = search.mode !== undefined ? lookups.modes.get(search.mode)?.name : undefined;
+  const formatDay = (value: number) => date(value, { month: "short", day: "numeric", timeZone: "UTC" });
+  const summary = ready ? summarySentences({ highlights, lookups, modeName, trophy, window: trendWindow, t }) : [];
+  const noData = ready && !board.rows.length;
+
   const exportCsv = () => {
-    const header = ["group", "label", "trophy_bucket", "window", "period_start_utc", "period_end_utc", "wins", "losses", "picks", "win_rate", "use_rate", "star_player_rate", compareBucket !== "off" ? `delta_${metric}` : ""].filter(Boolean);
-    const lines = rows.map((row) => {
-      const compare = comparison.get(row.key);
-      const delta = compare ? metricValue(row, metric) - metricValue(compare, metric) : "";
-      return [grouping, row.label, trophyBucket, trendWindow, dateIso(primaryQuery.data?.current.startAt), dateIso(primaryQuery.data?.current.endAt), row.wins, row.losses, row.picks, row.winRate.toFixed(4), row.useRate.toFixed(4), row.starRate.toFixed(4), delta].filter((_, index) => index < header.length).map(csvCell).join(",");
-    });
-    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a"); link.href = url; link.download = `statsconnect-brawl-stars-meta-${grouping}-${trophyBucket}-${trendWindow}.csv`; link.click(); URL.revokeObjectURL(url);
+    const header = ["rank", "brawler", "tier", "score", "win_rate", "use_rate", "star_player_rate", "picks", "wins", "losses", "use_delta_pp", "trophy_range", "window", "mode", "period_start_utc", "period_end_utc"];
+    const lines = sortedRows.map((row, index) => [
+      index + 1, brawlerName(lookups, row.brawlerId), row.tier || "", row.score.toFixed(2), row.winRate.toFixed(2), row.useRate.toFixed(3), row.starRate.toFixed(2),
+      row.picks, row.wins, row.losses, row.useDelta === null ? "" : row.useDelta.toFixed(3), trophy, trendWindow, modeName || "all",
+      dateIso(data?.current.startAt), dateIso(data?.current.endAt),
+    ].map(csvCell).join(","));
+    const url = URL.createObjectURL(new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `statsconnect-brawl-stars-meta-${trophy}-${trendWindow}${search.mode ? `-${search.mode}` : ""}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
-  const error = primaryQuery.error || catalogQuery.error || mapsQuery.error || comparisonQuery.error;
   return (
-    <div className="page-shell">
-      <header className="page-intro"><h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1><p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p></header>
+    <div className="page-shell space-y-6 md:space-y-8">
+      <header className="page-intro">
+        <h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1>
+        <p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p>
+        <p className="mt-3 flex min-h-5 items-center gap-2 text-sm text-muted-foreground">
+          {data ? (
+            <>
+              <span aria-hidden className="size-2 shrink-0 rounded-full bg-accent" />
+              {board.totalPicks
+                ? t("meta.freshness", { picks: number(board.totalPicks), start: formatDay(data.current.startAt), end: formatDay(data.current.endAt) })
+                : t("meta.freshnessEmpty")}
+            </>
+          ) : <Skeleton className="h-4 w-64" />}
+        </p>
+      </header>
 
-      <div className="data-surface grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Filter label={t("meta.winRate")} value={metric} options={[["win", t("meta.winRate")], ["use", t("meta.useRate")], ["picks", t("meta.sampleSize")], ["star", t("meta.starRate")]]} onChange={(value) => update({ metric: value as Metric })} />
-        <Filter label={t("meta.brawler")} value={grouping} options={[["brawler", t("meta.groupBrawler")], ["map", t("meta.groupMap")], ["mode", t("meta.groupMode")]]} onChange={(value) => update({ group: value as Grouping })} />
-        <Filter label={t("common.allTrophies")} value={trophyBucket} options={bucketOptions(t("meta.primary"), t)} onChange={(value) => update({ trophy: value as TrophyBucket })} />
-        <Filter label={t("meta.lastDays", { count: 30 })} value={trendWindow} options={[["7", t("meta.lastDays", { count: 7 })], ["30", t("meta.lastDays", { count: 30 })], ["90", t("meta.lastDays", { count: 90 })], ["all", t("meta.allTrackedDays")]]} onChange={(value) => update({ window: value as MetaTrendWindow })} />
-        <Filter label={t("meta.previousPeriod")} value={compareBucket} options={[["previous", t("meta.previousPeriod")], ["off", t("meta.noComparison")], ...bucketOptions(t("meta.compareBracket"), t)]} onChange={(value) => update({ compare: value as TrophyBucket | "previous" | "off" })} />
-        <Input value={search.q || ""} onChange={(event) => update({ q: event.target.value || undefined })} placeholder={t("meta.search", { group: groupLabel(grouping, t) })} aria-label={t("meta.search", { group: groupLabel(grouping, t) })} className="lg:col-span-2" />
-        <label className="flex items-center gap-3 rounded-lg border border-input px-3 text-sm"><span className="shrink-0 text-muted-foreground">{t("meta.minSamples")}</span><Input type="number" min={1} max={10000} value={minSamples} onChange={(event) => update({ min: Math.max(1, Number(event.target.value) || 1) })} className="h-8 border-0 text-right" /></label>
-        <div className="flex gap-2"><Button variant="outline" className="flex-1" onClick={() => void copyLink()}>{copied ? t("meta.copied") : t("meta.copyLink")}</Button><Button className="flex-1" onClick={exportCsv} disabled={!rows.length}>{t("meta.exportCsv")}</Button></div>
-      </div>
+      <MetaControls
+        trophy={trophy}
+        window={trendWindow}
+        mode={search.mode}
+        modes={modes}
+        lookups={lookups}
+        updating={trendsQuery.isPlaceholderData && trendsQuery.isFetching}
+        canExport={sortedRows.length > 0 && !trendsQuery.isPlaceholderData}
+        onChange={({ window: nextWindow, ...patch }) => update(nextWindow ? { ...patch, window: windowParam(nextWindow) } : patch)}
+        onExport={exportCsv}
+      />
 
-      {primaryQuery.isLoading || catalogQuery.isLoading || mapsQuery.isLoading || comparisonQuery.isLoading ? <PageStatus tone="loading">{t("meta.aggregating")}</PageStatus> : null}
       {error ? <PageStatus tone="error">{error instanceof Error ? error.message : t("meta.loadFailed")}</PageStatus> : null}
-      {primaryQuery.data?.current.capped ? <PageStatus tone="error">{t("meta.safetyCap", { count: trophies(primaryQuery.data.rowLimit) })}</PageStatus> : null}
-      {primaryQuery.data && !primaryQuery.data.coverageStartAt ? <CoverageNotice title={t("meta.coverageNotStarted")} detail={t("meta.coverageNotStartedDetail")} /> : null}
-      {primaryQuery.data?.coverageStartAt ? <CoverageNotice title={t("meta.coverageStarts", { date: formatDate(primaryQuery.data.coverageStartAt) })} detail={t(primaryQuery.data.currentCoverageComplete ? "meta.coverageComplete" : "meta.coveragePartial", { window: windowLabel(trendWindow, t) })} /> : null}
-      {compareBucket === "previous" && primaryQuery.data?.previous && !primaryQuery.data.comparisonReady ? <CoverageNotice title={t("meta.previousPartial")} detail={t("meta.previousPartialDetail")} /> : null}
+      {data ? <CoverageBanner data={data} trendWindow={trendWindow} t={t} formatDate={(value) => date(value, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })} /> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Summary label={t("meta.returnedGroups")} value={trophies(rows.length)} detail={t("meta.atLeastSamples", { count: trophies(minSamples) })} />
-        <Summary label={t("meta.observedPicks")} value={trophies(primaryQuery.data?.current.sampleSize || 0)} detail={t("meta.dateRange", { start: formatDate(primaryQuery.data?.current.startAt), end: formatDate(primaryQuery.data?.current.endAt) })} />
-        <Summary label={t("meta.topMetric", { metric: metricLabel(metric, t) })} value={rows[0] ? displayMetric(rows[0], metric) : "—"} detail={rows[0]?.label || t("meta.noQualifying")} />
-        <Summary label={t("meta.comparison")} value={compareBucket === "off" ? t("meta.off") : compareBucket === "previous" ? t("meta.previousPeriod") : compareBucket} detail={compareBucket === "previous" ? (trendWindow === "all" ? t("meta.noEqualPeriod") : primaryQuery.data?.comparisonReady ? t("meta.periodsReady") : t("meta.historyPartial")) : compareBucket === trophyBucket ? t("meta.sameBracket") : t("meta.differentBracket")} />
+      <section aria-labelledby="meta-pulse">
+        <SectionHeader id="meta-pulse" title={t("meta.pulseTitle")} />
+        {ready ? <MetaPulse highlights={highlights} lookups={lookups} onSelect={select} /> : <MetaPulseSkeleton />}
+        <div className="mt-4 max-w-4xl border-l-[3px] border-primary pl-4">
+          {ready ? (
+            <p className="text-[1.0625rem] leading-relaxed text-foreground/90">{summary.join(" ")}</p>
+          ) : (
+            <div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-11/12" /><Skeleton className="h-4 w-2/3" /></div>
+          )}
+        </div>
       </section>
 
-      <TrendChart points={primaryQuery.data?.current.days || []} />
+      {noData ? (
+        <EmptyState title={t("meta.noData")} detail={t("meta.noDataDetail")} />
+      ) : (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+          <Panel aria-labelledby="meta-tiers">
+            <SectionHeader id="meta-tiers" title={t("meta.tierTitle")} detail={t("meta.tierDetail", { count: number(board.floor) })} />
+            {!ready ? <MetaTierListSkeleton /> : rankedRows.length ? (
+              <MetaTierList rows={rankedRows} lookups={lookups} selected={search.brawler} onSelect={select} />
+            ) : <SectionEmpty>{t("meta.tierEmpty", { count: number(board.floor) })}</SectionEmpty>}
+          </Panel>
+          <Panel aria-labelledby="meta-map">
+            <SectionHeader id="meta-map" title={t("meta.mapTitle")} detail={t("meta.mapDetail")} />
+            {!ready ? <MetaScatterSkeleton /> : rankedRows.length ? (
+              <MetaScatter rows={rankedRows} medianUse={highlights.medianUse} lookups={lookups} selected={search.brawler} onSelect={select} />
+            ) : <SectionEmpty>{t("meta.tierEmpty", { count: number(board.floor) })}</SectionEmpty>}
+          </Panel>
+        </div>
+      )}
 
-      <div className="data-surface overflow-hidden">
-        <Table><TableHeader><TableRow><TableHead>#</TableHead><TableHead>{groupLabel(grouping, t)}</TableHead><TableHead className="text-right">{t("meta.winRate")}</TableHead><TableHead className="text-right">{t("meta.useRate")}</TableHead><TableHead className="text-right">{t("meta.starRate")}</TableHead><TableHead className="text-right">{t("meta.samples")}</TableHead>{compareBucket !== "off" ? <TableHead className="text-right">Δ {metricLabel(metric, t)}</TableHead> : null}</TableRow></TableHeader><TableBody>{rows.slice(0, 250).map((row, index) => { const compare = comparison.get(row.key); const delta = compare ? metricValue(row, metric) - metricValue(compare, metric) : null; return <TableRow key={row.key}><TableCell className="game-rank text-muted-foreground">{index + 1}</TableCell><TableCell><GroupLabel row={row} grouping={grouping} /></TableCell><TableCell className="game-stat text-right">{formatPercent(row.winRate)}</TableCell><TableCell className="game-stat text-right">{formatPercent(row.useRate)}</TableCell><TableCell className="game-stat text-right">{formatPercent(row.starRate)}</TableCell><TableCell className="game-stat text-right"><div className="ml-auto w-28"><span>{trophies(row.picks)}</span><div className="mt-1 h-1 rounded bg-secondary"><div className="h-full rounded bg-primary" style={{ width: `${Math.max(2, (metricValue(row, metric) / maxMetric) * 100)}%` }} /></div></div></TableCell>{compareBucket !== "off" ? <TableCell className={`game-stat text-right ${delta === null ? "text-muted-foreground" : delta >= 0 ? "text-accent" : "text-destructive"}`}>{delta === null ? "—" : `${delta > 0 ? "+" : ""}${metric === "picks" ? Math.round(delta) : `${delta.toFixed(2)}pp`}`}</TableCell> : null}</TableRow>; })}</TableBody></Table>
-      </div>
-      <p className="text-xs text-muted-foreground">{t("meta.methodology")}</p>
+      <section aria-labelledby="meta-live">
+        <SectionHeader id="meta-live" title={t("meta.liveTitle")} detail={t("meta.liveDetail")} />
+        {eventsQuery.isPending || !ready ? <LiveRotationSkeleton /> : (
+          <LiveRotation events={eventsQuery.data || []} stats={data?.current.stats || []} minPicks={data?.minPicks ?? 25} lookups={lookups} />
+        )}
+      </section>
+
+      {noData ? null : (
+        <Panel aria-labelledby="meta-board">
+          <SectionHeader id="meta-board" title={t("meta.boardTitle")} detail={t("meta.boardDetail", { count: number(board.floor) })} />
+          {ready ? (
+            <MetaLeaderboard
+              rows={sortedRows}
+              lookups={lookups}
+              sort={sort}
+              dir={dir}
+              query={search.q || ""}
+              selected={search.brawler}
+              onSort={(key) => update(key === sort ? { dir: dir === "desc" ? "asc" : "desc" } : { sort: key, dir: "desc" })}
+              onQuery={(value) => update({ q: value || undefined })}
+              onSelect={select}
+            />
+          ) : <MetaLeaderboardSkeleton />}
+        </Panel>
+      )}
+
+      <footer className="max-w-4xl space-y-2 border-t border-border pt-5 text-xs leading-relaxed text-muted-foreground">
+        <p>{t("meta.methodology", { min: number(data?.minPicks ?? 25) })}</p>
+        {data?.coverageStartAt ? <p>{t("meta.coverageStarts", { date: date(data.coverageStartAt, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) })}</p> : null}
+      </footer>
+
+      <BrawlerSheet
+        brawlerId={search.brawler}
+        lookups={lookups}
+        onClose={() => update({ brawler: undefined })}
+        data={{
+          row: board.rows.find((row: BoardRow) => row.brawlerId === search.brawler),
+          stats: data?.current.stats || [],
+          matchups: brawlerQuery.data?.currentMatchups,
+          matchupsLoading: brawlerQuery.isPending && search.brawler !== undefined,
+          matchupsFailed: brawlerQuery.isError,
+          scope,
+          minPicks: data?.minPicks ?? 25,
+        }}
+      />
     </div>
   );
 }
 
-function GroupLabel({ row, grouping }: { row: AggregatedMetaRow; grouping: Grouping }) {
-  const to = grouping === "brawler" && row.brawlerId
-    ? { to: "/brawlers/$brawlerId" as const, params: { brawlerId: String(row.brawlerId) } }
-    : grouping === "map" && row.mapId
-      ? { to: "/maps/$mapId" as const, params: { mapId: String(row.mapId) } }
-      : null;
-  const body = <span className="flex items-center gap-3">{grouping === "brawler" && row.brawlerId ? <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-9 rounded-lg" /> : null}<strong>{row.label}</strong></span>;
-  return to ? <Link {...to} className="hover:text-primary">{body}</Link> : body;
-}
-function TrendChart({ points }: { points: MetaDailyPoint[] }) {
-  const { t, date } = useI18n();
-  if (!points.length) return <CoverageNotice title={t("meta.noDailySamples")} detail={t("meta.noDailySamplesDetail")} />;
-  const maxPicks = Math.max(1, ...points.map((point) => point.picks));
+function CoverageBanner({ data, trendWindow, t, formatDate }: { data: MetaTrendsResponse; trendWindow: MetaTrendWindow; t: Translator; formatDate: (value: number) => string }) {
+  const notes: Array<{ title: string; detail: string }> = [];
+  const windowLabel = trendWindow === "all" ? t("meta.allTrackedDays") : t("meta.lastDays", { count: trendWindow });
+  if (!data.coverageStartAt) notes.push({ title: t("meta.coverageNotStarted"), detail: t("meta.coverageNotStartedDetail") });
+  else if (!data.currentCoverageComplete) notes.push({ title: t("meta.coverageStarts", { date: formatDate(data.coverageStartAt) }), detail: t("meta.coveragePartial", { window: windowLabel }) });
+  if (data.current.capped) notes.push({ title: t("meta.safetyCap", { count: data.rowLimit.toLocaleString("en-US") }), detail: "" });
+  if (data.previous && !data.comparisonReady) notes.push({ title: t("meta.previousPartial"), detail: t("meta.previousPartialDetail") });
+  if (!notes.length) return null;
   return (
-    <Card className="gap-0 p-5 py-5">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div><h2 className="section-title">{t("meta.trendTitle")}</h2></div>
-        <p className="text-xs text-muted-foreground">{t("meta.trendDetail")}</p>
-      </div>
-      <div className="mt-5 flex h-52 items-end gap-1 overflow-x-auto border-b border-border pb-7" aria-label={t("meta.trendAria")}>
-        {points.map((point, index) => (
-          <div key={point.day} className="group relative flex h-full min-w-4 flex-1 items-end" title={t("meta.trendPoint", { date: date(point.day, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }), rate: formatPercent(point.winRate), picks: trophies(point.picks) })}>
-            <div className="w-full rounded-t bg-primary/80 transition group-hover:bg-primary" style={{ height: `${Math.max(3, point.winRate)}%`, opacity: 0.45 + (point.picks / maxPicks) * 0.55 }} />
-            {(index === 0 || index === points.length - 1 || (points.length > 14 && index % Math.ceil(points.length / 7) === 0)) ? <span className="absolute top-full mt-2 whitespace-nowrap text-[10px] text-muted-foreground">{date(point.day, { month: "short", day: "numeric", timeZone: "UTC" })}</span> : null}
-          </div>
+    <div role="status" className="flex gap-3 rounded-xl border border-accent/35 bg-accent/[0.07] px-4 py-3 text-sm">
+      <Info className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
+      <ul className="space-y-1">
+        {notes.map((note) => (
+          <li key={note.title}><span className="font-semibold text-foreground">{note.title}</span>{note.detail ? <span className="text-muted-foreground"> {note.detail}</span> : null}</li>
         ))}
-      </div>
-    </Card>
+      </ul>
+    </div>
   );
 }
-function CoverageNotice({ title, detail }: { title: string; detail: string }) { return <Card className="gap-0 border border-accent/40 p-4 py-4"><p className="font-medium text-accent">{title}</p><p className="mt-1 text-sm text-muted-foreground">{detail}</p></Card>; }
-function Summary({ label, value, detail }: { label: string; value: string; detail: string }) { return <Card className="gap-0 p-5 py-5"><p className="text-[0.8125rem] font-semibold text-muted-foreground">{label}</p><p className="mt-2 truncate font-display text-3xl text-primary">{value}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></Card>; }
-function Filter({ label, value, options, onChange }: { label: string; value: string; options: string[][]; onChange: (value: string) => void }) { const selected = options.find(([key]) => key === value)?.[1] || label; return <Select value={value} onValueChange={(next) => onChange(next || value)}><SelectTrigger className="h-9 w-full" aria-label={label}><SelectValue>{selected}</SelectValue></SelectTrigger><SelectContent alignItemWithTrigger={false}>{options.map(([key, text]) => <SelectItem key={key} value={key}>{text}</SelectItem>)}</SelectContent></Select>; }
-function bucketOptions(prefix: string, t: Translator) { return [["all", t("meta.bucketAll", { prefix })], ["0-499", t("meta.bucketRange", { prefix, range: "0–499" })], ["500-999", t("meta.bucketRange", { prefix, range: "500–999" })], ["1000+", t("meta.bucketRange", { prefix, range: "1,000+" })]]; }
-function metricValue(row: AggregatedMetaRow, metric: Metric) { if (metric === "win") return row.winRate; if (metric === "use") return row.useRate; if (metric === "star") return row.starRate; return row.picks; }
-function displayMetric(row: AggregatedMetaRow, metric: Metric) { return metric === "picks" ? trophies(row.picks) : formatPercent(metricValue(row, metric)); }
-function metricLabel(metric: Metric, t: Translator) { return metric === "win" ? t("meta.winRate") : metric === "use" ? t("meta.useRate") : metric === "star" ? t("meta.starRate") : t("meta.samples"); }
-function groupLabel(grouping: Grouping, t: Translator) { return grouping === "brawler" ? t("meta.brawler") : grouping === "map" ? t("meta.map") : t("meta.mode"); }
-function csvCell(value: string | number) { const text = String(value); return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
+
+function SectionEmpty({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">{children}</p>;
+}
+
+function csvCell(value: string | number) {
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
 function dateIso(value?: number | null) { return value ? new Date(value).toISOString().slice(0, 10) : ""; }
-function windowLabel(value: MetaTrendWindow, t: Translator) { return value === "all" ? t("meta.allTrackedDays") : t("meta.lastDays", { count: value }); }
-function isMetric(value: unknown): value is Metric { return value === "win" || value === "use" || value === "picks" || value === "star"; }
-function isGrouping(value: unknown): value is Grouping { return value === "brawler" || value === "map" || value === "mode"; }
+function positiveInt(value: unknown) {
+  const parsed = typeof value === "number" ? value : typeof value === "string" && /^\d+$/.test(value) ? Number(value) : NaN;
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
 function isBucket(value: unknown): value is TrophyBucket { return value === "all" || value === "0-499" || value === "500-999" || value === "1000+"; }
-function isTrendWindow(value: unknown): value is MetaTrendWindow { return value === "7" || value === "30" || value === "90" || value === "all"; }
+function windowParam(value: unknown): WindowParam | undefined {
+  if (value === "all") return "all";
+  const days = Number(value);
+  return days === 7 || days === 30 || days === 90 ? days : undefined;
+}
+function isSortKey(value: unknown): value is BoardSortKey { return value === "score" || value === "win" || value === "use" || value === "star" || value === "picks" || value === "delta"; }

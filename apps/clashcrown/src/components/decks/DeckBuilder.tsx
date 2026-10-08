@@ -9,6 +9,7 @@ import { cardSlug } from "@/lib/clash/cards";
 import { deckMetaQuery, isConvexConfigured } from "@/lib/convex";
 import { useRouter } from "@/lib/router";
 import { DEFAULT_META_MODE, DEFAULT_META_WINDOW } from "@/lib/useCardMeta";
+import { parseIdList, serializeIdList } from "@/lib/metaReport";
 import type { Card } from "@/lib/clash/domain";
 
 type DeckBuilderProps = {
@@ -30,8 +31,11 @@ export function DeckBuilder({
 }: DeckBuilderProps) {
   const router = useRouter();
   const include = typeof router.query.include === "string" ? router.query.include : undefined;
+  // TanStack parses a single id as a number, so normalise whatever shape arrives.
+  const deckParam = serializeIdList(parseIdList(router.query.deck));
   const [selected, setSelected] = useState<Card[]>(initialCards.slice(0, 8));
   const [seededSlug, setSeededSlug] = useState("");
+  const [seededDeck, setSeededDeck] = useState("");
   const [appliedKey, setAppliedKey] = useState(initialKey);
   const [search, setSearch] = useState("");
   const [rarity, setRarity] = useState("All");
@@ -43,6 +47,20 @@ export function DeckBuilder({
     setAppliedKey(initialKey);
     setNotice("Observed deck loaded into the builder.");
   }, [appliedKey, initialCards, initialKey]);
+
+  // `/decks?tool=builder&deck=id,id,…` (from the meta report) loads a whole observed deck.
+  useEffect(() => {
+    if (!deckParam || deckParam === seededDeck) return;
+    const byId = new Map(cards.flatMap((card) => (typeof card.id === "number" ? [[card.id, card] as const] : [])));
+    const seeded = parseIdList(deckParam).flatMap((id) => {
+      const card = byId.get(id);
+      return card ? [card] : [];
+    });
+    if (!seeded.length) return;
+    setSeededDeck(deckParam);
+    setSelected(seeded);
+    setNotice("Observed deck loaded into the builder.");
+  }, [cards, deckParam, seededDeck]);
 
   useEffect(() => {
     if (!include || include === seededSlug) return;

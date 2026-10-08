@@ -326,6 +326,85 @@
     mask-image: linear-gradient(90deg, transparent, black 68%);
   }
 
+  /* Meta board: chunky game-UI panels with a hard bottom shadow. */
+  .meta-panel {
+    @apply rounded-xl border border-border bg-card;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.28);
+  }
+
+  .meta-press {
+    transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+  }
+
+  .meta-press:hover {
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  }
+
+  .meta-press:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.28);
+  }
+
+  .meta-controls {
+    top: var(--sc-nav-sticky-height, 0px);
+  }
+
+  .meta-scroll {
+    scrollbar-width: none;
+  }
+
+  .meta-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .meta-tier-letter,
+  .meta-tier-chip {
+    color: #10151f;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22);
+  }
+
+  .meta-tier-chip {
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+  }
+
+  .meta-portrait-button {
+    transition: transform 140ms ease;
+  }
+
+  .meta-point {
+    transition: scale 140ms ease;
+  }
+
+  .meta-portrait-button:hover {
+    transform: translateY(-2px);
+  }
+
+  .meta-point:hover {
+    position: relative;
+    z-index: 10;
+    scale: 1.3;
+  }
+
+  .meta-sheet,
+  .meta-sheet-backdrop {
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease;
+  }
+
+  .meta-sheet:is([data-starting-style], [data-ending-style]) {
+    transform: translateY(100%);
+  }
+
+  .meta-sheet-backdrop:is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .meta-sheet:is([data-starting-style], [data-ending-style]) {
+      transform: translateX(100%);
+    }
+  }
+
   .activity-calendar {
     --activity-cell: clamp(1.5rem, 2.2vw, 2.25rem);
   }
@@ -370,8 +449,14 @@
   }
 
   .brawler-roster-card:is(:hover, :focus-visible),
-  .brawl-chip:active {
+  .brawl-chip:active,
+  .meta-press:active,
+  .meta-portrait-button:hover {
     transform: none;
+  }
+
+  .meta-point:hover {
+    scale: 1;
   }
 }
 

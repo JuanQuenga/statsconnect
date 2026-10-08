@@ -26,7 +26,7 @@ function LiveDeckExperience() {
   const router = useRouter();
   const getCards = useAction(cardsAction);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [surface, setSurface] = useState<DeckSurface>(router.query.include || router.query.tool === "builder" ? "builder" : "discover");
+  const [surface, setSurface] = useState<DeckSurface>(router.query.include || router.query.deck || router.query.tool === "builder" ? "builder" : "discover");
   const [builderSeed, setBuilderSeed] = useState<{ cards: Card[]; key: string }>({ cards: [], key: "" });
   const query = useQuery({
     queryKey: ["cards", refreshKey],
@@ -73,7 +73,7 @@ function LiveDeckExperience() {
 function OfflineDeckExperience() {
   const { locale } = useI18n();
   const router = useRouter();
-  const [surface, setSurface] = useState<DeckSurface>(router.query.include || router.query.tool === "builder" ? "builder" : "discover");
+  const [surface, setSurface] = useState<DeckSurface>(router.query.include || router.query.deck || router.query.tool === "builder" ? "builder" : "discover");
   return (
     <DeckExperienceShell surface={surface} setSurface={setSurface}>
       <div hidden={surface !== "builder"}><DeckBuilder cards={localCards} source={locale === "es" ? "Catálogo local" : "Local catalog"} /></div>

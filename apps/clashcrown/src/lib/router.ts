@@ -36,9 +36,9 @@ export function useRouter() {
   const query = useMemo(() => ({ ...search, ...params }), [search, params]) as Record<string, QueryValue>;
 
   const navigate = useCallback(
-    (target: LegacyUrl, replace = false) => {
+    (target: LegacyUrl, replace = false, resetScroll = true) => {
       const href = toHref(target);
-      return router.navigate({ href, replace });
+      return router.navigate({ href, replace, resetScroll });
     },
     [router],
   );
@@ -47,6 +47,8 @@ export function useRouter() {
     isReady: true,
     query,
     push: (target: LegacyUrl) => navigate(target),
-    replace: (target: LegacyUrl, _as?: string, _options?: { shallow?: boolean }) => navigate(target, true),
+    /** `scroll: false` keeps the scroll position, for in-page URL state such as filters. */
+    replace: (target: LegacyUrl, _as?: string, options?: { shallow?: boolean; scroll?: boolean }) =>
+      navigate(target, true, options?.scroll ?? true),
   };
 }
