@@ -15,6 +15,8 @@ export type SiteSearchProps<Value extends string = string> = {
   contextLabel?: string;
   contextOptions?: readonly SiteSearchOption<Value>[];
   contextValue?: Value;
+  /** "chips" shows the options below the bar; "select" puts a picker inside it. */
+  contextVariant?: "chips" | "select";
   inputProps?: Omit<
     InputHTMLAttributes<HTMLInputElement>,
     "aria-label" | "className" | "onChange" | "placeholder" | "type" | "value"
@@ -36,6 +38,7 @@ export function SiteSearch<Value extends string = string>({
   contextLabel = "Search type",
   contextOptions = [],
   contextValue,
+  contextVariant = "chips",
   inputProps,
   label,
   onContextChange,
@@ -48,10 +51,12 @@ export function SiteSearch<Value extends string = string>({
   value,
 }: SiteSearchProps<Value>) {
   const contextual = showContext && contextOptions.length > 1 && contextValue !== undefined;
+  const picker = contextual && contextVariant === "select";
   const rootClassName = [
     "sc-search",
     compact ? "sc-search--compact" : "",
-    contextual ? "is-contextual" : "",
+    contextual && !picker ? "is-contextual" : "",
+    picker ? "has-picker" : "",
     className ?? "",
   ].filter(Boolean).join(" ");
 
@@ -59,6 +64,19 @@ export function SiteSearch<Value extends string = string>({
     <div className={rootClassName}>
       <form className="sc-search__form" onSubmit={onSubmit} role="search">
         <div className="sc-search__bar">
+          {picker ? (
+            <select
+              className="sc-search__picker"
+              aria-label={contextLabel}
+              value={contextValue}
+              onChange={(event) => {
+                const option = contextOptions.find(({ value: optionValue }) => optionValue === event.target.value);
+                if (option) onContextChange?.(option.value);
+              }}
+            >
+              {contextOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          ) : null}
           <input
             {...inputProps}
             type="search"
@@ -72,7 +90,7 @@ export function SiteSearch<Value extends string = string>({
             <span className={compact ? "sc-search__sr-only" : ""}>{submitLabel}</span>
           </button>
         </div>
-        {contextual ? (
+        {contextual && !picker ? (
           <fieldset className="sc-search__context">
             <legend className="sc-search__sr-only">{contextLabel}</legend>
             {contextOptions.map((option) => (

@@ -405,6 +405,17 @@
   color: #6b7aa3;
 }
 
+.brawl-search-panel .sc-search__picker {
+  padding-inline: 16px 34px;
+  border-right: 3px solid var(--ink);
+  color: #10204a;
+  background-color: #e8eeff;
+  background-position: right 13px center;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 400;
+}
+
 .brawl-search-panel .sc-search__bar button {
   margin: 0;
   border-left: 3px solid var(--ink);

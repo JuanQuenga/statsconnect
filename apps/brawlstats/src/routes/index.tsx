@@ -55,7 +55,7 @@ function HomePage() {
               {t("home.description")}
             </p>
             <div className="brawl-search-panel mt-7 max-w-xl">
-              <PlayerSearch buttonLabel={t("home.viewPlayer")} />
+              <PlayerSearch buttonLabel={t("home.viewPlayer")} clubButtonLabel={t("home.viewClub")} />
             </div>
             <div className="mt-6 flex flex-wrap gap-2.5">
               <Link to="/maps" className="brawl-chip">{t("home.mapsMeta")}</Link>

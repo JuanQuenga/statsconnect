@@ -13,10 +13,13 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { searchKeyAction } from "@/lib/search-keyboard";
 
+type SearchKind = "players" | "clubs";
+
 type PlayerSearchProps = {
   initialValue?: string;
   placeholder?: string;
   buttonLabel?: string;
+  clubButtonLabel?: string;
   compact?: boolean;
   className?: string;
   onNavigate?: () => void;
@@ -26,6 +29,7 @@ export function PlayerSearch({
   initialValue = "",
   placeholder,
   buttonLabel,
+  clubButtonLabel,
   compact = false,
   className,
   onNavigate,
@@ -37,6 +41,9 @@ export function PlayerSearch({
   const [debounced, setDebounced] = useState(initialValue.trim());
   const [focused, setFocused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [kind, setKind] = useState<SearchKind>("players");
+  const [error, setError] = useState("");
+  const errorId = useId();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced(value.trim()), 180);
@@ -45,7 +52,7 @@ export function PlayerSearch({
 
   const searchQuery = useQuery({
     ...brawlData.playerSearch(debounced, 8),
-    enabled: debounced.length >= 2,
+    enabled: kind === "players" && debounced.length >= 2,
   });
 
   const choices = useMemo(() => {
@@ -75,6 +82,15 @@ export function PlayerSearch({
     event.preventDefault();
     const raw = value.trim();
     if (!raw) return;
+    // The Brawl Stars API only looks clubs up by tag, so the club lane is tag-only.
+    if (kind === "clubs") {
+      const tag = normalizeTag(raw);
+      if (!tag) return setError(t("search.clubTagError"));
+      setError("");
+      onNavigate?.();
+      void navigate({ to: "/clubs", search: { tag } });
+      return;
+    }
     if (raw.startsWith("#")) {
       const tag = normalizeTag(raw);
       if (tag) return navigateToPlayer(tag);
@@ -108,7 +124,7 @@ export function PlayerSearch({
     }
   }
 
-  const showResults = focused && debounced.length >= 2;
+  const showResults = kind === "players" && focused && debounced.length >= 2;
 
   return (
     <div className={cn("relative", className)}>
@@ -117,16 +133,32 @@ export function PlayerSearch({
         value={value}
         onValueChange={(next) => {
           setValue(next);
+          setError("");
           setFocused(true);
           setActiveIndex(-1);
         }}
         onSubmit={submit}
-        label={t("search.aria")}
-        placeholder={placeholder || t("search.placeholder")}
-        submitLabel={buttonLabel || t("common.search")}
+        label={kind === "players" ? t("search.aria") : t("search.clubPlaceholder")}
+        placeholder={kind === "clubs" ? t("search.clubPlaceholder") : placeholder || t("search.placeholder")}
+        showContext
+        contextVariant="select"
+        contextLabel={t("search.type")}
+        contextOptions={[
+          { value: "players", label: t("common.players") },
+          { value: "clubs", label: t("common.clubs") },
+        ]}
+        contextValue={kind}
+        onContextChange={(next) => {
+          setKind(next);
+          setError("");
+          setActiveIndex(-1);
+        }}
+        submitLabel={(kind === "clubs" ? clubButtonLabel : buttonLabel) || t("common.search")}
         submitIcon={<Search />}
         inputProps={{
           autoComplete: "off",
+          "aria-invalid": Boolean(error),
+          "aria-describedby": error ? errorId : undefined,
           role: "combobox",
           "aria-autocomplete": "list",
           "aria-expanded": showResults,
@@ -140,6 +172,7 @@ export function PlayerSearch({
         }}
       />
 
+      {error ? <p id={errorId} role="alert" className="mt-2 text-sm font-semibold text-destructive">{error}</p> : null}
       {showResults ? (
         <div
           id={suggestionsId}
