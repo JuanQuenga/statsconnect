@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -105,14 +105,20 @@ function BrawlerDetailPage() {
       {!loading && !brawler ? <EmptyState title={t("brawler.notFound")} detail={t("brawler.notFoundDetail")} /> : null}
       {brawler ? (
         <>
-          <section className="relative overflow-visible rounded-xl border border-border bg-card p-6 md:p-8" style={{ background: `radial-gradient(circle at 85% 30%, ${brawler.color}42, transparent 35%), #101926` }}>
-            <div className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_480px]">
-              <div className="relative z-20">
-                <div className="flex flex-wrap gap-2"><Badge style={{ background: brawler.color, color: "#07101a" }}>{brawler.rarity}</Badge><Badge variant="secondary">{brawler.role}</Badge></div>
-                <h1 className="mt-3 font-display text-5xl md:text-6xl">{brawler.name}</h1>
-                <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">{brawler.description}</p>
-                <p className="mt-4 text-xs text-muted-foreground">{t("brawler.catalogRevision", { version: brawler.version || t("brawler.unversioned") })}</p>
+          {/* Character select: rarity-lit stage with the 3D model, name and kit beside it. */}
+          <section className="brawler-hero" style={{ "--rarity": brawler.color } as CSSProperties}>
+            <div className="brawler-hero-head">
+              <div className="flex flex-wrap gap-2">
+                <span className="brawler-hero-chip" style={{ background: brawler.color }}>{brawler.rarity}</span>
+                <span className="brawler-hero-chip brawler-hero-chip-role">{brawler.role}</span>
               </div>
+              <h1 className="brawler-hero-name">{brawler.name}</h1>
+            </div>
+            <div className="brawler-hero-body">
+              <p className="brawler-hero-description">{brawler.description}</p>
+              <KitPreview gadgets={brawler.gadgets} starPowers={brawler.starPowers} t={t} />
+            </div>
+            <div className="brawler-hero-stage">
               {heroArtwork ? (
                 <BrawlerModelViewer
                   key={brawler.id}
@@ -122,7 +128,7 @@ function BrawlerDetailPage() {
                   artworkMaxWidth={heroArtwork.artworkMaxWidth}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   artworkKind={heroArtwork.kind}
-                  className="relative z-10 mx-auto -my-8 h-[420px] w-full max-w-none md:h-[520px]"
+                  className="h-[400px] md:h-[560px]"
                 />
               ) : null}
             </div>
@@ -270,3 +276,30 @@ function MatchupList({
     </div>
   );
 }
+
+/** Gadget and star power icons under the hero copy; details live in the Loadout tab. */
+function KitPreview({ gadgets, starPowers, t }: { gadgets: CatalogAbility[]; starPowers: CatalogAbility[]; t: Translator }) {
+  const groups = [
+    { title: t("brawler.gadgets"), abilities: gadgets.filter((ability) => ability.released !== false) },
+    { title: t("brawler.starPowers"), abilities: starPowers.filter((ability) => ability.released !== false) },
+  ].filter((group) => group.abilities.length);
+  if (!groups.length) return null;
+  return (
+    <dl className="brawler-hero-kit">
+      {groups.map((group) => (
+        <div key={group.title}>
+          <dt>{group.title}</dt>
+          <dd>
+            {group.abilities.map((ability) => (
+              <span key={ability.id} className="brawler-hero-ability" title={`${ability.name}: ${ability.description}`}>
+                {ability.imageUrl ? <img src={ability.imageUrl} alt="" loading="lazy" /> : null}
+                <span>{ability.name}</span>
+              </span>
+            ))}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
