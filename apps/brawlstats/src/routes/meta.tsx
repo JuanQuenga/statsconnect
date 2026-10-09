@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 import { useMemo } from "react";
@@ -17,6 +17,9 @@ import { useI18n, type Translator } from "@/lib/i18n";
 import type { TrophyBucket } from "@/lib/meta";
 import { buildMetaBoard, metaHighlights, modesWithData, sortBoardRows, type BoardRow, type BoardSortKey, type SortDirection } from "@/lib/meta-board";
 import type { MetaTrendWindow, MetaTrendsResponse } from "@/lib/types";
+import { BrawlPageHelp } from "@/components/BrawlPageHelp";
+import { BrawlPageMetadata } from "@/components/BrawlPageMetadata";
+import { brawlPageContent } from "../../../../shared/brawl-page-content";
 
 /** Numeric windows stay numbers in the URL so they serialize as `window=30`, not `window="30"`. */
 type WindowParam = 7 | 30 | 90 | "all";
@@ -42,6 +45,7 @@ export const Route = createFileRoute("/meta")({
     brawler: positiveInt(search.brawler),
   }),
   component: MetaBoardPage,
+  head: () => ({ meta: [{ title: brawlPageContent.meta.title }] }),
 });
 
 function MetaBoardPage() {
@@ -110,9 +114,14 @@ function MetaBoardPage() {
 
   return (
     <div className="page-shell space-y-6 md:space-y-8">
+      <BrawlPageMetadata page="meta" />
       <header className="page-intro">
         <h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1>
-        <p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p>
+        <p className="mt-3 max-w-3xl text-muted-foreground" lang="en">{brawlPageContent.meta.intro}</p>
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-primary" lang="en">
+          <a href="#meta-help-title" className="underline underline-offset-4">How to read the brawler Meta report</a>
+          <Link to="/maps" className="underline underline-offset-4">Find your map and compare its brawler picks</Link>
+        </div>
         <p className="mt-3 flex min-h-5 items-center gap-2 text-sm text-muted-foreground">
           {data ? (
             <>
@@ -196,6 +205,8 @@ function MetaBoardPage() {
           ) : <MetaLeaderboardSkeleton />}
         </Panel>
       )}
+
+      <BrawlPageHelp page="meta" />
 
       <footer className="max-w-4xl space-y-2 border-t border-border pt-5 text-xs leading-relaxed text-muted-foreground">
         <p>{t("meta.methodology", { min: number(data?.minPicks ?? 25) })}</p>

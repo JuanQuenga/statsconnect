@@ -1,6 +1,7 @@
 import { findGuide, guideText, strategyGuides, type StrategyGuide } from "../apps/clashcrown/src/content/guides.ts";
 import { siteOrigin, siteRoutes, type SiteId, type StaticRoute } from "../shared/site-routes.ts";
 import { applicationShell, escapeHtml, injectDocumentHead } from "./profile-metadata.ts";
+import { brawlPageContent, type BrawlPageContent } from "../shared/brawl-page-content.ts";
 
 /** Game-site shell documents stay valid at the edge for a day and refresh in the background. */
 export const siteCacheControl = "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
@@ -23,8 +24,8 @@ export function resolveSiteRoute(
 
 /**
  * Head metadata for a known Game Site route, plus static body HTML for guide
- * pages so crawlers see the editorial content before JavaScript loads. The
- * mounted application replaces this content on hydration — it is the same
+ * pages and Brawl research pages so readers see editorial content before
+ * JavaScript loads. The mounted application replaces this content on hydration — it is the same
  * content the interactive page renders, never a different document.
  */
 export function sitePageParts(game: string | null, route: string | null): SitePageParts | undefined {
@@ -51,7 +52,10 @@ export function sitePageParts(game: string | null, route: string | null): SitePa
     `<meta name="twitter:image" content="https://statsconnect.app/og.png" />`,
   ];
 
-  return { body: guide ? guideStaticBody(guide) : undefined, tags };
+  const brawlContent = site === "bs"
+    ? path === "/maps" ? brawlPageContent.maps : path === "/meta" ? brawlPageContent.meta : undefined
+    : undefined;
+  return { body: guide ? guideStaticBody(guide) : brawlContent ? brawlStaticBody(brawlContent) : undefined, tags };
 }
 
 export async function sitePageDocument(game: string | null, route: string | null): Promise<string | undefined> {
@@ -66,6 +70,24 @@ export function injectStaticBody(shell: string, body: string): string {
   const root = '<div id="root"></div>';
   if (!shell.includes(root)) return shell;
   return shell.replace(root, `<div id="root">${body}</div>`);
+}
+
+function brawlStaticBody(content: BrawlPageContent): string {
+  const steps = content.steps.map((step) => `<li><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.copy)}</p></li>`).join("");
+  const questions = content.questions.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join("");
+  const links = content.links.map((link) => `<a href="${escapeHtml(link.path)}">${escapeHtml(link.label)}</a>`).join(" ");
+  return `
+<style>${staticBodyStyles}</style>
+<main class="sc-static" lang="en">
+  <p class="sc-static__eyebrow">StatsConnect Brawl Stars</p>
+  <h1>${escapeHtml(content.heading)}</h1>
+  <p class="sc-static__summary">${escapeHtml(content.intro)}</p>
+  <h2>${escapeHtml(content.workflowTitle)}</h2>
+  <ol>${steps}</ol>
+  ${questions}
+  <nav aria-label="Continue researching brawler picks">${links} <a href="https://statsconnect.app/data-methodology">Data sources and methodology</a></nav>
+  <p class="sc-static__note">Live rotation, filters, and observed statistics load with the interactive app. This explanation does not establish any current picks or rates.</p>
+</main>`;
 }
 
 function guideStaticBody(guide: StrategyGuide): string {
@@ -93,6 +115,9 @@ const staticBodyStyles = `
 .sc-static{max-width:46rem;margin:0 auto;padding:3rem 1.25rem 4rem;color:#e8e6ef;font:16px/1.7 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 .sc-static h1{font-size:2rem;line-height:1.2;margin:.25rem 0 1rem}
 .sc-static h2{font-size:1.15rem;margin:2rem 0 .5rem;color:#fff}
+.sc-static h3{font-size:1rem;margin:1.5rem 0 .5rem;color:#fff}
+.sc-static a{color:#c4b5fd;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.sc-static nav{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;margin-top:2rem}
 .sc-static p,.sc-static li{color:#c9c5da}
 .sc-static ul{padding-left:1.25rem}
 .sc-static li+li{margin-top:.35rem}

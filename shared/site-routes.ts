@@ -194,9 +194,9 @@ export const brawlRoutes: readonly StaticRoute[] = [
   },
   {
     path: "/meta",
-    title: "Brawl Stars map meta · StatsConnect",
+    title: "Brawl Stars brawler meta, win rates & tiers · StatsConnect",
     description:
-      "Interrogate the live StatsConnect Brawl Stars dataset: change the date window, metric, grouping, and trophy range, compare periods, and export CSV.",
+      "Compare observed Brawl Stars brawler win rates, use rates and tiers by mode, trophy range and date window, with sample sizes and coverage limits.",
   },
   {
     path: "/players",
@@ -210,8 +210,8 @@ export const brawlRoutes: readonly StaticRoute[] = [
   },
   {
     path: "/maps",
-    title: "Brawl Stars maps & events · StatsConnect",
-    description: "The active and upcoming Brawl Stars event rotation with map details and mode information.",
+    title: "Brawl Stars maps, rotation & brawler picks · StatsConnect",
+    description: "Find Brawl Stars maps in the current rotation and compare observed brawler picks by trophy range. Learn how to read win rates and sample sizes.",
   },
   {
     path: "/clubs",

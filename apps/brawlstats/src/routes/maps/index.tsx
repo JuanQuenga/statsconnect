@@ -11,6 +11,9 @@ import { eventModeId, gameModeImageUrl, mapImageUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { readableMode, relativeEnd } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { BrawlPageHelp } from "@/components/BrawlPageHelp";
+import { BrawlPageMetadata } from "@/components/BrawlPageMetadata";
+import { brawlPageContent } from "../../../../../shared/brawl-page-content";
 
 type MapsSearch = { q?: string; mode?: string; archive?: string };
 const mapPageSize = 48;
@@ -22,6 +25,7 @@ export const Route = createFileRoute("/maps/")({
     archive: typeof search.archive === "string" ? search.archive : undefined,
   }),
   component: MapsPage,
+  head: () => ({ meta: [{ title: brawlPageContent.maps.title }] }),
 });
 
 function MapsPage() {
@@ -69,12 +73,16 @@ function MapsPage() {
 
   return (
     <div className="page-shell space-y-10">
+      <BrawlPageMetadata page="maps" />
       <div className="page-intro">
         <h1 className="font-display text-4xl md:text-5xl">{t("maps.title")}</h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
-          Browse the map archive, jump into today&apos;s rotation, and open any map for win/use rates aggregated from
-          official battle logs collected by StatsConnect.
+        <p className="mt-3 max-w-2xl text-muted-foreground" lang="en">
+          {brawlPageContent.maps.intro}
         </p>
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-primary" lang="en">
+          <a href="#maps-help-title" className="underline underline-offset-4">How to choose a brawler for a map</a>
+          <Link to="/meta" className="underline underline-offset-4">Compare brawlers by mode in the Meta report</Link>
+        </div>
       </div>
 
       <section>
@@ -209,6 +217,7 @@ function MapsPage() {
         ) : null}
         {!filtered.length && !mapsQuery.isLoading ? <EmptyState title={t("maps.noMatches")} /> : null}
       </section>
+      <BrawlPageHelp page="maps" />
     </div>
   );
 }

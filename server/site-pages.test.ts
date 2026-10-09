@@ -15,6 +15,8 @@ import {
   sitePageParts,
 } from "./site-pages.ts";
 import { siteRoutes } from "../shared/site-routes.ts";
+import { brawlPageContent } from "../shared/brawl-page-content.ts";
+import { escapeHtml } from "./profile-metadata.ts";
 
 const repositoryRoot = process.cwd();
 let fixtureRoot: string;
@@ -79,6 +81,29 @@ test("static bodies replace the single mounting point and fall back untouched", 
     '<html><body><div id="root"><p>hi</p></div><script type="module" src="/assets/hub.js"></script></body></html>',
   );
   assert.equal(injectStaticBody('<div id="root" data-boot></div>', "<p>hi</p>"), '<div id="root" data-boot></div>');
+});
+
+test("Brawl research pages serve the same explanations and follow-up links before JavaScript", async () => {
+  for (const [page, content] of Object.entries(brawlPageContent)) {
+    const route = siteRoutes("bs").find((entry) => entry.path === `/${page}`);
+    assert.equal(route?.title, content.title, `${page} title matches the interactive page`);
+    assert.equal(route?.description, content.description, `${page} description matches the interactive page`);
+    const html = await sitePageDocument("bs", `/${page}`);
+    assert.ok(html);
+    assert.equal((html.match(/<div id="root">/g) ?? []).length, 1);
+    assert.equal((html.match(/<h1>/g) ?? []).length, 1);
+    assert.ok(html.includes(`<h1>${escapeHtml(content.heading)}</h1>`));
+    for (const text of [content.intro, ...content.steps.map((step) => step.copy), ...content.questions.map((item) => item.answer)]) {
+      assert.ok(html.includes(escapeHtml(text)), `${page} retains editorial copy`);
+    }
+    for (const link of content.links) {
+      assert.ok(resolveSiteRoute("bs", link.path), `${link.path} is a public tool`);
+      assert.ok(html.includes(`<a href="${link.path}">${escapeHtml(link.label)}</a>`));
+    }
+    assert.ok(html.includes(`<link rel="canonical" href="https://bs.statsconnect.app/${page}" />`));
+    assert.ok(html.includes('href="https://statsconnect.app/data-methodology"'));
+    assert.ok(html.includes("Live rotation, filters, and observed statistics load with the interactive app."));
+  }
 });
 
 test("published guides and the route inventory never drift", () => {
