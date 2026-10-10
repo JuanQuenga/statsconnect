@@ -12,7 +12,7 @@ const YELLOW = "#ffdc49";
 const CYAN = "#59e7f4";
 const MUTED = "#96b0c5";
 
-export type ProfileCardTranslationKey = "common.trophies" | "common.noClub" | "common.brawlers" | "player.cardBest" | "player.threeWins" | "player.power11" | "player.record30" | "common.battles" | "player.cardTopBrawlers" | "player.notExposed" | "assistant.power";
+export type ProfileCardTranslationKey = "common.trophies" | "common.noClub" | "common.brawlers" | "player.cardBest" | "player.threeWins" | "player.power11" | "player.record30" | "common.battles" | "player.cardTopBrawlers" | "player.notExposed" | "assistant.power" | "player.cardWinRate" | "player.cardCta";
 export type ProfileCardTranslator = (key: ProfileCardTranslationKey, values?: Record<string, string | number>) => string;
 export type ProfileCardAnalytics = { summaries: Array<Pick<PlayerAggregate, "days" | "battles" | "wins" | "losses">> };
 
@@ -45,6 +45,7 @@ function text(ctx: CanvasRenderingContext2D, value: string, x: number, y: number
     fitted = `${characters.join("")}…`;
   }
   ctx.fillText(fitted, x, y);
+  return ctx.measureText(fitted).width;
 }
 
 function contain(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number) {
@@ -136,8 +137,12 @@ export async function createBrawlProfileCard({ player, analytics, t, number }: P
   const summary = analytics?.summaries.find((row) => row.days === 30);
   if (summary && summary.battles > 0) {
     const record = `${t("player.record30")}: ${number(summary.wins)}W · ${number(summary.losses)}L · ${number(summary.battles)} ${t("common.battles").toLocaleLowerCase()}`;
-    ctx.fillStyle = CYAN; ctx.fillRect(80, 648, 5, 29);
-    text(ctx, record, 101, 671, 22, MUTED, 836);
+    ctx.fillStyle = CYAN; ctx.fillRect(80, 644, 5, 36);
+    // The win rate is the stat people share; the record stays beside it as evidence.
+    const decided = summary.wins + summary.losses;
+    const headline = decided ? t("player.cardWinRate", { rate: Math.round((summary.wins / decided) * 100) }).toLocaleUpperCase() : "";
+    const headlineWidth = headline ? text(ctx, headline, 101, 676, 34, CYAN, 360, true) + 22 : 0;
+    text(ctx, record, 101 + headlineWidth, 672, 22, MUTED, 836 - headlineWidth);
   }
 
   const heroArt = hero ?? portraits[0];
@@ -169,7 +174,7 @@ export async function createBrawlProfileCard({ player, analytics, t, number }: P
     text(ctx, number(brawler.trophies), x + 126, 866, 34, YELLOW, 153, true);
     text(ctx, t("assistant.power", { power: brawler.power }), x + 126, 901, 19, MUTED, 153);
   });
-  text(ctx, "statsconnect.app", 80, 969, 18, MUTED, 960);
+  text(ctx, t("player.cardCta"), 80, 969, 20, YELLOW, 960, true);
   const stamp = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date());
   ctx.save(); ctx.textAlign = "right"; text(ctx, stamp, 1520, 969, 18, MUTED, 420); ctx.restore();
   return canvas;

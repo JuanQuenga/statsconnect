@@ -8,6 +8,7 @@ const english: Record<ProfileCardTranslationKey, string> = {
   "player.cardBest": "Best trophies", "player.threeWins": "3v3 wins", "player.power11": "Power 11 brawlers",
   "player.record30": "30-day record", "common.battles": "Battles", "player.cardTopBrawlers": "Top brawlers · by trophies",
   "player.notExposed": "Not exposed", "assistant.power": "Power {power}",
+  "player.cardWinRate": "{rate}% win rate", "player.cardCta": "Get your own card · bs.statsconnect.app",
 };
 const t: ProfileCardTranslator = (key, values = {}) => Object.entries(values).reduce(
   (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)), english[key] ?? key,

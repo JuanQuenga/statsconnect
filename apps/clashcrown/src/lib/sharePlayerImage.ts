@@ -304,7 +304,7 @@ export async function createPlayerShareImage(player: Player, runtime: ProfileIma
   const date = player.fetchedAt ? new Date(player.fetchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined;
   text(c, date ? date : "DEMO PROFILE", 64, 969, 16, MUTED);
   c.textAlign = "right";
-  text(c, "statsconnect.app", 1536, 969, 19, INK);
+  text(c, "Get your own card · cr.statsconnect.app", 1536, 969, 19, INK, 700);
   return canvasBlob(canvas);
 }
 
