@@ -83,10 +83,21 @@ deliberately **not** part of it.
 
 1. Deployed: `cr.statsconnect.app/meta` serves a full document via
    `curl -s https://cr.statsconnect.app/meta | grep -c "<title>"` (title, meta
-   description, and guide content present on guide URLs).
+   description, and editorial copy present on `/decks` and Brawl `/maps`, `/meta`).
 2. `https://statsconnect.app/about`, `/faq`, `/terms`, `/contact`,
    `/data-methodology` all return 200 with content.
 3. Each host's `/robots.txt` and `/sitemap.xml` return the correct variant.
 4. GSC shows the sitemaps discovered with "Discovered URLs" > 0 and no explosion
    of excluded-by-noindex surprises beyond the intended profile pages.
 5. At least one new piece of editorial content published since the rejection.
+
+## Update — October 9, 2026: Clash guides retired
+
+The Clash app had redirected `/guides` and `/guides/*` to `/news` since August 25,
+while the shell still served the old guide text to crawlers. That mismatch is
+removed: the guides left the route inventory, sitemap, and site-shell renderer,
+and `vercel.json` now 301s `cr.statsconnect.app/guides` and `/guides/:slug` to
+`/news`. Editorial copy now lives on working tool pages instead: Clash `/decks`
+and Brawl `/maps` and `/meta` (`shared/clash-deck-content.ts`,
+`shared/brawl-page-content.ts`). In GSC, expect the five guide URLs to move to
+"Page with redirect".

@@ -89,6 +89,18 @@
       "source": "/clashroyale/:path*",
       "destination": "/cr/:path*",
       "permanent": true
+    },
+    {
+      "source": "/guides",
+      "has": [{ "type": "host", "value": "cr.statsconnect.app" }],
+      "destination": "/news",
+      "permanent": true
+    },
+    {
+      "source": "/guides/:slug",
+      "has": [{ "type": "host", "value": "cr.statsconnect.app" }],
+      "destination": "/news",
+      "permanent": true
     }
   ],
   "headers": [
@@ -142,11 +154,6 @@
     { "source": "/clans/search", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fclans%2Fsearch" },
     { "source": "/news", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fnews" },
     { "source": "/tournaments", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Ftournaments" },
-    { "source": "/guides", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fguides" },
-    { "source": "/guides/cycle-decks", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fguides%2Fcycle-decks" },
-    { "source": "/guides/beatdown-decks", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fguides%2Fbeatdown-decks" },
-    { "source": "/guides/bait-decks", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fguides%2Fbait-decks" },
-    { "source": "/guides/control-decks", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fguides%2Fcontrol-decks" },
     { "source": "/", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/site-shell?game=bs&route=%2F" },
     { "source": "/leaderboards", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/site-shell?game=bs&route=%2Fleaderboards" },
     { "source": "/meta", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/site-shell?game=bs&route=%2Fmeta" },

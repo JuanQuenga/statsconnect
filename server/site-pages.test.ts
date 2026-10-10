@@ -7,7 +7,6 @@ import { GET as shellGet, HEAD as shellHead } from "../api/site-shell.ts";
 import { player as fixturePlayer } from "../apps/clashcrown/src/lib/mock-data.ts";
 import { profileMetadata } from "./profile-metadata.ts";
 import {
-  guideInventoryDrift,
   injectStaticBody,
   resolveSiteRoute,
   siteCacheControl,
@@ -40,7 +39,7 @@ test("route resolution normalizes paths and rejects hub, unknown, and unlisted r
   assert.equal(resolveSiteRoute("bs", "/clubs/")?.path, "/clubs");
   assert.equal(resolveSiteRoute("xx", "/"), undefined);
   assert.equal(resolveSiteRoute("cr", "/decks/2v2"), undefined);
-  assert.equal(resolveSiteRoute("cr", "/guides/cycle-decks/")?.path, "/guides/cycle-decks");
+  assert.equal(resolveSiteRoute("cr", "/guides/cycle-decks"), undefined, "retired guides are not served");
 });
 
 test("known routes receive crawler metadata with inventory copy, canonical URLs, and social images", () => {
@@ -60,16 +59,7 @@ test("known routes receive crawler metadata with inventory copy, canonical URLs,
   assert.equal(sitePageParts("hub", "/"), undefined);
 });
 
-test("guide routes inject static editorial content that hydration replaces", async () => {
-  const document = await sitePageDocument("cr", "/guides/cycle-decks");
-  assert.ok(document);
-  assert.equal((document.match(/<div id="root">/g) ?? []).length, 1);
-  assert.equal(document.includes('<main class="sc-static">'), true);
-  assert.match(document, /<h1>Cycle decks: win the rotation<\/h1>/);
-  assert.match(document, /<h2>Principles<\/h2>/);
-  assert.match(document, /<h2>Common mistakes<\/h2>/);
-  assert.match(document, /take over this page automatically/);
-  // Non-guide routes keep the plain mounting point for the application.
+test("routes without editorial copy keep the plain mounting point", async () => {
   const home = await sitePageDocument("bs", "/");
   assert.ok(home);
   assert.equal(home.includes('<div id="root"></div>'), true);
@@ -107,10 +97,6 @@ test("Brawl research pages serve the same explanations and follow-up links befor
   }
 });
 
-test("published guides and the route inventory never drift", () => {
-  assert.deepEqual(guideInventoryDrift(), []);
-});
-
 test("Clash deck discovery serves its shared explanation and tool links before JavaScript", async () => {
   const content = clashDeckContent;
   const route = siteRoutes("cr").find((entry) => entry.path === "/decks");
@@ -138,13 +124,13 @@ test("profile views are noindex while keeping their links crawlable", () => {
 });
 
 test("the site shell handler serves crawler documents with shared edge caching", async () => {
-  const response = await shellGet(new Request("https://cr.statsconnect.app/api/site-shell?game=cr&route=%2Fguides%2Fcycle-decks"));
+  const response = await shellGet(new Request("https://cr.statsconnect.app/api/site-shell?game=cr&route=%2Fdecks"));
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), siteCacheControl);
   assert.equal(response.headers.get("content-type"), "text/html; charset=utf-8");
   const html = await response.text();
-  assert.match(html, /Cycle decks: win the rotation/);
-  assert.match(html, /<main class="sc-static">/);
+  assert.match(html, /How to choose a Clash Royale deck/);
+  assert.match(html, /<main class="sc-static" lang="en">/);
   const head = await shellHead(new Request("https://cr.statsconnect.app/api/site-shell?game=cr&route=%2Fmeta"));
   assert.equal(head.status, 200);
   assert.equal(head.headers.get("cache-control"), siteCacheControl);

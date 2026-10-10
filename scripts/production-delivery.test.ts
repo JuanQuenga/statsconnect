@@ -158,6 +158,13 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: "/brawlstars/:path*", destination: "/bs/:path*", permanent: true },
     { source: "/clashroyale", destination: "/cr", permanent: true },
     { source: "/clashroyale/:path*", destination: "/cr/:path*", permanent: true },
+    // Retired Clash guides go to News at the edge instead of serving an indexable shell.
+    ...["/guides", "/guides/:slug"].map((source) => ({
+      source,
+      has: [{ type: "host", value: "cr.statsconnect.app" }],
+      destination: "/news",
+      permanent: true,
+    })),
   ]);
   for (const redirect of vercel.redirects) {
     // Vercel forwards the incoming query when the destination does not define one.

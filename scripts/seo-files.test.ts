@@ -39,7 +39,7 @@ test("robots files allow crawling except the shared exclusions and advertise the
   }
 });
 
-test("sitemaps list every inventory route exactly once, including the guide slugs", () => {
+test("sitemaps list every inventory route exactly once and omit retired guides", () => {
   for (const site of ["hub", "cr", "bs"] as const) {
     const sitemap = buildSitemapXml(site);
     assert.equal(sitemap.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset'), true, site);
@@ -47,9 +47,7 @@ test("sitemaps list every inventory route exactly once, including the guide slug
     assert.deepEqual(locations, siteRoutes(site).map((route) => `${siteOrigin(site)}${route.path}`), site);
     assert.equal(new Set(locations).size, locations.length, site);
   }
-  for (const slug of ["cycle-decks", "beatdown-decks", "bait-decks", "control-decks"]) {
-    assert.equal(buildSitemapXml("cr").includes(`<loc>https://cr.statsconnect.app/guides/${slug}</loc>`), true, slug);
-  }
+  assert.equal(buildSitemapXml("cr").includes("/guides"), false);
 });
 
 test("the unified build writes one robots and sitemap variant per host and no shadowing files", async (context) => {

@@ -90,8 +90,7 @@ function LandingPage({
           <p>
             In <Link to="/games/$game" params={{ game: "clash-royale" }}>Clash Royale</Link>: global and regional
             leaderboards, a meta report built from real public battle logs with the sample sizes shown, deck discovery
-            and war-set building, the full card library, clan search, official news, and strategy guides for the four
-            core deck archetypes.
+            and war-set building, the full card library, clan search, and official news.
           </p>
           <p>
             In <Link to="/games/$game" params={{ game: "brawl-stars" }}>Brawl Stars</Link>: player and club lookup,

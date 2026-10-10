@@ -30,7 +30,7 @@ export const hubRoutes: readonly StaticRoute[] = [
     path: "/",
     title: "StatsConnect — Clash Royale & Brawl Stars player statistics",
     description:
-      "Player lookup, leaderboards, live meta reports, decks, battle history, and guides for Clash Royale and Brawl Stars, together in one hub.",
+      "Player lookup, leaderboards, live meta reports, decks, and battle history for Clash Royale and Brawl Stars, together in one hub.",
   },
   {
     path: "/connect",
@@ -54,7 +54,7 @@ export const hubRoutes: readonly StaticRoute[] = [
     path: "/games/clash-royale",
     title: "Clash Royale statistics · StatsConnect",
     description:
-      "Clash Royale leaderboards, the live meta report, decks, cards, clans, news, and strategy guides.",
+      "Clash Royale leaderboards, the live meta report, decks, cards, clans, and news.",
   },
   {
     path: "/games/brawl-stars",
@@ -102,7 +102,7 @@ export const clashRoutes: readonly StaticRoute[] = [
     path: "/",
     title: "Clash Royale statistics · StatsConnect",
     description:
-      "Clash Royale leaderboards, the live meta report with win rates and sample sizes, deck tools, cards, clans, news, and strategy guides.",
+      "Clash Royale leaderboards, the live meta report with win rates and sample sizes, deck tools, cards, clans, and news.",
   },
   {
     path: "/leaderboards",
@@ -151,32 +151,6 @@ export const clashRoutes: readonly StaticRoute[] = [
     path: "/tournaments",
     title: "Clash Royale tournaments · StatsConnect",
     description: "Live Global Tournaments and open community tournaments in Clash Royale.",
-  },
-  {
-    path: "/guides",
-    title: "Clash Royale strategy guides · StatsConnect",
-    description:
-      "Practical deck-archetype fundamentals — cycle, beatdown, bait, and control — with direct paths into live StatsConnect data.",
-  },
-  {
-    path: "/guides/cycle-decks",
-    title: "Cycle decks: win the rotation · Clash Royale guide",
-    description: "Use low-cost cards to return to a win condition before the opponent returns to its best answer.",
-  },
-  {
-    path: "/guides/beatdown-decks",
-    title: "Beatdown: build the push safely · Clash Royale guide",
-    description: "Trade tower health and tempo deliberately, then convert an elixir edge into one supported push.",
-  },
-  {
-    path: "/guides/bait-decks",
-    title: "Bait: split the opponent’s answers · Clash Royale guide",
-    description: "Present several threats that share a counter, then punish the rotation after that counter is used.",
-  },
-  {
-    path: "/guides/control-decks",
-    title: "Control: defend for the counterpush · Clash Royale guide",
-    description: "Use efficient defense to preserve units, then add just enough pressure to make the trade matter.",
   },
 ];
 

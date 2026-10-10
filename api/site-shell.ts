@@ -1,6 +1,6 @@
 import { siteCacheControl, sitePageDocument } from "../server/site-pages.ts";
 
-/** Serve Game Site routes with crawler-visible titles, descriptions, and guide content. */
+/** Serve Game Site routes with crawler-visible titles, descriptions, and editorial copy. */
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   let document: string | undefined;

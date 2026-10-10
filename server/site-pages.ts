@@ -1,4 +1,3 @@
-import { findGuide, guideText, strategyGuides, type StrategyGuide } from "../apps/clashcrown/src/content/guides.ts";
 import { siteOrigin, siteRoutes, type SiteId, type StaticRoute } from "../shared/site-routes.ts";
 import { applicationShell, escapeHtml, injectDocumentHead } from "./profile-metadata.ts";
 import { brawlPageContent, type BrawlPageContent } from "../shared/brawl-page-content.ts";
@@ -24,9 +23,9 @@ export function resolveSiteRoute(
 }
 
 /**
- * Head metadata for a known Game Site route, plus static body HTML for guide
- * pages and Brawl research pages so readers see editorial content before
- * JavaScript loads. The mounted application replaces this content on hydration — it is the same
+ * Head metadata for a known Game Site route, plus static body HTML for the
+ * Brawl research pages and Clash deck discovery so readers see editorial
+ * content before JavaScript loads. The mounted application replaces this content on hydration — it is the same
  * content the interactive page renders, never a different document.
  */
 export function sitePageParts(game: string | null, route: string | null): SitePageParts | undefined {
@@ -34,7 +33,6 @@ export function sitePageParts(game: string | null, route: string | null): SitePa
   if (!resolved) return undefined;
 
   const { path, route: staticRoute, site } = resolved;
-  const guide = site === "cr" && path.startsWith("/guides/") ? findGuide(path.slice("/guides/".length)) : undefined;
   const url = `${siteOrigin(site)}${path}`;
 
   const tags = [
@@ -56,8 +54,7 @@ export function sitePageParts(game: string | null, route: string | null): SitePa
   const brawlContent = site === "bs"
     ? path === "/maps" ? brawlPageContent.maps : path === "/meta" ? brawlPageContent.meta : undefined
     : undefined;
-  const body = guide ? guideStaticBody(guide)
-    : brawlContent ? researchStaticBody(brawlContent, "Brawl Stars")
+  const body = brawlContent ? researchStaticBody(brawlContent, "Brawl Stars")
     : site === "cr" && path === "/decks" ? researchStaticBody(clashDeckContent, "Clash Royale")
     : undefined;
   return { body, tags };
@@ -95,27 +92,6 @@ function researchStaticBody(content: BrawlPageContent | typeof clashDeckContent,
 </main>`;
 }
 
-function guideStaticBody(guide: StrategyGuide): string {
-  const text = guideText;
-  const list = (values: readonly string[]) => `<ul>${values.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>`;
-  const phases = guide.phases
-    .map((phase) => `<h2>${escapeHtml(text(phase.title, "en"))}</h2><p>${escapeHtml(text(phase.copy, "en"))}</p>`)
-    .join("");
-  return `
-<style>${staticBodyStyles}</style>
-<main class="sc-static">
-  <p class="sc-static__eyebrow">${escapeHtml(text(guide.archetype, "en"))} guide</p>
-  <h1>${escapeHtml(text(guide.title, "en"))}</h1>
-  <p class="sc-static__summary">${escapeHtml(text(guide.summary, "en"))}</p>
-  <h2>Principles</h2>
-  ${list(guide.principles.map((principle) => text(principle, "en")))}
-  ${phases}
-  <h2>Common mistakes</h2>
-  ${list(guide.mistakes.map((mistake) => text(mistake, "en")))}
-  <p class="sc-static__note">The interactive StatsConnect Clash Royale tools take over this page automatically. Card images, live meta links, and deck suggestions load with the app.</p>
-</main>`;
-}
-
 const staticBodyStyles = `
 .sc-static{max-width:46rem;margin:0 auto;padding:3rem 1.25rem 4rem;color:#e8e6ef;font:16px/1.7 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 .sc-static h1{font-size:2rem;line-height:1.2;margin:.25rem 0 1rem}
@@ -130,32 +106,6 @@ const staticBodyStyles = `
 .sc-static__summary{font-size:1.05rem}
 .sc-static__note{margin-top:2.5rem;padding:1rem 1.25rem;border:1px solid #26223c;border-radius:12px;background:#131120;color:#a9a4c0;font-size:.9rem}
 `;
-
-/**
- * Guide slugs and their published English titles must stay in sync with the
- * route inventory that drives sitemaps and crawler-facing metadata.
- */
-export function guideInventoryDrift(): string[] {
-  const inventoryPaths = siteRoutes("cr").map((route) => route.path);
-  const problems: string[] = [];
-  for (const guide of strategyGuides) {
-    const path = `/guides/${guide.slug}`;
-    const entry = siteRoutes("cr").find((route) => route.path === path);
-    if (!entry) {
-      problems.push(`${path} is missing from clashRoutes (guide exists in content)`);
-      continue;
-    }
-    const expectedTitle = `${guideText(guide.title, "en")} · Clash Royale guide`;
-    if (entry.title !== expectedTitle) {
-      problems.push(`${path} title drift: inventory "${entry.title}" vs content "${expectedTitle}"`);
-    }
-    if (entry.description !== guideText(guide.summary, "en")) problems.push(`${path} description drift`);
-  }
-  for (const path of inventoryPaths.filter((candidate) => candidate.startsWith("/guides/"))) {
-    if (!findGuide(path.slice("/guides/".length))) problems.push(`${path} has no matching guide in content`);
-  }
-  return problems;
-}
 
 function normalizeRoutePath(route: string): string {
   if (!route.startsWith("/")) return `/${route}`;
