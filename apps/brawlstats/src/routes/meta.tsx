@@ -117,7 +117,7 @@ function MetaBoardPage() {
       <BrawlPageMetadata page="meta" />
       <header className="page-intro">
         <h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1>
-        <p className="mt-3 max-w-3xl text-muted-foreground" lang="en">{brawlPageContent.meta.intro}</p>
+        <p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-primary" lang="en">
           <a href="#meta-help-title" className="underline underline-offset-4">How to read the brawler Meta report</a>
           <Link to="/maps" className="underline underline-offset-4">Find your map and compare its brawler picks</Link>

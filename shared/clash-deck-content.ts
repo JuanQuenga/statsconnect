@@ -1,7 +1,7 @@
 /** Explanations, not a snapshot of live deck performance. */
 export const clashDeckContent = {
-  title: "Clash Royale deck discovery & builder · StatsConnect",
-  description: "Find observed Clash Royale decks, compare samples and card levels, and build or copy an eight-card deck. Learn how to assess recommendations and war sets.",
+  title: "Best Clash Royale decks & deck builder · StatsConnect",
+  description: "Find the best Clash Royale decks from observed battle logs, check them against your card levels, and build or copy an eight-card deck or war set.",
   heading: "Clash Royale deck discovery and builder",
   intro: "Compare decks observed in StatsConnect's collected battle logs, check how they fit your collection, or build an eight-card deck manually. A recommendation is a shortlist to investigate, not a promise of wins.",
   workflowTitle: "How to choose a Clash Royale deck",

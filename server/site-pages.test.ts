@@ -56,7 +56,7 @@ test("known routes receive crawler metadata with inventory copy, canonical URLs,
   assert.equal(tags.includes('<meta property="og:image" content="https://statsconnect.app/og.png" />'), true);
   assert.equal(tags.includes('<meta name="twitter:card" content="summary_large_image" />'), true);
   // Ampersands in copy are escaped for raw HTML.
-  assert.equal(sitePageParts("cr", "/decks")?.tags[0]?.includes("deck discovery &amp; builder"), true);
+  assert.equal(sitePageParts("cr", "/decks")?.tags[0]?.includes("decks &amp; deck builder"), true);
   assert.equal(sitePageParts("hub", "/"), undefined);
 });
 

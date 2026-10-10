@@ -37,9 +37,9 @@ export const brawlPageContent: Record<BrawlHelpPage, BrawlPageContent> = {
     ],
   },
   meta: {
-    title: "Brawl Stars brawler meta, win rates & tiers · StatsConnect",
-    description: "Compare observed Brawl Stars brawler win rates, use rates and tiers by mode, trophy range and date window, with sample sizes and coverage limits.",
-    heading: "Brawl Stars brawler meta",
+    title: "Brawl Stars tier list & brawler meta · StatsConnect",
+    description: "Brawl Stars tier list from observed battle logs: compare brawler win rates, use rates and tiers by mode, trophy range and date window, with sample sizes.",
+    heading: "Brawl Stars tier list and brawler meta",
     intro: "Compare brawlers in StatsConnect's collected battle logs by game mode, trophy range, and date window. Use the report to build a shortlist, then check the actual map before deciding what to play.",
     workflowTitle: "How to read the brawler Meta report",
     steps: [

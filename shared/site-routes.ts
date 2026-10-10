@@ -128,9 +128,9 @@ export const clashRoutes: readonly StaticRoute[] = [
   },
   {
     path: "/decks",
-    title: "Clash Royale deck discovery & builder · StatsConnect",
+    title: "Best Clash Royale decks & deck builder · StatsConnect",
     description:
-      "Find observed Clash Royale decks, compare samples and card levels, and build or copy an eight-card deck. Learn how to assess recommendations and war sets.",
+      "Find the best Clash Royale decks from observed battle logs, check them against your card levels, and build or copy an eight-card deck or war set.",
   },
   {
     path: "/tools",
@@ -194,9 +194,9 @@ export const brawlRoutes: readonly StaticRoute[] = [
   },
   {
     path: "/meta",
-    title: "Brawl Stars brawler meta, win rates & tiers · StatsConnect",
+    title: "Brawl Stars tier list & brawler meta · StatsConnect",
     description:
-      "Compare observed Brawl Stars brawler win rates, use rates and tiers by mode, trophy range and date window, with sample sizes and coverage limits.",
+      "Brawl Stars tier list from observed battle logs: compare brawler win rates, use rates and tiers by mode, trophy range and date window, with sample sizes.",
   },
   {
     path: "/players",
