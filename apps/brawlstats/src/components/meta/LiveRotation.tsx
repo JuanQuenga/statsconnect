@@ -31,6 +31,7 @@ export function LiveRotation({ events, stats, minPicks, lookups }: { events: Eve
         const modeId = map?.gameMode?.id;
         const mode = modeId ? lookups.modes.get(modeId) : undefined;
         const picks = topPicksForMap(stats, mapId, minPicks);
+        const mapPicks = stats.reduce((sum, stat) => sum + (stat.mapId === mapId ? stat.picks : 0), 0);
         const end = apiDate(item.endTime);
         return (
           <li key={mapId}>
@@ -58,12 +59,17 @@ export function LiveRotation({ events, stats, minPicks, lookups }: { events: Eve
                 <div className="mt-auto pt-2">
                   {picks.length ? (
                     <ul className="flex gap-2">
-                      {picks.map((pick) => (
-                        <li key={pick.brawlerId} className="flex min-w-0 flex-col items-center gap-0.5" title={`${brawlerName(lookups, pick.brawlerId)} · ${formatPercent(pick.winRate)}`}>
-                          <BrawlerPortrait id={pick.brawlerId} name={brawlerName(lookups, pick.brawlerId)} className="size-10" />
-                          <span className="game-stat text-[0.6875rem] text-accent">{formatPercent(pick.winRate, 0)}</span>
-                        </li>
-                      ))}
+                      {picks.map((pick) => {
+                        // Showdown placements have no wins or losses; show the use rate instead of 0%.
+                        const decided = pick.wins + pick.losses > 0;
+                        const useRate = mapPicks ? (pick.picks / mapPicks) * 100 : 0;
+                        return (
+                          <li key={pick.brawlerId} className="flex min-w-0 flex-col items-center gap-0.5" title={`${brawlerName(lookups, pick.brawlerId)} · ${decided ? formatPercent(pick.winRate) : t("meta.statUse", { rate: formatPercent(useRate) })}`}>
+                            <BrawlerPortrait id={pick.brawlerId} name={brawlerName(lookups, pick.brawlerId)} className="size-10" />
+                            <span className={`game-stat text-[0.6875rem] ${decided ? "text-accent" : "text-muted-foreground"}`}>{decided ? formatPercent(pick.winRate, 0) : formatPercent(useRate, useRate < 10 ? 1 : 0)}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     <p className="text-xs text-muted-foreground">{t("meta.liveNoPicks")}</p>

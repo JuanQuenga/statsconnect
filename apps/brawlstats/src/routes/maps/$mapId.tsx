@@ -98,7 +98,7 @@ function MapDetailPage() {
                 src={map.imageUrl || mapImageUrl(map.id)}
                 fallbackSrc={mapImageUrl(map.id)}
                 alt={`${map.name} map layout`}
-                className="mx-auto block h-auto max-h-[78vh] w-full object-contain"
+                className="mx-auto block h-auto max-h-[45vh] w-full object-contain lg:max-h-[78vh]"
               />
               <span className="brawl-map-zoom">Open full size</span>
             </a>

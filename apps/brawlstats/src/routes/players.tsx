@@ -242,7 +242,7 @@ function PlayerProfilePage({
                 <p className="mb-1 text-[0.8125rem] font-semibold text-[var(--player-accent)]">
                   {player.tag}
                 </p>
-                <h1 id="player-name" className="truncate font-display text-5xl leading-[.9] tracking-[-0.035em] text-white sm:text-7xl">
+                <h1 id="player-name" className="truncate font-display text-4xl leading-[.95] tracking-[-0.035em] text-white max-sm:line-clamp-2 max-sm:break-words max-sm:whitespace-normal sm:text-7xl sm:leading-[.9]">
                   {player.name}
                 </h1>
                 {player.club?.tag ? (
@@ -298,7 +298,7 @@ function PlayerProfilePage({
       </section>
 
       <main className="mx-auto w-full max-w-7xl space-y-9 px-4 py-6 md:px-6 md:py-9">
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-label={t("player.liveProfile")}>
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-5" aria-label={t("player.liveProfile")}>
           <ProfileStat icon={Trophy} label={t("common.trophies")} value={trophies(player.trophies)} emphasized />
           <ProfileStat icon={Crown} label={t("common.highest")} value={trophies(player.highestTrophies)} />
           <ProfileStat icon={Swords} label={t("player.threeWins")} value={trophies(player["3vs3Victories"] || 0)} />
@@ -331,7 +331,7 @@ function PlayerProfilePage({
         </Card>
 
         {summary ? (
-          <section className="grid gap-3 md:grid-cols-4" aria-label={t("player.record30")}>
+          <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label={t("player.record30")}>
             <ProfileSignal icon={Activity} label={t("player.record30")} value={`${summary.wins}W · ${summary.losses}L · ${summary.draws}D`} />
             <ProfileSignal icon={Target} label={t("player.winRate")} value={formatPercent(summary.winRate)} />
             <ProfileSignal icon={Trophy} label={t("player.netTrophies")} value={`${summary.netTrophies > 0 ? "+" : ""}${summary.netTrophies}`} />
@@ -368,23 +368,23 @@ function ProfileStat({ icon: Icon, label, value, emphasized = false }: {
   emphasized?: boolean;
 }) {
   return (
-    <Card className={`relative gap-3 border p-4 py-4 ${emphasized ? "border-[var(--player-accent)]/35 bg-[var(--player-accent)]/10" : "border-white/5 bg-card/80"}`}>
+    <Card className={`relative min-w-0 gap-3 border p-3 py-3 sm:p-4 sm:py-4 ${emphasized ? "border-[var(--player-accent)]/35 bg-[var(--player-accent)]/10" : "border-white/5 bg-card/80"}`}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">{label}</p>
         <Icon className={`size-4 ${emphasized ? "text-[var(--player-accent)]" : "text-muted-foreground"}`} />
       </div>
-      <p className={`font-display text-2xl ${emphasized ? "text-[var(--player-accent)]" : "text-foreground"}`}>{value}</p>
+      <p className={`font-display text-xl break-words sm:text-2xl ${emphasized ? "text-[var(--player-accent)]" : "text-foreground"}`}>{value}</p>
     </Card>
   );
 }
 
 function ProfileSignal({ icon: Icon, label, value }: { icon: typeof Trophy; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/45 p-3">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-accent"><Icon className="size-4" /></span>
+    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-background/45 p-3">
+      <span className="hidden size-9 shrink-0 sm:grid place-items-center rounded-lg bg-secondary text-accent"><Icon className="size-4" /></span>
       <div className="min-w-0">
-        <p className="truncate text-xs text-muted-foreground">{label}</p>
-        <p className="truncate font-display text-lg">{value}</p>
+        <p className="text-xs text-muted-foreground sm:truncate">{label}</p>
+        <p className="font-display text-base break-words sm:truncate sm:text-lg">{value}</p>
       </div>
     </div>
   );
@@ -544,12 +544,12 @@ function BattleHistory({ battles }: { battles: PlayerBattle[] }) {
   return (
     <div className="overflow-hidden rounded-xl border border-border">
       <Table>
-        <TableHeader><TableRow><TableHead>{t("common.date")}</TableHead><TableHead>{t("player.modeMap")}</TableHead><TableHead>{t("player.brawler")}</TableHead><TableHead>{t("common.result")}</TableHead><TableHead className="text-right">{t("common.trophies")}</TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead className="hidden sm:table-cell">{t("common.date")}</TableHead><TableHead>{t("player.modeMap")}</TableHead><TableHead className="hidden sm:table-cell">{t("player.brawler")}</TableHead><TableHead>{t("common.result")}</TableHead><TableHead className="text-right">{t("common.trophies")}</TableHead></TableRow></TableHeader>
         <TableBody>{battles.map((battle) => (
           <TableRow key={`${battle.battleTime}-${battle.mode}-${battle.brawlerId || 0}`}>
-            <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{date(battle.battleTimestamp, { dateStyle: "short", timeStyle: "short" })}</TableCell>
-            <TableCell><p>{readableMode(battle.mode)}</p><p className="text-xs text-muted-foreground">{battle.mapName || t("common.unknownMap")}</p></TableCell>
-            <TableCell>{battle.brawlerName || t("common.unknown")}</TableCell>
+            <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground sm:table-cell">{date(battle.battleTimestamp, { dateStyle: "short", timeStyle: "short" })}</TableCell>
+            <TableCell className="max-sm:w-full max-sm:whitespace-normal"><p>{readableMode(battle.mode)}</p><p className="text-xs text-muted-foreground">{battle.mapName || t("common.unknownMap")}</p><p className="text-xs text-muted-foreground sm:hidden">{battle.brawlerName || t("common.unknown")} · {date(battle.battleTimestamp, { dateStyle: "short", timeStyle: "short" })}</p></TableCell>
+            <TableCell className="hidden sm:table-cell">{battle.brawlerName || t("common.unknown")}</TableCell>
             <TableCell><Badge className="game-label" variant={battle.result === "victory" ? "default" : "outline"}>{battle.rank ? `#${battle.rank}` : battle.result}{battle.starPlayer ? ` · ${t("common.star")}` : ""}</Badge></TableCell>
             <TableCell className={`game-stat text-right ${(battle.trophyChange || 0) >= 0 ? "text-primary" : "text-destructive"}`}>{battle.trophyChange === undefined ? "—" : `${battle.trophyChange > 0 ? "+" : ""}${battle.trophyChange}`}</TableCell>
           </TableRow>
@@ -640,7 +640,7 @@ function PlayerActivityTracker({ analytics, activity }: { analytics: PlayerAnaly
       </div>
 
       <div className="grid border-t border-border/70 lg:grid-cols-[minmax(0,1fr)_17rem]">
-        <div className="min-w-0 overflow-x-auto p-5">
+        <div className="min-w-0 overflow-x-auto p-4 sm:p-5">
           <div className="activity-calendar mx-auto w-fit" aria-label={t("player.heatmapAria")}>
             <div className="activity-calendar-months mb-2 flex gap-1" aria-hidden>
               {monthLabels.map((label, index) => (
@@ -708,7 +708,7 @@ function RankedPanel({ player, snapshots }: { player: PlayerProfile; snapshots: 
       [t("player.seasonBest"), ranked?.seasonBestRankName || latest?.rankedSeasonBestName, seasonBest],
       [t("player.allTimeBest"), ranked?.bestRankName || latest?.rankedBestName, allTime],
     ].map(([label, name, value]) => <div key={String(label)} className="border-t border-border pt-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-display text-xl text-primary">{name || (value === undefined ? t("player.notExposed") : value)}</p>{name && value !== undefined ? <p className="text-xs text-muted-foreground">{t("player.tierValue", { value })}</p> : null}</div>)}</div>
-    {rankedHistory.length > 1 ? <div className="flex h-20 items-end gap-1">{rankedHistory.slice(-90).map((snapshot) => <div key={snapshot.day} title={`${snapshot.day}: ${snapshot.rankedCurrentName || snapshot.rankedCurrent}`} className="min-w-1 flex-1 rounded-t bg-accent" style={{ height: `${Math.max(10, ((snapshot.rankedCurrent || 0) / Math.max(...rankedHistory.map((row) => row.rankedCurrent || 1))) * 100)}%` }} />)}</div> : <p className="text-sm text-muted-foreground">{t("player.rankedHistoryEmpty")}</p>}
+    {rankedHistory.length > 1 ? <div className="flex h-20 items-end gap-px sm:gap-1">{rankedHistory.slice(-90).map((snapshot) => <div key={snapshot.day} title={`${snapshot.day}: ${snapshot.rankedCurrentName || snapshot.rankedCurrent}`} className="min-w-0 flex-1 rounded-t bg-accent" style={{ height: `${Math.max(10, ((snapshot.rankedCurrent || 0) / Math.max(...rankedHistory.map((row) => row.rankedCurrent || 1))) * 100)}%` }} />)}</div> : <p className="text-sm text-muted-foreground">{t("player.rankedHistoryEmpty")}</p>}
   </Card>;
 }
 
@@ -766,14 +766,14 @@ function PlayerHistory({ snapshots }: { snapshots: PlayerSnapshot[] }) {
           {t("player.sinceFirst", { change: `${change > 0 ? "+" : ""}${trophies(change)}` })}
         </p>
       </div>
-      <div className="mt-5 flex h-40 items-end gap-1 rounded-lg bg-secondary/60 p-4" aria-label={t("player.dailyHistory")}>
+      <div className="mt-5 flex h-40 items-end gap-px rounded-lg sm:gap-1 bg-secondary/60 p-4" aria-label={t("player.dailyHistory")}>
         {snapshots.slice(-60).map((snapshot) => {
           const height = 18 + ((snapshot.trophies - min) / range) * 82;
           return (
             <div
               key={snapshot.day}
               title={`${snapshot.day}: ${trophies(snapshot.trophies)} ${t("common.trophies").toLocaleLowerCase()}`}
-              className="min-w-1 flex-1 rounded-t-sm bg-primary/75 transition hover:bg-primary"
+              className="min-w-0 flex-1 rounded-t-sm bg-primary/75 transition hover:bg-primary"
               style={{ height: `${height}%` }}
             />
           );

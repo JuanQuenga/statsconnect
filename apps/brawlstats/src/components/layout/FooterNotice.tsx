@@ -42,19 +42,19 @@ export function FooterNotice() {
           ) : null}
         </div>
         <nav aria-label="Brawl Stars pages">
-          <ul className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-2 max-md:gap-y-0">
             {exploreLinks.map((link) => (
               <li key={link.to}>
-                <Link to={link.to} className="hover:text-foreground">{link.label}</Link>
+                <Link to={link.to} className="hover:text-foreground max-md:inline-block max-md:py-1.5">{link.label}</Link>
               </li>
             ))}
           </ul>
         </nav>
         <nav aria-label="StatsConnect">
-          <ul className="grid gap-2">
+          <ul className="grid gap-2 max-md:gap-0">
             {siteLinks.map((link) => (
               <li key={link.href}>
-                <a href={link.href} className="hover:text-foreground">{link.label}</a>
+                <a href={link.href} className="hover:text-foreground max-md:inline-block max-md:py-1.5">{link.label}</a>
               </li>
             ))}
           </ul>

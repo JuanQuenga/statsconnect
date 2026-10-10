@@ -59,7 +59,7 @@ function LeaderboardsPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">
         {regions.map(([label, code]) => (
           <Button
             key={code}
@@ -168,13 +168,13 @@ function RankingTable({
       <Table>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.key}>
+            <TableRow key={row.key} className="relative">
               <TableCell className="game-rank w-10 px-3 text-muted-foreground">{row.rank}</TableCell>
               <TableCell className="w-12 px-0">
                 <img src={row.icon} alt="" className="size-8 rounded-full object-cover" />
               </TableCell>
               <TableCell className="max-w-40 overflow-hidden sm:max-w-none">
-                <a href={routePath(row.href)} className="game-label block truncate hover:text-primary">
+                <a href={routePath(row.href)} className="game-label block truncate after:absolute after:inset-0 hover:text-primary">
                   {row.title}
                 </a>
                 <p className="truncate text-xs text-muted-foreground">{row.subtitle}</p>

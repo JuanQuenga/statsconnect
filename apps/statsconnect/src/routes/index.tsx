@@ -85,7 +85,7 @@ function LandingPage({
             />
           ))}
         </TileNav>
-        <div className="hub-section__heading">
+        <div className="hub-explore">
           <h3>What you can explore</h3>
           <p>
             In <Link to="/games/$game" params={{ game: "clash-royale" }}>Clash Royale</Link>: global and regional

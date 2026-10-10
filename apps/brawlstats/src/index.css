@@ -409,6 +409,14 @@
     --activity-cell: clamp(1.5rem, 2.2vw, 2.25rem);
   }
 
+  /* Phones: size 14 week columns to the space left after page/card padding,
+     the day labels and the gaps, so the newest weeks stay on screen. */
+  @media (max-width: 39.999rem) {
+    .activity-calendar {
+      --activity-cell: max(0.625rem, calc((100vw - 10.5rem) / 14));
+    }
+  }
+
   .activity-calendar-months {
     padding-inline-start: 2.75rem;
   }
@@ -515,6 +523,21 @@
 .brawl-search-panel .sc-search__bar button:hover {
   background: #ffe04f;
   filter: none;
+}
+
+/* On phones the label squeezes the field to a few characters; the icon
+   (and the button's aria-label) carry the action instead. */
+@media (max-width: 480px) {
+  .brawl-search-panel .sc-search__picker { padding-inline: 12px 28px; background-position: right 9px center; }
+  .brawl-search-panel .sc-search__bar button { min-width: 56px; padding-inline: 16px; }
+  .brawl-search-panel .sc-search__bar button > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 /* Home hero: latest news card, drawn like the game's event panels. */
@@ -774,3 +797,12 @@
   .brawler-hero-description { font-size: .95rem; }
 }
 
+
+/* iOS Safari zooms the page when a focused field is under 16px. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

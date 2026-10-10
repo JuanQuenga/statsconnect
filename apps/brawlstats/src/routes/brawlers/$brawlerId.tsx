@@ -128,7 +128,7 @@ function BrawlerDetailPage() {
                   artworkMaxWidth={heroArtwork.artworkMaxWidth}
                   fallbackSrc={heroArtwork.fallbackSrc}
                   artworkKind={heroArtwork.kind}
-                  className="h-[400px] md:h-[560px]"
+                  className="h-[300px] sm:h-[400px] md:h-[560px]"
                 />
               ) : null}
             </div>
@@ -142,15 +142,15 @@ function BrawlerDetailPage() {
           />
 
           <div className="flex flex-wrap gap-2">
-            {trophyBuckets.map((value) => <Button key={value} size="sm" variant={bucket === value ? "default" : "outline"} onClick={() => setBucket(value)}>{value === "all" ? t("common.allTrophies") : t("common.trophyRange", { range: value })}</Button>)}
+            <div className="flex flex-wrap gap-2 sm:contents">{trophyBuckets.map((value) => <Button key={value} size="sm" variant={bucket === value ? "default" : "outline"} onClick={() => setBucket(value)}>{value === "all" ? t("common.allTrophies") : t("common.trophyRange", { range: value })}</Button>)}</div>
             <span className="mx-1 hidden w-px bg-border sm:block" />
-            {(["7", "30", "90", "all"] as const).map((value) => <Button key={value} size="sm" variant={trendWindow === value ? "secondary" : "outline"} onClick={() => setTrendWindow(value)}>{value === "all" ? t("brawler.allTracked") : t("brawler.days", { count: value })}</Button>)}
+            <div className="flex flex-wrap gap-2 sm:contents">{(["7", "30", "90", "all"] as const).map((value) => <Button key={value} size="sm" variant={trendWindow === value ? "secondary" : "outline"} onClick={() => setTrendWindow(value)}>{value === "all" ? t("brawler.allTracked") : t("brawler.days", { count: value })}</Button>)}</div>
           </div>
 
           {trendQuery.data && !trendQuery.data.coverageStartAt ? <CoverageCard title={t("brawler.coverageNotStarted")} detail={t("brawler.coverageNotStartedDetail")} /> : null}
           {trendQuery.data?.coverageStartAt ? <CoverageCard title={t("brawler.coverageStarts", { date: formatDate(trendQuery.data.coverageStartAt) })} detail={`${t(trendQuery.data.currentCoverageComplete ? "brawler.coverageComplete" : "brawler.coveragePartial")} ${t(trendQuery.data.comparisonReady ? "brawler.comparisonReady" : "brawler.comparisonPartial")}`} /> : null}
 
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Summary label={t("brawler.windowWinRate")} value={formatPercent(currentTotals.winRate)} detail={t("brawler.vsPrevious", { delta: deltaPercent(currentTotals.winRate, previousTotals.winRate, Boolean(trendQuery.data?.previous?.sampleSize), t) })} />
             <Summary label={t("brawler.windowPicks")} value={trophies(currentTotals.picks)} detail={t("brawler.vsPrevious", { delta: deltaNumber(currentTotals.picks, previousTotals.picks, Boolean(trendQuery.data?.previous?.sampleSize), t) })} />
             <Summary label={t("meta.starRate")} value={formatPercent(currentTotals.starRate)} detail={t("brawler.vsPrevious", { delta: deltaPercent(currentTotals.starRate, previousTotals.starRate, Boolean(trendQuery.data?.previous?.sampleSize), t) })} />
@@ -211,7 +211,7 @@ function BrawlerDetailPage() {
   );
 }
 
-function Summary({ label, value, detail }: { label: string; value: string; detail: string }) { return <Card className="gap-0 p-5 py-5"><p className="text-[0.8125rem] font-semibold text-muted-foreground">{label}</p><p className="mt-2 font-display text-3xl text-primary">{value}</p><p className="text-xs text-muted-foreground">{detail}</p></Card>; }
+function Summary({ label, value, detail }: { label: string; value: string; detail: string }) { return <Card className="min-w-0 gap-0 p-4 py-4 sm:p-5 sm:py-5"><p className="text-[0.8125rem] font-semibold text-muted-foreground">{label}</p><p className="mt-2 font-display text-2xl break-words text-primary sm:text-3xl">{value}</p><p className="text-xs text-muted-foreground">{detail}</p></Card>; }
 
 function BrawlerTrendChart({ points }: { points: MetaDailyPoint[] }) {
   const { t, date } = useI18n();

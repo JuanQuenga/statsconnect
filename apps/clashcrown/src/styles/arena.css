@@ -27,7 +27,7 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: #b7acbd url("/images/theme/subreddit/arena-wall-tile-upscaled.png") 0 0 / 226px 226px repeat;
+  background: #b7acbd url("/images/theme/subreddit/arena-wall-tile-upscaled.webp") 0 0 / 226px 226px repeat;
 }
 
 .site-frame-clash > main { flex: 1 0 auto; }
@@ -236,7 +236,7 @@
   background-image:
     linear-gradient(90deg, rgba(14, 37, 70, .55) 0%, rgba(14, 37, 70, .32) 38%, rgba(14, 37, 70, .04) 70%),
     linear-gradient(180deg, transparent 60%, rgba(14, 37, 70, .25) 100%),
-    url("/images/theme/subreddit/home-hero-v2.png");
+    url("/images/theme/subreddit/home-hero-v2.webp");
 }
 
 .site-frame-clash .arena-route-hero-eyebrow { text-shadow: 0 1px 0 var(--cr-ink); }
@@ -247,7 +247,7 @@
   background-image:
     linear-gradient(90deg, rgba(14, 37, 70, .5) 0%, rgba(14, 37, 70, .28) 34%, rgba(14, 37, 70, 0) 60%),
     linear-gradient(180deg, transparent 62%, rgba(14, 37, 70, .25) 100%),
-    url("/images/theme/subreddit/home-hero-v2.png");
+    url("/images/theme/subreddit/home-hero-v2.webp");
   background-position: center 40%;
 }
 
@@ -419,7 +419,7 @@
   /* A crisp one-pixel drop reads like carved-in game text; blurred halos don't. */
   --cr-footer-shadow: 0 1px 0 rgba(38, 28, 54, .6);
   background:
-    url("/images/theme/subreddit/arena-wall.png") center top / auto 100% repeat-x,
+    url("/images/theme/subreddit/arena-wall.webp") center top / auto 100% repeat-x,
     #8e8399;
 }
 
@@ -486,7 +486,7 @@
 
 .cr-footer-lances {
   height: max(131px, 11.9vw);
-  background: url("/images/theme/subreddit/footer-lances.png") center bottom / auto 100% no-repeat;
+  background: url("/images/theme/subreddit/footer-lances.webp") center bottom / auto 100% no-repeat;
 }
 
 @media (max-width: 760px) {

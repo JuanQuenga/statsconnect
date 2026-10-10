@@ -140,9 +140,9 @@ function HistoryChart({ history }: { history: ClubHistoryResponse }) {
         <polyline points={points} fill="none" className="stroke-primary" strokeWidth="4" strokeLinejoin="round" />
         <polyline points={memberPoints} fill="none" className="stroke-accent" strokeWidth="3" strokeLinejoin="round" />
       </svg>
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between gap-3 text-xs text-muted-foreground">
         <span>{date(snapshots[0].recordedAt)}</span>
-        <span>{trophies(min)}–{trophies(max)} {t("common.trophies").toLocaleLowerCase()}</span>
+        <span className="text-center">{trophies(min)}–{trophies(max)} {t("common.trophies").toLocaleLowerCase()}</span>
         <span>{date(snapshots.at(-1)!.recordedAt)}</span>
       </div>
     </Card>
@@ -311,7 +311,7 @@ function ClubsPage() {
           {historyQuery.error ? <PageStatus tone="error">{t("club.activityUnavailable")}</PageStatus> : null}
 
           {history ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
               {[
                 { Icon: Users, label: t("club.activeRoster"), value: history.summary.activeMembers, color: "text-chart-3" },
                 { Icon: UserPlus, label: t("club.joins"), value: history.summary.joins, color: "text-accent" },
@@ -319,7 +319,7 @@ function ClubsPage() {
                 { Icon: ShieldCheck, label: t("club.roleMoves"), value: history.summary.roleChanges, color: "text-chart-3" },
                 { Icon: history.summary.trophyChange >= 0 ? TrendingUp : TrendingDown, label: t("club.memberMovement"), value: `${history.summary.trophyChange >= 0 ? "+" : ""}${trophies(history.summary.trophyChange)}`, color: history.summary.trophyChange >= 0 ? "text-primary" : "text-destructive" },
               ].map(({ Icon, label, value, color }) => (
-                <Card key={label} className="p-4"><Icon className={`mb-3 size-5 ${color}`} /><p className="text-xs text-muted-foreground">{label}</p><p className="font-display text-2xl">{value}</p></Card>
+                <Card key={label} className="min-w-0 p-3 sm:p-4"><Icon className={`mb-3 size-5 ${color}`} /><p className="text-xs text-muted-foreground">{label}</p><p className="font-display text-xl break-words sm:text-2xl">{value}</p></Card>
               ))}
             </div>
           ) : null}
@@ -332,27 +332,28 @@ function ClubsPage() {
               <TabsTrigger value="activity">{t("club.activity")} {history?.events.length ? `(${history.events.length})` : ""}</TabsTrigger>
             </TabsList>
             <TabsContent value="roster" className="space-y-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                <Input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder={t("club.filterRoster")} aria-label={t("club.filterRoster")} className="lg:max-w-xs" />
-                <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value || "all")}><SelectTrigger aria-label={t("club.allRoles")}><SelectValue placeholder={t("club.allRoles")} /></SelectTrigger><SelectContent><SelectItem value="all">{t("club.allRoles")}</SelectItem>{roles.map((role) => <SelectItem key={role} value={role}>{readableMode(role)}</SelectItem>)}</SelectContent></Select>
-                <Select value={rosterSort} onValueChange={(value) => setRosterSort((value || "trophies") as RosterSort)}><SelectTrigger aria-label={t("club.sortTrophies")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trophies">{t("club.sortTrophies")}</SelectItem><SelectItem value="change">{t("club.sortChange")}</SelectItem><SelectItem value="activity">{t("club.sortActivity")}</SelectItem><SelectItem value="name">{t("club.sortName")}</SelectItem><SelectItem value="role">{t("club.sortRole")}</SelectItem></SelectContent></Select>
-                <Button type="button" variant="outline" className="lg:ml-auto" onClick={exportRoster}><Download /> {t("club.exportRoster")}</Button>
+              <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-col lg:flex-row lg:items-center">
+                <Input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder={t("club.filterRoster")} aria-label={t("club.filterRoster")} className="col-span-2 lg:max-w-xs" />
+                <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value || "all")}><SelectTrigger aria-label={t("club.allRoles")} className="max-sm:w-full"><SelectValue placeholder={t("club.allRoles")} /></SelectTrigger><SelectContent><SelectItem value="all">{t("club.allRoles")}</SelectItem>{roles.map((role) => <SelectItem key={role} value={role}>{readableMode(role)}</SelectItem>)}</SelectContent></Select>
+                <Select value={rosterSort} onValueChange={(value) => setRosterSort((value || "trophies") as RosterSort)}><SelectTrigger aria-label={t("club.sortTrophies")} className="max-sm:w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trophies">{t("club.sortTrophies")}</SelectItem><SelectItem value="change">{t("club.sortChange")}</SelectItem><SelectItem value="activity">{t("club.sortActivity")}</SelectItem><SelectItem value="name">{t("club.sortName")}</SelectItem><SelectItem value="role">{t("club.sortRole")}</SelectItem></SelectContent></Select>
+                <Button type="button" variant="outline" className="col-span-2 lg:ml-auto" onClick={exportRoster}><Download /> {t("club.exportRoster")}</Button>
               </div>
               <div className="data-surface overflow-x-auto">
                 <Table>
-                  <TableHeader><TableRow><TableHead>{t("club.member")}</TableHead><TableHead>{t("common.role")}</TableHead><TableHead>{t("club.lastProfile")}</TableHead><TableHead className="text-right">{t("club.trackedChange")}</TableHead><TableHead className="text-right">{t("common.trophies")}</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>{t("club.member")}</TableHead><TableHead className="hidden sm:table-cell">{t("common.role")}</TableHead><TableHead className="hidden sm:table-cell">{t("club.lastProfile")}</TableHead><TableHead className="hidden text-right sm:table-cell">{t("club.trackedChange")}</TableHead><TableHead className="text-right">{t("common.trophies")}</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {members.map((member) => {
                       const tracked = trackedByTag.get(member.tag);
                       const change = trophyChangeByTag.get(member.tag) || 0;
+                      const changeTone = change > 0 ? "text-accent" : change < 0 ? "text-destructive" : "text-muted-foreground";
                       const staleDays = tracked?.lastProfileAt ? Math.floor((Date.now() - tracked.lastProfileAt) / 86_400_000) : null;
                       return (
                         <TableRow key={member.tag}>
-                          <TableCell><div className="flex items-center gap-3"><img src={profileIconUrl(member.icon?.id)} alt="" className="size-9 rounded-full" /><div><Link to="/players" search={{ tag: member.tag }} className="font-display hover:text-primary">{member.name}</Link><p className="text-xs text-muted-foreground">{member.tag}</p></div></div></TableCell>
-                          <TableCell>{readableMode(member.role || "member")}</TableCell>
-                          <TableCell><span className={staleDays !== null && staleDays >= 7 ? "text-destructive" : "text-muted-foreground"}>{relativeAge(tracked?.lastProfileAt, t)}</span>{staleDays !== null && staleDays >= 7 ? <Badge variant="destructive" className="ml-2">{t("club.inactive")}</Badge> : null}</TableCell>
-                          <TableCell className={`text-right ${change > 0 ? "text-accent" : change < 0 ? "text-destructive" : "text-muted-foreground"}`}>{change > 0 ? "+" : ""}{trophies(change)}</TableCell>
-                          <TableCell className="text-right font-display text-primary">{trophies(member.trophies)}</TableCell>
+                          <TableCell className="max-sm:whitespace-normal"><div className="flex items-center gap-3"><img src={profileIconUrl(member.icon?.id)} alt="" className="size-9 shrink-0 rounded-full" /><div className="min-w-0"><Link to="/players" search={{ tag: member.tag }} className="font-display break-words hover:text-primary">{member.name}</Link><p className="text-xs text-muted-foreground">{member.tag}<span className="sm:hidden"> · {readableMode(member.role || "member")}</span></p></div></div></TableCell>
+                          <TableCell className="hidden sm:table-cell">{readableMode(member.role || "member")}</TableCell>
+                          <TableCell className="hidden sm:table-cell"><span className={staleDays !== null && staleDays >= 7 ? "text-destructive" : "text-muted-foreground"}>{relativeAge(tracked?.lastProfileAt, t)}</span>{staleDays !== null && staleDays >= 7 ? <Badge variant="destructive" className="ml-2">{t("club.inactive")}</Badge> : null}</TableCell>
+                          <TableCell className={`hidden text-right sm:table-cell ${changeTone}`}>{change > 0 ? "+" : ""}{trophies(change)}</TableCell>
+                          <TableCell className="text-right font-display text-primary">{trophies(member.trophies)}<p className={`font-sans text-xs sm:hidden ${changeTone}`}>{change > 0 ? "+" : ""}{trophies(change)}</p></TableCell>
                         </TableRow>
                       );
                     })}

@@ -84,8 +84,8 @@ function BrawlersPage() {
         </p>
       </header>
 
-      <div className="data-surface grid gap-3 p-3 md:grid-cols-2 lg:grid-cols-5">
-        <Input value={search.q || ""} onChange={(event) => update({ q: event.target.value || undefined })} placeholder={t("brawlers.search")} aria-label={t("brawlers.search")} className="lg:col-span-2" />
+      <div className="data-surface grid grid-cols-2 gap-3 p-3 lg:grid-cols-5">
+        <Input value={search.q || ""} onChange={(event) => update({ q: event.target.value || undefined })} placeholder={t("brawlers.search")} aria-label={t("brawlers.search")} className="col-span-2 md:col-span-1 lg:col-span-2" />
         <FilterSelect label={t("brawlers.allRoles")} value={search.role || "all"} options={roles} onChange={(role) => update({ role: role === "all" ? undefined : role })} />
         <FilterSelect label={t("brawlers.allRarities")} value={search.rarity || "all"} options={rarities} onChange={(rarity) => update({ rarity: rarity === "all" ? undefined : rarity })} />
         <FilterSelect label={t("brawlers.sortName")} value={search.sort || "name"} options={["win", "use", "picks"]} labels={{ win: t("brawlers.sortWin"), use: t("brawlers.sortUse"), picks: t("brawlers.sortSamples") }} onChange={(sort) => update({ sort: sort as BrawlersSearch["sort"] })} />
@@ -119,14 +119,14 @@ function BrawlersPage() {
                   <Badge className="absolute top-3 left-3" style={{ background: brawler.color, color: "#08101a" }}>{brawler.rarity}</Badge>
                 </div>
                 <div className="p-3 sm:p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div><h2 className="font-display text-xl sm:text-2xl">{brawler.name}</h2><p className="text-xs text-muted-foreground">{brawler.role}</p></div>
-                    {eligible ? <span className="text-right text-xs"><strong className="block text-primary">{formatPercent(stat?.winRate || 0)}</strong><span className="text-muted-foreground">{t("meta.winRate")}</span></span> : null}
+                  <div className="flex items-start justify-between gap-2 sm:gap-3">
+                    <div className="min-w-0"><h2 className="font-display text-xl sm:text-2xl">{brawler.name}</h2><p className="text-xs text-muted-foreground">{brawler.role}</p></div>
+                    {eligible ? <span className="shrink-0 text-right text-xs whitespace-nowrap"><strong className="block text-primary">{formatPercent(stat?.winRate || 0)}</strong><span className="text-muted-foreground">{t("meta.winRate")}</span></span> : null}
                   </div>
                   <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{brawler.description}</p>
-                  <div className="mt-4 flex gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
-                    <span>{eligible ? t("brawlers.use", { rate: formatPercent(stat?.useRate || 0) }) : t("brawlers.earlySample")}</span>
-                    <span>{t("brawlers.picks", { count: trophies(stat?.picks || 0) })}</span>
+                  <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground sm:gap-4">
+                    <span className="whitespace-nowrap">{eligible ? t("brawlers.use", { rate: formatPercent(stat?.useRate || 0) }) : t("brawlers.earlySample")}</span>
+                    <span className="whitespace-nowrap">{t("brawlers.picks", { count: trophies(stat?.picks || 0) })}</span>
                   </div>
                 </div>
               </Card>

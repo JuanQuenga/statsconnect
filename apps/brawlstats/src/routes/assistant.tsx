@@ -170,7 +170,7 @@ function PlayNow({
             const readiness = account ? (Math.min(11, account.power) / 11) * 8 + (Math.min(1000, account.trophies) / 1000) * 5 : 0;
             return { ...stat, account, starRate, score: stat.winRate * 0.75 + starRate * 0.12 + readiness };
           })
-          .sort((a, b) => b.score - a.score)
+          .sort((a, b) => b.score - a.score || b.useRate - a.useRate)
           .slice(0, 3);
         return (
           <Card key={`${event.event?.id}-${index}`} className="overflow-hidden p-0 py-0">
@@ -185,6 +185,8 @@ function PlayNow({
             <div className="space-y-3 p-4">
               {suggestions.map((suggestion, rank) => {
                 const meta = catalogMap.get(suggestion.brawlerId);
+                // Showdown placements have no wins or losses, so only the use rate means anything.
+                const decided = suggestion.wins + suggestion.losses > 0;
                 return (
                   <div key={suggestion.brawlerId} className="flex items-center gap-3 rounded-lg border border-border bg-background/35 p-3">
                     <span className="font-display text-xl text-primary">#{rank + 1}</span>
@@ -192,11 +194,11 @@ function PlayNow({
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{meta?.name || `${t("player.brawler")} ${suggestion.brawlerId}`}</p>
                       <p className="text-xs text-muted-foreground">
-                        {suggestion.winRate.toFixed(1)}% WR · {suggestion.useRate.toFixed(1)}% use
+                        {decided ? `${suggestion.winRate.toFixed(1)}% WR · ` : ""}{suggestion.useRate.toFixed(1)}% use
                         {suggestion.account ? ` · ${t("assistant.power", { power: suggestion.account.power })}` : ""}
                       </p>
                     </div>
-                    <Badge variant={rank === 0 ? "default" : "secondary"}>{t("assistant.fit", { score: Math.round(suggestion.score) })}</Badge>
+                    {decided ? <Badge variant={rank === 0 ? "default" : "secondary"}>{t("assistant.fit", { score: Math.round(suggestion.score) })}</Badge> : null}
                   </div>
                 );
               })}

@@ -28,7 +28,13 @@ export function MetaScatter({ rows, medianUse, lookups, selected, onSelect }: {
   const yStep = spread <= 6 ? 2 : spread <= 15 ? 5 : 10;
   const yTicks: number[] = [];
   for (let tick = Math.ceil(yMin / yStep) * yStep; tick <= 50 + spread; tick += yStep) yTicks.push(tick);
-  const xTicks = USE_TICKS.filter((tick) => tick < maxUse);
+  // On phones the plot is narrow, so drop x labels that would collide with the previous one.
+  let lastTickX = -Infinity;
+  const xTicks = USE_TICKS.filter((tick) => tick < maxUse).map((tick) => {
+    const crowded = x(tick) - lastTickX < 10;
+    if (!crowded) lastTickX = x(tick);
+    return { tick, crowded };
+  });
   const medianX = x(medianUse);
   const midY = y(50);
   // Draw the selected point last so it sits on top of neighbours.
@@ -43,8 +49,8 @@ export function MetaScatter({ rows, medianUse, lookups, selected, onSelect }: {
           {yTicks.map((tick) => (
             <span key={tick} aria-hidden className="absolute right-full mr-2 -translate-y-1/2 text-[0.6875rem] text-muted-foreground tabular-nums" style={{ top: `${y(tick)}%` }}>{tick}%</span>
           ))}
-          {xTicks.map((tick) => (
-            <span key={tick} aria-hidden className="absolute top-full mt-1.5 -translate-x-1/2 text-[0.6875rem] text-muted-foreground tabular-nums" style={{ left: `${x(tick)}%` }}>{tick}%</span>
+          {xTicks.map(({ tick, crowded }) => (
+            <span key={tick} aria-hidden className={cn("absolute top-full mt-1.5 -translate-x-1/2 text-[0.6875rem] text-muted-foreground tabular-nums", crowded && "max-sm:hidden")} style={{ left: `${x(tick)}%` }}>{tick}%</span>
           ))}
           <span aria-hidden className="absolute inset-x-0 border-t border-dashed border-foreground/35" style={{ top: `${midY}%` }} />
           <span aria-hidden className="absolute inset-y-0 border-l border-dashed border-foreground/25" style={{ left: `${medianX}%` }} />

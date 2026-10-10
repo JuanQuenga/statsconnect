@@ -79,7 +79,7 @@ const sites = [
   { id: "brawl-stars", label: "Brawl Stars", detail: "Open Brawl Stars statistics" },
   { id: "clash-royale", label: "Clash Royale", detail: "Open Clash Royale statistics" },
 ] as const;
-const networkMarkUrl = "/brand/nav/portal-frame.png";
+const networkMarkUrl = "/brand/nav/portal-frame.webp";
 
 export const siteNavigationLanguages = [
   { value: "en", shortLabel: "EN", label: "English" },
@@ -526,9 +526,9 @@ export function SiteNavigation({
   const currentGame = sites.find((site) => site.id === currentSite);
   const currentGameLabel = currentGame?.id === "statsconnect" ? "Game hub" : currentGame?.label ?? "Game hub";
   const currentCharacter = currentSite === "brawl-stars"
-    ? "/brand/nav/cosmo-bust.png"
+    ? "/brand/nav/cosmo-bust.webp"
     : currentSite === "clash-royale"
-      ? "/brand/nav/ronin-bust.png"
+      ? "/brand/nav/ronin-bust.webp"
       : null;
 
   useEffect(() => {
@@ -634,11 +634,11 @@ export function SiteNavigation({
       <div className="sc-nav__mobile-bar">
         <button type="button" className="sc-nav__mobile-identity" data-site={currentSite} aria-label={`Switch game. Current site: ${currentGame?.label ?? "StatsConnect"}. ${currentGameLabel}`} aria-expanded={open && openedSection === "games"} aria-controls={mobileMenuId} onClick={() => openSheet("games")}>
           <span className="sc-nav__mobile-portal" aria-hidden="true">
-            <img className="sc-nav__mobile-portal-frame" src="/brand/nav/portal-frame.png" alt="" />
+            <img className="sc-nav__mobile-portal-frame" src="/brand/nav/portal-frame.webp" alt="" />
             {currentSite === "statsconnect" ? (
               <span className="sc-nav__mobile-portal-well">
                 <span className="sc-nav__mobile-portal-core-window">
-                  <img className="sc-nav__mobile-portal-core" src="/brand/nav/portal-frame.png" alt="" />
+                  <img className="sc-nav__mobile-portal-core" src="/brand/nav/portal-frame.webp" alt="" />
                 </span>
               </span>
             ) : null}

@@ -9,6 +9,7 @@ export function trophies(value: number | string | null | undefined) {
 export function readableMode(mode?: string | null) {
   return String(mode || "Unknown mode")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([a-z])(\d+V\d+)/gi, "$1 $2")
     .replace(/^./, (letter) => letter.toUpperCase());
 }
 

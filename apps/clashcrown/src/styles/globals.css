@@ -96,7 +96,7 @@ body {
 
 body:has(.site-frame-clash) {
   background-color: #7d747e;
-  background-image: url("/images/theme/subreddit/arena-wall-footer-body-upscaled.png");
+  background-image: url("/images/theme/subreddit/arena-wall-footer-body-upscaled.webp");
   background-repeat: repeat;
   background-size: 256px 256px;
   overscroll-behavior-y: none;
@@ -3092,7 +3092,7 @@ a:hover .entity-cell strong { color: #07569f; }
   pointer-events: none;
   transform: translateY(-20px) scale(1.1);
   transform-origin: center top;
-  background: url("/images/backgrounds/khaos-player-hero.png") center top / cover no-repeat;
+  background: url("/images/backgrounds/khaos-player-hero.webp") center top / cover no-repeat;
 }
 
 .site-arena-backdrop::after {
@@ -3235,7 +3235,7 @@ a:hover .entity-cell strong { color: #07569f; }
   background-image:
     linear-gradient(90deg, rgba(4, 16, 32, .72) 0%, rgba(4, 16, 32, .5) 36%, rgba(4, 16, 32, .16) 72%, rgba(4, 16, 32, .06) 100%),
     linear-gradient(180deg, rgba(4, 16, 32, .08) 0%, transparent 54%, rgba(4, 16, 32, .46) 100%),
-    url("/images/theme/subreddit/home-hero-v2.png");
+    url("/images/theme/subreddit/home-hero-v2.webp");
   background-position: center 44%;
   background-size: cover;
   background-repeat: no-repeat;
@@ -3250,7 +3250,7 @@ a:hover .entity-cell strong { color: #07569f; }
   left: 0;
   height: 94px;
   pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip-upscaled.png") center bottom / 950px 94px repeat-x;
+  background: url("/images/theme/subreddit/battlement-strip-upscaled.webp") center bottom / 950px 94px repeat-x;
 }
 
 .site-frame-clash .arena-hero-frame > :not(.arena-hero-frame-art) {
@@ -4861,7 +4861,7 @@ a:hover .entity-cell strong { color: #07569f; }
 .site-frame-clash > main {
   display: flow-root;
   background-color: #b7acbd;
-  background-image: url("/images/theme/subreddit/arena-wall-tile-upscaled.png");
+  background-image: url("/images/theme/subreddit/arena-wall-tile-upscaled.webp");
   background-repeat: repeat;
   background-size: 226px 226px;
 }
@@ -4876,7 +4876,7 @@ a:hover .entity-cell strong { color: #07569f; }
   --home-arena-gold: #ffd45c;
   color: #36363d;
   background-color: #b7acbd;
-  background-image: url("/images/theme/subreddit/arena-wall-tile-upscaled.png");
+  background-image: url("/images/theme/subreddit/arena-wall-tile-upscaled.webp");
   background-repeat: repeat;
   background-size: 226px 226px;
 }
@@ -5019,9 +5019,9 @@ a:hover .entity-cell strong { color: #07569f; }
   align-items: start;
   background:
     url("/images/theme/subreddit/footer-king-upscaled.webp") center 34px / 123px 205px no-repeat,
-    url("/images/theme/subreddit/footer-lances.png") center bottom / clamp(1161px, 100%, 1710px) auto no-repeat,
-    url("/images/theme/subreddit/arena-wall-upscaled.png") center top / auto 400px repeat-x,
-    url("/images/theme/subreddit/arena-wall-footer-body-upscaled.png") center top / 256px 256px repeat;
+    url("/images/theme/subreddit/footer-lances.webp") center bottom / clamp(1161px, 100%, 1710px) auto no-repeat,
+    url("/images/theme/subreddit/arena-wall-upscaled.webp") center top / auto 400px repeat-x,
+    url("/images/theme/subreddit/arena-wall-footer-body-upscaled.webp") center top / 256px 256px repeat;
 }
 
 .site-frame-clash .footer-inner {
@@ -5606,12 +5606,28 @@ a:hover .entity-cell strong { color: #07569f; }
     transform: scale(.96);
   }
 
-  .site-frame-clash .mobile-page-tabs--profile > button {
-    min-width: 98px;
-    flex-basis: 98px;
+  /* Five sections: stack icon over label so every tab fits without scrolling. */
+  .site-frame-clash .mobile-page-tabs--profile.cr-tabs > button {
+    min-width: 0;
+    flex: 1 1 0;
     height: 46px;
-    padding-inline: 6px;
-    font-size: 12px;
+    flex-direction: column;
+    gap: 1px;
+    padding: 3px 2px;
+    font-size: 10px;
+    line-height: 1.05;
+    text-align: center;
+  }
+
+  .site-frame-clash .mobile-page-tabs--profile.cr-tabs > button > img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .site-frame-clash .mobile-page-tabs--profile.cr-tabs > button > span {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
   }
 
   .site-frame-clash .mobile-page-tabs--leaderboards > button {
@@ -6554,7 +6570,7 @@ a:hover .entity-cell strong { color: #07569f; }
   background-image:
     linear-gradient(90deg, rgba(4, 16, 32, .78) 0%, rgba(4, 16, 32, .56) 34%, rgba(4, 16, 32, .2) 66%, rgba(4, 16, 32, .08) 100%),
     linear-gradient(180deg, rgba(4, 16, 32, .14) 0%, transparent 42%, rgba(6, 18, 34, .52) 100%),
-    url("/images/theme/subreddit/home-hero-v2.png");
+    url("/images/theme/subreddit/home-hero-v2.webp");
 }
 
 .site-frame-home .page-band { margin-top: 34px; padding: 30px 32px 34px; }
@@ -6595,4 +6611,13 @@ a:hover .entity-cell strong { color: #07569f; }
 
 @media (max-width: 680px) {
   .site-frame-home .page-band { padding: 20px; }
+}
+
+/* iOS Safari zooms the page when a focused field is under 16px. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

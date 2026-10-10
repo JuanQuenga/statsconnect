@@ -49,7 +49,7 @@ export function MetaControls({
 
   return (
     <div role="group" aria-label={t("meta.filters")} className="meta-controls z-30 -mx-4 border-y border-border/70 bg-background/92 px-4 py-2.5 backdrop-blur md:sticky md:mx-0 md:rounded-xl md:border md:px-3">
-      <div className="flex items-center gap-2 overflow-x-auto meta-scroll">
+      <div className="flex flex-wrap items-center gap-2 md:flex-nowrap md:overflow-x-auto meta-scroll">
         <Segmented
           label={t("meta.trophyRange")}
           value={trophy}
@@ -62,8 +62,8 @@ export function MetaControls({
           options={WINDOW_OPTIONS.map((value) => ({ value, label: value === "all" ? t("meta.all") : t("meta.windowDays", { count: value }) }))}
           onSelect={(value) => onChange({ window: value })}
         />
-        <span aria-hidden className="mx-1 h-6 w-px shrink-0 bg-border" />
-        <div role="group" aria-label={t("meta.gameMode")} className="flex shrink-0 items-center gap-1.5">
+        <span aria-hidden className="mx-1 hidden h-6 w-px shrink-0 bg-border md:block" />
+        <div role="group" aria-label={t("meta.gameMode")} className="meta-scroll flex shrink-0 items-center gap-1.5 max-md:order-last max-md:-mx-4 max-md:w-[calc(100%+2rem)] max-md:overflow-x-auto max-md:px-4">
           <ModeChip active={mode === undefined} onClick={() => onChange({ mode: undefined })}>{t("meta.allModes")}</ModeChip>
           {modeIds.map((id) => {
             const info = lookups.modes.get(id);

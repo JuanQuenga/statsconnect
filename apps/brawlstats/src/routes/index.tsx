@@ -122,7 +122,7 @@ function HomePage() {
                         <span className="block truncate font-display text-xl leading-tight text-white">{brawler.name}</span>
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-[#c9d6f5]">
                           <span className="size-2.5 shrink-0 rounded-full border border-black/40" style={{ background: brawler.color }} aria-hidden />
-                          <span className="truncate">{brawler.rarity} · {brawler.role}</span>
+                          <span className="truncate max-sm:line-clamp-2 max-sm:whitespace-normal">{brawler.rarity} · {brawler.role}</span>
                         </span>
                       </figcaption>
                     </figure>
@@ -141,7 +141,7 @@ function HomePage() {
         />
 
         <section className="grid gap-10 lg:grid-cols-2">
-          <div>
+          <div className="min-w-0">
             <SectionHeader id="home-players" title={t("home.topPlayers")} link={<Link to="/leaderboards" className="brawl-chip">{t("nav.leaderboards")}</Link>} />
             <HomeListFeedback state={playersState} error={playersQuery.error} emptyTitle={t("leaderboard.empty")} />
             {playersState === "ready" ? (
@@ -151,7 +151,7 @@ function HomePage() {
                     key={player.tag}
                     rank={index + 1}
                     icon={<img src={profileIconUrl(player.icon?.id)} alt="" className="size-10 rounded-lg border-2 border-[var(--ink)]" />}
-                    name={<Link to="/players" search={{ tag: player.tag }} className="hover:text-primary">{player.name}</Link>}
+                    name={<Link to="/players" search={{ tag: player.tag }} className="after:absolute after:inset-0 hover:text-primary">{player.name}</Link>}
                     detail={player.club?.name || t("common.noClub")}
                     value={trophies(player.trophies)}
                   />
@@ -160,7 +160,7 @@ function HomePage() {
             ) : null}
           </div>
 
-          <div>
+          <div className="min-w-0">
             <SectionHeader id="home-clubs" title={t("home.topClubs")} link={<Link to="/leaderboards" className="brawl-chip">{t("nav.leaderboards")}</Link>} />
             <HomeListFeedback state={clubsState} error={clubsQuery.error} emptyTitle={t("leaderboard.empty")} />
             {clubsState === "ready" ? (
@@ -170,7 +170,7 @@ function HomePage() {
                     key={club.tag}
                     rank={index + 1}
                     icon={<img src={clubBadgeUrl(club.badgeId)} alt="" className="size-10 object-contain" />}
-                    name={<Link to="/clubs" search={{ tag: club.tag }} className="hover:text-primary">{club.name || club.tag}</Link>}
+                    name={<Link to="/clubs" search={{ tag: club.tag }} className="after:absolute after:inset-0 hover:text-primary">{club.name || club.tag}</Link>}
                     detail={club.tag}
                     value={trophies(club.trophies)}
                   />
@@ -243,7 +243,7 @@ function RankRow({ rank, icon, name, detail, value }: {
   value: string;
 }) {
   return (
-    <li className="flex items-center gap-3 px-4 py-2.5">
+    <li className="relative flex items-center gap-3 px-4 py-2.5">
       <span className={rank === 1 ? "game-rank w-6 text-xl text-primary" : "game-rank w-6 text-lg text-muted-foreground"}>{rank}</span>
       {icon}
       <div className="min-w-0 flex-1">

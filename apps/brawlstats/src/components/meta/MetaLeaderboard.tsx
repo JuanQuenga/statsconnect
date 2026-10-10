@@ -65,7 +65,7 @@ export function MetaLeaderboard({ rows, lookups, sort, dir, query, selected, onS
                       type="button"
                       onClick={() => onSort(column.key)}
                       aria-label={t("meta.sortBy", { column: column.label })}
-                      className={cn("ml-auto inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold whitespace-nowrap outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", active ? "text-primary" : "text-muted-foreground")}
+                      className={cn("ml-auto inline-flex items-center gap-1 rounded px-1 py-0.5 text-right font-semibold outline-none max-sm:leading-tight sm:whitespace-nowrap hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", active ? "text-primary" : "text-muted-foreground")}
                     >
                       {column.label}
                       <Icon className={cn("size-3.5", !active && "opacity-50")} aria-hidden />
@@ -86,11 +86,11 @@ export function MetaLeaderboard({ rows, lookups, sort, dir, query, selected, onS
                   className={cn("cursor-pointer", !row.qualified && "opacity-55")}
                 >
                   <TableCell className="game-rank text-center text-muted-foreground">{rank.get(row.brawlerId)}</TableCell>
-                  <TableCell>
+                  <TableCell className="max-sm:whitespace-normal">
                     <button type="button" onClick={(event) => { event.stopPropagation(); onSelect(row.brawlerId); }} className="flex items-center gap-2.5 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-3">
                       <BrawlerPortrait id={row.brawlerId} name="" className="size-9" />
                       <span className="min-w-0">
-                        <span className="block truncate font-semibold">{name}</span>
+                        <span className="block font-semibold max-sm:leading-tight sm:truncate">{name}</span>
                         {!row.qualified ? <span className="block text-[0.6875rem] text-muted-foreground">{t("meta.lowSample")}</span> : null}
                       </span>
                       <TierBadge tier={row.tier} className="ml-1 hidden sm:inline-grid" />
@@ -130,7 +130,7 @@ export function MetaLeaderboard({ rows, lookups, sort, dir, query, selected, onS
 
 function Bar({ value, className }: { value: number; className: string }) {
   return (
-    <span aria-hidden className="mt-1 ml-auto block h-1 w-16 overflow-hidden rounded-full bg-secondary sm:w-20">
+    <span aria-hidden className="mt-1 ml-auto block h-1 w-12 overflow-hidden rounded-full bg-secondary sm:w-20">
       <span className={cn("block h-full rounded-full", className)} style={{ width: `${Math.max(3, Math.min(1, value) * 100)}%` }} />
     </span>
   );
