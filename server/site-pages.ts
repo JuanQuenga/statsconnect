@@ -2,6 +2,7 @@ import { findGuide, guideText, strategyGuides, type StrategyGuide } from "../app
 import { siteOrigin, siteRoutes, type SiteId, type StaticRoute } from "../shared/site-routes.ts";
 import { applicationShell, escapeHtml, injectDocumentHead } from "./profile-metadata.ts";
 import { brawlPageContent, type BrawlPageContent } from "../shared/brawl-page-content.ts";
+import { clashDeckContent } from "../shared/clash-deck-content.ts";
 
 /** Game-site shell documents stay valid at the edge for a day and refresh in the background. */
 export const siteCacheControl = "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
@@ -55,7 +56,11 @@ export function sitePageParts(game: string | null, route: string | null): SitePa
   const brawlContent = site === "bs"
     ? path === "/maps" ? brawlPageContent.maps : path === "/meta" ? brawlPageContent.meta : undefined
     : undefined;
-  return { body: guide ? guideStaticBody(guide) : brawlContent ? brawlStaticBody(brawlContent) : undefined, tags };
+  const body = guide ? guideStaticBody(guide)
+    : brawlContent ? researchStaticBody(brawlContent, "Brawl Stars")
+    : site === "cr" && path === "/decks" ? researchStaticBody(clashDeckContent, "Clash Royale")
+    : undefined;
+  return { body, tags };
 }
 
 export async function sitePageDocument(game: string | null, route: string | null): Promise<string | undefined> {
@@ -72,21 +77,21 @@ export function injectStaticBody(shell: string, body: string): string {
   return shell.replace(root, `<div id="root">${body}</div>`);
 }
 
-function brawlStaticBody(content: BrawlPageContent): string {
+function researchStaticBody(content: BrawlPageContent | typeof clashDeckContent, game: "Brawl Stars" | "Clash Royale"): string {
   const steps = content.steps.map((step) => `<li><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.copy)}</p></li>`).join("");
   const questions = content.questions.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join("");
   const links = content.links.map((link) => `<a href="${escapeHtml(link.path)}">${escapeHtml(link.label)}</a>`).join(" ");
   return `
 <style>${staticBodyStyles}</style>
 <main class="sc-static" lang="en">
-  <p class="sc-static__eyebrow">StatsConnect Brawl Stars</p>
+  <p class="sc-static__eyebrow">StatsConnect ${game}</p>
   <h1>${escapeHtml(content.heading)}</h1>
   <p class="sc-static__summary">${escapeHtml(content.intro)}</p>
   <h2>${escapeHtml(content.workflowTitle)}</h2>
   <ol>${steps}</ol>
   ${questions}
-  <nav aria-label="Continue researching brawler picks">${links} <a href="https://statsconnect.app/data-methodology">Data sources and methodology</a></nav>
-  <p class="sc-static__note">Live rotation, filters, and observed statistics load with the interactive app. This explanation does not establish any current picks or rates.</p>
+  <nav aria-label="Continue researching ${game === "Brawl Stars" ? "brawler picks" : "decks"}">${links} <a href="https://statsconnect.app/data-methodology">Data sources and methodology</a></nav>
+  <p class="sc-static__note">${game === "Brawl Stars" ? "Live rotation, filters, and observed statistics load with the interactive app. This explanation does not establish any current picks or rates." : "Observed decks, filters, and the manual builder load with the interactive app. This explanation does not establish any current deck win rates."}</p>
 </main>`;
 }
 

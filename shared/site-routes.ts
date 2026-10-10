@@ -130,7 +130,7 @@ export const clashRoutes: readonly StaticRoute[] = [
     path: "/decks",
     title: "Clash Royale deck discovery & builder · StatsConnect",
     description:
-      "Find observed decks, personalize recommendations from a player tag, build war sets, and copy decks into the game.",
+      "Find observed Clash Royale decks, compare samples and card levels, and build or copy an eight-card deck. Learn how to assess recommendations and war sets.",
   },
   {
     path: "/tools",

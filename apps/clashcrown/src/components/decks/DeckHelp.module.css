@@ -1,0 +1,12 @@
+.help h2 { scroll-margin-top: 12rem; }
+.help h3 { margin: 0 0 .5rem; font: 700 1rem/1.4 var(--font-ui); }
+.help p { max-width: 52rem; margin: 0; color: var(--copy); font: .9375rem/1.65 var(--font-ui); }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; margin: 1.75rem 0; padding: 0; list-style: none; }
+.question + .question { margin-top: 1.5rem; }
+.links { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; margin-top: 1.75rem; }
+.links a { color: var(--primary); font: 650 .875rem/1.5 var(--font-ui); text-decoration: underline; text-underline-offset: 3px; }
+.links a:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+@media (max-width: 760px) {
+  .steps { grid-template-columns: 1fr; }
+  .help h2 { scroll-margin-top: 6rem; }
+}

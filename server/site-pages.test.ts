@@ -17,6 +17,7 @@ import {
 import { siteRoutes } from "../shared/site-routes.ts";
 import { brawlPageContent } from "../shared/brawl-page-content.ts";
 import { escapeHtml } from "./profile-metadata.ts";
+import { clashDeckContent } from "../shared/clash-deck-content.ts";
 
 const repositoryRoot = process.cwd();
 let fixtureRoot: string;
@@ -108,6 +109,26 @@ test("Brawl research pages serve the same explanations and follow-up links befor
 
 test("published guides and the route inventory never drift", () => {
   assert.deepEqual(guideInventoryDrift(), []);
+});
+
+test("Clash deck discovery serves its shared explanation and tool links before JavaScript", async () => {
+  const content = clashDeckContent;
+  const route = siteRoutes("cr").find((entry) => entry.path === "/decks");
+  assert.equal(route?.title, content.title);
+  assert.equal(route?.description, content.description);
+  const html = await sitePageDocument("cr", "/decks");
+  assert.ok(html);
+  assert.equal((html.match(/<h1>/g) ?? []).length, 1);
+  assert.ok(html.includes(`<h1>${escapeHtml(content.heading)}</h1>`));
+  for (const copy of [content.intro, ...content.steps.map((step) => step.copy), ...content.questions.map((item) => item.answer)]) {
+    assert.ok(html.includes(escapeHtml(copy)));
+  }
+  for (const link of content.links) {
+    assert.ok(resolveSiteRoute("cr", link.path.split("?")[0] ?? link.path));
+    assert.ok(html.includes(`<a href="${link.path}">${escapeHtml(link.label)}</a>`));
+  }
+  assert.ok(html.includes('<link rel="canonical" href="https://cr.statsconnect.app/decks" />'));
+  assert.ok(html.includes("This explanation does not establish any current deck win rates."));
 });
 
 test("profile views are noindex while keeping their links crawlable", () => {

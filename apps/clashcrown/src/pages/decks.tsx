@@ -5,6 +5,8 @@ import { useAction } from "convex/react";
 import Head from "@/components/Head";
 import { DeckBuilder } from "@/components/decks/DeckBuilder";
 import { DeckDiscovery } from "@/components/decks/DeckDiscovery";
+import { DeckHelp } from "@/components/decks/DeckHelp";
+import { clashDeckContent } from "../../../../shared/clash-deck-content";
 import { ArenaRouteHero } from "@/components/portfolio/ArenaRouteHero";
 import { Layout } from "@/components/portfolio/Layout";
 import { mapCardsPayload } from "@/lib/clash/mappers";
@@ -90,7 +92,7 @@ function DeckExperienceShell({ surface, setSurface, children }: { surface: DeckS
   const { locale, t } = useI18n();
   return (
     <Layout>
-      <Head><title>{locale === "es" ? "Descubrimiento y creador de mazos" : "Deck Discovery & Builder"} | StatsConnect · Clash Royale statistics</title><meta name="description" content={locale === "es" ? "Encuentra mazos observados, personaliza recomendaciones y crea conjuntos de guerra." : "Find observed Clash Royale decks, personalize recommendations from a player tag, build war sets, and copy decks into the game."} /><link rel="canonical" href="/decks" /></Head>
+      <Head><title>{locale === "es" ? "Descubrimiento y creador de mazos · StatsConnect" : clashDeckContent.title}</title><meta name="description" content={locale === "es" ? "Encuentra mazos observados, personaliza recomendaciones y crea conjuntos de guerra." : clashDeckContent.description} /><link rel="canonical" href="/decks" /></Head>
       <div className="decks-page discovery-page">
         <ArenaRouteHero
           title={locale === "es" ? "Encuentra un mazo que encaje" : "Find a deck that fits"}
@@ -103,7 +105,9 @@ function DeckExperienceShell({ surface, setSurface, children }: { surface: DeckS
             </div>
           }
         />
+        <p lang="en"><a href="#deck-help-title" className="breadcrumb">How to choose a Clash Royale deck</a></p>
         <div role="tabpanel">{children}</div>
+        <DeckHelp />
         {surface !== "builder" ? (
           <AdSenseUnit
             clientId={import.meta.env.VITE_ADSENSE_CLIENT_ID}
