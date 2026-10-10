@@ -219,21 +219,22 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 0 8px;
-  border: 1px solid rgba(230, 226, 244, .13);
+  padding: 0 9px;
+  /* Flat like the site tabs beside it; the hover tint is the only chrome. */
+  border: 0;
   border-radius: 8px;
   color: var(--sc-nav-muted);
-  background: rgba(255, 255, 255, .035);
+  background: transparent;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: .04em;
   cursor: pointer;
+  transition: color .18s ease, background .18s ease;
 }
 
 .sc-nav__language:hover,
 .sc-nav__language:focus-within {
   color: var(--sc-nav-text);
-  border-color: color-mix(in srgb, var(--sc-nav-accent) 48%, transparent);
   background: rgba(255, 255, 255, .06);
 }
 
@@ -402,15 +403,17 @@
 .sc-nav__account {
   height: 30px;
   max-width: 190px;
-  padding: 3px 8px 3px 3px;
+  padding: 0 10px 0 4px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   overflow: hidden;
-  border: 1px solid rgba(230, 226, 244, .13);
-  border-radius: 999px;
-  color: var(--sc-nav-text);
-  background: rgba(255, 255, 255, .035);
+  border-radius: 8px;
+  color: var(--sc-nav-muted);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color .18s ease, background .18s ease;
 }
 .sc-nav__account-menu { position: relative; }
 .sc-nav__account-menu > summary { list-style: none; cursor: pointer; }
@@ -452,7 +455,8 @@
 .sc-nav__sign-in { height: 30px; padding: 0 10px; white-space: nowrap; }
 .sc-nav__account-popover button:hover,
 .sc-nav__sign-in:hover { background: color-mix(in srgb, var(--sc-nav-accent) 22%, transparent); }
-.sc-nav__account:hover { border-color: color-mix(in srgb, var(--sc-nav-accent) 48%, transparent); background: rgba(255, 255, 255, .06); }
+.sc-nav__account:hover,
+.sc-nav__account-menu[open] > .sc-nav__account { color: var(--sc-nav-text); background: rgba(255, 255, 255, .06); }
 .sc-nav__account > img,
 .sc-nav__account > span:first-child {
   width: 22px;
@@ -470,7 +474,7 @@
 .sc-nav__account-copy { min-width: 0; }
 .sc-nav__account-copy strong,
 .sc-nav__account-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sc-nav__account-copy strong { font-size: 13px; line-height: 1.1; }
+.sc-nav__account-copy strong { font: inherit; line-height: 1.1; }
 .sc-nav__account-copy small { margin-top: 2px; color: var(--sc-nav-muted); font-size: 12px; line-height: 1.1; }
 
 .sc-nav__search { min-width: 220px; max-width: 360px; margin-left: auto; flex: 1 1 320px; }
@@ -979,6 +983,8 @@
     border-radius: 8px;
     font-size: 14px;
   }
+  .sc-nav__mobile-tools .sc-nav__account,
+  .sc-nav__mobile-tools .sc-nav__language { background: rgba(255, 255, 255, .045); }
   .sc-nav__mobile-tools .sc-nav__account-copy { display: block; }
   .sc-nav__mobile-tools .sc-nav__account > img,
   .sc-nav__mobile-tools .sc-nav__account > span:first-child { width: 30px; height: 30px; }

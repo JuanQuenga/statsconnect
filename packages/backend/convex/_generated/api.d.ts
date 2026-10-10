@@ -62,6 +62,7 @@ import type * as hub_adapters_types from "../hub/adapters/types.js";
 import type * as hub_auth from "../hub/auth.js";
 import type * as hub_billing_adapter from "../hub/billing/adapter.js";
 import type * as hub_cacheAccess from "../hub/cacheAccess.js";
+import type * as hub_feedback from "../hub/feedback.js";
 import type * as hub_internal_authMigration from "../hub/internal/authMigration.js";
 import type * as hub_internal_connectThrottle from "../hub/internal/connectThrottle.js";
 import type * as hub_internal_entitlements from "../hub/internal/entitlements.js";
@@ -136,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "hub/auth": typeof hub_auth;
   "hub/billing/adapter": typeof hub_billing_adapter;
   "hub/cacheAccess": typeof hub_cacheAccess;
+  "hub/feedback": typeof hub_feedback;
   "hub/internal/authMigration": typeof hub_internal_authMigration;
   "hub/internal/connectThrottle": typeof hub_internal_connectThrottle;
   "hub/internal/entitlements": typeof hub_internal_entitlements;
