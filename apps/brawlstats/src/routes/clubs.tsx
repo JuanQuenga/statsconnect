@@ -4,6 +4,7 @@ import {
   Activity,
   Clock3,
   Download,
+  Share2,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
@@ -30,6 +31,7 @@ import { clubBadgeUrl, profileIconUrl } from "@/lib/artwork";
 import { brawlData } from "@/lib/game-data";
 import { normalizeTag, readableMode, trophies } from "@/lib/format";
 import { routePath } from "@/lib/paths";
+import { shareContent } from "@/lib/share";
 import type {
   ClubActivityEvent,
   ClubActivityType,
@@ -291,7 +293,10 @@ function ClubsPage() {
                   <h2 className="font-display text-4xl">{club.name}</h2>
                   <p className="text-muted-foreground">{club.tag} · {readableMode(club.type || "unknown")}</p>
                 </div>
-                {history?.trackedSinceAt ? <Badge variant="outline"><Clock3 /> {t("club.trackingSince", { date: date(history.trackedSinceAt) })}</Badge> : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {history?.trackedSinceAt ? <Badge variant="outline"><Clock3 /> {t("club.trackingSince", { date: date(history.trackedSinceAt) })}</Badge> : null}
+                  <ClubShareButton name={club.name} tag={club.tag} t={t} />
+                </div>
               </div>
               <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{club.description || t("club.noDescription")}</p>
               <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 lg:grid-cols-4">
@@ -380,4 +385,19 @@ function ClubsPage() {
       <CommunityActivity data={communityQuery.data} />
     </div>
   );
+}
+
+/** Club leaders share one link in Discord and the whole roster lands here. */
+function ClubShareButton({ name, tag, t }: { name: string; tag: string; t: Translator }) {
+  const [label, setLabel] = useState<string | null>(null);
+  async function share() {
+    try {
+      const result = await shareContent({ title: `${name} · StatsConnect Brawl Stars`, text: `${name} (${tag})`, url: window.location.href });
+      setLabel(result === "copied" ? t("profile.linkCopied") : t("profile.shared"));
+    } catch {
+      setLabel(t("profile.notShared"));
+    }
+    window.setTimeout(() => setLabel(null), 1800);
+  }
+  return <Button type="button" size="sm" variant="outline" onClick={() => void share()}><Share2 /> {label || t("common.share")}</Button>;
 }

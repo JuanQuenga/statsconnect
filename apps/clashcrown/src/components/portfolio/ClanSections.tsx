@@ -1,6 +1,7 @@
 import Image from "@/components/Image";
 import Link from "@/components/Link";
-import { RefreshCcw, Settings2, Swords, User } from "lucide-react";
+import { useState } from "react";
+import { RefreshCcw, Settings2, Share2, Swords, User } from "lucide-react";
 import { RankCell } from "@/components/portfolio/DataTable";
 import { ArenaHeroFrame } from "@/components/portfolio/ArenaRouteHero";
 import { relativeTime } from "@/lib/clash/format";
@@ -33,6 +34,7 @@ export function ClanProfile({ clan }: { clan: Clan }) {
             <Settings2 size={17} /> Leader workspace
           </Link>
         ) : null}
+        <ClanShareButton clan={clan} spanish={locale === "es"} />
       </div>
     </ArenaHeroFrame>
   );
@@ -97,6 +99,35 @@ export function MemberTable({ clan, onRefresh, isRefreshing }: { clan: Clan; onR
       </div>
       <p className="table-note">{locale === "es" ? `Mostrando los ${clan.members.length} miembros devueltos por la API de clanes en vivo.` : `Showing all ${clan.members.length} members returned by the live clan API.`}</p>
     </section>
+  );
+}
+
+/** Clan leaders share one link in Discord and the whole roster lands here. */
+function ClanShareButton({ clan, spanish }: { clan: Clan; spanish: boolean }) {
+  const [label, setLabel] = useState<string | null>(null);
+  async function share() {
+    // Share the clan page itself, from whichever clan subpage this hero is on.
+    const link = new URL(window.location.href);
+    link.pathname = link.pathname.replace(/\/(war|manage)\/?$/, "");
+    link.search = ""; link.hash = "";
+    const url = link.toString();
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${clan.name} · StatsConnect Clash Royale`, text: `${clan.name} (#${clan.tag})`, url });
+        setLabel(spanish ? "Compartido" : "Shared");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setLabel(spanish ? "Enlace copiado" : "Link copied");
+      }
+    } catch {
+      setLabel(spanish ? "No compartido" : "Not shared");
+    }
+    window.setTimeout(() => setLabel(null), 1800);
+  }
+  return (
+    <button type="button" className="management-button management-button-muted" onClick={() => void share()}>
+      <Share2 size={17} /> {label ?? (spanish ? "Compartir clan" : "Share clan")}
+    </button>
   );
 }
 

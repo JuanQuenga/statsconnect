@@ -200,6 +200,10 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   assert.deepEqual(vercel.rewrites, [
     { source: "/api/profile-image", destination: "/api/profile-image" },
     { source: "/api/profile-preview", destination: "/api/profile-preview" },
+    { source: "/api/club-preview", destination: "/api/club-preview" },
+    // Only the tag alphabet matches, so /clans/search keeps its site-shell rewrite.
+    { source: "/clans/:tag([0289PYLQGRJCUVpylqgrjcuv]{3,15})", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/api/club-preview?game=cr&tag=:tag" },
+    { source: "/clubs", has: [{ type: "host", value: "bs.statsconnect.app" }, { type: "query", key: "tag", value: "(?:#|%23)?(?<clubTag>[0-9A-Za-z]{3,15})" }], destination: "/api/club-preview?game=bs&tag=:clubTag" },
     { source: "/players/:tag", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/api/profile-preview?game=cr&tag=:tag" },
     { source: "/players", has: [{ type: "host", value: "bs.statsconnect.app" }, { type: "query", key: "tag", value: "(?:#|%23)?(?<playerTag>[0-9A-Za-z]{3,15})" }], destination: "/api/profile-preview?game=bs&tag=:playerTag" },
     { source: "/cr/players/:tag", destination: "/api/profile-preview?game=cr&tag=:tag" },
