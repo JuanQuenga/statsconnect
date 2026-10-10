@@ -179,8 +179,8 @@ export const brawlRoutes: readonly StaticRoute[] = [
   },
   {
     path: "/brawlers",
-    title: "Brawl Stars brawlers · StatsConnect",
-    description: "Browse every Brawl Stars brawler with stats, ranks, and live map performance.",
+    title: "All Brawl Stars brawlers: best maps & counters · StatsConnect",
+    description: "Browse every Brawl Stars brawler, then open one for its best and worst maps, counters, teammates, gadgets, and Star Powers from observed battle logs.",
   },
   {
     path: "/maps",
@@ -211,6 +211,13 @@ export function siteRoutes(site: SiteId): readonly StaticRoute[] {
   if (site === "bs") return brawlRoutes;
   return hubRoutes;
 }
+
+/** Sitemaps served live by a function (catalog-driven pages), advertised in robots.txt. */
+export const dynamicSitemapPaths: Readonly<Record<SiteId, readonly string[]>> = {
+  bs: ["/sitemap-brawlers.xml"],
+  cr: [],
+  hub: [],
+};
 
 /** Paths kept out of search indexes and sitemaps on every host. */
 export const robotsExcludedPaths: readonly string[] = ["/api", "/beta", "/settings"];

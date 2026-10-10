@@ -35,21 +35,7 @@ export function sitePageParts(game: string | null, route: string | null): SitePa
   const { path, route: staticRoute, site } = resolved;
   const url = `${siteOrigin(site)}${path}`;
 
-  const tags = [
-    `<title>${escapeHtml(staticRoute.title)}</title>`,
-    `<meta name="description" content="${escapeHtml(staticRoute.description)}" />`,
-    `<link rel="canonical" href="${escapeHtml(url)}" />`,
-    `<meta property="og:type" content="website" />`,
-    `<meta property="og:site_name" content="StatsConnect" />`,
-    `<meta property="og:title" content="${escapeHtml(staticRoute.title)}" />`,
-    `<meta property="og:description" content="${escapeHtml(staticRoute.description)}" />`,
-    `<meta property="og:url" content="${escapeHtml(url)}" />`,
-    `<meta property="og:image" content="https://statsconnect.app/og.png" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${escapeHtml(staticRoute.title)}" />`,
-    `<meta name="twitter:description" content="${escapeHtml(staticRoute.description)}" />`,
-    `<meta name="twitter:image" content="https://statsconnect.app/og.png" />`,
-  ];
+  const tags = pageHeadTags(staticRoute.title, staticRoute.description, url);
 
   const brawlContent = site === "bs"
     ? path === "/maps" ? brawlPageContent.maps : path === "/meta" ? brawlPageContent.meta : undefined
@@ -58,6 +44,25 @@ export function sitePageParts(game: string | null, route: string | null): SitePa
     : site === "cr" && path === "/decks" ? researchStaticBody(clashDeckContent, "Clash Royale")
     : undefined;
   return { body, tags };
+}
+
+/** Title, description, canonical, and social tags shared by every crawler document. */
+export function pageHeadTags(title: string, description: string, url: string): string[] {
+  return [
+    `<title>${escapeHtml(title)}</title>`,
+    `<meta name="description" content="${escapeHtml(description)}" />`,
+    `<link rel="canonical" href="${escapeHtml(url)}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="StatsConnect" />`,
+    `<meta property="og:title" content="${escapeHtml(title)}" />`,
+    `<meta property="og:description" content="${escapeHtml(description)}" />`,
+    `<meta property="og:url" content="${escapeHtml(url)}" />`,
+    `<meta property="og:image" content="https://statsconnect.app/og.png" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${escapeHtml(title)}" />`,
+    `<meta name="twitter:description" content="${escapeHtml(description)}" />`,
+    `<meta name="twitter:image" content="https://statsconnect.app/og.png" />`,
+  ];
 }
 
 export async function sitePageDocument(game: string | null, route: string | null): Promise<string | undefined> {
@@ -92,7 +97,7 @@ function researchStaticBody(content: BrawlPageContent | typeof clashDeckContent,
 </main>`;
 }
 
-const staticBodyStyles = `
+export const staticBodyStyles = `
 .sc-static{max-width:46rem;margin:0 auto;padding:3rem 1.25rem 4rem;color:#e8e6ef;font:16px/1.7 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 .sc-static h1{font-size:2rem;line-height:1.2;margin:.25rem 0 1rem}
 .sc-static h2{font-size:1.15rem;margin:2rem 0 .5rem;color:#fff}

@@ -58,3 +58,12 @@ export const brawlPageContent: Record<BrawlHelpPage, BrawlPageContent> = {
     ],
   },
 };
+
+/** Title and description for one brawler's page, from catalog fields only. */
+export function brawlerPageCopy(brawler: { name: string; rarity: string; role: string }): { title: string; description: string } {
+  const { name, rarity, role } = brawler;
+  return {
+    title: `${name}: best maps, counters & win rate · Brawl Stars · StatsConnect`,
+    description: `${name} is ${/^[aeiou]/i.test(rarity) ? "an" : "a"} ${rarity} ${role} in Brawl Stars. See ${name}'s best and worst maps, counters, strongest teammates, gadgets, and Star Powers from observed battle logs.`,
+  };
+}

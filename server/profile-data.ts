@@ -32,7 +32,7 @@ export function profileImageUrl(identity: ProfileIdentity): string {
   return url.toString();
 }
 
-async function configuredBackend(): Promise<ProfilePreviewConfiguration> {
+export async function configuredBackend(): Promise<ProfilePreviewConfiguration> {
   const environment = profilePreviewConfiguration(process.env);
   if (environment) return environment;
   try {

@@ -73,7 +73,7 @@ function MapsPage() {
 
   return (
     <div className="page-shell space-y-10">
-      <BrawlPageMetadata page="maps" />
+      <BrawlPageMetadata title={brawlPageContent.maps.title} description={brawlPageContent.maps.description} />
       <div className="page-intro">
         <h1 className="font-display text-4xl md:text-5xl">{t("maps.title")}</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground" lang="en">

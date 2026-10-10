@@ -13,5 +13,5 @@
     "types": ["node", "vite/client"],
     "paths": { "@/*": ["../apps/clashcrown/src/*"] }
   },
-  "include": ["*.ts", "../api/profile-*.ts", "../api/site-shell.ts", "../shared/profile-image-runtime.ts"]
+  "include": ["*.ts", "../api/profile-*.ts", "../api/site-shell.ts", "../api/brawler-sitemap.ts", "../shared/profile-image-runtime.ts"]
 }

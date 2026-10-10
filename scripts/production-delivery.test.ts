@@ -126,7 +126,8 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   assert.equal(vercel.buildCommand, "pnpm build:vercel");
   assert.equal(vercel.outputDirectory, deliveryApps[0]?.outputDirectory);
   assert.equal(vercel.cleanUrls, true);
-  assert.equal(vercel.functions["api/site-shell.ts"]?.includeFiles, "dist/index.html");
+  assert.equal(vercel.functions["api/site-shell.ts"]?.includeFiles, "dist/{index.html,profile-preview-config.json}");
+  assert.equal(vercel.functions["api/brawler-sitemap.ts"]?.includeFiles, "dist/profile-preview-config.json");
 
   assert.deepEqual(vercel.redirects, [
     ...["cr", "bs"].flatMap((game) => [
@@ -185,6 +186,7 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: "/sitemap.xml", has: [{ type: "host", value: "cr.statsconnect.app" }], destination: "/seo/sitemap-cr.xml" },
     { source: "/sitemap.xml", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/seo/sitemap-bs.xml" },
     { source: "/sitemap.xml", destination: "/seo/sitemap-hub.xml" },
+    { source: "/sitemap-brawlers.xml", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/api/brawler-sitemap" },
   ];
   // Derived from the shared route inventory; per-route coverage is audited in
   // seo-files.test.ts, this pins the exact position in the rewrite order.
@@ -204,6 +206,7 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
     { source: "/bs/players", has: [{ type: "query", key: "tag", value: "(?:#|%23)?(?<playerTag>[0-9A-Za-z]{3,15})" }], destination: "/api/profile-preview?game=bs&tag=:playerTag" },
     ...seoFileRewrites,
     ...siteShellRewrites,
+    { source: "/brawlers/:brawlerId(\\d+)", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/api/site-shell?game=bs&route=/brawlers/:brawlerId" },
     { source: "/service-worker.js", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/service-worker.js" },
     { source: "/manifest.webmanifest", has: [{ type: "host", value: "bs.statsconnect.app" }], destination: "/bs/subdomain.webmanifest" },
     ...expectedGameRewrites,

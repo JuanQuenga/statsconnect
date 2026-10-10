@@ -114,7 +114,7 @@ function MetaBoardPage() {
 
   return (
     <div className="page-shell space-y-6 md:space-y-8">
-      <BrawlPageMetadata page="meta" />
+      <BrawlPageMetadata title={brawlPageContent.meta.title} description={brawlPageContent.meta.description} />
       <header className="page-intro">
         <h1 className="font-display text-4xl md:text-5xl">{t("meta.title")}</h1>
         <p className="mt-3 max-w-3xl text-muted-foreground">{t("meta.description")}</p>

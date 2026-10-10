@@ -2754,7 +2754,7 @@ const featureEnglish = {
   "meta.previousPartial": "Previous-period comparison is partial",
   "meta.previousPartialDetail":
     "Deltas include only observed daily rows because coverage or samples are incomplete. Do not interpret them as a complete-period trend.",
-  "meta.title": "Brawl Stars meta board",
+  "meta.title": "Brawl Stars tier list & meta",
   "meta.description": "Who wins, who everyone picks, and what is changing, ranked from official battle logs StatsConnect collects. Filter by trophy range, time window, and game mode, then tap any brawler for maps and matchups.",
   "meta.freshness": "Based on {picks} picks · {start} – {end}, UTC",
   "meta.freshnessEmpty": "No picks recorded for this filter yet",
@@ -3035,7 +3035,7 @@ const esFeature: Record<FeatureTranslationKey, string> = {
   "meta.previousPartial": "La comparación con el período anterior es parcial",
   "meta.previousPartialDetail":
     "Los cambios incluyen solo filas diarias observadas porque faltan cobertura o muestras. No los interpretes como una tendencia completa.",
-  "meta.title": "Tablero del meta de Brawl Stars",
+  "meta.title": "Tier list y meta de Brawl Stars",
   "meta.description": "Quién gana, a quién elige todo el mundo y qué está cambiando, a partir de los registros oficiales de batallas que recopila StatsConnect. Filtra por rango de trofeos, período y modo de juego, y toca cualquier brawler para ver mapas y enfrentamientos.",
   "meta.freshness": "Basado en {picks} selecciones · {start} – {end}, UTC",
   "meta.freshnessEmpty": "Aún no hay selecciones registradas para este filtro",
@@ -3316,7 +3316,7 @@ const deFeature: Record<FeatureTranslationKey, string> = {
   "meta.previousPartial": "Vergleich zum vorherigen Zeitraum ist unvollständig",
   "meta.previousPartialDetail":
     "Änderungen enthalten nur beobachtete Tageszeilen, da Abdeckung oder Stichproben fehlen. Nicht als vollständigen Trend auslegen.",
-  "meta.title": "Brawl Stars Meta-Board",
+  "meta.title": "Brawl Stars Tier-Liste & Meta",
   "meta.description": "Wer gewinnt, wen alle wählen und was sich verändert, ermittelt aus offiziellen Kampfprotokollen, die StatsConnect sammelt. Filtere nach Trophäenbereich, Zeitraum und Spielmodus und tippe auf einen Brawler für Karten und Matchups.",
   "meta.freshness": "Basierend auf {picks} Picks · {start} – {end}, UTC",
   "meta.freshnessEmpty": "Für diesen Filter wurden noch keine Picks erfasst",
@@ -3597,7 +3597,7 @@ const frFeature: Record<FeatureTranslationKey, string> = {
     "La comparaison avec la période précédente est partielle",
   "meta.previousPartialDetail":
     "Les écarts incluent seulement les lignes quotidiennes observées car la couverture ou les échantillons sont incomplets.",
-  "meta.title": "Tableau du méta Brawl Stars",
+  "meta.title": "Tier list et méta Brawl Stars",
   "meta.description": "Qui gagne, qui tout le monde choisit et ce qui change, à partir des journaux de combat officiels collectés par StatsConnect. Filtrez par tranche de trophées, période et mode de jeu, puis touchez un brawler pour voir ses cartes et ses affrontements.",
   "meta.freshness": "Basé sur {picks} sélections · {start} – {end}, UTC",
   "meta.freshnessEmpty": "Aucune sélection enregistrée pour ce filtre",
@@ -3880,7 +3880,7 @@ const ptFeature: Record<FeatureTranslationKey, string> = {
   "meta.previousPartial": "A comparação com o período anterior é parcial",
   "meta.previousPartialDetail":
     "As variações incluem apenas linhas diárias observadas porque cobertura ou amostras estão incompletas.",
-  "meta.title": "Painel do meta de Brawl Stars",
+  "meta.title": "Tier list e meta de Brawl Stars",
   "meta.description": "Quem vence, quem todo mundo escolhe e o que está mudando, a partir dos registros oficiais de batalhas que o StatsConnect coleta. Filtre por faixa de troféus, período e modo de jogo e toque em qualquer brawler para ver mapas e confrontos.",
   "meta.freshness": "Com base em {picks} escolhas · {start} – {end}, UTC",
   "meta.freshnessEmpty": "Ainda não há escolhas registradas para este filtro",
@@ -4159,7 +4159,7 @@ const jaFeature: Record<FeatureTranslationKey, string> = {
   "meta.previousPartial": "前期間との比較は部分的です",
   "meta.previousPartialDetail":
     "追跡範囲またはサンプルが不足しているため、差分は観測済みの日次行のみです。完全な期間トレンドとして解釈しないでください。",
-  "meta.title": "ブロスタ メタボード",
+  "meta.title": "ブロスタ 最強キャラランキング・メタ",
   "meta.description": "勝っているキャラ、みんなが選ぶキャラ、変化しているポイントを、StatsConnectが収集した公式バトルログからランキング化。トロフィー帯・期間・ゲームモードで絞り込み、キャラをタップするとマップと相性を確認できます。",
   "meta.freshness": "{picks} 件のピックに基づく · {start} – {end}（UTC）",
   "meta.freshnessEmpty": "このフィルターではまだピックが記録されていません",
@@ -4435,7 +4435,7 @@ const koFeature: Record<FeatureTranslationKey, string> = {
   "meta.previousPartial": "이전 기간 비교가 일부만 제공됩니다",
   "meta.previousPartialDetail":
     "추적 범위 또는 표본이 부족해 변화량은 관측된 일일 행만 포함합니다. 전체 기간 추세로 해석하지 마세요.",
-  "meta.title": "브롤스타즈 메타 보드",
+  "meta.title": "브롤스타즈 티어 리스트 & 메타",
   "meta.description": "누가 이기고, 누가 가장 많이 선택되며, 무엇이 변하고 있는지 StatsConnect가 수집한 공식 전투 기록으로 정리했습니다. 트로피 구간, 기간, 게임 모드로 필터링하고 브롤러를 눌러 맵과 상성을 확인하세요.",
   "meta.freshness": "{picks}회 선택 기준 · {start} – {end}, UTC",
   "meta.freshnessEmpty": "이 필터에 기록된 선택이 아직 없습니다",

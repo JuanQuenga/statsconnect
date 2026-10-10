@@ -16,6 +16,8 @@ import { routePath } from "@/lib/paths";
 import type { BrawlerMetaResponse, CatalogAbility, MapListItem, MetaDailyPoint, MetaTrendWindow } from "@/lib/types";
 import type { TrophyBucket } from "@/lib/meta";
 import { AdSenseUnit } from "@statsconnect/monetization";
+import { BrawlPageMetadata } from "@/components/BrawlPageMetadata";
+import { brawlerPageCopy } from "../../../../../shared/brawl-page-content";
 
 export const Route = createFileRoute("/brawlers/$brawlerId")({ component: BrawlerDetailPage });
 
@@ -105,6 +107,7 @@ function BrawlerDetailPage() {
       {!loading && !brawler ? <EmptyState title={t("brawler.notFound")} detail={t("brawler.notFoundDetail")} /> : null}
       {brawler ? (
         <>
+          <BrawlPageMetadata {...brawlerPageCopy(brawler)} />
           {/* Character select: rarity-lit stage with the 3D model, name and kit beside it. */}
           <section className="brawler-hero" style={{ "--rarity": brawler.color } as CSSProperties}>
             <div className="brawler-hero-head">

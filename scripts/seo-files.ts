@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { robotsExcludedPaths, siteOrigin, siteRoutes, type SiteId } from "../shared/site-routes.ts";
+import { dynamicSitemapPaths, robotsExcludedPaths, siteOrigin, siteRoutes, type SiteId } from "../shared/site-routes.ts";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -13,7 +13,8 @@ export const seoDirectory = "seo";
  * host — no static file may exist at dist/robots.txt or dist/sitemap.xml.
  */
 export function buildRobotsTxt(site: SiteId): string {
-  const lines = ["User-agent: *", "Allow: /", ...robotsExcludedPaths.map((path) => `Disallow: ${path}`), "", `Sitemap: ${siteOrigin(site)}/sitemap.xml`, ""];
+  const sitemaps = ["/sitemap.xml", ...dynamicSitemapPaths[site]].map((path) => `Sitemap: ${siteOrigin(site)}${path}`);
+  const lines = ["User-agent: *", "Allow: /", ...robotsExcludedPaths.map((path) => `Disallow: ${path}`), "", ...sitemaps, ""];
   return lines.join("\n");
 }
 

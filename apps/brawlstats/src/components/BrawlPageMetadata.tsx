@@ -1,17 +1,17 @@
 import { useEffect } from "react";
-import { brawlPageContent, type BrawlHelpPage } from "../../../../shared/brawl-page-content";
 
 /** Update the shell's existing tags instead of adding a second description. */
-export function BrawlPageMetadata({ page }: { page: BrawlHelpPage }) {
+export function BrawlPageMetadata({ title, description }: { title: string; description: string }) {
   useEffect(() => {
-    const content = brawlPageContent[page];
     const values = [
-      ["name", "description", content.description],
-      ["property", "og:title", content.title],
-      ["property", "og:description", content.description],
-      ["name", "twitter:title", content.title],
-      ["name", "twitter:description", content.description],
+      ["name", "description", description],
+      ["property", "og:title", title],
+      ["property", "og:description", description],
+      ["name", "twitter:title", title],
+      ["name", "twitter:description", description],
     ] as const;
+    const previousTitle = document.title;
+    document.title = title;
     const changes = values.map(([attribute, key, value]) => {
       const existing = document.head.querySelector<HTMLMetaElement>(`meta[${attribute}="${key}"]`);
       const element = existing ?? document.createElement("meta");
@@ -22,12 +22,13 @@ export function BrawlPageMetadata({ page }: { page: BrawlHelpPage }) {
       return { element, existing, previous };
     });
     return () => {
+      document.title = previousTitle;
       for (const { element, existing, previous } of changes) {
         if (!existing) element.remove();
         else if (previous === null) element.removeAttribute("content");
         else element.content = previous;
       }
     };
-  }, [page]);
+  }, [title, description]);
   return null;
 }

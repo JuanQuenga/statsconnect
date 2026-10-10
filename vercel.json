@@ -10,7 +10,11 @@
       "maxDuration": 30
     },
     "api/site-shell.ts": {
-      "includeFiles": "dist/index.html",
+      "includeFiles": "dist/{index.html,profile-preview-config.json}",
+      "maxDuration": 10
+    },
+    "api/brawler-sitemap.ts": {
+      "includeFiles": "dist/profile-preview-config.json",
       "maxDuration": 10
     },
     "api/profile-image.ts": {
@@ -144,6 +148,7 @@
     { "source": "/sitemap.xml", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/seo/sitemap-cr.xml" },
     { "source": "/sitemap.xml", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/seo/sitemap-bs.xml" },
     { "source": "/sitemap.xml", "destination": "/seo/sitemap-hub.xml" },
+    { "source": "/sitemap-brawlers.xml", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/brawler-sitemap" },
     { "source": "/", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2F" },
     { "source": "/leaderboards", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fleaderboards" },
     { "source": "/meta", "has": [{ "type": "host", "value": "cr.statsconnect.app" }], "destination": "/api/site-shell?game=cr&route=%2Fmeta" },
@@ -163,6 +168,7 @@
     { "source": "/clubs", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/site-shell?game=bs&route=%2Fclubs" },
     { "source": "/progression", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/site-shell?game=bs&route=%2Fprogression" },
     { "source": "/assistant", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/site-shell?game=bs&route=%2Fassistant" },
+    { "source": "/brawlers/:brawlerId(\\d+)", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/api/site-shell?game=bs&route=/brawlers/:brawlerId" },
     { "source": "/service-worker.js", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/bs/service-worker.js" },
     { "source": "/manifest.webmanifest", "has": [{ "type": "host", "value": "bs.statsconnect.app" }], "destination": "/bs/subdomain.webmanifest" },
     { "source": "/bs", "destination": "/" },

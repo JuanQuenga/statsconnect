@@ -35,7 +35,7 @@ test("robots files allow crawling except the shared exclusions and advertise the
     for (const excluded of robotsExcludedPaths) {
       assert.equal(robots.includes(`Disallow: ${excluded}\n`), true, `${site} ${excluded}`);
     }
-    assert.equal(robots.endsWith(`Sitemap: ${siteOrigin(site)}/sitemap.xml\n`), true, site);
+    assert.equal(robots.includes(`\nSitemap: ${siteOrigin(site)}/sitemap.xml\n`), true, site);
   }
 });
 
