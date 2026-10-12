@@ -18,7 +18,7 @@ import {
   writeProfilePreviewConfiguration,
 } from "./production-delivery.ts";
 import { profilePreviewConfigPath } from "../shared/profile-preview-config.ts";
-import { siteRoutes } from "../shared/site-routes.ts";
+import { siteOrigin, siteShellRoutes } from "../shared/site-routes.ts";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -190,10 +190,10 @@ test("the root Vercel Adapter matches the executable delivery topology", async (
   ];
   // Derived from the shared route inventory; per-route coverage is audited in
   // seo-files.test.ts, this pins the exact position in the rewrite order.
-  const siteShellRewrites = (["cr", "bs"] as const).flatMap((site) =>
-    siteRoutes(site).map((route) => ({
+  const siteShellRewrites = (["cr", "bs", "hub"] as const).flatMap((site) =>
+    siteShellRoutes(site).map((route) => ({
       source: route.path,
-      has: [{ type: "host", value: `${site}.statsconnect.app` }],
+      has: [{ type: "host", value: new URL(siteOrigin(site)).host }],
       destination: `/api/site-shell?game=${site}&route=${encodeURIComponent(route.path)}`,
     })),
   );

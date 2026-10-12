@@ -1,4 +1,4 @@
-import { siteOrigin, siteRoutes, type SiteId, type StaticRoute } from "../shared/site-routes.ts";
+import { siteOrigin, siteShellRoutes, type SiteId, type StaticRoute } from "../shared/site-routes.ts";
 import { applicationShell, escapeHtml, injectDocumentHead } from "./profile-metadata.ts";
 import { brawlPageContent, type BrawlPageContent } from "../shared/brawl-page-content.ts";
 import { clashDeckContent } from "../shared/clash-deck-content.ts";
@@ -15,16 +15,16 @@ export function resolveSiteRoute(
   game: string | null,
   route: string | null,
 ): { path: string; route: StaticRoute; site: SiteId } | undefined {
-  if (game !== "cr" && game !== "bs") return undefined;
+  if (game !== "cr" && game !== "bs" && game !== "hub") return undefined;
   const normalized = normalizeRoutePath(route ?? "/");
-  const match = siteRoutes(game).find((candidate) => candidate.path === normalized);
+  const match = siteShellRoutes(game).find((candidate) => candidate.path === normalized);
   if (!match) return undefined;
   return { path: normalized, route: match, site: game };
 }
 
 /**
- * Head metadata for a known Game Site route, plus static body HTML for the
- * Brawl research pages and Clash deck discovery so readers see editorial
+ * Head metadata for a known site-shell route, plus static body HTML for Hub
+ * routes, the Brawl research pages, and Clash deck discovery so readers see
  * content before JavaScript loads. The mounted application replaces this content on hydration — it is the same
  * content the interactive page renders, never a different document.
  */
@@ -42,6 +42,7 @@ export function sitePageParts(game: string | null, route: string | null): SitePa
     : undefined;
   const body = brawlContent ? researchStaticBody(brawlContent, "Brawl Stars")
     : site === "cr" && path === "/decks" ? researchStaticBody(clashDeckContent, "Clash Royale")
+    : site === "hub" ? hubStaticBody(staticRoute)
     : undefined;
   return { body, tags };
 }
@@ -77,6 +78,33 @@ export function injectStaticBody(shell: string, body: string): string {
   const root = '<div id="root"></div>';
   if (!shell.includes(root)) return shell;
   return shell.replace(root, `<div id="root">${body}</div>`);
+}
+
+const hubLinks = [
+  { label: "Connect Clash Royale", path: "/connect/clash-royale" },
+  { label: "Connect Brawl Stars", path: "/connect/brawl-stars" },
+  { label: "Clash Royale statistics", path: `${siteOrigin("cr")}/` },
+  { label: "Brawl Stars statistics", path: `${siteOrigin("bs")}/` },
+  { label: "About", path: "/about" },
+  { label: "FAQ", path: "/faq" },
+  { label: "Data & methodology", path: "/data-methodology" },
+  { label: "Privacy", path: "/privacy" },
+] as const;
+
+function hubStaticBody(route: StaticRoute): string {
+  const heading = route.title.replace(/ · StatsConnect$/, "");
+  const links = hubLinks
+    .filter((link) => link.path !== route.path)
+    .map((link) => `<a href="${escapeHtml(link.path)}">${escapeHtml(link.label)}</a>`)
+    .join(" ");
+  return `
+<style>${staticBodyStyles}</style>
+<main class="sc-static" lang="en">
+  <p class="sc-static__eyebrow">StatsConnect</p>
+  <h1>${escapeHtml(heading)}</h1>
+  <p class="sc-static__summary">${escapeHtml(route.description)}</p>
+  <nav aria-label="StatsConnect">${links}</nav>
+</main>`;
 }
 
 function researchStaticBody(content: BrawlPageContent | typeof clashDeckContent, game: "Brawl Stars" | "Clash Royale"): string {

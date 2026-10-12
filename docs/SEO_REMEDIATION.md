@@ -24,6 +24,14 @@ deliberately **not** part of it.
 - `vercel.json` — host-conditioned rewrites route 15 Clash Royale and 9 Brawl Stars
   content URLs (`/`, `/leaderboards`, `/meta`, `/players`, guides, …) to the site
   shell. The tagged `/players?tag=` profile rewrite still wins by order.
+  Hub `/connect`, `/connect/<game>`, and `/privacy` rewrite to the shell on the
+  apex host too, so every sitemap URL carries its own canonical instead of the
+  Hub home's.
+- `middleware.ts` — rewrites run after the filesystem, so `/` always resolves to
+  the static `dist/index.html` (canonical `https://statsconnect.app/`) and its
+  vercel.json host rules never apply. Routing Middleware matching only `/`
+  308-redirects `www.statsconnect.app` and `stats.juanquenga.com` to the apex and
+  rewrites the `cr`/`bs` homes to the site shell.
 - `shared/site-routes.ts` — single source of truth for every public URL, its title
   and description. Import-free so scripts and server code can both use it.
 

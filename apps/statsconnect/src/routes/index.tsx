@@ -88,12 +88,12 @@ function LandingPage({
         <div className="hub-explore">
           <h3>What you can explore</h3>
           <p>
-            In <Link to="/games/$game" params={{ game: "clash-royale" }}>Clash Royale</Link>: global and regional
+            In <Link to="/connect/$game" params={{ game: "clash-royale" }}>Clash Royale</Link>: global and regional
             leaderboards, a meta report built from real public battle logs with the sample sizes shown, deck discovery
             and war-set building, the full card library, clan search, and official news.
           </p>
           <p>
-            In <Link to="/games/$game" params={{ game: "brawl-stars" }}>Brawl Stars</Link>: player and club lookup,
+            In <Link to="/connect/$game" params={{ game: "brawl-stars" }}>Brawl Stars</Link>: player and club lookup,
             official trophy leaderboards, the live map and event rotation, map-by-map meta with date windows and
             confidence floors, a progression planner for Power Points and coins, and a map assistant that suggests picks
             from live data.

@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { buildRobotsTxt, buildSitemapXml, seoDirectory, writeSeoFiles } from "./seo-files.ts";
-import { hubRoutes, robotsExcludedPaths, siteOrigin, siteRoutes, type SiteId } from "../shared/site-routes.ts";
+import { hubDocumentPaths, hubRoutes, robotsExcludedPaths, siteOrigin, siteRoutes, siteShellRoutes, type SiteId } from "../shared/site-routes.ts";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -17,6 +17,7 @@ type VercelRewrite = {
 
 type VercelConfiguration = {
   cleanUrls: boolean;
+  redirects: Array<{ source: string }>;
   rewrites: VercelRewrite[];
 };
 
@@ -50,6 +51,18 @@ test("sitemaps list every inventory route exactly once and omit retired guides",
   assert.equal(buildSitemapXml("cr").includes("/guides"), false);
 });
 
+test("sitemap URLs are final URLs: no trailing slash, .html, client launcher, or vercel.json redirect", async () => {
+  const redirectSources = new Set((await readVercelConfiguration()).redirects.map((redirect) => redirect.source));
+  for (const site of ["hub", "cr", "bs"] as const) {
+    for (const { path: routePath } of siteRoutes(site)) {
+      assert.equal(routePath !== "/" && routePath.endsWith("/"), false, `${site}${routePath} trailing slash`);
+      assert.equal(routePath.endsWith(".html"), false, `${site}${routePath} .html`);
+      assert.equal(/^\/(?:games|launch|cr|bs)(?:\/|$)/.test(routePath), false, `${site}${routePath} redirects`);
+      assert.equal(redirectSources.has(routePath), false, `${site}${routePath} is a redirect source`);
+    }
+  }
+});
+
 test("the unified build writes one robots and sitemap variant per host and no shadowing files", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "statsconnect-seo-"));
   context.after(() => rm(root, { force: true, recursive: true }));
@@ -72,12 +85,17 @@ test("the unified build writes one robots and sitemap variant per host and no sh
 test("vercel.json serves every inventory route through the cached site shell per host", async () => {
   const vercel = await readVercelConfiguration();
   assert.equal(vercel.cleanUrls, true);
-  for (const site of ["cr", "bs"] as const) {
-    for (const route of siteRoutes(site)) {
+  // Every Hub route is the shell home, a static document page, or a site-shell route.
+  assert.deepEqual(
+    hubRoutes.map((route) => route.path).filter((routePath) => routePath !== "/" && !hubDocumentPaths.includes(routePath)),
+    siteShellRoutes("hub").map((route) => route.path),
+  );
+  for (const site of ["cr", "bs", "hub"] as const) {
+    for (const route of siteShellRoutes(site)) {
       const match = vercel.rewrites.find((rewrite) =>
         rewrite.source === route.path
         && rewrite.destination === `/api/site-shell?game=${site}&route=${encodeURIComponent(route.path)}`
-        && rewrite.has?.some((condition) => condition.type === "host" && condition.value === `${site}.statsconnect.app`),
+        && rewrite.has?.some((condition) => condition.type === "host" && condition.value === new URL(siteOrigin(site)).host),
       );
       assert.ok(match, `${site}${route.path} is missing its site-shell rewrite`);
     }
@@ -112,13 +130,7 @@ test("per-host robots and sitemap rewrites point at the generated variants with 
   }
 });
 
-const hubDocumentPages: ReadonlyArray<{ file: string; path: string }> = [
-  { file: "about.html", path: "/about" },
-  { file: "contact.html", path: "/contact" },
-  { file: "data-methodology.html", path: "/data-methodology" },
-  { file: "faq.html", path: "/faq" },
-  { file: "terms.html", path: "/terms" },
-];
+const hubDocumentPages = hubDocumentPaths.map((documentPath) => ({ file: `${documentPath.slice(1)}.html`, path: documentPath }));
 
 test("hub document pages carry the exact inventory titles, descriptions, and canonical URLs", async () => {
   for (const page of hubDocumentPages) {

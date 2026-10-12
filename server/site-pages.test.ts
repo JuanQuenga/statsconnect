@@ -13,7 +13,7 @@ import {
   sitePageDocument,
   sitePageParts,
 } from "./site-pages.ts";
-import { siteRoutes } from "../shared/site-routes.ts";
+import { siteRoutes, siteShellRoutes } from "../shared/site-routes.ts";
 import { brawlPageContent } from "../shared/brawl-page-content.ts";
 import { escapeHtml } from "./profile-metadata.ts";
 import { clashDeckContent } from "../shared/clash-deck-content.ts";
@@ -32,8 +32,11 @@ after(async () => {
   await rm(fixtureRoot, { recursive: true, force: true });
 });
 
-test("route resolution normalizes paths and rejects hub, unknown, and unlisted routes", () => {
-  assert.equal(resolveSiteRoute("hub", "/"), undefined);
+test("route resolution normalizes paths and rejects static hub pages, unknown, and unlisted routes", () => {
+  assert.equal(resolveSiteRoute("hub", "/"), undefined, "the Hub home is the static shell");
+  assert.equal(resolveSiteRoute("hub", "/about"), undefined, "Hub document pages are static files");
+  assert.equal(resolveSiteRoute("hub", "/games/clash-royale"), undefined, "launchers are not indexable");
+  assert.equal(resolveSiteRoute("hub", "/connect/")?.path, "/connect");
   assert.equal(resolveSiteRoute("cr", null)?.path, "/");
   assert.equal(resolveSiteRoute("cr", "leaderboards")?.path, "/leaderboards");
   assert.equal(resolveSiteRoute("bs", "/clubs/")?.path, "/clubs");
@@ -57,6 +60,22 @@ test("known routes receive crawler metadata with inventory copy, canonical URLs,
   // Ampersands in copy are escaped for raw HTML.
   assert.equal(sitePageParts("cr", "/decks")?.tags[0]?.includes("decks &amp; deck builder"), true);
   assert.equal(sitePageParts("hub", "/"), undefined);
+});
+
+test("Hub shell routes canonicalize to themselves instead of the Hub home", async () => {
+  const hubShellRoutes = siteShellRoutes("hub");
+  assert.deepEqual(hubShellRoutes.map((route) => route.path), ["/connect", "/connect/clash-royale", "/connect/brawl-stars", "/privacy"]);
+  for (const route of hubShellRoutes) {
+    const html = await sitePageDocument("hub", route.path);
+    assert.ok(html, route.path);
+    assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]+)" \/>/g)].map((match) => match[1]), [`https://statsconnect.app${route.path}`]);
+    assert.equal((html.match(/<title>/g) ?? []).length, 1, route.path);
+    assert.ok(html.includes(`<title>${escapeHtml(route.title)}</title>`), route.path);
+    assert.ok(html.includes(`<meta name="description" content="${escapeHtml(route.description)}" />`), route.path);
+    assert.ok(html.includes(`<h1>${escapeHtml(route.title.replace(/ · StatsConnect$/, ""))}</h1>`), route.path);
+    assert.equal(html.includes(`<a href="${route.path}">`), false, `${route.path} does not link to itself`);
+    assert.ok(html.includes('<a href="https://cr.statsconnect.app/">'), route.path);
+  }
 });
 
 test("routes without editorial copy keep the plain mounting point", async () => {
