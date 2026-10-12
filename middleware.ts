@@ -8,7 +8,7 @@ import { siteOrigin } from "./shared/site-routes.ts";
  * just that one path: compatibility hosts redirect to the apex, and Game Site
  * homes get their own crawler document instead of the Hub's canonical.
  */
-export const config = { matcher: "/" };
+export const config = { matcher: "/", runtime: "nodejs" };
 
 const apexRedirectHosts = new Set(["www.statsconnect.app", "stats.juanquenga.com"]);
 
