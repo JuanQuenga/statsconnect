@@ -248,7 +248,7 @@ function PlayerChoice({
       onMouseDown={onChoose}
       className={cn("h-auto w-full justify-start gap-3 rounded-none px-3 py-2.5 text-left hover:bg-secondary", active && "bg-secondary")}
     >
-      <img src={profileIconUrl(player.iconId)} alt="" className="size-9 rounded-lg" />
+      <img src={profileIconUrl(player.iconId)} alt="" className="size-9 object-contain" />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-display text-sm">{player.name}</span>
         <span className="block truncate text-xs text-muted-foreground">

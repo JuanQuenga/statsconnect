@@ -232,7 +232,7 @@ function PlayerProfilePage({
                 <img
                   src={profileIconUrl(player.icon?.id)}
                   alt=""
-                  className="relative size-20 rounded-2xl border border-white/20 bg-card object-cover shadow-2xl sm:size-28"
+                  className="relative size-20 object-contain drop-shadow-2xl sm:size-28"
                 />
                 <span className="absolute -right-2 -bottom-2 grid size-8 place-items-center rounded-full border-2 border-background bg-primary font-display text-sm text-primary-foreground">
                   {player.expLevel}
@@ -734,7 +734,7 @@ function PlayerResults({ query, results }: { query: string; results: PlayerSearc
             search={{ tag: `#${player.tag}` }}
             className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition hover:border-accent/60"
           >
-            <img src={profileIconUrl(player.iconId)} alt="" className="size-12 rounded-xl" />
+            <img src={profileIconUrl(player.iconId)} alt="" className="size-12 object-contain" />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-display">{player.name}</span>
               <span className="block text-xs text-muted-foreground">#{player.tag} · {player.clubName || t("common.noTrackedClub")}</span>

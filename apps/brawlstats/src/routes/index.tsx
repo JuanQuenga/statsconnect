@@ -150,7 +150,7 @@ function HomePage() {
                   <RankRow
                     key={player.tag}
                     rank={index + 1}
-                    icon={<img src={profileIconUrl(player.icon?.id)} alt="" className="size-10 rounded-lg border-2 border-[var(--ink)]" />}
+                    icon={<img src={profileIconUrl(player.icon?.id)} alt="" className="size-10 object-contain" />}
                     name={<Link to="/players" search={{ tag: player.tag }} className="after:absolute after:inset-0 hover:text-primary">{player.name}</Link>}
                     detail={player.club?.name || t("common.noClub")}
                     value={trophies(player.trophies)}

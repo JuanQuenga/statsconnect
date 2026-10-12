@@ -171,7 +171,7 @@ function RankingTable({
             <TableRow key={row.key} className="relative">
               <TableCell className="game-rank w-10 px-3 text-muted-foreground">{row.rank}</TableCell>
               <TableCell className="w-12 px-0">
-                <img src={row.icon} alt="" className="size-8 rounded-full object-cover" />
+                <img src={row.icon} alt="" className="size-8 object-contain" />
               </TableCell>
               <TableCell className="max-w-40 overflow-hidden sm:max-w-none">
                 <a href={routePath(row.href)} className="game-label block truncate after:absolute after:inset-0 hover:text-primary">

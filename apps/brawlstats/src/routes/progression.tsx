@@ -73,7 +73,7 @@ function ProgressionPage() {
       {player ? (
         <>
           <Card className="grid items-center gap-5 p-6 py-6 md:grid-cols-[auto_1fr_auto]">
-            <img src={profileIconUrl(player.icon?.id)} alt="" className="size-24 rounded-xl border border-border" />
+            <img src={profileIconUrl(player.icon?.id)} alt="" className="size-24 object-contain" />
             <div><p className="text-[0.8125rem] font-semibold text-muted-foreground">{t("player.liveProfile")}</p><h2 className="font-display text-4xl">{player.name}</h2><p className="text-muted-foreground">{player.tag} · {t("progression.trophies", { count: trophies(player.trophies) })}</p></div>
             <div className="text-left md:text-right"><p className="font-display text-3xl text-primary">{owned.length}/{progression.length}</p><p className="text-xs text-muted-foreground">{t("progression.unlocked")}</p></div>
           </Card>

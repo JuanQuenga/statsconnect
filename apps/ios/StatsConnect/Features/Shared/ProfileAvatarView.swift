@@ -9,9 +9,11 @@ struct ProfileAvatarView: View {
             if let url = validatedImageURL {
                 AsyncImage(url: url) { phase in
                     if let image = phase.image {
+                        // Game icons are square art that can bleed past the
+                        // square, so they are never cropped or masked.
                         image
                             .resizable()
-                            .scaledToFill()
+                            .scaledToFit()
                     } else {
                         placeholder
                     }
@@ -21,11 +23,6 @@ struct ProfileAvatarView: View {
             }
         }
         .frame(width: size, height: size)
-        .background(BrandStyle.orange.opacity(0.12), in: Circle())
-        .clipShape(Circle())
-        .overlay {
-            Circle().strokeBorder(BrandStyle.orange.opacity(0.25), lineWidth: 1)
-        }
         .accessibilityHidden(true)
     }
 
@@ -35,6 +32,7 @@ struct ProfileAvatarView: View {
             .scaledToFit()
             .foregroundStyle(BrandStyle.orange)
             .padding(15)
+            .background(BrandStyle.orange.opacity(0.12), in: Circle())
     }
 
     private var validatedImageURL: URL? {

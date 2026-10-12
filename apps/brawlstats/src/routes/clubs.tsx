@@ -162,7 +162,7 @@ function CommunityActivity({ data }: { data?: ClubCommunityResponse }) {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {data.clubs.slice(0, 6).map((club) => (
           <Link key={club.tag} to="/clubs" search={{ tag: club.tag }} className="data-surface flex items-center gap-4 p-4 transition hover:border-primary/60">
-            <img src={clubBadgeUrl(club.badgeId)} alt="" className="size-12" />
+            <img src={clubBadgeUrl(club.badgeId)} alt="" className="size-12 object-contain" />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{club.name}</p>
               <p className="text-xs text-muted-foreground">{club.memberCount}/30 · {trophies(club.trophies)} {t("common.trophies").toLocaleLowerCase()}</p>
@@ -286,7 +286,7 @@ function ClubsPage() {
       {club ? (
         <>
           <Card className="grid gap-6 p-6 py-6 md:grid-cols-[auto_1fr]">
-            <img src={clubBadgeUrl(club.badgeId)} alt="" className="size-24" />
+            <img src={clubBadgeUrl(club.badgeId)} alt="" className="size-24 object-contain" />
             <div>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -354,7 +354,7 @@ function ClubsPage() {
                       const staleDays = tracked?.lastProfileAt ? Math.floor((Date.now() - tracked.lastProfileAt) / 86_400_000) : null;
                       return (
                         <TableRow key={member.tag}>
-                          <TableCell className="max-sm:whitespace-normal"><div className="flex items-center gap-3"><img src={profileIconUrl(member.icon?.id)} alt="" className="size-9 shrink-0 rounded-full" /><div className="min-w-0"><Link to="/players" search={{ tag: member.tag }} className="font-display break-words hover:text-primary">{member.name}</Link><p className="text-xs text-muted-foreground">{member.tag}<span className="sm:hidden"> · {readableMode(member.role || "member")}</span></p></div></div></TableCell>
+                          <TableCell className="max-sm:whitespace-normal"><div className="flex items-center gap-3"><img src={profileIconUrl(member.icon?.id)} alt="" className="size-9 shrink-0 object-contain" /><div className="min-w-0"><Link to="/players" search={{ tag: member.tag }} className="font-display break-words hover:text-primary">{member.name}</Link><p className="text-xs text-muted-foreground">{member.tag}<span className="sm:hidden"> · {readableMode(member.role || "member")}</span></p></div></div></TableCell>
                           <TableCell className="hidden sm:table-cell">{readableMode(member.role || "member")}</TableCell>
                           <TableCell className="hidden sm:table-cell"><span className={staleDays !== null && staleDays >= 7 ? "text-destructive" : "text-muted-foreground"}>{relativeAge(tracked?.lastProfileAt, t)}</span>{staleDays !== null && staleDays >= 7 ? <Badge variant="destructive" className="ml-2">{t("club.inactive")}</Badge> : null}</TableCell>
                           <TableCell className={`hidden text-right sm:table-cell ${changeTone}`}>{change > 0 ? "+" : ""}{trophies(change)}</TableCell>
