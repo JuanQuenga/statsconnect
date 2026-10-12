@@ -123,7 +123,7 @@ function LeaderboardsPage() {
                 onClick={() => setSelectedBrawlerId(brawler.id)}
                 className="shrink-0 gap-2"
               >
-                <img src={brawlerBorderUrl(brawler.id)} alt="" className="size-7 rounded-md" />
+                <img src={brawlerBorderUrl(brawler.id)} alt="" className="size-7 object-contain" />
                 {brawler.name}
               </Button>
             ))}

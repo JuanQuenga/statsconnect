@@ -74,7 +74,7 @@ export function MetaScatter({ rows, medianUse, lookups, selected, onSelect }: {
                     className={cn("meta-point relative block -translate-x-1/2 -translate-y-1/2 rounded-full outline-none focus-visible:z-20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", active && "z-20")}
                     style={{ boxShadow: active ? "0 0 0 3px var(--primary), 0 0 0 6px rgba(0, 0, 0, 0.55)" : `0 0 0 2px ${row.tier ? TIER_COLORS[row.tier] : "var(--border)"}` }}
                   >
-                    <BrawlerPortrait id={row.brawlerId} name="" className="size-6 rounded-full sm:size-8" />
+                    <BrawlerPortrait id={row.brawlerId} name="" className="size-6 sm:size-8" />
                   </button>
                 </li>
               );

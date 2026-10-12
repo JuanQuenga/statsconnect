@@ -256,7 +256,7 @@ function StatGrid({
             key={`${row.brawlerId}-${row.trophyBucket}`}
             className={cn("flex-row items-center gap-3 p-3 py-3")}
           >
-            <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-14 rounded-xl" />
+            <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-14 object-contain" />
             <div className="min-w-0 flex-1">
               <p className="font-display">{meta?.name || `${t("player.brawler")} ${row.brawlerId}`}</p>
               <p className="text-xs text-muted-foreground">{meta?.rarity || t("player.brawler")} · {t("maps.picks", { count: trophies(row.picks) })}</p>
@@ -294,7 +294,7 @@ function TeamGrid({
                 key={id}
                 src={brawlerBorderUrl(id)}
                 alt={catalog.get(id)?.name || `Brawler ${id}`}
-                className="size-14 rounded-xl border-2 border-card"
+                className="size-14 border-2 border-card object-contain"
               />
             ))}
           </div>

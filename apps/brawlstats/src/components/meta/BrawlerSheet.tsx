@@ -59,7 +59,7 @@ function SheetBody({ brawlerId, lookups, data }: { brawlerId: number; lookups: M
   return (
     <>
       <header className="relative flex items-center gap-4 border-b border-border p-4 pr-12 sm:p-5 sm:pr-14" style={{ background: tierColor ? `linear-gradient(120deg, color-mix(in srgb, ${tierColor} 16%, transparent), transparent 70%)` : undefined }}>
-        <BrawlerPortrait id={brawlerId} name="" className="size-16 rounded-xl sm:size-20" />
+        <BrawlerPortrait id={brawlerId} name="" className="size-16 sm:size-20" />
         <div className="min-w-0">
           <DialogPrimitive.Title className="truncate font-display text-3xl leading-none">{name}</DialogPrimitive.Title>
           <DialogPrimitive.Description render={<div />} className="mt-2 flex flex-wrap gap-1.5">

@@ -190,7 +190,7 @@ function PlayNow({
                 return (
                   <div key={suggestion.brawlerId} className="flex items-center gap-3 rounded-lg border border-border bg-background/35 p-3">
                     <span className="font-display text-xl text-primary">#{rank + 1}</span>
-                    <img src={brawlerBorderUrl(suggestion.brawlerId)} alt={meta?.name || t("player.brawler")} className="size-12 rounded-lg object-cover" />
+                    <img src={brawlerBorderUrl(suggestion.brawlerId)} alt={meta?.name || t("player.brawler")} className="size-12 object-contain" />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{meta?.name || `${t("player.brawler")} ${suggestion.brawlerId}`}</p>
                       <p className="text-xs text-muted-foreground">
@@ -317,7 +317,7 @@ function DraftAssistant({
                   className={cn("rounded-lg border p-1 text-center transition hover:border-primary", selected ? "border-primary bg-primary/10" : "border-border bg-background/35")}
                   title={brawler.name}
                 >
-                  <img src={brawlerBorderUrl(brawler.id)} alt="" className="aspect-square w-full rounded-md object-cover" />
+                  <img src={brawlerBorderUrl(brawler.id)} alt="" className="aspect-square w-full object-contain" />
                   <span className="mt-1 block truncate text-[10px]">{brawler.name}</span>
                 </button>
               );
@@ -339,7 +339,7 @@ function DraftAssistant({
               return (
                 <Card key={row.brawlerId} className="flex-row items-center gap-3 p-3 py-3">
                   <span className="w-6 text-center font-display text-lg text-primary">{index + 1}</span>
-                  <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-12 rounded-lg object-cover" />
+                  <img src={brawlerBorderUrl(row.brawlerId)} alt="" className="size-12 object-contain" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate font-medium">{meta?.name || `${t("player.brawler")} ${row.brawlerId}`}</p>

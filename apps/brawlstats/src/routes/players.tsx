@@ -464,7 +464,7 @@ function PlayerRoster({
                     src={brawlerBorderUrl(item.id)}
                     fallbackSrc={brawlerPortraitUrl(item.id)}
                     alt=""
-                    className="size-14 shrink-0 rounded-lg object-cover"
+                    className="size-14 shrink-0 object-contain"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">

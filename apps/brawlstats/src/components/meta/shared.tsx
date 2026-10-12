@@ -40,7 +40,7 @@ export function BrawlerPortrait({ id, name, className }: { id: number; name: str
       loading="lazy"
       decoding="async"
       draggable={false}
-      className={cn("aspect-square shrink-0 rounded-lg bg-secondary object-cover", className)}
+      className={cn("aspect-square shrink-0 object-contain", className)}
     />
   );
 }
