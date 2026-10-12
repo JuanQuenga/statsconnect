@@ -35,7 +35,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --font-sans: ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Supercell Magic", ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -63,7 +63,10 @@
   --ring: #1f93ff;
   --page-width: 1280px;
   --font-ui: ProximaNova, "Proxima Nova", Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Supercell Magic", var(--font-ui);
+  /* Space Grotesk ships only 600 and 700, so the many `font: 400 … var(--font-display)`
+   * rules resolve to its semibold. Supercell Magic is kept for in-game marks. */
+  --font-display: "Space Grotesk", var(--font-ui);
+  --font-game: "Supercell Magic", var(--font-ui);
   --bg: var(--background);
   --panel: color-mix(in srgb, var(--card) 86%, transparent);
   --panel-strong: var(--secondary);
@@ -95,18 +98,8 @@ body {
 }
 
 body:has(.site-frame-clash) {
-  background-color: #7d747e;
-  background-image: url("/images/theme/subreddit/arena-wall-footer-body-upscaled.webp");
-  background-repeat: repeat;
-  background-size: 256px 256px;
+  background: #0b1424;
   overscroll-behavior-y: none;
-}
-
-@media (max-width: 680px) {
-  html,
-  body:has(.site-frame-clash) {
-    background: #031020;
-  }
 }
 
 ::selection {
@@ -1460,7 +1453,7 @@ td .profile-deck-grid { width: 308px; }
   color: white;
   background: url("/images/ui-icons/elixir.png") center / contain no-repeat;
   filter: drop-shadow(0 2px 1px rgba(45, 0, 58, .75));
-  font: 400 clamp(10px, 13cqi, 21px)/1 var(--font-display);
+  font: 400 clamp(10px, 13cqi, 21px)/1 var(--font-game);
   letter-spacing: -.06em;
   text-shadow: 0 2px 1px rgba(0, 0, 0, .9);
 }
@@ -1479,7 +1472,7 @@ td .profile-deck-grid { width: 308px; }
   -webkit-text-fill-color: transparent;
   -webkit-text-stroke: max(1px, .1em) #111827;
   paint-order: stroke fill;
-  font: 400 clamp(9px, 12cqi, var(--game-card-level-font))/.95 var(--font-display);
+  font: 400 clamp(9px, 12cqi, var(--game-card-level-font))/.95 var(--font-game);
   letter-spacing: -.025em;
   text-overflow: ellipsis;
   filter: drop-shadow(0 2px 0 #111827) drop-shadow(0 3px 3px rgba(0, 0, 0, .72)) drop-shadow(0 0 4px var(--game-card-accent));
@@ -3248,9 +3241,9 @@ a:hover .entity-cell strong { color: #07569f; }
   right: 0;
   bottom: 0;
   left: 0;
-  height: 94px;
+  height: 72px;
   pointer-events: none;
-  background: url("/images/theme/subreddit/battlement-strip-upscaled.webp") center bottom / 950px 94px repeat-x;
+  background: linear-gradient(180deg, transparent, var(--cr-ground));
 }
 
 .site-frame-clash .arena-hero-frame > :not(.arena-hero-frame-art) {
@@ -4860,10 +4853,7 @@ a:hover .entity-cell strong { color: #07569f; }
 
 .site-frame-clash > main {
   display: flow-root;
-  background-color: #b7acbd;
-  background-image: url("/images/theme/subreddit/arena-wall-tile-upscaled.webp");
-  background-repeat: repeat;
-  background-size: 226px 226px;
+  background: var(--cr-ground);
 }
 
 .site-frame-clash .editorial-hero > p {
@@ -4875,10 +4865,7 @@ a:hover .entity-cell strong { color: #07569f; }
   --home-arena-blue-dark: #07569f;
   --home-arena-gold: #ffd45c;
   color: #36363d;
-  background-color: #b7acbd;
-  background-image: url("/images/theme/subreddit/arena-wall-tile-upscaled.webp");
-  background-repeat: repeat;
-  background-size: 226px 226px;
+  background: var(--cr-ground);
 }
 
 .site-frame-home .site-arena-backdrop {

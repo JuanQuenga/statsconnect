@@ -1,108 +1,114 @@
 /* Clash Royale design system.
  *
  * Imported after globals.css so it settles the cascade instead of joining it.
- * Every content section is drawn as an in-game popup: a royal-blue title bar
- * lettered in Supercell Magic, a pale steel body, and a navy outline with the
- * hard bottom lip the game's panels sit on. Buttons are the game's gold and
- * blue chunky buttons. The stone wall and battlement art stay as the ground. */
+ * Content sits on flat white panels with a hairline border over a cool grey
+ * ground; headings are plain Space Grotesk. The game shows up in the hero art,
+ * the card art, and the gold and royal-blue accents, not in panel chrome. The
+ * older --cr-* gradient and lip tokens resolve to flat colors so module styles
+ * that still reference them render flat too. */
 
 :root {
-  --cr-ink: #0e2546;
-  --cr-ink-soft: #2b4a73;
-  --cr-bar-top: #4a9bf0;
-  --cr-bar-bottom: #1d63c4;
-  --cr-body: #eef3f9;
-  --cr-body-inset: #dfe8f2;
-  --cr-rule: #c3d1e0;
-  --cr-gold-top: #ffe46b;
-  --cr-gold-bottom: #f7b21c;
-  --cr-gold-lip: #a8660a;
-  --cr-blue-top: #5fb8ff;
-  --cr-blue-bottom: #2479e0;
-  --cr-blue-lip: #134c96;
-  --cr-copy: #3d5470;
+  --cr-ground: #f2f4f8;
+  --cr-ink: #0f1d33;
+  --cr-ink-soft: #3a4b63;
+  --cr-copy: #5a6a80;
+  --cr-body: #fff;
+  --cr-body-inset: #f5f7fa;
+  --cr-rule: #e3e8ef;
+  --cr-line-strong: #cfd7e2;
+  --cr-blue: #1f6fd6;
+  --cr-blue-soft: #e8f1fd;
+  --cr-gold: #ffc93c;
+  --cr-gold-ink: #3d2a00;
+  --cr-shadow: 0 1px 2px rgba(15, 29, 51, .04), 0 4px 16px rgba(15, 29, 51, .04);
+  --cr-bar-top: var(--cr-body);
+  --cr-bar-bottom: var(--cr-body);
+  --cr-gold-top: var(--cr-gold);
+  --cr-gold-bottom: var(--cr-gold);
+  --cr-gold-lip: var(--cr-gold);
+  --cr-blue-top: var(--cr-blue);
+  --cr-blue-bottom: var(--cr-blue);
+  --cr-blue-lip: var(--cr-blue);
 }
 
 .site-frame-clash {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: #b7acbd url("/images/theme/subreddit/arena-wall-tile-upscaled.webp") 0 0 / 226px 226px repeat;
+  background: var(--cr-ground);
 }
 
 .site-frame-clash > main { flex: 1 0 auto; }
 
-/* Lettering: white Supercell Magic with the game's navy outline and drop. */
+/* Only the home hero's wordmark keeps the game's lettering. */
 .cr-lettering,
-.site-frame-clash .page-band > .section-title-row > h2,
-.site-frame-clash .page-band > header:first-child h2,
-.site-frame-clash .home-data-state > div > h2,
-.site-frame-clash .arena-route-hero h1 {
+.site-frame-clash .royale-hero .royale-hero-copy h1 {
   color: #fff;
-  font-family: var(--font-display);
+  font-family: var(--font-game);
   font-weight: 400;
   letter-spacing: .01em;
-  -webkit-text-stroke: .14em var(--cr-ink);
+  -webkit-text-stroke: .1em var(--cr-ink);
   paint-order: stroke fill;
-  text-shadow: 0 .1em 0 var(--cr-ink);
+}
+
+.site-frame-clash :is(.page-band, .profile-section) :is(h2, h3),
+.site-frame-clash .home-data-state > div > h2 {
+  color: var(--cr-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
 }
 
 /* --- Panels -------------------------------------------------------------- */
 
 .site-frame-clash .page-band {
-  margin-top: 28px;
-  padding: 0 26px 26px;
+  margin-top: 24px;
+  padding: 22px 24px 24px;
   overflow: hidden;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--cr-rule);
   border-radius: 16px;
   color: var(--cr-ink);
   background: var(--cr-body);
-  box-shadow: 0 5px 0 var(--cr-ink), 0 18px 30px rgba(40, 24, 60, .28);
+  box-shadow: var(--cr-shadow);
 }
 
 .site-frame-clash .page-band > .section-title-row,
 .site-frame-clash .page-band > header:first-child {
-  min-height: 62px;
-  margin: 0 -26px 22px;
-  padding: 10px 14px 10px 22px;
+  margin: 0 0 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  border-bottom: 3px solid var(--cr-ink);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .22), transparent 48%),
-    linear-gradient(180deg, var(--cr-bar-top), var(--cr-bar-bottom));
 }
 
 .site-frame-clash .page-band > .section-title-row > h2,
 .site-frame-clash .page-band > header:first-child h2 {
   margin: 0;
-  font-size: clamp(19px, 2.1vw, 25px);
-  line-height: 1.1;
+  font-size: clamp(18px, 1.7vw, 22px);
+  line-height: 1.2;
 }
 
-/* The bar already says what the panel is; an extra sentence of copy under the
-   title in the bar would crowd it, so header copy turns white to stay legible. */
-.site-frame-clash .page-band > header:first-child :is(p, span) { color: #e6f2ff; }
+.site-frame-clash .page-band > header:first-child :is(p, span) { color: var(--cr-copy); }
 
 .site-frame-clash .page-band .table-note,
 .site-frame-clash .home-data-message { color: var(--cr-copy); }
 
 .site-frame-clash .home-data-message {
   min-height: 0;
-  padding: 26px 20px;
-  border: 2px dashed var(--cr-rule);
+  padding: 24px 20px;
+  border: 1px dashed var(--cr-line-strong);
   border-radius: 12px;
   background: var(--cr-body-inset);
-  font-weight: 600;
+  font-weight: 550;
 }
 
 /* Loading copy shimmers instead of sitting there like an error. */
 .site-frame-clash .home-data-message[data-state="loading"] {
   border-style: solid;
   border-color: transparent;
-  background: linear-gradient(100deg, var(--cr-body-inset) 30%, #edf3f9 50%, var(--cr-body-inset) 70%) 0 0 / 300% 100%;
+  background: linear-gradient(100deg, var(--cr-body-inset) 30%, #fff 50%, var(--cr-body-inset) 70%) 0 0 / 300% 100%;
   animation: cr-shimmer 1.4s linear infinite;
 }
 
@@ -112,71 +118,56 @@
 
 .site-frame-clash .primary-button,
 .site-frame-clash .copy-deck {
-  min-height: 40px;
+  min-height: 38px;
   height: auto;
-  padding: 7px 16px 9px;
+  padding: 8px 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 2px solid var(--cr-ink);
+  border: 0;
   border-radius: 10px;
-  color: #fff;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .35), transparent 50%),
-    linear-gradient(180deg, var(--cr-gold-top), var(--cr-gold-bottom));
-  box-shadow: inset 0 -4px 0 var(--cr-gold-lip), 0 3px 0 var(--cr-ink);
-  font: 400 14px/1 var(--font-display);
-  letter-spacing: .01em;
-  -webkit-text-stroke: 3px var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 2px 0 var(--cr-ink);
+  color: var(--cr-gold-ink);
+  background: var(--cr-gold);
+  box-shadow: none;
+  font: 700 14px/1 var(--font-ui);
+  letter-spacing: 0;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
   white-space: nowrap;
-  transition: transform .1s ease, box-shadow .1s ease, filter .1s ease;
+  transition: background .15s ease, transform .1s ease;
 }
 
 .site-frame-clash .primary-button:hover,
-.site-frame-clash .copy-deck:hover {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .45), transparent 50%),
-    linear-gradient(180deg, var(--cr-gold-top), var(--cr-gold-bottom));
-  filter: brightness(1.04);
-}
+.site-frame-clash .copy-deck:hover { background: #ffd65f; filter: none; }
 
 .site-frame-clash .primary-button:active,
-.site-frame-clash .copy-deck:active {
-  transform: translateY(2px);
-  box-shadow: inset 0 -2px 0 var(--cr-gold-lip), 0 1px 0 var(--cr-ink);
+.site-frame-clash .copy-deck:active { transform: translateY(1px); box-shadow: none; }
+
+.site-frame-clash .page-band > .section-title-row .primary-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--cr-rule);
+  color: var(--cr-ink);
+  background: var(--cr-body-inset);
+  font-size: 13px;
 }
 
-/* Inside a blue title bar the gold button reads as the bar's action. */
-.site-frame-clash .page-band > .section-title-row .primary-button { min-height: 38px; font-size: 13px; }
+.site-frame-clash .page-band > .section-title-row .primary-button:hover { border-color: var(--cr-line-strong); background: #fff; }
 
-.site-frame-clash .cr-button-blue {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .3), transparent 50%),
-    linear-gradient(180deg, var(--cr-blue-top), var(--cr-blue-bottom));
-  box-shadow: inset 0 -4px 0 var(--cr-blue-lip), 0 3px 0 var(--cr-ink);
-}
-
-.site-frame-clash .cr-button-blue:hover {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .4), transparent 50%),
-    linear-gradient(180deg, var(--cr-blue-top), var(--cr-blue-bottom));
-}
+.site-frame-clash .cr-button-blue { color: #fff; background: var(--cr-blue); box-shadow: none; }
+.site-frame-clash .cr-button-blue:hover { background: #2a7de6; }
 
 /* Tabs: every mode switch, filter group, and page-section switcher on the
- * site shares this one control. A steel tray with the navy outline and lip the
- * panels use; the selected segment becomes a blue in-game button. Only paint
- * is set here — each group keeps its own layout (grid, wrap, or the fixed
- * phone bar), so this cannot move anything. */
+ * site shares this one segmented control. Only paint is set here — each group
+ * keeps its own layout (grid, wrap, or the fixed phone bar). */
 .site-frame-clash .cr-tabs {
-  gap: 4px;
-  padding: 4px;
-  border: 2px solid var(--cr-ink);
-  border-radius: 13px;
-  background: var(--cr-body);
-  box-shadow: 0 3px 0 var(--cr-ink);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--cr-rule);
+  border-radius: 12px;
+  background: #e9edf3;
+  box-shadow: none;
   backdrop-filter: none;
 }
 
@@ -185,127 +176,125 @@
   max-width: 100%;
   display: flex;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .site-frame-clash .cr-tabs > :is(button, a) {
-  min-height: 38px;
+  min-height: 34px;
   padding: 0 14px;
   border: 0;
   border-radius: 9px;
-  color: var(--cr-ink-soft);
+  color: var(--cr-copy);
   background: transparent;
   box-shadow: none;
-  font: 750 14px/1.1 var(--font-ui);
+  font: 650 13.5px/1.1 var(--font-ui);
   text-shadow: none;
   transform: none;
+  white-space: nowrap;
 }
 
 .site-frame-clash .cr-tabs > :is(button, a) :is(strong, span) { color: inherit; font: inherit; }
 .site-frame-clash .cr-tabs > :is(button, a) > svg { color: currentColor; filter: none; }
 
-.site-frame-clash .cr-tabs > :is(button, a):hover { color: var(--cr-ink); background: var(--cr-body-inset); transform: none; }
+.site-frame-clash .cr-tabs > :is(button, a):hover { color: var(--cr-ink); background: rgba(255, 255, 255, .6); transform: none; }
 
 .site-frame-clash .cr-tabs > :is(button, a):is(.active, .beta-tab-on, [aria-pressed="true"], [aria-selected="true"], [aria-current="page"]) {
-  color: #fff;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .22), transparent 50%),
-    linear-gradient(180deg, var(--cr-blue-top), var(--cr-blue-bottom));
-  box-shadow: inset 0 -3px 0 var(--cr-blue-lip);
-  text-shadow: 0 1px 0 var(--cr-blue-lip);
+  color: var(--cr-ink);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 29, 51, .1), 0 0 0 1px rgba(15, 29, 51, .04);
+  text-shadow: none;
 }
 
-.site-frame-clash .cr-tabs > :is(button, a):focus-visible { outline: 3px solid var(--cr-gold-bottom); outline-offset: 1px; }
+.site-frame-clash .cr-tabs > :is(button, a):focus-visible { outline: 2px solid var(--cr-blue); outline-offset: 1px; }
 
 .site-frame-clash .pager button {
-  width: 40px;
-  height: 40px;
-  border: 2px solid var(--cr-ink);
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--cr-rule);
   border-radius: 10px;
-  color: #fff;
-  background: linear-gradient(180deg, var(--cr-blue-top), var(--cr-blue-bottom));
-  box-shadow: inset 0 -3px 0 var(--cr-blue-lip), 0 2px 0 var(--cr-ink);
+  color: var(--cr-ink);
+  background: #fff;
+  box-shadow: none;
 }
 
-.site-frame-clash .pager button:active { transform: translateY(2px); box-shadow: inset 0 -1px 0 var(--cr-blue-lip); }
+.site-frame-clash .pager button:hover { border-color: var(--cr-line-strong); background: var(--cr-body-inset); }
+.site-frame-clash .pager button:active { transform: translateY(1px); }
+
+/* Secondary buttons (Use in builder, Matchups, Copy, Share…). */
+.site-frame-clash main :is(.secondary-button, .ghost-button, .deck-action, .matchup-button) {
+  border: 1px solid var(--cr-rule);
+  border-radius: 10px;
+  color: var(--cr-ink);
+  background: #fff;
+  box-shadow: none;
+}
+
+.site-frame-clash main :is(.secondary-button, .ghost-button, .deck-action, .matchup-button):hover { border-color: var(--cr-line-strong); background: var(--cr-body-inset); }
 
 /* --- Hero ---------------------------------------------------------------- */
 
-/* Route heroes share the home hero's lighter grade. */
 .site-frame-clash .arena-hero-frame-art {
   background-image:
-    linear-gradient(90deg, rgba(14, 37, 70, .55) 0%, rgba(14, 37, 70, .32) 38%, rgba(14, 37, 70, .04) 70%),
-    linear-gradient(180deg, transparent 60%, rgba(14, 37, 70, .25) 100%),
+    linear-gradient(90deg, rgba(11, 20, 36, .62) 0%, rgba(11, 20, 36, .38) 40%, rgba(11, 20, 36, .06) 72%),
     url("/images/theme/subreddit/home-hero-v2.webp");
 }
 
-.site-frame-clash .arena-route-hero-eyebrow { text-shadow: 0 1px 0 var(--cr-ink); }
-
-/* Home hero: let the golden-sky art stay bright. Only a soft navy wash sits
-   behind the copy; the lettering carries its own outline for contrast. */
+/* Home hero: let the golden-sky art stay bright behind a soft wash. */
 .site-frame-clash .royale-hero .arena-hero-frame-art {
   background-image:
-    linear-gradient(90deg, rgba(14, 37, 70, .5) 0%, rgba(14, 37, 70, .28) 34%, rgba(14, 37, 70, 0) 60%),
-    linear-gradient(180deg, transparent 62%, rgba(14, 37, 70, .25) 100%),
+    linear-gradient(90deg, rgba(11, 20, 36, .55) 0%, rgba(11, 20, 36, .3) 34%, rgba(11, 20, 36, 0) 60%),
     url("/images/theme/subreddit/home-hero-v2.webp");
   background-position: center 40%;
 }
 
-.site-frame-clash .royale-hero .royale-hero-copy { max-width: 820px; padding: 56px 0 140px; }
+.site-frame-clash .royale-hero .royale-hero-copy { max-width: 820px; padding: 56px 0 96px; }
 
 .site-frame-clash .royale-hero .royale-hero-copy h1 {
   max-width: none;
-  /* Supercell Magic runs ~40% wider than Lilita One; this matches the Brawl hero's visual weight. */
   font-size: clamp(38px, 4vw, 60px);
   line-height: 1.08;
-  letter-spacing: .01em;
-  -webkit-text-stroke: .1em var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 .07em 0 var(--cr-ink), 0 18px 34px rgba(14, 37, 70, .35);
+  text-shadow: 0 12px 30px rgba(11, 20, 36, .35);
 }
 
 .site-frame-clash .royale-hero .royale-hero-sub {
   max-width: 38ch;
-  margin-top: 20px;
+  margin-top: 18px;
   color: #fff;
-  font: 700 clamp(16px, 1.4vw, 19px)/1.45 var(--font-ui);
-  text-shadow: 0 2px 0 var(--cr-ink), 0 0 12px rgba(14, 37, 70, .55);
+  font: 600 clamp(16px, 1.4vw, 19px)/1.45 var(--font-ui);
+  text-shadow: 0 1px 12px rgba(11, 20, 36, .6);
 }
 
-/* The hero search is the game's chunky input: navy outline, bottom lip,
-   gold go-button. */
 .site-frame-clash .royale-hero-copy .search-wrap { width: min(520px, 100%); margin: 26px 0 0; }
 
 .site-frame-clash .royale-hero-copy form[role="search"] {
-  min-height: 58px;
-  grid-template-columns: auto minmax(0, 1fr) 62px;
-  border: 3px solid var(--cr-ink);
+  min-height: 54px;
+  grid-template-columns: auto minmax(0, 1fr) 54px;
+  overflow: hidden;
+  border: 0;
   border-radius: 14px;
-  box-shadow: 0 5px 0 var(--cr-ink), 0 16px 30px rgba(14, 37, 70, .3);
+  box-shadow: 0 12px 32px rgba(11, 20, 36, .3);
 }
 
 .site-frame-clash .royale-hero-copy form[role="search"] select {
-  border-right: 2px solid var(--cr-rule);
+  border-right: 1px solid var(--cr-rule);
   color: var(--cr-ink);
   background: var(--cr-body-inset);
-  font-weight: 750;
+  font-weight: 650;
 }
 
-.site-frame-clash .royale-hero-copy form[role="search"] input { font-size: 16px; font-weight: 550; }
+.site-frame-clash .royale-hero-copy form[role="search"] input { font-size: 16px; font-weight: 500; }
 
 .site-frame-clash .royale-hero-copy form[role="search"] button {
-  border-left: 3px solid var(--cr-ink);
-  color: var(--cr-ink);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .35), transparent 50%),
-    linear-gradient(180deg, var(--cr-gold-top), var(--cr-gold-bottom));
-  box-shadow: inset 0 -4px 0 var(--cr-gold-lip);
+  border-left: 0;
+  color: var(--cr-gold-ink);
+  background: var(--cr-gold);
+  box-shadow: none;
 }
 
-.site-frame-clash .royale-hero-copy form[role="search"] button:hover { filter: brightness(1.05); }
-.site-frame-clash .royale-hero-copy form[role="search"] button svg { width: 24px; height: 24px; stroke-width: 2.75; }
+.site-frame-clash .royale-hero-copy form[role="search"] button:hover { background: #ffd65f; filter: none; }
+.site-frame-clash .royale-hero-copy form[role="search"] button svg { width: 22px; height: 22px; stroke-width: 2.5; }
 
-/* "Where is my player tag?" — a floating game panel with the walkthrough GIF. */
+/* "Where is my player tag?" — a floating panel with the walkthrough GIF. */
 .cr-tag-guide-trigger {
   margin-top: 14px;
   padding: 4px 2px;
@@ -315,22 +304,21 @@
   border: 0;
   color: #fff;
   background: none;
-  font: 700 14px/1.3 var(--font-ui);
+  font: 600 14px/1.3 var(--font-ui);
   text-decoration: underline;
-  text-decoration-thickness: 1.5px;
+  text-decoration-thickness: 1px;
   text-underline-offset: 4px;
-  text-shadow: 0 1px 0 var(--cr-ink), 0 0 8px rgba(14, 37, 70, .6);
+  text-shadow: 0 1px 8px rgba(11, 20, 36, .7);
   cursor: pointer;
 }
 
-.cr-tag-guide-trigger svg { filter: drop-shadow(0 1px 0 var(--cr-ink)); }
-.cr-tag-guide-trigger:focus-visible { outline: 3px solid var(--cr-gold-bottom); outline-offset: 3px; border-radius: 6px; }
+.cr-tag-guide-trigger:focus-visible { outline: 2px solid var(--cr-gold); outline-offset: 3px; border-radius: 6px; }
 
 .cr-tag-guide-backdrop {
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: rgba(8, 20, 40, .55);
+  background: rgba(11, 20, 36, .5);
   transition: opacity .16s ease;
 }
 
@@ -344,156 +332,213 @@
   left: 50%;
   width: min(380px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
-  overflow-y: auto;
   overflow: hidden;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--cr-rule);
   border-radius: 16px;
   color: var(--cr-ink);
-  background: var(--cr-body);
-  box-shadow: 0 5px 0 var(--cr-ink), 0 24px 48px rgba(14, 37, 70, .4);
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(11, 20, 36, .3);
   transform: translate(-50%, -50%);
   transition: opacity .16s ease, transform .16s ease;
 }
 
 .cr-tag-guide[data-starting-style],
-.cr-tag-guide[data-ending-style] { opacity: 0; transform: translate(-50%, -48%) scale(.96); }
+.cr-tag-guide[data-ending-style] { opacity: 0; transform: translate(-50%, -48%) scale(.97); }
 
 .cr-tag-guide header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 10px 10px 16px;
-  border-bottom: 3px solid var(--cr-ink);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .22), transparent 48%),
-    linear-gradient(180deg, var(--cr-bar-top), var(--cr-bar-bottom));
+  padding: 12px 12px 12px 16px;
+  border-bottom: 1px solid var(--cr-rule);
 }
 
-.cr-tag-guide-title {
-  margin: 0;
-  color: #fff;
-  font: 400 17px/1.1 var(--font-display);
-  -webkit-text-stroke: .14em var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 .1em 0 var(--cr-ink);
-}
+.cr-tag-guide-title { margin: 0; color: var(--cr-ink); font: 700 16px/1.2 var(--font-display); }
 
 .cr-tag-guide-close {
   width: 32px;
   height: 32px;
   display: grid;
   place-items: center;
-  border: 2px solid var(--cr-ink);
+  border: 1px solid var(--cr-rule);
   border-radius: 9px;
-  color: #fff;
-  background: linear-gradient(180deg, #ff7f6b, #d93c3c);
-  box-shadow: inset 0 -3px 0 #8f1f24;
+  color: var(--cr-ink);
+  background: #fff;
   cursor: pointer;
 }
 
-.cr-tag-guide img { display: block; width: 100%; height: auto; aspect-ratio: 1; border-bottom: 3px solid var(--cr-ink); }
+.cr-tag-guide-close:hover { background: var(--cr-body-inset); }
 
-.cr-tag-guide-copy { margin: 0; padding: 12px 16px 14px; color: var(--cr-copy); font: 550 14px/1.5 var(--font-ui); }
+.cr-tag-guide img { display: block; width: 100%; height: auto; aspect-ratio: 1; border-bottom: 1px solid var(--cr-rule); }
+
+.cr-tag-guide-copy { margin: 0; padding: 12px 16px 14px; color: var(--cr-copy); font: 500 14px/1.5 var(--font-ui); }
 .cr-tag-guide-copy strong { color: var(--cr-ink); }
 
-.site-frame-clash .arena-route-hero h1 {
-  font-size: clamp(30px, 4vw, 50px);
-  line-height: 1.08;
+/* Route and detail heroes: bold UI face over the art, no outline. */
+.site-frame-clash .arena-route-hero h1,
+.site-frame-clash :is(.editorial-hero, .guide-detail-hero, .card-detail-hero, .clan-hero, .profile-hero) h1 {
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.06;
+  -webkit-text-stroke: 0;
+  text-shadow: 0 2px 18px rgba(11, 20, 36, .45);
 }
 
-.site-frame-clash .arena-route-hero-description { font-weight: 600; text-shadow: 0 1px 3px rgba(4, 16, 32, .6); }
+.site-frame-clash .arena-route-hero h1 { font-size: clamp(32px, 4vw, 52px); }
+.site-frame-clash .arena-route-hero-inner { padding-bottom: 72px; }
+.site-frame-clash .arena-route-hero-description { font-weight: 500; text-shadow: 0 1px 10px rgba(11, 20, 36, .6); }
+
+/* Small copy on the bright sky gets a soft shadow to stay legible. */
+.site-frame-clash :is(.arena-hero-frame, .card-detail-hero, .clan-hero, .guide-detail-hero) :is(p, small, span, time):not(.cr-tabs *, button *, .primary-button *, .summary-tile *, .game-card-art *, .cr-hero-news *) {
+  text-shadow: 0 1px 10px rgba(11, 20, 36, .6);
+}
+
+/* Clan hero stat tiles: frosted chips on the art. */
+.site-frame-clash .summary-tile {
+  min-height: 60px;
+  height: auto;
+  padding: 10px 16px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-content: center;
+  align-items: center;
+  justify-content: flex-start;
+  border: 1px solid rgba(255, 255, 255, .5);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 8px 24px rgba(11, 20, 36, .18);
+  text-shadow: none;
+}
+
+.site-frame-clash .summary-tile > div { justify-content: flex-start; }
+.site-frame-clash .summary-tile > img { grid-row: 1 / span 2; }
+.site-frame-clash .summary-tile > strong { align-self: end; }
+.site-frame-clash .summary-tile > span { align-self: start; }
+.site-frame-clash .summary-tile strong { display: block; color: var(--cr-ink); font: 700 18px/1.1 var(--font-display); text-shadow: none; }
+.site-frame-clash .summary-tile span { color: var(--cr-copy); font: 600 12px/1.3 var(--font-ui); text-shadow: none; }
+
+.site-frame-clash .clan-progress .progress-item strong { color: var(--cr-ink); }
+.site-frame-clash .clan-progress .progress-item strong span { color: var(--cr-copy); font: 600 13px/1.3 var(--font-ui); }
+
+/* --- Home hero: latest news ---------------------------------------------- */
+
+.cr-hero-news {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .6);
+  border-radius: 16px;
+  color: var(--cr-ink);
+  background: #fff;
+  box-shadow: 0 20px 48px rgba(11, 20, 36, .28);
+  text-shadow: none;
+}
+
+.cr-hero-news-loading { min-height: 320px; background: linear-gradient(100deg, var(--cr-body-inset) 30%, #fff 50%, var(--cr-body-inset) 70%) 0 0 / 300% 100%; animation: cr-shimmer 1.4s linear infinite; }
+
+.cr-hero-news-story { display: grid; gap: 8px; padding-bottom: 14px; color: inherit; }
+.cr-hero-news-story img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.cr-hero-news-story > :not(img) { margin-inline: 16px; }
+.cr-hero-news-story:first-child:not(:has(img)) { padding-top: 14px; }
+
+.cr-hero-news-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+.cr-hero-news-meta span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #b42318;
+  background: #fde8e6;
+  font: 700 11px/1 var(--font-ui);
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.cr-hero-news-meta time { color: var(--cr-copy); font: 600 12px/1 var(--font-ui); }
+
+.cr-hero-news-story strong { font: 700 18px/1.25 var(--font-display); letter-spacing: -.01em; text-wrap: balance; }
+.cr-hero-news-story:hover strong { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+.cr-hero-news-read { display: inline-flex; align-items: center; gap: 4px; color: var(--cr-blue); font: 650 13px/1 var(--font-ui); }
+
+.cr-hero-news-more {
+  display: block;
+  padding: 11px 16px;
+  border-top: 1px solid var(--cr-rule);
+  color: var(--cr-ink);
+  background: var(--cr-body-inset);
+  font: 650 13px/1 var(--font-ui);
+  text-align: center;
+}
+.cr-hero-news-more:hover { background: #fff; }
 
 /* --- Footer -------------------------------------------------------------
- * Proportions follow the original r/ClashRoyale stylesheet: the footer drops
- * well clear of the content, the wall art scales to the footer's own height
- * (so its ledge stays a thin lip), 130px link columns flank the King, and the
- * legal lines sit on a 200px band of lances and grass. */
+ * Same structure as the Hub footer: brand and link columns, support links,
+ * then legal copy, each band split by a hairline, on the nav's navy. */
 
 .cr-footer {
-  margin-top: clamp(72px, 9vw, 140px);
-  /* Clear the wall's top ledge (~3.5% of the art's height) before any content. */
-  padding-top: 46px;
-  color: #fff;
-  text-align: center;
-  /* A crisp one-pixel drop reads like carved-in game text; blurred halos don't. */
-  --cr-footer-shadow: 0 1px 0 rgba(38, 28, 54, .6);
-  background:
-    url("/images/theme/subreddit/arena-wall.webp") center top / auto 100% repeat-x,
-    #8e8399;
-}
-
-.cr-footer-columns {
-  width: min(880px, calc(100% - 32px));
-  margin: 0 auto;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  text-align: left;
-}
-
-.cr-footer-col { width: 152px; padding: 10px 10px 0; }
-
-.cr-footer-col strong {
-  display: block;
-  margin-bottom: 4px;
-  font: 700 16px/1.4 var(--font-ui);
-  text-shadow: var(--cr-footer-shadow);
-}
-
-.cr-footer-col ul { margin: 0; padding: 0; list-style: none; }
-
-.cr-footer-col a {
-  color: #e6e6e6;
-  font: 500 14.5px/1.8 var(--font-ui);
-  text-shadow: var(--cr-footer-shadow);
-}
-
-.cr-footer-col a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
-
-.cr-footer-king {
-  width: 138px;
-  height: 230px;
-  flex: none;
-  margin: 0 18px;
-  filter: drop-shadow(0 3px 4px rgba(38, 28, 54, .3));
-}
-
-/* Everything sits on the wall; the lances get their own band below with no
- * text over them, like the original. */
-.cr-footer-legal {
-  width: min(980px, calc(100% - 32px));
-  margin: 4px auto 0;
-  padding-bottom: 14px;
-  display: grid;
-  justify-items: center;
-  gap: 6px;
+  margin-top: clamp(56px, 7vw, 96px);
+  color: #9aa8bc;
+  background: #0b1424;
   font: 500 14px/1.5 var(--font-ui);
-  text-shadow: var(--cr-footer-shadow);
+  --cr-footer-line: rgba(255, 255, 255, .08);
 }
 
-.cr-footer-legal p { margin: 0; }
-.cr-footer-legal a { color: #cfe9ff; }
+.cr-footer > * { width: min(var(--page-width), calc(100% - 48px)); margin-inline: auto; }
 
-/* Support links read as one quiet row of footer links; their required
- * disclosures run together as a single block of fine print. */
-.cr-footer .statsconnect-community { margin: 0; text-align: center; font-size: 12.5px; line-height: 1.55; color: #f1edf6; }
-.cr-footer .statsconnect-community .community-actions { justify-content: center; gap: 0 22px; margin-bottom: 2px; }
-.cr-footer .statsconnect-community .community-actions > :is(a, button) { min-height: 34px; color: #fff; font: 600 14.5px/1.4 var(--font-ui); }
-.cr-footer .statsconnect-community .community-notice { display: inline; margin: 0; font-size: inherit; }
-.cr-footer .statsconnect-community .community-notice::after { content: " "; }
-.cr-footer .statsconnect-community .community-manage { display: inline; min-height: 0; font-size: inherit; color: #cfe9ff; }
-
-.cr-footer-lances {
-  height: max(131px, 11.9vw);
-  background: url("/images/theme/subreddit/footer-lances.webp") center bottom / auto 100% no-repeat;
+.cr-footer-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px 64px;
+  padding-block: 48px 36px;
 }
 
-@media (max-width: 760px) {
-  .cr-footer-columns { flex-wrap: wrap; row-gap: 18px; }
-  .cr-footer-king { order: -1; width: 82px; height: auto; margin: 0 calc(50% - 41px); }
-  .cr-footer-col { width: 50%; max-width: 180px; }
-  .cr-footer-lances { height: 76px; }
+.cr-footer-brand { display: inline-flex; align-items: center; gap: 10px; align-self: start; color: #fff; font: 700 16px/1.2 var(--font-display); }
+.cr-footer-brand img { width: 28px; height: 28px; }
+.cr-footer-brand small { margin-left: 4px; color: #9aa8bc; font: 500 14px/1 var(--font-ui); }
+
+.cr-footer-columns { display: grid; grid-template-columns: repeat(4, minmax(120px, auto)); gap: 24px 48px; }
+
+.cr-footer-col strong { display: block; margin-bottom: 8px; color: #fff; font: 650 13px/1.4 var(--font-ui); }
+.cr-footer-col ul { margin: 0; padding: 0; list-style: none; }
+.cr-footer-col a { display: inline-block; padding-block: 4px; color: #9aa8bc; transition: color .15s ease; }
+.cr-footer-col a:hover { color: #fff; }
+
+.cr-footer-community { padding-block: 24px; border-top: 1px solid var(--cr-footer-line); }
+.cr-footer-community > p { margin: 10px 0 0; }
+
+.cr-footer .statsconnect-community { margin: 0; color: #7b8aa0; font-size: 12.5px; line-height: 1.6; text-align: left; }
+.cr-footer .statsconnect-community .community-actions { justify-content: flex-start; gap: 8px; margin-bottom: 12px; }
+.cr-footer .statsconnect-community .community-actions > :is(a, button) {
+  min-height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--cr-footer-line);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(255, 255, 255, .03);
+  font: 600 13px/1 var(--font-ui);
+  text-decoration: none;
+}
+.cr-footer .statsconnect-community .community-actions > :is(a, button):hover { border-color: rgba(255, 255, 255, .24); background: rgba(255, 255, 255, .07); }
+.cr-footer .statsconnect-community .community-notice { margin: 0; font-size: inherit; }
+.cr-footer .statsconnect-community .community-manage { min-height: 0; color: #9aa8bc; font-size: inherit; }
+
+.cr-footer-legal { margin: 0 auto; padding-block: 18px 26px; border-top: 1px solid var(--cr-footer-line); color: #6b7a90; font-size: 12px; }
+.cr-footer-legal a { color: #9aa8bc; text-decoration: underline; text-underline-offset: 2px; }
+
+@media (max-width: 860px) {
+  .cr-footer-top { grid-template-columns: 1fr; }
+  .cr-footer-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .cr-footer > * { width: calc(100% - 32px); }
 }
 
 /* --- Home ---------------------------------------------------------------- */
@@ -517,65 +562,53 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
+/* Shortcut tiles: white cards with the unit art on a soft accent wash. */
 .cr-explore a {
+  --tile-accent: #1f6fd6;
   position: relative;
-  min-height: 150px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   padding: 16px 18px;
   overflow: hidden;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--cr-rule);
   border-radius: 16px;
-  color: #fff;
+  color: var(--cr-ink);
   background:
-    radial-gradient(circle at 78% 30%, rgba(255, 255, 255, .28), transparent 55%),
-    linear-gradient(180deg, var(--cr-blue-top), var(--cr-blue-bottom));
-  box-shadow: inset 0 -5px 0 var(--cr-blue-lip), 0 5px 0 var(--cr-ink);
-  transition: transform .12s ease;
+    radial-gradient(circle at 92% 70%, color-mix(in srgb, var(--tile-accent) 22%, transparent), transparent 58%),
+    #fff;
+  box-shadow: var(--cr-shadow);
+  transition: transform .2s ease, border-color .2s ease;
 }
 
-.cr-explore a:nth-child(2) { background: radial-gradient(circle at 78% 30%, rgba(255, 255, 255, .28), transparent 55%), linear-gradient(180deg, #c27cff, #7b3fd6); box-shadow: inset 0 -5px 0 #4f2397, 0 5px 0 var(--cr-ink); }
-.cr-explore a:nth-child(3) { background: radial-gradient(circle at 78% 30%, rgba(255, 255, 255, .3), transparent 55%), linear-gradient(180deg, var(--cr-gold-top), var(--cr-gold-bottom)); box-shadow: inset 0 -5px 0 var(--cr-gold-lip), 0 5px 0 var(--cr-ink); }
-.cr-explore a:nth-child(4) { background: radial-gradient(circle at 78% 30%, rgba(255, 255, 255, .28), transparent 55%), linear-gradient(180deg, #ff7f6b, #d93c3c); box-shadow: inset 0 -5px 0 #8f1f24, 0 5px 0 var(--cr-ink); }
+.cr-explore a:nth-child(2) { --tile-accent: #8b4fe0; }
+.cr-explore a:nth-child(3) { --tile-accent: #f2a900; }
+.cr-explore a:nth-child(4) { --tile-accent: #e0483c; }
 
-.cr-explore a:hover { transform: translateY(-3px); }
+.cr-explore a:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--tile-accent) 45%, var(--cr-rule)); }
 
 .cr-explore img {
   position: absolute;
   right: -6px;
   bottom: -4px;
   width: auto;
-  height: 118px;
+  height: 112px;
   pointer-events: none;
-  filter: drop-shadow(0 6px 6px rgba(14, 37, 70, .35));
+  filter: drop-shadow(0 6px 10px rgba(15, 29, 51, .18));
   transition: transform .2s ease;
 }
 
-.cr-explore a:hover img { transform: scale(1.05) rotate(-2deg); }
+.cr-explore a:hover img { transform: scale(1.04); }
 
-.cr-explore strong {
-  position: relative;
-  max-width: 64%;
-  font: 400 18px/1.15 var(--font-display);
-  -webkit-text-stroke: .14em var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 .1em 0 var(--cr-ink);
-}
+.cr-explore strong { position: relative; max-width: 64%; font: 700 17px/1.2 var(--font-display); letter-spacing: -.01em; }
 
-.cr-explore span {
-  position: relative;
-  max-width: 60%;
-  margin-top: 6px;
-  color: #fff;
-  font: 600 13px/1.35 var(--font-ui);
-  text-shadow: 0 1px 2px rgba(14, 37, 70, .7);
-}
+.cr-explore span { position: relative; max-width: 60%; margin-top: 4px; color: var(--cr-copy); font: 500 13px/1.4 var(--font-ui); }
 
-/* Most played card: the card in its frame beside its two numbers. */
+/* Most played card: the card beside its two numbers. */
 .cr-top-card {
   display: grid;
   grid-template-columns: 132px minmax(0, 1fr);
@@ -584,29 +617,29 @@
 }
 
 .cr-top-card > a { display: grid; justify-items: center; gap: 8px; color: var(--cr-ink); }
-.cr-top-card > a strong { font: 400 15px/1.15 var(--font-display); text-align: center; }
+.cr-top-card > a strong { font: 700 15px/1.2 var(--font-display); text-align: center; }
 .cr-top-card dl { display: grid; gap: 10px; margin: 0; }
-.cr-top-card dl > div { padding: 10px 14px; border: 2px solid var(--cr-rule); border-radius: 12px; background: #fff; }
-.cr-top-card dt { color: var(--cr-copy); font: 650 12px/1.3 var(--font-ui); }
-.cr-top-card dd { margin: 4px 0 0; color: var(--cr-ink); font: 400 26px/1 var(--font-display); }
-.cr-top-card dd small { margin-left: 6px; color: var(--cr-copy); font: 600 12px/1 var(--font-ui); }
+.cr-top-card dl > div { padding: 12px 14px; border: 1px solid var(--cr-rule); border-radius: 12px; background: var(--cr-body-inset); }
+.cr-top-card dt { color: var(--cr-copy); font: 600 12px/1.3 var(--font-ui); }
+.cr-top-card dd { margin: 4px 0 0; color: var(--cr-ink); font: 700 26px/1 var(--font-display); letter-spacing: -.02em; }
+.cr-top-card dd small { margin-left: 6px; color: var(--cr-copy); font: 500 12px/1 var(--font-ui); }
 
 .site-frame-clash .popular-runners { justify-content: flex-start; margin-top: 18px; }
 
 /* Tournament empty state: a chest and one clear next step. */
 .cr-empty {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   gap: 16px;
   align-items: center;
   padding: 18px;
-  border: 2px dashed var(--cr-rule);
+  border: 1px dashed var(--cr-line-strong);
   border-radius: 12px;
   background: var(--cr-body-inset);
 }
 
-.cr-empty img { width: 76px; height: auto; }
-.cr-empty strong { display: block; color: var(--cr-ink); font: 400 17px/1.2 var(--font-display); }
+.cr-empty img { width: 64px; height: auto; }
+.cr-empty strong { display: block; color: var(--cr-ink); font: 700 16px/1.25 var(--font-display); }
 .cr-empty p { margin: 6px 0 12px; color: var(--cr-copy); font: 500 14px/1.5 var(--font-ui); }
 
 @media (max-width: 980px) {
@@ -615,41 +648,38 @@
 }
 
 @media (max-width: 680px) {
-  .site-frame-clash .royale-hero .royale-hero-copy { padding: 36px 0 120px; }
+  .site-frame-clash .royale-hero .royale-hero-copy { padding: 36px 0 80px; }
   .site-frame-clash .royale-hero .royale-hero-copy h1 { font-size: clamp(34px, 11vw, 48px); }
 }
 
 @media (max-width: 600px) {
   .cr-home-split,
   .cr-explore { width: calc(100% - 32px); }
-  .site-frame-clash .page-band { padding-inline: 16px; }
-  .site-frame-clash .page-band > .section-title-row,
-  .site-frame-clash .page-band > header:first-child { margin-inline: -16px; padding: 10px 12px 10px 16px; }
+  .site-frame-clash .page-band { padding: 18px 16px 20px; }
   .site-frame-clash .page-band > .section-title-row > h2,
   .site-frame-clash .page-band > header:first-child h2 { font-size: 18px; }
-  .site-frame-clash .page-band > .section-title-row .primary-button { min-height: 34px; padding: 6px 10px 8px; font-size: 11px; }
-  .cr-explore a { min-height: 120px; padding: 12px; }
-  .cr-explore img { height: 84px; }
+  .cr-explore a { min-height: 112px; padding: 12px; }
+  .cr-explore img { height: 80px; }
   .cr-explore strong { max-width: 100%; font-size: 15px; }
   .cr-explore span { display: none; }
   .cr-top-card { grid-template-columns: 92px minmax(0, 1fr); gap: 14px; }
   .cr-top-card dd { font-size: 21px; }
   .cr-top-card dd small { display: block; margin: 4px 0 0; }
   .cr-empty { grid-template-columns: 1fr; justify-items: start; }
-  .cr-empty img { width: 56px; }
+  .cr-empty img { width: 52px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-frame-clash .home-data-message[data-state="loading"] { animation: none; }
+  .site-frame-clash .home-data-message[data-state="loading"],
+  .cr-hero-news-loading { animation: none; }
   .cr-explore a:hover,
   .cr-explore a:hover img { transform: none; }
 }
 
 /* --- Content panels -----------------------------------------------------
- * Every route's .profile-section becomes the same game panel as the home
- * page: navy outline, steel body, lip. The heading that opens a panel turns
- * into its blue title bar; headings deeper inside are set in the game font in
- * navy. The player page's .profile-story wrapper becomes a plain stack so its
+ * Every route's top-level .profile-section is the same white panel as the
+ * home page. Its opening heading is a plain header row, not a colored bar.
+ * The player page's .profile-story wrapper becomes a plain stack so its
  * sections get their own panels like every other page. */
 
 .site-frame-clash .profile-section:not(.profile-section .profile-section) {
@@ -660,19 +690,19 @@
   --muted-foreground: var(--cr-copy);
   --foreground: var(--cr-ink);
   position: relative;
-  margin: 0 0 28px;
-  padding: 24px 26px 26px;
+  margin: 0 0 24px;
+  padding: 22px 24px 24px;
   overflow: hidden;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--cr-rule);
   border-radius: 16px;
   color: var(--cr-ink);
   background: var(--cr-body);
-  box-shadow: 0 5px 0 var(--cr-ink), 0 18px 30px rgba(40, 24, 60, .24);
+  box-shadow: var(--cr-shadow);
 }
 
 .site-frame-clash .profile-story {
   display: grid;
-  gap: 28px;
+  gap: 24px;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -680,205 +710,102 @@
   box-shadow: none;
 }
 
-.site-frame-clash .profile-story > .profile-section { margin: 0; border-top: 3px solid var(--cr-ink); }
+.site-frame-clash .profile-story > .profile-section { margin: 0; }
 
-/* Opening heading → title bar. */
+/* Opening heading → header row. */
 .site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading, h2):first-child {
-  min-height: 60px;
-  margin: -24px -26px 22px;
-  padding: 10px 16px 10px 22px;
+  width: auto;
+  max-width: none;
+  min-height: 0;
+  margin: 0 0 18px;
+  padding: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px 16px;
-  border-bottom: 3px solid var(--cr-ink);
-  color: #e6f2ff;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .22), transparent 48%),
-    linear-gradient(180deg, var(--cr-bar-top), var(--cr-bar-bottom));
+  align-self: stretch;
+  justify-self: stretch;
+  border: 0;
+  color: var(--cr-copy);
+  background: none;
   text-align: left;
 }
 
 .site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child :is(h2, h3),
 .site-frame-clash .profile-section:not(.profile-section .profile-section) > h2:first-child {
   margin: 0;
-  color: #fff;
-  font: 400 clamp(19px, 2vw, 24px)/1.15 var(--font-display);
-  letter-spacing: .01em;
-  -webkit-text-stroke: .14em var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 .1em 0 var(--cr-ink);
+  color: var(--cr-ink);
+  font-size: clamp(18px, 1.7vw, 22px);
+  line-height: 1.2;
 }
 
 .site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child :is(p, span:not(button span), small, time) {
   max-width: 64ch;
   margin: 0;
-  color: #e6f2ff;
+  color: var(--cr-copy);
   font-size: 13px;
-  text-shadow: 0 1px 0 var(--cr-blue-lip);
+  text-shadow: none;
 }
 
 .site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child > div:first-child { display: grid; gap: 3px; }
 
-/* Buttons and selects that live in a title bar read as bar controls. */
+/* Buttons and selects in a header row. */
 .site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading):first-child :is(button, select, a):not(.primary-button, .cr-tabs > *) {
-  min-height: 36px;
-  border: 2px solid var(--cr-ink);
+  min-height: 34px;
+  border: 1px solid var(--cr-rule);
   border-radius: 9px;
   color: var(--cr-ink);
-  background: var(--cr-body);
-  box-shadow: 0 2px 0 var(--cr-ink);
+  background: #fff;
+  box-shadow: none;
   text-shadow: none;
 }
 
-/* Headings inside a panel body: game font, navy, no outline. */
-.site-frame-clash .profile-section :is(h2, h3) {
-  color: var(--cr-ink);
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: .01em;
-}
+.site-frame-clash .profile-section :is(h2, h3):not(.profile-section > :first-child *, .profile-section > h2:first-child) { font-size: clamp(16px, 1.4vw, 19px); }
 
-.site-frame-clash .profile-section :is(h2, h3):not(.profile-section > :first-child *, .profile-section > h2:first-child) {
-  font-size: clamp(17px, 1.6vw, 21px);
-  -webkit-text-stroke: 0;
-  text-shadow: none;
-}
-
-/* Explanatory notes read left-aligned at body size. */
 .site-frame-clash .profile-section :is(.table-note, .card-report-note) { text-align: left; }
 
-/* Title bars always span the panel, whatever the heading's own sizing. */
-.site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading, h2):first-child {
-  width: calc(100% + 52px);
-  max-width: none;
-  box-sizing: border-box;
-  align-self: stretch;
-  justify-self: stretch;
-}
-
 .site-frame-clash .profile-section:is(.empty-panel, :has(> h2:first-child + p:last-child)) { text-align: center; }
-.site-frame-clash .profile-section:not(.profile-section .profile-section):is(.empty-panel, :has(> h2:first-child + p:last-child)) > h2:first-child { justify-content: center; }
+.site-frame-clash .profile-section:not(.profile-section .profile-section):is(.empty-panel, :has(> h2:first-child + p:last-child)) > h2:first-child { justify-content: center; margin: 8px 0 8px; }
 
-.site-frame-clash .cr-tabs > :is(button, a) { white-space: nowrap; }
-
-/* Every route hero title carries the game lettering, not just the list pages. */
-.site-frame-clash :is(.editorial-hero, .guide-detail-hero, .card-detail-hero, .clan-hero, .profile-hero) h1 {
-  color: #fff;
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: .01em;
-  line-height: 1.1;
-  -webkit-text-stroke: .12em var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 .08em 0 var(--cr-ink);
-}
-
-/* Small copy on the bright sky gets the same navy edge as the hero copy. */
-.site-frame-clash :is(.arena-hero-frame, .card-detail-hero, .clan-hero, .guide-detail-hero) :is(p, small, span, time):not(.cr-tabs *, button *, .primary-button *, .summary-tile *, .game-card-art *, .cr-hero-news *) {
-  text-shadow: 0 1px 0 var(--cr-ink), 0 0 10px rgba(14, 37, 70, .55);
-}
-
-/* Clan hero stat tiles: steel chips with navy values (the legacy rules left
-   the value white on a white tile). */
-.site-frame-clash .summary-tile {
-  min-height: 60px;
-  height: auto;
-  padding: 8px 16px;
-  border: 2px solid var(--cr-ink);
-  border-radius: 12px;
-  background: var(--cr-body);
-  box-shadow: 0 3px 0 var(--cr-ink);
-  text-shadow: none;
-}
-
-.site-frame-clash .summary-tile strong { display: block; color: var(--cr-ink); font: 400 18px/1.1 var(--font-display); text-shadow: none; }
-.site-frame-clash .summary-tile span { color: var(--cr-copy); font: 650 12px/1.3 var(--font-ui); text-shadow: none; }
-.site-frame-clash .summary-tile > div,
-.site-frame-clash .summary-tile { justify-content: flex-start; }
-
-.site-frame-clash .clan-progress .progress-item strong { color: var(--cr-ink); }
-.site-frame-clash .clan-progress .progress-item strong span { color: var(--cr-copy); font: 650 13px/1.3 var(--font-ui); }
-.site-frame-clash .summary-tile {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  column-gap: 12px;
-  row-gap: 2px;
-  align-content: center;
-  align-items: center;
-}
-.site-frame-clash .summary-tile > img { grid-row: 1 / span 2; }
-.site-frame-clash .summary-tile > strong { align-self: end; }
-.site-frame-clash .summary-tile > span { align-self: start; }
-
-
-/* Remaining white cards that sit straight on the stone become game panels. */
+/* Remaining white cards that sit straight on the ground. */
 .site-frame-clash .history-coverage { padding: 18px 22px; }
 
 .site-frame-clash :is(.meta-controls, .history-coverage, .discovery-filter-panel, .tool-card, .tool-explainer, .utility-links > a, .news-card) {
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--cr-rule);
   border-radius: 16px;
   color: var(--cr-ink);
   background: var(--cr-body);
-  box-shadow: 0 5px 0 var(--cr-ink), 0 18px 30px rgba(40, 24, 60, .22);
+  box-shadow: var(--cr-shadow);
 }
 
-.site-frame-clash .news-card { overflow: hidden; transition: transform .14s ease; }
-.site-frame-clash .news-card:hover { transform: translateY(-3px); }
-.site-frame-clash .news-card :is(h2, h3) { color: var(--cr-ink); font-family: var(--font-display); font-weight: 400; letter-spacing: .01em; }
-.site-frame-clash .news-card img { border-bottom: 3px solid var(--cr-ink); }
+.site-frame-clash .news-card { overflow: hidden; transition: transform .2s ease, border-color .2s ease; }
+.site-frame-clash .news-card:hover,
+.site-frame-clash .utility-links > a:hover { transform: translateY(-2px); border-color: var(--cr-line-strong); }
+.site-frame-clash .utility-links > a { transition: transform .2s ease, border-color .2s ease; }
 
-.site-frame-clash .utility-links > a { transition: transform .14s ease; }
-.site-frame-clash .utility-links > a:hover { transform: translateY(-3px); }
-.site-frame-clash :is(.tool-card, .tool-explainer, .utility-links > a, .discovery-filter-panel) :is(h2, h3) {
+.site-frame-clash :is(.news-card, .tool-card, .tool-explainer, .utility-links > a, .discovery-filter-panel) :is(h2, h3) {
   color: var(--cr-ink);
   font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: .01em;
+  font-weight: 700;
+  letter-spacing: -.01em;
 }
 
 .site-frame-clash .tool-icon {
-  border: 2px solid var(--cr-ink);
-  background: linear-gradient(180deg, var(--cr-blue-top), var(--cr-blue-bottom));
-  box-shadow: inset 0 -3px 0 var(--cr-blue-lip);
+  border: 0;
+  color: var(--cr-blue);
+  background: var(--cr-blue-soft);
+  box-shadow: none;
 }
 
-/* Deck results: each deck is a white card inside the results panel. */
 .site-frame-clash .observed-deck-card {
-  border: 2px solid var(--cr-rule);
+  border: 1px solid var(--cr-rule);
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 3px 0 var(--cr-rule);
+  box-shadow: none;
 }
 
-/* Secondary buttons (Use in builder, Matchups, Copy, Share…) get the game's
-   steel button so they read as buttons next to the gold ones. */
-.site-frame-clash main :is(.secondary-button, .ghost-button, .deck-action, .matchup-button) {
-  border: 2px solid var(--cr-ink);
-  border-radius: 10px;
-  color: var(--cr-ink);
-  background: var(--cr-body);
-  box-shadow: 0 2px 0 var(--cr-ink);
-}
-
-/* An empty-state heading is a message, not a panel title: keep it plain. */
-.site-frame-clash .profile-section:not(.profile-section .profile-section):is(.empty-panel, :has(> h2:first-child + p:last-child)) > h2:first-child {
-  width: auto;
-  min-height: 0;
-  margin: 8px 0 10px;
-  padding: 0;
-  justify-content: center;
-  border: 0;
-  color: var(--cr-ink);
-  background: none;
-  font-size: clamp(19px, 2vw, 23px);
-  -webkit-text-stroke: 0;
-  text-shadow: none;
-}
-
-/* Clan members: the static sort label moves after the title so the bar
+/* Clan members: the static sort label moves after the title so the header
    reads title-first, left aligned. */
 .site-frame-clash .profile-section > .section-heading:first-child { display: flex; }
 .site-frame-clash .profile-section > .section-heading:first-child > h2 { order: -1; text-align: left; }
@@ -889,34 +816,28 @@
   padding: 0 12px;
   display: inline-flex;
   align-items: center;
-  border: 2px solid var(--cr-ink);
+  border: 1px solid var(--cr-rule);
   border-radius: 9px;
   color: var(--cr-ink);
-  background: var(--cr-body);
-  font: 750 13px/1 var(--font-ui);
+  background: var(--cr-body-inset);
+  font: 650 13px/1 var(--font-ui);
   text-shadow: none;
 }
 .site-frame-clash .profile-section > .section-heading:first-child > .update-tools { display: flex; align-items: center; gap: 10px; }
 
-/* Copy sitting directly on the stone needs the hero treatment to read. */
+/* Copy sitting directly on the ground reads as body copy. */
 .site-frame-clash main > :is(.page, .editorial-page, .profile-page, .decks-page) > :is(p, small, .table-note, .history-summary *) {
-  color: #fff;
-  text-shadow: 0 1px 0 var(--cr-ink), 0 0 8px rgba(14, 37, 70, .6);
+  color: var(--cr-copy);
+  text-shadow: none;
 }
 
 @media (max-width: 600px) {
   .site-frame-clash .profile-section:not(.profile-section .profile-section) { padding: 18px 16px 20px; }
-  .site-frame-clash .profile-section:not(.profile-section .profile-section) > :is(.section-heading, .profile-section-heading, .history-section-heading, .management-section-heading, .card-report-heading, .profile-editorial-heading, h2):first-child {
-    width: calc(100% + 32px);
-    margin: -18px -16px 18px;
-    padding: 10px 12px 10px 16px;
-  }
   .site-frame-clash :is(.meta-controls, .history-coverage, .discovery-filter-panel, .tool-card, .tool-explainer) { padding: 16px; }
 }
 
-/* Card detail mode switch: legacy CSS forced five equal grid columns, so
-   longer labels ("Path of Legends") spilled out. Size tabs to their labels
-   and let the tray scroll if a bar is narrower than all five. */
+/* Card detail mode switch: size tabs to their labels and let the tray scroll
+   if a bar is narrower than all five. */
 .site-frame-clash .card-mode-switch.cr-tabs {
   width: auto;
   max-width: 100%;
@@ -926,21 +847,18 @@
 }
 .site-frame-clash .card-mode-switch.cr-tabs > button {
   flex: none;
-  min-height: 38px;
+  min-height: 34px;
   padding: 0 14px;
   border-bottom: 0;
 }
 
 /* --- Player profile ------------------------------------------------------ */
 
-/* Footer spacing already separates the page from the wall; drop the extra
-   page padding and trailing section margin that stacked on top of it. */
 .site-frame-clash .profile-page { padding-bottom: 0; }
 .site-frame-clash .profile-page > :last-child,
 .site-frame-clash .profile-story > :last-child { margin-bottom: 0; }
-.site-frame-clash .cr-footer { margin-top: clamp(56px, 6vw, 96px); }
 
-/* Career stats: one even grid of tiles instead of bordered list rows. */
+/* Career stats: one even grid of tiles. */
 .site-frame-clash .profile-stat-groups { display: grid; gap: 22px; }
 .site-frame-clash .profile-stat-group { margin: 0; padding: 0; border: 0; }
 .site-frame-clash .profile-stat-group-heading {
@@ -952,8 +870,8 @@
   border: 0;
   background: none;
 }
-.site-frame-clash .profile-stat-group-heading img { width: 28px; height: 28px; }
-.site-frame-clash .profile-stat-group-heading h3 { margin: 0; font-size: 18px; }
+.site-frame-clash .profile-stat-group-heading img { width: 24px; height: 24px; }
+.site-frame-clash .profile-stat-group-heading h3 { margin: 0; font-size: 16px; }
 
 .site-frame-clash .profile-stat-grid {
   display: grid;
@@ -969,20 +887,21 @@
   gap: 12px;
   min-height: 0;
   padding: 12px 14px;
-  border: 2px solid var(--cr-rule);
+  border: 1px solid var(--cr-rule);
   border-radius: 12px;
-  background: #fff;
+  background: var(--cr-body-inset);
 }
 
-.site-frame-clash .profile-stat-card img { width: 32px; height: 32px; flex: none; }
-.site-frame-clash .profile-stat-card dt { color: var(--cr-copy); font: 700 12px/1.2 var(--font-ui); }
-.site-frame-clash .profile-stat-card dd { margin: 3px 0 0; color: var(--cr-ink); font: 400 22px/1.05 var(--font-display); }
-.site-frame-clash .profile-stat-card small { display: block; margin-top: 3px; color: var(--cr-copy); font: 600 12px/1.2 var(--font-ui); }
+.site-frame-clash .profile-stat-card img { width: 30px; height: 30px; flex: none; }
+.site-frame-clash .profile-stat-card dt { color: var(--cr-copy); font: 600 12px/1.2 var(--font-ui); }
+.site-frame-clash .profile-stat-card dd { margin: 3px 0 0; color: var(--cr-ink); font: 700 22px/1.05 var(--font-display); letter-spacing: -.02em; }
+.site-frame-clash .profile-stat-card small { display: block; margin-top: 3px; color: var(--cr-copy); font: 500 12px/1.2 var(--font-ui); }
 
 /* Clan Wars, Challenges, and Tournaments sit side by side as smaller groups. */
 @media (min-width: 900px) {
   .site-frame-clash .profile-stat-groups { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .site-frame-clash .profile-stat-group:first-child { grid-column: 1 / -1; }
+  .site-frame-clash .profile-stat-group:first-child .profile-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .site-frame-clash .profile-stat-group:not(:first-child) .profile-stat-grid { grid-template-columns: 1fr 1fr; }
   .site-frame-clash .profile-stat-group:not(:first-child) .profile-stat-card { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
@@ -993,29 +912,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px 28px;
-  padding: 22px 26px;
+  padding: 20px 24px;
 }
 
-.site-frame-clash .profile-section.cr-callout > div > h2:first-child {
-  width: auto;
-  min-height: 0;
-  margin: 0 0 6px;
-  padding: 0;
-  display: block;
-  border: 0;
-  color: var(--cr-ink);
-  background: none;
-  font-size: 20px;
-  -webkit-text-stroke: 0;
-  text-shadow: none;
-}
+.site-frame-clash .profile-section.cr-callout > div > h2:first-child { margin: 0 0 4px; font-size: 18px; }
 
-.site-frame-clash .cr-callout p { margin: 0; color: var(--cr-copy); font: 550 14px/1.5 var(--font-ui); }
+.site-frame-clash .cr-callout p { margin: 0; color: var(--cr-copy); font: 500 14px/1.5 var(--font-ui); }
 .site-frame-clash .profile-page > .cr-callout { margin-bottom: 24px; }
 
 /* No observed activity: a single line, not an empty calendar. */
-.site-frame-clash .profile-section.cr-activity-none > h2:first-child { margin-bottom: 14px; }
-.site-frame-clash .cr-activity-none p { margin: 0; color: var(--cr-copy); font: 550 14px/1.5 var(--font-ui); }
+.site-frame-clash .profile-section.cr-activity-none > h2:first-child { margin-bottom: 8px; }
+.site-frame-clash .cr-activity-none p { margin: 0; color: var(--cr-copy); font: 500 14px/1.5 var(--font-ui); }
 
 /* The activity card nests its own bordered card inside the panel; flatten it. */
 .site-frame-clash .cc-activity-section > .cc-activity-card { border: 0; border-radius: 0; background: none; box-shadow: none; }
@@ -1024,15 +931,11 @@
   .site-frame-clash .profile-section.cr-callout { flex-direction: column; align-items: flex-start; padding: 18px 16px; }
 }
 
-@media (min-width: 900px) {
-  .site-frame-clash .profile-stat-group:first-child .profile-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
 /* Card collection tab: labelled filters and collection-sized tiles. */
 .site-frame-clash .collection-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .site-frame-clash .collection-toolbar .collection-search { flex: 1 1 220px; }
 .site-frame-clash .collection-select { display: inline-flex; align-items: center; gap: 8px; width: auto; }
-.site-frame-clash .collection-select-label { color: var(--cr-copy); font: 700 13px/1 var(--font-ui); white-space: nowrap; }
+.site-frame-clash .collection-select-label { color: var(--cr-copy); font: 650 13px/1 var(--font-ui); white-space: nowrap; }
 .site-frame-clash .collection-select select { width: auto; min-width: 0; }
 
 .site-frame-clash .collection-grid {
@@ -1044,16 +947,16 @@
 .site-frame-clash .collection-card {
   min-height: 0;
   padding: 12px 8px 10px;
-  border: 2px solid var(--cr-rule);
+  border: 1px solid var(--cr-rule);
   border-radius: 14px;
   background: #fff;
   box-shadow: none;
-  transition: transform .12s ease, border-color .12s ease;
+  transition: transform .2s ease, border-color .2s ease;
 }
-.site-frame-clash .collection-card:hover { border-color: var(--cr-ink); transform: translateY(-3px); }
+.site-frame-clash .collection-card:hover { border-color: var(--cr-line-strong); transform: translateY(-2px); }
 .site-frame-clash .collection-card .game-card-art { width: 92px; }
 .site-frame-clash .collection-card strong { font-size: 13px; }
-.site-frame-clash .collection-status-ready { color: #12804a; font-weight: 800; }
+.site-frame-clash .collection-status-ready { color: #12804a; font-weight: 700; }
 
 /* Current deck tab: one row of eight, at a size that fits the panel. */
 .site-frame-clash .current-deck-cluster {
@@ -1063,7 +966,7 @@
 }
 
 .site-frame-clash .current-deck-support { display: flex; align-items: center; justify-content: center; gap: 18px; }
-.site-frame-clash .current-deck-support h3 { margin: 0; font-size: 18px; }
+.site-frame-clash .current-deck-support h3 { margin: 0; font-size: 17px; }
 
 @media (max-width: 760px) {
   .site-frame-clash .current-deck-cluster { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -1080,66 +983,12 @@
   place-content: center;
   justify-items: center;
   gap: 2px;
-  border: 2px dashed rgba(191, 227, 255, .55);
+  border: 1px dashed rgba(255, 255, 255, .45);
   border-radius: 10px;
-  color: #bfe3ff;
-  background: rgba(14, 37, 70, .35);
+  color: #dbe7f7;
+  background: rgba(11, 20, 36, .35);
   cursor: help;
 }
-.site-frame-clash .cr-deck-unreported > span { font: 400 26px/1 var(--font-display); }
-.site-frame-clash .cr-deck-unreported small { font: 700 10px/1.2 var(--font-ui); text-align: center; }
-.site-frame-clash .profile-section .cr-deck-unreported { border-color: var(--cr-rule); color: var(--cr-copy); background: var(--cr-body-inset); }
-
-/* --- Home hero: latest news ---------------------------------------------- */
-
-.cr-hero-news {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  overflow: hidden;
-  border: 3px solid var(--cr-ink);
-  border-radius: 16px;
-  color: var(--cr-ink);
-  background: var(--cr-body);
-  box-shadow: 0 5px 0 var(--cr-ink), 0 22px 40px rgba(14, 37, 70, .35);
-  text-shadow: none;
-}
-
-.cr-hero-news-loading { min-height: 320px; background: linear-gradient(100deg, var(--cr-body-inset) 30%, #edf3f9 50%, var(--cr-body-inset) 70%) 0 0 / 300% 100%; animation: cr-shimmer 1.4s linear infinite; }
-
-.cr-hero-news-story { display: grid; gap: 8px; padding-bottom: 14px; color: inherit; }
-.cr-hero-news-story img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-bottom: 3px solid var(--cr-ink); }
-.cr-hero-news-story > :not(img) { margin-inline: 16px; }
-.cr-hero-news-story:first-child:not(:has(img)) { padding-top: 14px; }
-
-.cr-hero-news-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
-.cr-hero-news-meta span {
-  padding: 3px 9px 4px;
-  border: 2px solid var(--cr-ink);
-  border-radius: 999px;
-  color: #fff;
-  background: linear-gradient(180deg, #ff7f6b, #d93c3c);
-  font: 400 11px/1 var(--font-display);
-  letter-spacing: .02em;
-}
-.cr-hero-news-meta time { color: var(--cr-copy); font: 700 12px/1 var(--font-ui); }
-
-.cr-hero-news-story strong { font: 400 19px/1.2 var(--font-display); letter-spacing: .01em; text-wrap: balance; }
-.cr-hero-news-story:hover strong { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-
-.cr-hero-news-read { display: inline-flex; align-items: center; gap: 4px; color: var(--cr-blue-bottom); font: 750 13px/1 var(--font-ui); }
-
-.cr-hero-news-more {
-  display: block;
-  padding: 10px 16px;
-  border-top: 2px solid var(--cr-rule);
-  color: var(--cr-ink);
-  background: var(--cr-body-inset);
-  font: 750 13px/1 var(--font-ui);
-  text-align: center;
-}
-.cr-hero-news-more:hover { background: #fff; }
-
-@media (prefers-reduced-motion: reduce) {
-  .cr-hero-news-loading { animation: none; }
-}
+.site-frame-clash .cr-deck-unreported > span { font: 700 24px/1 var(--font-display); }
+.site-frame-clash .cr-deck-unreported small { font: 600 10px/1.2 var(--font-ui); text-align: center; }
+.site-frame-clash .profile-section .cr-deck-unreported { border-color: var(--cr-line-strong); color: var(--cr-copy); background: var(--cr-body-inset); }

@@ -154,31 +154,33 @@ const FOOTER_COLUMNS = [
   },
 ];
 
-/** The classic r/ClashRoyale footer: link columns around the King on the
- *  arena wall, then the legal copy, then a clear band of lances and grass. */
+/** Brand and link columns on one row, support links below, legal copy last. */
 function SiteFooter() {
   const { t, locale } = useI18n();
-  const columns = FOOTER_COLUMNS.map((column) => (
-    <div key={column.title} className="cr-footer-col">
-      <strong>{column.title}</strong>
-      <ul>
-        {column.links.map((link) => (
-          <li key={link.href}>
-            {link.href.startsWith("http") ? <a href={link.href}>{link.label}</a> : <Link href={link.href}>{link.label}</Link>}
-          </li>
-        ))}
-      </ul>
-    </div>
-  ));
 
   return (
     <footer className="cr-footer">
-      <div className="cr-footer-columns">
-        {columns.slice(0, 2)}
-        <Image className="cr-footer-king" src="/images/theme/subreddit/footer-king-upscaled.webp" alt="" width={123} height={205} />
-        {columns.slice(2)}
+      <div className="cr-footer-top">
+        <a className="cr-footer-brand" href="https://statsconnect.app">
+          <Image src="/brand/statsconnect-mark.png" alt="" width={28} height={28} />
+          <span>StatsConnect <small>Clash Royale</small></span>
+        </a>
+        <nav className="cr-footer-columns" aria-label="Footer">
+          {FOOTER_COLUMNS.map((column) => (
+            <div key={column.title} className="cr-footer-col">
+              <strong>{column.title}</strong>
+              <ul>
+                {column.links.map((link) => (
+                  <li key={link.href}>
+                    {link.href.startsWith("http") ? <a href={link.href}>{link.label}</a> : <Link href={link.href}>{link.label}</Link>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
       </div>
-      <div className="cr-footer-legal">
+      <div className="cr-footer-community">
         <CommunityLinks
           supportUrl={import.meta.env.VITE_STATSCONNECT_SUPPORT_URL}
           monthlySupportUrl={import.meta.env.VITE_STATSCONNECT_MONTHLY_SUPPORT_URL}
@@ -186,15 +188,14 @@ function SiteFooter() {
           locale={locale}
         />
         {creatorCode ? <p>Support this site in the Clash Royale Shop with creator code <strong>{creatorCode}</strong>.</p> : null}
-        <p>
-          {t("footer.disclaimer")} See Supercell&rsquo;s{" "}
-          <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
-            Fan Content Policy
-          </a>
-          . © {new Date().getFullYear()} StatsConnect.
-        </p>
       </div>
-      <div className="cr-footer-lances" aria-hidden="true" />
+      <p className="cr-footer-legal">
+        {t("footer.disclaimer")} See Supercell&rsquo;s{" "}
+        <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noreferrer noopener">
+          Fan Content Policy
+        </a>
+        . © {new Date().getFullYear()} StatsConnect.
+      </p>
     </footer>
   );
 }

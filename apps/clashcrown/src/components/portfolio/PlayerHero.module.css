@@ -1,13 +1,15 @@
 /* Player banner: identity and standing, the career ledger, then the current
- * deck as one row of eight cards. Sits on the shared arena hero frame (art and
- * battlement come from styles/arena.css). */
+ * deck as one row of eight cards. Sits on the shared arena hero frame (art
+ * comes from styles/arena.css); its panels are frosted glass over the art. */
 
 .hero { min-height: 0; }
 
 .inner {
   width: min(var(--page-width), calc(100% - 48px));
   margin: 0 auto;
-  padding: 30px 0 118px;
+  padding: 30px 0 72px;
+  --glass: rgba(11, 20, 36, .58);
+  --glass-line: rgba(255, 255, 255, .14);
   display: grid;
   gap: 16px;
   color: #fff;
@@ -26,7 +28,7 @@
 .level img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .level strong {
   position: relative;
-  font: 400 22px/1 var(--font-display);
+  font: 400 22px/1 var(--font-game);
   -webkit-text-stroke: 4px var(--cr-ink);
   paint-order: stroke fill;
 }
@@ -36,13 +38,11 @@
 .nameplate h1 {
   margin: 0;
   overflow: hidden;
-  font: 400 clamp(32px, 4.4vw, 54px)/1.08 var(--font-display);
-  letter-spacing: .01em;
+  font: 700 clamp(32px, 4.4vw, 54px)/1.08 var(--font-display);
+  letter-spacing: -.03em;
   text-overflow: ellipsis;
   white-space: nowrap;
-  -webkit-text-stroke: .12em var(--cr-ink);
-  paint-order: stroke fill;
-  text-shadow: 0 .08em 0 var(--cr-ink);
+  text-shadow: 0 2px 18px rgba(11, 20, 36, .45);
 }
 
 .nameplate p {
@@ -51,8 +51,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 14px;
-  font: 700 15px/1.2 var(--font-ui);
-  text-shadow: 0 1px 0 var(--cr-ink), 0 0 8px rgba(14, 37, 70, .6);
+  font: 600 15px/1.2 var(--font-ui);
+  text-shadow: 0 1px 10px rgba(11, 20, 36, .6);
 }
 
 .clan {
@@ -60,10 +60,10 @@
   align-items: center;
   gap: 6px;
   padding: 3px 10px 3px 6px;
-  border: 2px solid var(--cr-ink);
+  border: 0;
   border-radius: 999px;
   color: var(--cr-ink);
-  background: var(--cr-body);
+  background: rgba(255, 255, 255, .92);
   text-shadow: none;
 }
 
@@ -74,16 +74,16 @@ a.clan:hover { background: #fff; }
   align-items: center;
   gap: 12px;
   padding: 8px 18px 8px 10px;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--glass-line);
   border-radius: 14px;
-  background: linear-gradient(180deg, #2a4f86, #173361);
-  box-shadow: 0 4px 0 var(--cr-ink);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
 }
 
 .standing img { width: 56px; height: 56px; object-fit: contain; }
 .standing div { display: grid; gap: 2px; }
 .standing small { color: #bfe3ff; font: 700 12px/1.2 var(--font-ui); }
-.standing strong { font: 400 20px/1.1 var(--font-display); -webkit-text-stroke: 3px var(--cr-ink); paint-order: stroke fill; }
+.standing strong { font: 700 19px/1.1 var(--font-display); }
 .standing span { color: var(--cr-gold-top); font: 800 13px/1 var(--font-ui); }
 
 /* --- Ledger ------------------------------------------------------------- */
@@ -93,20 +93,19 @@ a.clan:hover { background: #fff; }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   overflow: hidden;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--glass-line);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(42, 79, 134, .94), rgba(23, 51, 97, .94));
-  box-shadow: 0 4px 0 var(--cr-ink);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
 }
 
 .ledger > div { padding: 10px 14px 12px; text-align: center; }
-.ledger > div + div { border-left: 2px solid rgba(14, 37, 70, .55); }
+.ledger > div + div { border-left: 1px solid var(--glass-line); }
 .ledger dt { color: #bfe3ff; font: 700 12px/1.2 var(--font-ui); }
 .ledger dd {
   margin: 4px 0 0;
-  font: 400 clamp(20px, 2.1vw, 27px)/1 var(--font-display);
-  -webkit-text-stroke: 4px var(--cr-ink);
-  paint-order: stroke fill;
+  font: 700 clamp(20px, 2.1vw, 27px)/1 var(--font-display);
+  letter-spacing: -.02em;
 }
 .ledger [data-gold] dd { color: var(--cr-gold-top); }
 
@@ -121,10 +120,10 @@ a.clan:hover { background: #fff; }
   align-items: center;
   gap: 18px;
   padding: 12px 16px;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--glass-line);
   border-radius: 14px;
-  background: rgba(14, 37, 70, .72);
-  box-shadow: 0 4px 0 var(--cr-ink);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
 }
 
 .deck > p { margin: 0; color: #dbe9ff; font: 600 14px/1.4 var(--font-ui); }
@@ -133,7 +132,7 @@ a.clan:hover { background: #fff; }
 .deckMeta small { color: #bfe3ff; font: 700 12px/1 var(--font-ui); }
 
 .elixir { display: inline-flex; align-items: center; gap: 6px; }
-.elixir strong { font: 400 30px/1 var(--font-display); -webkit-text-stroke: 4px var(--cr-ink); paint-order: stroke fill; }
+.elixir strong { font: 700 28px/1 var(--font-display); letter-spacing: -.02em; }
 
 /* One row of eight, overriding the shared 4×2 deck grid. */
 .deck :global(.profile-deck-grid).deckGrid {
@@ -150,14 +149,14 @@ a.clan:hover { background: #fff; }
   align-content: center;
   gap: 6px;
   padding: 12px 16px;
-  border: 3px solid var(--cr-ink);
+  border: 1px solid var(--glass-line);
   border-radius: 14px;
-  background: rgba(14, 37, 70, .72);
-  box-shadow: 0 4px 0 var(--cr-ink);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
 }
 
 .form small { color: #bfe3ff; font: 700 12px/1 var(--font-ui); }
-.form strong { font: 400 30px/1 var(--font-display); -webkit-text-stroke: 4px var(--cr-ink); paint-order: stroke fill; }
+.form strong { font: 700 28px/1 var(--font-display); letter-spacing: -.02em; }
 .form > span { color: #dbe9ff; font: 650 13px/1.3 var(--font-ui); }
 
 .pips { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -167,7 +166,7 @@ a.clan:hover { background: #fff; }
   height: 20px;
   display: grid;
   place-items: center;
-  border: 2px solid var(--cr-ink);
+  border: 0;
   border-radius: 5px;
   font: 800 10px/1 var(--font-ui);
 }
@@ -183,23 +182,23 @@ a.clan:hover { background: #fff; }
 /* The tracking control's status line repeats its button; keep it for screen
    readers and only show it when it is reporting an error. */
 .actions [role="status"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.actions [role="alert"] { display: block; margin-top: 6px; color: #fff; font: 650 12px/1.3 var(--font-ui); text-shadow: 0 1px 0 var(--cr-ink); }
+.actions [role="alert"] { display: block; margin-top: 6px; color: #fff; font: 650 12px/1.3 var(--font-ui); text-shadow: 0 1px 8px rgba(11, 20, 36, .7); }
 
 .freshness {
   color: #fff;
-  font: 650 13px/1 var(--font-ui);
-  text-shadow: 0 1px 0 var(--cr-ink), 0 0 8px rgba(14, 37, 70, .6);
+  font: 600 13px/1 var(--font-ui);
+  text-shadow: 0 1px 8px rgba(11, 20, 36, .7);
 }
 
-/* Profile action buttons: the steel game button. */
+/* Profile action buttons: white pills over the art. */
 .actions :is(button, a) {
-  min-height: 38px;
-  border: 2px solid var(--cr-ink) !important;
+  min-height: 36px;
+  border: 0 !important;
   border-radius: 10px !important;
   color: var(--cr-ink) !important;
-  background: var(--cr-body) !important;
-  box-shadow: 0 2px 0 var(--cr-ink) !important;
-  font-weight: 750;
+  background: rgba(255, 255, 255, .92) !important;
+  box-shadow: none !important;
+  font-weight: 650;
 }
 
 .actions :is(button, a):hover { background: #fff !important; }
@@ -209,7 +208,7 @@ a.clan:hover { background: #fff; }
 }
 
 @media (max-width: 760px) {
-  .inner { width: calc(100% - 24px); padding: 20px 0 104px; gap: 12px; }
+  .inner { width: calc(100% - 24px); padding: 20px 0 64px; gap: 12px; }
   .identity { grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
   .level { width: 48px; height: 48px; }
   .level strong { font-size: 17px; }
@@ -219,7 +218,7 @@ a.clan:hover { background: #fff; }
   .ledger { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ledger > div { padding: 8px 6px 10px; }
   .ledger > div:nth-child(3n + 1) { border-left: 0; }
-  .ledger > div:nth-child(n + 4) { border-top: 2px solid rgba(14, 37, 70, .55); }
+  .ledger > div:nth-child(n + 4) { border-top: 1px solid var(--glass-line); }
   .ledger dt { font-size: 11px; }
   .deck { grid-template-columns: 1fr; gap: 10px; padding: 10px; }
   .deckMeta { grid-template-columns: auto auto 1fr; align-items: center; justify-items: start; }
