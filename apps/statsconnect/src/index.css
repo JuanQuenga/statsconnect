@@ -379,12 +379,49 @@
 .hub-plus li { break-inside: avoid; margin-bottom: .8rem; padding-left: 1rem; border-left: 2px solid var(--hub-gold); font-size: .9rem; }
 .hub-plus .hub-config-note { grid-column: 1 / -1; }
 
-.hub-footer { position: relative; z-index: 10; border-top: 1px solid var(--border); background: #0b0a0c; }
-.hub-footer__inner { min-height: 7rem; display: grid; grid-template-columns: auto 1fr minmax(15rem, 28rem); align-items: center; gap: 2rem; }
-.hub-footer__brand { display: flex; align-items: center; gap: 0.7rem; }
-.hub-footer nav { display: flex; justify-content: center; gap: 1rem; color: #9691a1; font-size: 0.75rem; }
-.hub-footer nav a { display: inline-flex; min-height: 2.75rem; align-items: center; padding-inline: 0.25rem; }
-.hub-footer p { color: #85808f; font-size: 0.68rem; line-height: 1.6; text-align: right; }
+.connect-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: stretch; min-height: 34rem; overflow: hidden; border: 1px solid var(--border); border-radius: 1.35rem; background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--game-accent) 12%, transparent), transparent 45%), var(--card); }
+.connect-stage__art { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: end; min-height: 22rem; padding: 2rem; overflow: hidden; background: #181f28; clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%); }
+.connect-stage__art img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; animation: world-reveal 1.2s cubic-bezier(.16, 1, .3, 1) both; }
+.connect-stage__art::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, #090b14f2, #090b1499 38%, transparent 70%); }
+.connect-stage__wordmark { position: absolute; left: 1.5rem; top: 1rem; font: 700 clamp(4rem, 8vw, 7rem)/1 "Barlow Condensed", Impact, sans-serif; letter-spacing: -.03em; color: transparent; -webkit-text-stroke: 1px #fff9; pointer-events: none; }
+.connect-stage__steps { display: grid; gap: .8rem; max-width: 22rem; }
+.connect-stage__steps li { display: flex; align-items: center; gap: .85rem; color: #e9e6df; font-size: .875rem; line-height: 1.4; }
+.connect-stage__steps span { display: grid; flex: none; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; color: #0b0a0c; background: var(--game-accent); font: 700 .95rem/1 "Barlow Condensed", Impact, sans-serif; }
+.connect-stage__panel { display: flex; flex-direction: column; padding: clamp(1.75rem, 4vw, 3.25rem); }
+.connect-stage__back { display: inline-flex; align-self: start; align-items: center; gap: .4rem; min-height: 2.5rem; margin-top: -.5rem; color: var(--muted-foreground); font-size: .8rem; font-weight: 600; transition: color 150ms ease; }
+.connect-stage__back:hover { color: var(--foreground); }
+.connect-stage__back svg, .connect-stage__skip svg { width: 1rem; height: 1rem; }
+.connect-stage__eyebrow { margin-top: 1.25rem; color: var(--game-accent); font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.connect-stage h1 { margin-top: .5rem; font: 700 clamp(3.25rem, 6vw, 5rem)/.88 "Barlow Condensed", Impact, sans-serif; letter-spacing: -.025em; text-transform: uppercase; }
+.connect-stage__lede { max-width: 28rem; margin-top: 1rem; color: var(--muted-foreground); line-height: 1.6; }
+.connect-stage__skip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem 1rem; margin-top: auto; padding-top: 2rem; }
+.connect-stage__skip p { color: var(--muted-foreground); font-size: .85rem; }
+.connect-stage__skip a { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; color: var(--game-accent); font-size: .875rem; font-weight: 650; }
+.connect-stage__skip a svg { transition: transform 180ms ease; }
+.connect-stage__skip a:hover svg { transform: translateX(4px); }
+
+.hub-footer { position: relative; z-index: 10; border-top: 1px solid var(--border); background: #0b0a0c; color: #a29eab; font-size: .875rem; }
+.hub-footer__top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2.5rem 4rem; padding-block: 3.5rem 2.5rem; }
+.hub-footer__brand { max-width: 20rem; }
+.hub-footer__logo { display: inline-flex; align-items: center; gap: .7rem; min-height: 2.75rem; }
+.hub-footer__brand p { margin-top: .75rem; line-height: 1.6; }
+.hub-footer__links { display: grid; grid-template-columns: repeat(3, minmax(9rem, auto)); gap: 2rem 3.5rem; }
+.hub-footer__links div { display: flex; flex-direction: column; align-items: start; }
+.hub-footer__links h2 { margin-bottom: .35rem; color: #f3f1ee; font: 700 .95rem/1 "Barlow Condensed", Impact, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.hub-footer__links a { display: inline-flex; min-height: 2.25rem; align-items: center; transition: color 150ms ease; }
+.hub-footer__links a:hover, .hub-footer__logo:hover { color: #f3f1ee; }
+.hub-footer__community { padding-block: 1.75rem; border-top: 1px solid var(--border); }
+.hub-footer .statsconnect-community .community-actions { gap: .6rem; }
+.hub-footer .statsconnect-community .community-actions a,
+.hub-footer .statsconnect-community .community-actions button { min-height: 2.5rem; padding: 0 1.1rem; border: 1px solid var(--border); border-radius: 999px; color: #f3f1ee; background: rgba(243, 241, 238, .03); font-size: .8rem; font-weight: 600; text-decoration: none; transition: border-color 150ms ease, background 150ms ease; }
+.hub-footer .statsconnect-community .community-actions a:hover,
+.hub-footer .statsconnect-community .community-actions button:hover { border-color: rgba(243, 241, 238, .3); background: rgba(243, 241, 238, .07); }
+.hub-footer .statsconnect-community .community-actions a:last-child { border-color: #efd67d; color: #17150f; background: #efd67d; }
+.hub-footer .statsconnect-community .community-actions a:last-child:hover { background: #ffe6a1; }
+.hub-footer .statsconnect-community .community-notice { max-width: 46rem; margin-top: .9rem; color: #85808f; }
+.hub-footer .statsconnect-community .community-notice + .community-notice { margin-top: .25rem; }
+.hub-footer .statsconnect-community .community-manage { min-height: 2.25rem; color: #a29eab; }
+.hub-footer__legal { padding-block: 1.25rem 1.75rem; border-top: 1px solid var(--border); color: #6f6b78; font-size: .72rem; line-height: 1.6; }
 
 .lobby-stage {
   position: relative;
@@ -466,7 +503,6 @@
   opacity: 0.16;
 }
 
-.connect-game-card::before,
 .connection-row::before {
   position: absolute;
   z-index: 0;
@@ -476,7 +512,6 @@
   background: radial-gradient(circle at 94% 12%, color-mix(in srgb, var(--game-accent) 15%, transparent), transparent 42%);
 }
 
-.connect-game-card__art,
 .connection-row__art {
   position: absolute;
   z-index: 0;
@@ -525,9 +560,11 @@
   .hub-game-grid { gap: 2rem; }
   .hub-game-grid > .game-channel:nth-child(2) { margin-top: 5rem; }
   .hub-flow { gap: 3rem; }
-  .hub-footer__inner { grid-template-columns: 1fr; gap: 1.25rem; padding-top: 2rem; padding-bottom: 2rem; }
-  .hub-footer nav { justify-content: start; }
-  .hub-footer p { text-align: left; }
+  .hub-footer__top { grid-template-columns: 1fr; padding-top: 2.5rem; }
+  .connect-stage { grid-template-columns: 1fr; }
+  .connect-stage__art { min-height: 21rem; clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%); padding: 1.5rem 1.5rem 2.75rem; }
+  .connect-stage__wordmark { font-size: 4.25rem; }
+  .connect-stage__skip { flex-direction: column; align-items: start; }
 }
 
 @media (max-width: 640px) {
@@ -563,9 +600,7 @@
   .hub-flow li { padding-block: 1.25rem; }
   .hub-plus { grid-template-columns: 1fr; margin-top: 4rem; }
   .hub-plus ul { columns: 1; }
-  .hub-footer nav { flex-wrap: wrap; gap: 0 1rem; margin-inline: -.25rem; }
-  .hub-footer .statsconnect-community .community-actions { gap: 0 1.2rem; font-size: .8rem; }
-  .connect-game-card__art { right: -4rem; opacity: .07; }
+  .hub-footer__links { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.75rem 1.5rem; }
 }
 
 /* iOS Safari zooms the page when a focused field is under 16px. */

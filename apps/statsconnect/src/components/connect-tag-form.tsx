@@ -6,8 +6,8 @@ import { recordCommunitySuccess } from "@statsconnect/monetization";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
-import { navigateToApplication } from "@/lib/application-navigation";
-import { Button } from "@/components/ui/button";
+import { handleGameDestinationClick, navigateToApplication } from "@/lib/application-navigation";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { AdapterResult, GameId, ProfileSummary } from "@/lib/contracts";
@@ -58,6 +58,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
   }
 
   if (preview) {
+    const viewHref = gameDestinationHref(game, preview.data.playerTag, window.location.origin);
     return (
       <div className="space-y-5">
         <Card className="slide-up">
@@ -76,6 +77,7 @@ export function ConnectTagForm({ game }: { game: GameId }) {
         <div className="flex flex-wrap gap-3">
           <Button variant="secondary" onClick={() => { setPreview(null); previewMutation.reset(); connectMutation.reset(); }}><ArrowLeft className="size-4" />Use another tag</Button>
           <Button onClick={() => { captureSiteEvent("profile_save_submitted", { game }); connectMutation.mutate(); }} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : `Save & launch ${gameName(game)}`}<ArrowRight className="size-4" /></Button>
+          <a href={viewHref} onClick={(event) => handleGameDestinationClick(event, viewHref)} className={buttonVariants({ variant: "ghost" })}>View without saving</a>
         </div>
       </div>
     );
