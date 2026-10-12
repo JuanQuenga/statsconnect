@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.10",
+    "@vercel/functions": "^3.9.11",
     "convex": "^1.43.0"
   }
 }

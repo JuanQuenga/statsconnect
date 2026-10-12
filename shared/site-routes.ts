@@ -25,6 +25,10 @@ export function siteOrigin(site: SiteId): string {
   return siteOrigins[site];
 }
 
+/**
+ * Indexable Hub URLs. `/games/*` and `/launch/*` are client-side launchers
+ * that redirect into a game, so they stay out of the inventory and sitemap.
+ */
 export const hubRoutes: readonly StaticRoute[] = [
   {
     path: "/",
@@ -49,18 +53,6 @@ export const hubRoutes: readonly StaticRoute[] = [
     title: "Connect a Brawl Stars player · StatsConnect",
     description:
       "Enter your Brawl Stars player tag to connect your profile and follow your trophies and brawler roster.",
-  },
-  {
-    path: "/games/clash-royale",
-    title: "Clash Royale statistics · StatsConnect",
-    description:
-      "Clash Royale leaderboards, the live meta report, decks, cards, clans, and news.",
-  },
-  {
-    path: "/games/brawl-stars",
-    title: "Brawl Stars statistics · StatsConnect",
-    description:
-      "Brawl Stars player and club lookup, leaderboards, maps and events, and your saved profiles.",
   },
   {
     path: "/privacy",
@@ -210,6 +202,19 @@ export function siteRoutes(site: SiteId): readonly StaticRoute[] {
   if (site === "cr") return clashRoutes;
   if (site === "bs") return brawlRoutes;
   return hubRoutes;
+}
+
+/** Hub routes published as static documents from `apps/statsconnect/public/<path>.html`. */
+export const hubDocumentPaths: readonly string[] = ["/about", "/contact", "/data-methodology", "/faq", "/terms"];
+
+/**
+ * Routes served by the site shell function. The Hub home is the static shell
+ * document itself and Hub document pages are static files; every other
+ * inventory route needs the shell so its canonical and copy are its own.
+ */
+export function siteShellRoutes(site: SiteId): readonly StaticRoute[] {
+  if (site !== "hub") return siteRoutes(site);
+  return hubRoutes.filter((route) => route.path !== "/" && !hubDocumentPaths.includes(route.path));
 }
 
 /** Sitemaps served live by a function (catalog-driven pages), advertised in robots.txt. */
