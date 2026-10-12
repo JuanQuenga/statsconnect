@@ -3,13 +3,9 @@ import { useStatsConnectAuth } from "@statsconnect/auth";
 import { gameDestinationHref } from "@statsconnect/site-nav";
 import { captureSiteEvent } from "@statsconnect/site-monitoring";
 import { recordCommunitySuccess } from "@statsconnect/monetization";
-import { ArrowLeft, ArrowRight, CheckCircle2, Search } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 import { PageStatus } from "@/components/ui-helpers";
 import { handleGameDestinationClick, navigateToApplication } from "@/lib/application-navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import type { AdapterResult, GameId, ProfileSummary } from "@/lib/contracts";
 import { gameName } from "@/lib/contracts";
 import { dataClient } from "@/lib/data-client";
@@ -59,41 +55,45 @@ export function ConnectTagForm({ game }: { game: GameId }) {
 
   if (preview) {
     const viewHref = gameDestinationHref(game, preview.data.playerTag, window.location.origin);
+    const { display } = preview.data;
     return (
-      <div className="space-y-5">
-        <Card className="slide-up">
-          <CardContent className="space-y-5 p-6">
-            <div className="flex items-start gap-4">
-              <div className="bevel bevel-sm flex size-12 shrink-0 items-center justify-center bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="size-5" /></div>
-              <div className="min-w-0"><p className="eyebrow text-emerald-300">Profile found</p><h2 className="mt-2 truncate font-display text-2xl font-semibold tracking-tight">{preview.data.display.name}</h2><p className="font-numeric text-lg tracking-[0.14em] text-muted-foreground">{preview.data.playerTag}</p></div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {preview.data.display.headline ? <div className="bevel bevel-sm border border-border/60 bg-black/30 p-4"><p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{preview.data.display.headline.label}</p><p className="numeric mt-2 text-4xl text-[var(--game-accent)]">{preview.data.display.headline.value.toLocaleString()}</p></div> : null}
-              {preview.data.display.affiliation ? <div className="bevel bevel-sm border border-border/60 bg-black/30 p-4"><p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Affiliation</p><p className="mt-2 truncate font-display text-xl font-semibold">{preview.data.display.affiliation.name}</p></div> : null}
-            </div>
-          </CardContent>
-        </Card>
-        {connectMutation.isError ? <PageStatus tone="error">{errorMessage(connectMutation.error)}</PageStatus> : null}
-        <div className="flex flex-wrap gap-3">
-          <Button variant="secondary" onClick={() => { setPreview(null); previewMutation.reset(); connectMutation.reset(); }}><ArrowLeft className="size-4" />Use another tag</Button>
-          <Button onClick={() => { captureSiteEvent("profile_save_submitted", { game }); connectMutation.mutate(); }} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : `Save & launch ${gameName(game)}`}<ArrowRight className="size-4" /></Button>
-          <a href={viewHref} onClick={(event) => handleGameDestinationClick(event, viewHref)} className={buttonVariants({ variant: "ghost" })}>View without saving</a>
+      <div className="join-found">
+        <div className="join-plate">
+          {display.avatarUrl ? <img src={display.avatarUrl} alt="" className="join-plate__icon" /> : null}
+          <div className="min-w-0">
+            <p className="join-plate__status">Is this you?</p>
+            <h2 className="join-plate__name">{display.name}</h2>
+            <p className="join-plate__tag">{preview.data.playerTag}</p>
+          </div>
         </div>
+        {display.headline || display.affiliation ? (
+          <dl className="join-plate__stats">
+            {display.headline ? <div><dt>{display.headline.label}</dt><dd>{display.headline.value.toLocaleString()}</dd></div> : null}
+            {display.affiliation ? <div><dt>{game === "clash-royale" ? "Clan" : "Club"}</dt><dd>{display.affiliation.name}</dd></div> : null}
+          </dl>
+        ) : null}
+        {connectMutation.isError ? <PageStatus tone="error">{errorMessage(connectMutation.error)}</PageStatus> : null}
+        <div className="join-actions">
+          <button type="button" className="join-button join-button--gold" onClick={() => { captureSiteEvent("profile_save_submitted", { game }); connectMutation.mutate(); }} disabled={connectMutation.isPending}>{connectMutation.isPending ? "Saving…" : "Save and open stats"}</button>
+          <a href={viewHref} onClick={(event) => handleGameDestinationClick(event, viewHref)} className="join-button join-button--plain">View without saving</a>
+        </div>
+        <button type="button" className="join-link" onClick={() => { setPreview(null); previewMutation.reset(); connectMutation.reset(); }}>Use a different tag</button>
       </div>
     );
   }
 
   return (
-    <form className="space-y-5" onSubmit={submitPreview} noValidate>
-      <div>
-        <label htmlFor="player-tag" className="eyebrow block">{gameName(game)} player tag</label>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <Input id="player-tag" value={tag} onChange={(event) => { setTag(event.target.value); previewMutation.reset(); }} placeholder="#2PPGL9YL" autoCapitalize="characters" autoComplete="off" aria-describedby={validation ? "tag-help tag-error" : "tag-help"} aria-invalid={Boolean(validation)} />
-          <Button type="submit" size="lg" className="shrink-0" disabled={!tag || Boolean(validation) || previewMutation.isPending}>{previewMutation.isPending ? "Checking…" : "Check tag"}<Search className="size-4" /></Button>
+    <form className="join-form" onSubmit={submitPreview} noValidate>
+      <label htmlFor="player-tag" className="sr-only">{gameName(game)} player tag</label>
+      <div className="join-entry">
+        <div className="join-field">
+          <span aria-hidden>#</span>
+          <input id="player-tag" value={tag} onChange={(event) => { setTag(event.target.value); previewMutation.reset(); }} placeholder="2PPGL9YL" autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-describedby={validation ? "tag-help tag-error" : "tag-help"} aria-invalid={Boolean(validation)} />
         </div>
-        <p id="tag-help" className="mt-2 text-xs leading-relaxed text-muted-foreground">Enter the player tag from the in-game profile. Spaces and a leading # are accepted.</p>
-        {validation ? <p id="tag-error" className="mt-2 text-sm text-destructive">{validation}</p> : null}
+        <button type="submit" className="join-button join-button--gold" disabled={!tag || Boolean(validation) || previewMutation.isPending}>{previewMutation.isPending ? "Checking…" : "Check tag"}</button>
       </div>
+      <p id="tag-help" className="join-help">Paste it with or without the #. Spaces are fine.</p>
+      {validation ? <p id="tag-error" className="join-error">{validation}</p> : null}
       {previewMutation.isError ? <PageStatus tone="error">{errorMessage(previewMutation.error)}</PageStatus> : null}
     </form>
   );
