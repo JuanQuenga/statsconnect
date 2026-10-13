@@ -1,0 +1,141 @@
+<!doctype html>
+<html><head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../lib/stage.css">
+  <script src="../lib/stage.js"></script>
+  <style>
+    #bg { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #173c8c 0%, var(--navy) 70%); }
+    #stripes { position: absolute; left: -400px; top: -300px; width: 1900px; height: 2600px; background: repeating-linear-gradient(115deg, var(--panel) 0 120px, transparent 120px 280px); }
+    #glow { position: absolute; left: 540px; top: 900px; width: 1300px; height: 1300px; margin: -650px 0 0 -650px; border-radius: 50%; background: radial-gradient(circle, rgba(58,214,255,.6) 0%, rgba(58,214,255,0) 62%); }
+    #main { position: absolute; inset: 0; transform-origin: 540px 1000px; }
+    #head { position: absolute; left: 0; top: 280px; width: 1080px; text-align: center; transform-origin: 540px 200px; }
+    #head .l1 { display: block; font-size: 150px; }
+    #head .l2 { display: block; font-size: 290px; margin-top: -8px; }
+    #panel { position: absolute; left: 70px; top: 680px; width: 940px; height: 1020px; }
+    #label { position: absolute; left: 0; right: 0; top: 36px; text-align: center; font-size: 72px; color: var(--cyan); }
+    #field { position: absolute; left: 40px; top: 90px; width: 860px; height: 170px; background: #fff; border: 8px solid var(--ink); border-radius: 30px; box-shadow: 0 14px 0 var(--ink); display: flex; align-items: center; padding-left: 40px; color: var(--ink); font-size: 110px; font-weight: 900; line-height: 1; white-space: pre; }
+    #hash { color: #8e97ab; margin-right: 4px; }
+    #caret { display: inline-block; width: 14px; height: 124px; background: var(--ink); margin-left: 10px; }
+    #go { position: absolute; left: 150px; top: 400px; width: 640px; height: 220px; border: 10px solid var(--ink); border-radius: 60px; display: flex; align-items: center; justify-content: center; font-size: 130px; background: linear-gradient(180deg, var(--gold-top), var(--gold) 55%); }
+    #go .brawl-type { color: #fff; }
+    #burst { position: absolute; left: 470px; top: 510px; width: 0; height: 0; }
+    .spark { position: absolute; left: -20px; top: -20px; width: 40px; height: 40px; background: var(--gold); border: 6px solid var(--ink); border-radius: 8px; }
+    #ring { position: absolute; left: 320px; top: 360px; width: 300px; height: 300px; border-radius: 50%; border: 16px solid var(--cyan); box-shadow: 0 0 0 8px var(--ink); }
+    #cosmo { position: absolute; left: 700px; top: 1400px; width: 360px; height: 360px; transform-origin: 50% 100%; filter: drop-shadow(0 12px 0 var(--ink)); }
+    #found { position: absolute; left: 110px; top: 1420px; width: 560px; height: 120px; display: flex; align-items: center; justify-content: center; background: var(--green); border: 8px solid var(--ink); border-radius: 60px; box-shadow: 0 12px 0 var(--ink); color: #fff; font-size: 64px; white-space: nowrap; }
+    #flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+  </style>
+</head><body>
+  <div id="stage">
+    <div id="bg">
+      <div id="stripes"></div>
+      <div id="glow"></div>
+    </div>
+    <div id="main">
+      <div id="head" class="brawl-type">
+        <span class="l1" style="color:#fff">DROP YOUR</span>
+        <span class="l2 gold">TAG</span>
+      </div>
+      <div id="panel" class="panel">
+        <div id="label" class="brawl-type">PLAYER TAG</div>
+        <div id="field"><span id="hash">#</span><span id="typed"></span><span id="caret"></span></div>
+        <div id="burst"></div>
+        <div id="go"><span class="brawl-type">GO</span></div>
+        <div id="ring"></div>
+      </div>
+      <img id="cosmo" src="../assets/img/cosmo-bust.png" alt="">
+      <div id="found" class="brawl-type">PLAYER FOUND!</div>
+    </div>
+    <div id="flash"></div>
+  </div>
+  <script>
+    const { BEAT, beats, range, ease, pop, hit, shake, rng, lerp } = Stage;
+    const KEYS = "2PP8Q0LY";
+    const K0 = beats(1), KSTEP = BEAT * 0.5, B6 = beats(6), EXIT = beats(7.5), END = beats(8);
+
+    window.SCENE = {
+      beats: 8,
+      sfx: [
+        { beat: 0, name: "slam", gain: 0.8 },
+        { beat: 0, name: "whoosh", gain: 0.6 },
+        ...Array.from({ length: KEYS.length }, (_, i) => ({ beat: 1 + i * 0.5, name: "key", gain: 0.4 })),
+        { beat: 0.5, name: "pop" }, { beat: 5.5, name: "select", gain: 0.5 },
+        { beat: 6, name: "punch" },
+        { beat: 6.5, name: "confirm" },
+        { beat: 7.5, name: "whoosh" },
+      ],
+    };
+
+    const q = (id) => document.getElementById(id);
+    const main = q("main"), head = q("head"), panel = q("panel"), field = q("field");
+    const typed = q("typed"), caret = q("caret"), go = q("go"), ring = q("ring");
+    const found = q("found"), flash = q("flash"), stripes = q("stripes"), glow = q("glow"), cosmo = q("cosmo");
+
+    // Gold spark burst from the GO button, built once; positions are set in seek().
+    const R = rng(7);
+    const sparks = Array.from({ length: 14 }, (_, i) => {
+      const el = document.createElement("div");
+      el.className = "spark";
+      q("burst").appendChild(el);
+      return { el, a: (i / 14) * Math.PI * 2 + (R() - 0.5) * 0.4, d: 260 + R() * 200 };
+    });
+
+    window.seek = (t) => {
+      // Background: stripes scroll sideways, glow pulses once per beat.
+      stripes.style.transform = `translateX(${-((t * 90) % 280)}px)`;
+      glow.style.opacity = (0.5 + 0.4 * Math.exp(-((t / BEAT) % 1) * 3)).toFixed(3);
+
+      // Header: mid-slam at t=0 (scale 1.6), settles to 1 by beat 0.5.
+      const slam = ease.outCubic(range(t, 0, beats(0.5)));
+      head.style.transform = `scale(${1 + 0.6 * (1 - slam)})`;
+
+      // Panel: rises from y+200 with overshoot over beats 0 to 0.5; scales up to 1.4 on the exit.
+      const rise = 200 * (1 - ease.outBack(range(t, 0, beats(0.5))));
+      const exitScale = 1 + 0.4 * range(t, END - 0.15, END);
+      panel.style.transform = `translateY(${rise}px) scale(${pop(t, -0.4, BEAT * 1.08) * exitScale})`;
+
+      // Keystrokes: 8 characters, one every half beat from beat 1.
+      const n = t < K0 ? 0 : Math.min(KEYS.length, Math.floor((t - K0) / KSTEP) + 1);
+      typed.textContent = KEYS.slice(0, n);
+      const kick = n ? hit(t, K0 + (n - 1) * KSTEP, BEAT * 0.3) * 0.05 : 0;
+      field.style.transform = `scale(${1 + kick})`;
+      caret.style.visibility = Math.floor(t / BEAT) % 2 === 0 ? "visible" : "hidden";
+
+      // GO button: pops at beat 0.5, kicks when the tag completes (5.5), presses down at beat 6 and stays pressed.
+      const goP = pop(t, beats(0.5), BEAT * 0.6) * (1 + 0.12 * hit(t, beats(5.5), BEAT * 0.4));
+      const press = ease.outCubic(range(t, B6, B6 + BEAT * 0.25));
+      go.style.transform = `translateY(${14 * press}px) scale(${goP})`;
+      go.style.boxShadow = `inset 0 8px 0 rgba(255,255,255,.55), inset 0 -10px 0 rgba(120,70,0,.28), 0 ${14 * (1 - press)}px 0 var(--ink)`;
+
+      // Shockwave ring and spark burst on the press.
+      const rp = range(t, B6, B6 + BEAT * 1.2);
+      ring.style.transform = `scale(${lerp(0.3, 2.6, ease.outQuint(rp))})`;
+      ring.style.opacity = rp > 0 && rp < 1 ? 1 - rp : 0;
+      const bp = range(t, B6, B6 + BEAT * 1.6);
+      for (const s of sparks) {
+        const e = ease.outQuint(bp);
+        const x = Math.cos(s.a) * s.d * e, y = Math.sin(s.a) * s.d * e;
+        s.el.style.transform = `translate(${x}px, ${y}px) rotate(${bp * 540}deg)`;
+        s.el.style.opacity = bp > 0 && bp < 1 ? 1 - bp * bp : 0;
+      }
+
+      // Cosmo: small bob on every beat; jumps with a scale kick on the GO press.
+      const bob = -12 * Math.exp(-((t / BEAT) % 1) * 4);
+      const jp = range(t, B6, B6 + BEAT * 0.8);
+      const jump = -120 * Math.sin(jp * Math.PI);
+      const kickC = 1 + 0.15 * hit(t, B6, BEAT * 0.4);
+      cosmo.style.transform = `translateY(${bob + jump}px) scale(${kickC})`;
+
+      // "PLAYER FOUND!" chip pops in at beat 6.5, below GO.
+      found.style.transform = `rotate(-4deg) scale(${pop(t, beats(6.5), BEAT * 0.6)})`;
+
+      // Header slam and press shake; exit zoom from beat 7.5.
+      const sh = shake(t, 14 * hit(t, 0, BEAT * 0.5) + 8 * hit(t, B6, BEAT * 0.4));
+      const zoom = 1 + 2.4 * range(t, EXIT, beats(8)) ** 2.2;
+      main.style.transform = `translate(${sh.x}px, ${sh.y}px) scale(${zoom})`;
+
+      // Exit flash: white ramps 0 to 0.7 over only the final ~0.15 s.
+      flash.style.opacity = (0.7 * range(t, END - 0.15, END)).toFixed(3);
+    };
+  </script>
+</body></html>

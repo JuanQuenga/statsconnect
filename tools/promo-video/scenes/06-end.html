@@ -1,0 +1,167 @@
+<!doctype html>
+<html><head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../lib/stage.css">
+  <script src="../lib/stage.js"></script>
+  <style>
+    #bg { position: absolute; left: -80px; top: 0; width: 1240px; height: 1920px; object-fit: cover; }
+    #shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,12,34,.82), rgba(11,24,56,.6) 50%, rgba(5,12,34,.88)); }
+    #glow { position: absolute; left: -20px; top: -15px; width: 1120px; height: 1120px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,226,110,.85) 0%, rgba(255,210,31,.35) 35%, rgba(255,210,31,0) 70%); }
+    #fx { position: absolute; inset: 0; }
+    #burst { position: absolute; left: -160px; top: -230px; width: 1400px; height: 1400px; opacity: .25;
+      background: repeating-conic-gradient(from 0deg, rgba(255,210,31,.6) 0deg 6deg, rgba(255,210,31,0) 6deg 30deg);
+      -webkit-mask-image: radial-gradient(circle, #000 0%, #000 22%, transparent 70%);
+      mask-image: radial-gradient(circle, #000 0%, #000 22%, transparent 70%); }
+    #ring { position: absolute; left: 380px; top: 310px; width: 320px; height: 320px; border: 16px solid var(--gold); border-radius: 50%; }
+    .ray { position: absolute; left: 531px; top: 410px; width: 18px; height: 120px; background: var(--gold); border: 5px solid var(--ink); border-radius: 10px; }
+    #logo { position: absolute; left: 320px; top: 250px; width: 440px; height: 440px; transform-origin: 50% 50%; filter: drop-shadow(0 14px 0 var(--ink)); }
+    #word { position: absolute; left: 0; top: 770px; width: 1080px; height: 120px; line-height: 120px; text-align: center; font-size: 104px;
+      letter-spacing: 0; white-space: nowrap; transform-origin: 50% 50%; }
+    .door { position: absolute; top: 1130px; width: 470px; height: 190px; display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: 22px; box-sizing: border-box; color: #fff; white-space: nowrap; transform-origin: 50% 50%; }
+    #doorL { left: 60px; font-size: 56px; border: 8px solid var(--ink); border-radius: 36px;
+      background: linear-gradient(180deg, var(--cyan), var(--blue) 45%, var(--panel));
+      box-shadow: inset 0 8px 0 rgba(255,255,255,.35), 0 14px 0 var(--ink); }
+    #doorR { left: 550px; font-size: 50px; }
+    .bust { position: absolute; top: 980px; width: 260px; height: 260px; transform-origin: 50% 100%; filter: drop-shadow(0 10px 0 var(--ink)); }
+    #bustL { left: 165px; }
+    #bustR { left: 655px; }
+    #cta { position: absolute; left: 90px; top: 1360px; width: 900px; height: 200px; font-family: "TotalBlack"; font-weight: 900;
+      font-size: 88px; text-transform: none; transform-origin: 50% 50%; }
+    .spk { position: absolute; left: 0; top: 0; background: var(--gold-top); clip-path: polygon(50% 0%, 61% 35%, 100% 50%, 61% 65%, 50% 100%, 39% 65%, 0% 50%, 39% 35%); }
+    #flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+    #legal { position: absolute; left: 90px; top: 1690px; width: 900px; text-align: center; font-family: "TotalBlack"; font-weight: 500;
+      font-size: 28px; line-height: 1.3; color: rgba(255,255,255,.75); }
+  </style>
+</head><body>
+  <div id="stage">
+    <img id="bg" src="../assets/img/hub-worlds-2026-mobile.webp" alt="">
+    <div id="shade"></div>
+    <div id="glow"></div>
+    <div id="sparkles"></div>
+    <div id="fx">
+      <div id="burst"></div>
+      <div id="ring"></div>
+      <div id="rays"></div>
+      <img id="logo" src="../assets/img/statsconnect-mark.png" alt="">
+      <div id="word" class="brawl-type">STATS<span class="gold">CONNECT</span></div>
+      <div id="doorL" class="door brawl-type"><span>BRAWL STARS</span></div>
+      <div id="doorR" class="door btn-gold clash-type"><span>Clash Royale</span></div>
+      <img id="bustL" class="bust" src="../assets/img/cosmo-bust.png" alt="">
+      <img id="bustR" class="bust" src="../assets/img/ronin-bust.png" alt="">
+      <div id="cta" class="btn-gold">statsconnect.app</div>
+    </div>
+    <div id="flash"></div>
+    <div id="legal">This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy.</div>
+  </div>
+
+  <script>
+    window.SCENE = {
+      beats: 10,
+      sfx: [
+        { beat: 0, name: "slam", gain: 0.8 },
+        { beat: 0, name: "bell", gain: 0.7 },
+        { beat: 1, name: "pop" },
+        { beat: 2, name: "punch" },
+        { beat: 2.5, name: "punch" },
+        { beat: 4, name: "confirm" },
+        { beat: 6, name: "sparkle" },
+      ],
+    };
+    const { BEAT, beats, range, ease, pop, hit, shake, lerp, rng } = Stage;
+    const $ = (id) => document.getElementById(id);
+
+    // Static elements built once. Their animation is set in seek().
+    const rays = [...Array(16)].map((_, i) => {
+      const d = document.createElement("div");
+      d.className = "ray";
+      $("rays").appendChild(d);
+      return { el: d, a: i * 22.5 };
+    });
+    const r = rng(7);
+    const sparkles = [...Array(12)].map(() => {
+      const d = document.createElement("div");
+      d.className = "spk";
+      $("sparkles").appendChild(d);
+      return { el: d, x: 80 + r() * 920, y: 160 + r() * 1500, s: 24 + r() * 28, ph: r() * 6.28 };
+    });
+    for (const s of sparkles) { s.el.style.width = s.el.style.height = s.s + "px"; }
+
+    const burst = $("burst"), ring = $("ring"), logo = $("logo"), word = $("word");
+    const doorL = $("doorL"), doorR = $("doorR"), bustL = $("bustL"), bustR = $("bustR");
+    const cta = $("cta"), bg = $("bg"), fx = $("fx"), flash = $("flash"), glow = $("glow");
+
+    window.seek = (t) => {
+      const END = beats(10);
+      const d = t / END;
+
+      // Background: continuous slow push-in with a gentle drift.
+      bg.style.transform = `translate(${lerp(-30, 30, d)}px, 0px) scale(${lerp(1.05, 1.15, d)})`;
+      glow.style.opacity = 0.8 + 0.2 * Math.sin(t * 3);
+
+      // Rotating ray burst behind the logo, 20 deg/s.
+      burst.style.transform = `rotate(${t * 20}deg)`;
+
+      // Sparkles twinkle from b1 on, deterministic from t.
+      const sparkIn = range(t, beats(1), beats(2));
+      for (const s of sparkles) {
+        const k = Math.max(0, Math.sin(t * 4.5 + s.ph));
+        s.el.style.opacity = sparkIn * k ** 3;
+        s.el.style.transform = `translate(${s.x}px, ${s.y}px) scale(${0.4 + 0.8 * k})`;
+      }
+
+      // Impact shake on each hit, applied to the foreground group.
+      let amp = 0;
+      for (const [at, a] of [[0, 30], [beats(2), 22], [beats(2.5), 18], [beats(4), 20]]) amp += a * hit(t, at, BEAT * 0.35);
+      const sh = shake(t, amp);
+      fx.style.transform = `translate(${sh.x}px, ${sh.y}px)`;
+
+      // White flash on the big hits.
+      flash.style.opacity = (0.4 * hit(t, 0, BEAT * 0.15) + 0.25 * hit(t, beats(2), BEAT * 0.12) + 0.25 * hit(t, beats(4), BEAT * 0.12)).toFixed(3);
+
+      // Per-beat bob: a sharp kick on each beat that decays before the next one.
+      const beatFrac = (t / BEAT) % 1;
+      const bob = Math.exp(-beatFrac * 5);
+
+      // b0: logo slam, shockwave ring, 16 gold rays. Then a gentle float.
+      const rp = range(t, 0, BEAT * 1.1);
+      ring.style.transform = `scale(${lerp(0.3, 3.2, ease.outCubic(rp))})`;
+      ring.style.opacity = (1 - rp).toFixed(3);
+      const rd = range(t, 0, BEAT * 1.3);
+      for (const ray of rays) {
+        const dist = lerp(120, 440, ease.outCubic(rd));
+        ray.el.style.transform = `translate(0px, 0px) rotate(${ray.a}deg) translateY(${-dist}px)`;
+        ray.el.style.opacity = (1 - range(t, BEAT * 0.6, BEAT * 1.6)).toFixed(3);
+      }
+      const floatY = 10 * Math.sin(t * 2.1);
+      logo.style.transform = `translateY(${floatY}px) scale(${lerp(2.7, 1, ease.outBack(range(t, 0, BEAT * 0.6)))})`;
+
+      // b1: wordmark pops in.
+      const ws = pop(t, beats(1), BEAT * 0.6);
+      word.style.transform = `scale(${ws})`;
+      word.style.opacity = ws > 0 ? 1 : 0;
+
+      // b2 / b2.5: door buttons pop side by side, busts rise after them.
+      const dl = pop(t, beats(2), BEAT * 0.6);
+      const dr = pop(t, beats(2.5), BEAT * 0.6);
+      doorL.style.transform = `translateY(${-5 * bob}px) scale(${dl})`;
+      doorL.style.opacity = dl > 0 ? 1 : 0;
+      doorR.style.transform = `translateY(${-5 * bob}px) scale(${dr})`;
+      doorR.style.opacity = dr > 0 ? 1 : 0;
+      const bl = pop(t, beats(2) + BEAT * 0.25, BEAT * 0.6);
+      const br = pop(t, beats(2.5) + BEAT * 0.25, BEAT * 0.6);
+      bustL.style.transform = `translateY(${-8 * bob}px) rotate(-6deg) scale(${bl})`;
+      bustL.style.opacity = bl > 0 ? 1 : 0;
+      bustR.style.transform = `translateY(${-8 * bob}px) rotate(6deg) scale(${br})`;
+      bustR.style.opacity = br > 0 ? 1 : 0;
+
+      // b4: gold button pops in, then pulses once per beat.
+      const cs = pop(t, beats(4), BEAT * 0.6);
+      const frac = t < beats(4) ? 0 : ((t - beats(4)) / BEAT) % 1;
+      const pulse = 1 + 0.04 * Math.exp(-frac * 6);
+      cta.style.transform = `scale(${cs * pulse})`;
+      cta.style.opacity = cs > 0 ? 1 : 0;
+    };
+  </script>
+</body></html>

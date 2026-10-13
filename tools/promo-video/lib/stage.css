@@ -1,0 +1,39 @@
+/* Shared stage for every scene: 1080x1920, game-native StatsConnect look. */
+@font-face { font-family: "TotalBlack"; src: url("../assets/fonts/TotalBlackVF.otf"); font-weight: 100 1000; }
+@font-face { font-family: "Supercell"; src: url("../assets/fonts/supercell-webfont.ttf"); }
+
+:root {
+  --ink: #050c22;
+  --navy: #0b1838;
+  --panel: #15306b;
+  --panel-top: #1a3a80;
+  --blue: #1f6fd6;
+  --cyan: #3ad6ff;
+  --gold: #ffd21f;
+  --gold-top: #ffe873;
+  --gold-deep: #f2a900;
+  --red: #ff4f6d;
+  --green: #52e07a;
+  --paper: #f5f7fa;
+  --cr-blue: #1f6fd6;
+  --cr-gold: #ffc93c;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--ink); }
+body { font-family: "TotalBlack", system-ui, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: var(--navy); }
+.abs { position: absolute; }
+.center { left: 50%; top: 50%; translate: -50% -50%; }
+
+/* Game display type: thick ink outline painted under the fill, hard drop shadow. */
+.brawl-type { font-family: "TotalBlack"; font-weight: 900; line-height: .95; text-transform: uppercase; letter-spacing: .01em; -webkit-text-stroke: .14em var(--ink); paint-order: stroke fill; text-shadow: 0 .09em 0 var(--ink); }
+.clash-type { font-family: "Supercell"; line-height: 1.05; -webkit-text-stroke: .13em var(--ink); paint-order: stroke fill; text-shadow: 0 .08em 0 var(--ink); }
+.gold { color: var(--gold); }
+.cyan { color: var(--cyan); }
+
+/* Chunky panel: ink border, hard ink drop shadow, lit top edge. */
+.panel { border: 8px solid var(--ink); border-radius: 44px; background: linear-gradient(180deg, var(--panel-top), var(--panel) 45%); box-shadow: inset 0 8px 0 rgba(255,255,255,.22), 0 16px 0 var(--ink), 0 50px 90px rgba(0,0,0,.5); }
+.paper { border: 8px solid var(--ink); border-radius: 36px; background: var(--paper); color: var(--ink); box-shadow: 0 14px 0 var(--ink); }
+.btn-gold { display: inline-flex; align-items: center; justify-content: center; border: 8px solid var(--ink); border-radius: 32px; color: var(--ink); background: linear-gradient(180deg, var(--gold-top), var(--gold) 55%); box-shadow: inset 0 8px 0 rgba(255,255,255,.55), inset 0 -10px 0 rgba(120,70,0,.28), 0 14px 0 var(--ink); }
+.ink-drop { filter: drop-shadow(0 14px 0 var(--ink)); }

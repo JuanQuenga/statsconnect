@@ -1,0 +1,12 @@
+{
+  "name": "statsconnect-promo-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs",
+    "contact": "node render.mjs --contact"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

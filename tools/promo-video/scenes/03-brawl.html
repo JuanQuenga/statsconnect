@@ -1,0 +1,137 @@
+<!doctype html>
+<html><head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../lib/stage.css">
+  <script src="../lib/stage.js"></script>
+  <style>
+    #world { position: absolute; inset: 0; }
+    #bg { position: absolute; left: -900px; top: 0; width: 2880px; height: 1920px; transform-origin: 50% 40%; }
+    #shade { position: absolute; inset: 0; background:
+      linear-gradient(180deg, rgba(5,12,34,.25) 0%, rgba(5,12,34,.12) 28%, rgba(11,24,56,.45) 60%, rgba(5,12,34,.92) 100%); }
+
+    /* Brand chip: fixed positions, so nothing reflows as the scene plays. */
+    #chip { position: absolute; left: 0; top: 190px; width: 1080px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .pill { background: var(--gold); border: 8px solid var(--ink); border-radius: 999px; padding: 10px 58px 12px; color: var(--ink);
+      font-size: 64px; line-height: 1; -webkit-text-stroke: 0; text-shadow: none;
+      box-shadow: inset 0 8px 0 rgba(255,255,255,.5), 0 10px 0 var(--ink); }
+    #url { font-size: 44px; color: #fff; text-shadow: 0 4px 0 var(--ink); -webkit-text-stroke: .05em var(--ink); paint-order: stroke fill; letter-spacing: .02em; }
+
+    /* Profile panel: y 560 to 1640 on the frame, bleeds nothing except the stamp. */
+    #panel { position: absolute; left: 60px; top: 560px; width: 960px; height: 1080px; }
+    #name { position: absolute; left: 0; right: 0; top: 30px; text-align: center; font-size: 130px; color: #fff; }
+    #tag { position: absolute; left: 50%; top: 168px; translate: -50% 0; background: var(--ink); border: 6px solid var(--panel-top);
+      border-radius: 999px; padding: 10px 44px 14px; font-size: 58px; color: var(--cyan); white-space: nowrap; }
+
+    #trophy { position: absolute; left: 130px; top: 280px; width: 130px; height: 130px; transform-origin: 50% 50%; }
+    #count { position: absolute; left: 280px; top: 280px; font-size: 140px; color: var(--gold); white-space: nowrap; line-height: 1;
+      font-variant-numeric: tabular-nums; transform-origin: 0% 50%; }
+
+    #grid { position: absolute; left: 156px; top: 440px; width: 632px; display: grid; grid-template-columns: repeat(3, 200px); gap: 16px; }
+    .tile { position: relative; width: 200px; height: 200px; transform: scale(0); }
+    .frame { position: absolute; inset: 0; border: 8px solid var(--ink); border-radius: 30px; overflow: hidden; background: var(--panel-top);
+      box-shadow: 0 9px 0 var(--ink); }
+    .frame img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; display: block; }
+    .rank { position: absolute; left: -16px; top: -16px; width: 62px; height: 62px; border-radius: 50%; border: 7px solid var(--ink);
+      background: var(--gold); color: var(--ink); font-size: 38px; display: flex; align-items: center; justify-content: center; line-height: 1; padding-top: 4px; }
+
+    /* Win-rate stamp: centred on the panel's bottom edge (y 1640 on the frame). */
+    #stamp { position: absolute; left: 80px; top: 942px; width: 800px; display: flex; justify-content: center; opacity: 0; }
+    #stamp .card { background: var(--red); border: 10px solid var(--ink); border-radius: 40px; padding: 10px 40px 18px; text-align: center;
+      box-shadow: inset 0 8px 0 rgba(255,255,255,.3), 0 18px 0 var(--ink); }
+    #stamp .val { font-size: 160px; color: var(--gold); line-height: .9; }
+    #stamp .lbl { font-size: 56px; color: #fff; line-height: 1; margin-top: 6px; }
+  </style>
+</head><body>
+  <div id="stage">
+    <div id="world">
+      <img id="bg" src="../assets/img/brawl-stars-2026-feature.webp" alt="">
+      <div id="shade"></div>
+
+      <div id="chip">
+        <div class="pill brawl-type">BRAWL STARS</div>
+        <div id="url" class="brawl-type">bs.statsconnect.app</div>
+      </div>
+
+      <div id="panel" class="panel">
+        <div id="name" class="brawl-type">NOVA</div>
+        <div id="tag" class="brawl-type">#2PP8Q0LY</div>
+
+        <img id="trophy" src="../assets/img/trophy.png" alt="">
+        <div id="count" class="brawl-type">0</div>
+
+        <div id="grid"></div>
+
+        <div id="stamp"><div class="card brawl-type">
+          <div class="val">64%</div>
+          <div class="lbl">WIN RATE</div>
+        </div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    window.SCENE = {
+      beats: 8,
+      sfx: [
+        { beat: 0, name: "slam", gain: 0.8 },
+        { beat: 0.25, name: "rise" },
+        { beat: 2, name: "thud" },
+        ...[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ beat: 2 + i / 2, name: "pop", gain: 0.45 })),
+        { beat: 6, name: "slam", gain: 0.8 },
+        { beat: 7.5, name: "whoosh" },
+      ],
+    };
+    const { BEAT, beats, range, ease, pop, hit, shake, count, fmt } = Stage;
+    const DUR = beats(8);
+    const $ = (id) => document.getElementById(id);
+    const B = (n) => beats(n);
+
+    // Nine portraits, one rank badge each. Built once; seek() only moves them.
+    const BRAWLERS = ["16000000", "16000001", "16000002", "16000003", "16000004", "16000005", "16000007", "16000008", "16000010"];
+    $("grid").innerHTML = BRAWLERS.map((id, i) =>
+      `<div class="tile" data-i="${i}"><div class="frame"><img src="../assets/brawlers/${id}.png" alt=""></div>` +
+      `<div class="rank brawl-type">${i + 1}</div></div>`).join("");
+    const tiles = [...document.querySelectorAll(".tile")];
+
+    window.seek = (t) => {
+      // Background: slow push-in across the whole scene.
+      const d = clamp01(t / DUR);
+      $("bg").style.transform = `translate(${-30 * d}px, ${-20 * d}px) scale(${1.0 + 0.14 * d})`;
+
+      // Brand chip: already mid-pop at t=0.
+      $("chip").style.transform = `scale(${pop(t, -0.1, 0.35)})`;
+
+      // Profile panel: slams up from below, shakes and kicks on landing at b2.
+      const landY = (1 - ease.outBack(range(t, -0.1, 0.36))) * 1100;
+      const sh = shake(t, 14 * hit(t, 0, 0.2));
+      const kick = 1 + 0.025 * hit(t, B(2), BEAT * 0.5);
+      $("panel").style.transform = `translate(${sh.x}px, ${landY + sh.y}px) scale(${kick})`;
+
+      // Trophy: icon pops at b0.25, count rolls 0 to 52,318 from b0.25 to b2, kick on landing.
+      const tro = pop(t, B(0.25), BEAT * 0.6);
+      const landKick = 1 + 0.12 * hit(t, B(2), BEAT * 0.4);
+      $("trophy").style.transform = `scale(${tro * landKick}) rotate(${(1 - tro) * -25}deg)`;
+      $("count").style.transform = `scale(${tro * landKick})`;
+      $("count").textContent = fmt(count(t, 0, 52318, B(0.25), B(2)));
+
+      // Portraits: nine pops, one every half beat from b2, all in by b6.
+      tiles.forEach((el, i) => {
+        el.style.transform = `scale(${pop(t, B(2 + i / 2), BEAT * 0.6)})`;
+      });
+
+      // Win-rate stamp: slams at b6 from 2x, shakes, rotated -8deg.
+      const sp = range(t, B(6), B(6) + 0.25);
+      const ss = 2 - ease.outBack(sp);
+      const ssh = shake(t, 16 * hit(t, B(6), BEAT * 0.6));
+      $("stamp").style.opacity = t >= B(6) ? 1 : 0;
+      $("stamp").style.transform = `translate(${ssh.x}px, ${ssh.y}px) rotate(-8deg) scale(${ss})`;
+
+      // Exit: whip right with skew motion blur over the last half beat.
+      const ex = ease.inCubic(range(t, B(7.5), DUR));
+      $("world").style.transform = `translateX(${ex * 1500}px) skewX(${-28 * ex}deg)`;
+    };
+
+    function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+  </script>
+</body></html>

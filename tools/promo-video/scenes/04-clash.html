@@ -1,0 +1,167 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<style>
+  #world { position: absolute; inset: 0; transform-origin: 540px 960px; }
+  #bg { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; object-position: 50% 40%; filter: brightness(.8) saturate(1.1); transform-origin: 540px 960px; }
+  #shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(31,111,214,.15) 0%, rgba(11,40,110,.1) 30%, rgba(5,20,70,.7) 100%); }
+
+  .chip { position: absolute; left: 60px; top: 200px; padding: 10px 40px 14px; border: 8px solid var(--ink); border-radius: 999px;
+    background: linear-gradient(180deg, var(--gold-top), var(--cr-gold) 55%); box-shadow: inset 0 6px 0 rgba(255,255,255,.55), 0 12px 0 var(--ink);
+    color: var(--ink); font-family: "TotalBlack"; font-weight: 900; font-size: 64px; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+  .url { position: absolute; left: 66px; top: 330px; font-family: "TotalBlack"; font-weight: 900; font-size: 44px; color: #fff; text-shadow: 0 5px 0 var(--ink), 0 0 12px rgba(0,0,0,.5); }
+
+  #panel { position: absolute; left: 60px; top: 560px; width: 960px; height: 1080px; }
+  #panel .face { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .paper { border: 8px solid var(--ink); border-radius: 56px; background: var(--paper); box-shadow: 0 16px 0 var(--ink), 0 40px 80px rgba(0,0,0,.45); }
+
+  .head { position: absolute; left: 40px; top: 20px; font-size: 76px; line-height: 1; color: var(--cr-blue); white-space: nowrap; }
+  .tag { position: absolute; left: 44px; top: 126px; padding: 6px 30px 10px; border: 6px solid var(--ink); border-radius: 40px; background: var(--navy);
+    color: #fff; font-family: "TotalBlack"; font-weight: 900; font-size: 50px; line-height: 1.1; box-shadow: 0 8px 0 var(--ink); }
+  .label { position: absolute; left: 44px; top: 218px; font-family: "TotalBlack"; font-weight: 900; font-size: 48px; line-height: 1; color: var(--ink); letter-spacing: .03em; }
+
+  .slot { position: absolute; width: 205px; height: 230px; border: 6px solid var(--ink); border-radius: 26px; background: #c9d8f2; box-shadow: inset 0 10px 0 rgba(5,12,34,.12); }
+  .card { position: absolute; left: 0; top: 0; width: 205px; height: 230px; }
+
+  .trophy-row { position: absolute; left: 44px; top: 764px; width: 900px; height: 120px; transform-origin: 0 50%; }
+  .trophy-row img { position: absolute; left: 0; top: 0; width: 110px; height: 110px; filter: drop-shadow(0 8px 0 var(--ink)); }
+  .count { position: absolute; left: 130px; top: 0; font-size: 120px; line-height: 1; color: var(--cr-blue); white-space: nowrap; }
+
+  .arena { position: absolute; left: 44px; top: 896px; padding: 8px 34px 12px; border: 6px solid var(--ink); border-radius: 40px; background: var(--navy);
+    color: var(--cr-gold); font-family: "TotalBlack"; font-weight: 900; font-size: 44px; line-height: 1.1; box-shadow: 0 8px 0 var(--ink); transform-origin: 0 50%; white-space: nowrap; }
+
+  .stamp { position: absolute; left: 30px; top: 992px; width: 680px; padding: 10px 24px 16px; text-align: center; border: 10px solid var(--ink); border-radius: 40px;
+    background: linear-gradient(180deg, var(--gold-top), var(--cr-gold) 60%, var(--gold-deep)); box-shadow: inset 0 8px 0 rgba(255,255,255,.55), 0 16px 0 var(--ink);
+    color: var(--cr-blue); transform-origin: 50% 50%; }
+  .stamp .num { display: block; font-size: 120px; line-height: .95; }
+  .stamp .txt { display: block; font-size: 40px; line-height: 1; white-space: nowrap; }
+
+  .chest { position: absolute; left: 775px; top: 1550px; width: 200px; height: 200px; object-fit: contain; filter: drop-shadow(0 14px 0 var(--ink)); transform-origin: 50% 80%; }
+  .spark { position: absolute; left: 0; top: 0; width: 36px; height: 36px; background: var(--gold); border: 5px solid var(--ink); transform: rotate(45deg); }
+
+  #ronin { position: absolute; left: 660px; top: 320px; width: 360px; height: 360px; object-fit: contain; filter: drop-shadow(0 14px 0 var(--ink)); transform-origin: 50% 80%; }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+</style>
+</head><body>
+  <div id="stage">
+    <div id="world">
+      <img id="bg" src="../assets/img/clash-royale-2026-feature.webp" alt="">
+      <div id="shade"></div>
+
+      <div id="chip" class="chip" style="transform-origin: 50% 50%">Clash Royale</div>
+      <div class="url">cr.statsconnect.app</div>
+
+      <div id="panel">
+        <div class="face paper">
+          <div class="head clash-type">KingRonin</div>
+          <div class="tag">#9QJ2LG0C</div>
+          <div class="label">CURRENT DECK</div>
+
+          <div class="slot" style="left:40px;top:276px"><img class="card" data-i="0" src="../assets/cards/hog-rider.png" alt=""></div>
+          <div class="slot" style="left:265px;top:276px"><img class="card" data-i="1" src="../assets/cards/musketeer.png" alt=""></div>
+          <div class="slot" style="left:490px;top:276px"><img class="card" data-i="2" src="../assets/cards/fireball.png" alt=""></div>
+          <div class="slot" style="left:715px;top:276px"><img class="card" data-i="3" src="../assets/cards/the-log.png" alt=""></div>
+          <div class="slot" style="left:40px;top:524px"><img class="card" data-i="4" src="../assets/cards/ice-spirit.png" alt=""></div>
+          <div class="slot" style="left:265px;top:524px"><img class="card" data-i="5" src="../assets/cards/skeletons.png" alt=""></div>
+          <div class="slot" style="left:490px;top:524px"><img class="card" data-i="6" src="../assets/cards/cannon.png" alt=""></div>
+          <div class="slot" style="left:715px;top:524px"><img class="card" data-i="7" src="../assets/cards/valkyrie.png" alt=""></div>
+
+          <div id="trophyRow" class="trophy-row">
+            <img src="../assets/img/trophy.png" alt="">
+            <div id="count" class="count clash-type">0</div>
+          </div>
+          <div id="arena" class="arena">ARENA: LEGENDARY</div>
+          <div id="stamp" class="stamp clash-type"><span class="num">412</span><span class="txt">THREE-CROWN WINS</span></div>
+        </div>
+      </div>
+
+      <img id="chest" class="chest" src="../assets/img/chest-legendary.png" alt="">
+      <img id="ronin" src="../assets/img/ronin-bust.png" alt="">
+      <div id="sparks"></div>
+      <div id="flash"></div>
+    </div>
+  </div>
+
+  <script>
+    window.SCENE = {
+      beats: 8,
+      sfx: [
+        { beat: 0, name: "slam", gain: 0.8 },
+        { beat: 0.5, name: "pop", gain: 0.4 },
+        { beat: 1, name: "pop", gain: 0.4 },
+        { beat: 1.5, name: "pop", gain: 0.4 },
+        { beat: 2, name: "pop", gain: 0.4 },
+        { beat: 2.5, name: "pop", gain: 0.4 },
+        { beat: 3, name: "pop", gain: 0.4 },
+        { beat: 3.5, name: "pop", gain: 0.4 },
+        { beat: 4, name: "pop", gain: 0.4 },
+        { beat: 4.5, name: "rise" },
+        { beat: 6, name: "slam" },
+        { beat: 6.25, name: "sparkle" },
+        { beat: 7.5, name: "whoosh" },
+      ],
+    };
+    const { BEAT, beats, range, ease, pop, hit, shake, count, fmt, clamp } = Stage;
+    const $ = (id) => document.getElementById(id);
+    const cards = [...document.querySelectorAll(".card")];
+
+    // Slam: scale from `from` down to 1 with a small overshoot. Mid-slam at t=0 when `at` is slightly negative.
+    const slam = (t, at, from = 2.6, dur = 0.35) => 1 + (from - 1) * (1 - ease.outBack(clamp((t - at) / dur), 1.2));
+
+    // Sparks: 12 gold diamonds bursting from the stamp centre.
+    const SPARK = { x: 400, y: 1654 };
+    const sparkEls = [];
+    for (let i = 0; i < 12; i++) {
+      const d = document.createElement("div");
+      d.className = "spark";
+      $("sparks").appendChild(d);
+      sparkEls.push(d);
+    }
+
+    window.seek = (t) => {
+      // Camera: shake on the opening slam and the stamp hit, exit zoom into the cut.
+      const sh = shake(t, 14 * hit(t, 0) + 10 * hit(t, beats(6), BEAT * 0.4));
+      const zoom = 1 + 0.22 * ease.inCubic(range(t, beats(7.5), beats(8)));
+      $("world").style.transform = `translate(${sh.x}px, ${sh.y}px) scale(${zoom})`;
+      $("bg").style.transform = `scale(${1 + 0.1 * range(t, 0, beats(8))})`;
+      $("flash").style.opacity = range(t, beats(7.6), beats(8));
+
+      $("chip").style.transform = `scale(${slam(t, 0, 1.3, 0.5)})`;
+      $("panel").style.transform = `scale(${slam(t, 0, 1.08, 0.5)})`;
+      $("ronin").style.transform = `rotate(8deg) scale(${slam(t, 0, 1.25, 0.5)})`;
+
+      // Deck: one card flips in every half beat from b0 through b3.5, overshooting past 0.
+      cards.forEach((c, i) => {
+        const p = clamp((t - beats(i * 0.5)) / (BEAT * 0.6));
+        const rot = 90 * (1 - ease.outBack(p, 1.2));
+        c.style.transform = `perspective(900px) rotateY(${rot}deg)`;
+      });
+
+      // Trophies: row pops at b4.5, count rolls to 9,000 by b6. Arena label lands with it.
+      const rowS = pop(t, beats(4.5));
+      $("trophyRow").style.transform = `scale(${rowS})`;
+      $("arena").style.transform = `scale(${rowS})`;
+      $("count").textContent = fmt(count(t, 0, 9000, beats(4.5), beats(6)));
+
+      // Stamp + chest: slam at b6 with shake, chest pops beside it.
+      const stAt = beats(6);
+      const stS = t < stAt ? 0 : 1.6 - 0.6 * ease.outBack(clamp((t - stAt) / (BEAT * 0.6)), 1.2);
+      const stSh = shake(t, 12 * hit(t, stAt, BEAT * 0.5));
+      $("stamp").style.transform = `translate(${stSh.x}px, ${stSh.y}px) rotate(-6deg) scale(${stS})`;
+      $("chest").style.transform = `scale(${pop(t, stAt)}) rotate(6deg)`;
+
+      // Sparkle burst at b6.25 from the stamp.
+      const spAt = beats(6.25);
+      const p = clamp((t - spAt) / BEAT);
+      sparkEls.forEach((d, i) => {
+        const a = (i / 12) * Math.PI * 2 + 0.2;
+        const r = 40 + 300 * ease.outCubic(p);
+        d.style.left = `${SPARK.x + Math.cos(a) * r - 18}px`;
+        d.style.top = `${SPARK.y + Math.sin(a) * r - 18}px`;
+        d.style.opacity = t < spAt ? 0 : 1 - p;
+      });
+    };
+  </script>
+</body></html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html><head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../lib/stage.css">
+  <script src="../lib/stage.js"></script>
+  <style>
+    .rays { left: -700px; top: -260px; width: 2480px; height: 2480px;
+      background: repeating-conic-gradient(from 0deg, var(--panel) 0 7.5deg, var(--panel-top) 7.5deg 15deg); }
+    .vignette { inset: 0; background: radial-gradient(ellipse 75% 60% at 50% 48%, rgba(0,0,0,0) 40%, rgba(5,12,34,.9) 100%); }
+    .group { inset: 0; }
+    .flash { inset: 0; background: #fff; opacity: 0; }
+
+    /* Card: fixed box, centre x=540, top 470. Only transforms move it. */
+    .card { left: 140px; top: 470px; width: 800px; height: 1000px; overflow: hidden; border-radius: 44px; }
+    .card .mark { left: 40px; top: 40px; width: 96px; height: 96px; }
+    .card .name { left: 156px; top: 52px; font-size: 84px; color: #fff; }
+    .card .pct { left: 0; right: 0; top: 130px; text-align: center; font-size: 280px; line-height: .95; color: var(--gold); }
+    .card .wr { left: 0; right: 0; top: 400px; text-align: center; font-size: 70px; color: #fff; }
+    .card .tile { top: 500px; width: 200px; height: 220px; border: 8px solid var(--ink); border-radius: 28px; overflow: hidden; background: var(--navy); box-shadow: 0 10px 0 var(--ink); }
+    .card .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card .strip { left: 0; right: 0; bottom: 0; height: 112px; background: var(--ink); color: #fff; font-size: 40px; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+    .card .strip b { color: var(--gold); font-weight: 900; margin-left: 12px; }
+
+    /* Chat bubbles: plain heavy system text, white card, ink border and hard shadow. */
+    .bubble { white-space: nowrap; padding: 28px; font: 800 52px system-ui; color: var(--ink); background: #fff;
+      border: 6px solid var(--ink); border-radius: 36px; box-shadow: 14px 14px 0 var(--ink);
+      transform-origin: 50% 100%; opacity: 0; }
+
+    .headline { left: 0; right: 0; top: 170px; text-align: center; font-size: 120px; color: #fff; opacity: 0; transform-origin: 50% 50%; white-space: nowrap; }
+    .headline .gold { color: var(--gold); }
+
+    .mini { left: 0; top: 0; width: 220px; height: 280px; opacity: 0; transform-origin: 50% 50%; display: flex; align-items: center; justify-content: center; font-size: 88px; color: var(--gold); }
+
+    .kicker { left: 0; right: 0; top: 300px; text-align: center; font-size: 64px; color: #fff; white-space: nowrap; opacity: 0; transform-origin: 50% 50%; }
+    .chip { left: 0; top: 1560px; width: 280px; height: 120px; font-size: 60px; color: var(--ink); -webkit-text-stroke: 0; text-shadow: none; transform-origin: 50% 50%; opacity: 0; }
+  </style>
+</head><body>
+  <div id="stage">
+    <div class="abs rays" id="rays"></div>
+    <div class="abs vignette"></div>
+
+    <div class="abs group" id="group">
+      <div class="abs kicker brawl-type" id="kicker">YOUR STATS. YOUR LINK.</div>
+    <div class="abs headline brawl-type" id="headline">SHARE THE<br><span class="gold">FLEX.</span></div>
+
+      <div class="abs panel card" id="card">
+        <img class="abs mark" src="../assets/img/statsconnect-mark.png" alt="">
+        <div class="abs brawl-type name">NOVA</div>
+        <div class="abs brawl-type pct">64%</div>
+        <div class="abs brawl-type wr">WIN RATE</div>
+        <div class="abs tile" style="left:40px;"><img src="../assets/brawlers/16000000.png" alt=""></div>
+        <div class="abs tile" style="left:300px;"><img src="../assets/brawlers/16000001.png" alt=""></div>
+        <div class="abs tile" style="left:560px;"><img src="../assets/brawlers/16000002.png" alt=""></div>
+        <div class="abs strip">Make your own&nbsp;&rarr;&nbsp;<b>statsconnect.app</b></div>
+      </div>
+
+      <div class="abs bubble" id="b1" style="left:16px; top:480px;">gg!!</div>
+      <div class="abs bubble" id="b2" style="right:20px; top:440px;">how is that 64%??</div>
+      <div class="abs bubble" id="b3" style="left:16px; top:1232px;">send me the link</div>
+
+      <div class="abs panel mini brawl-type" id="m0">64%</div>
+      <div class="abs panel mini brawl-type" id="m1">64%</div>
+      <div class="abs panel mini brawl-type" id="m2">64%</div>
+
+      <div class="abs btn-gold chip brawl-type" id="c0" style="left:80px;">CLUB</div>
+      <div class="abs btn-gold chip brawl-type" id="c1" style="left:400px;">CLAN</div>
+      <div class="abs btn-gold chip brawl-type" id="c2" style="left:720px;">SQUAD</div>
+    </div>
+
+    <div class="abs flash" id="flash"></div>
+  </div>
+
+  <script>
+    window.SCENE = {
+      beats: 8,
+      sfx: [
+        { beat: 0, name: "whoosh", gain: 0.5 },
+        { beat: 0.5, name: "thud", gain: 0.6 },
+        { beat: 2, name: "pop", gain: 0.45 },
+        { beat: 2.5, name: "pop", gain: 0.45 },
+        { beat: 3, name: "pop", gain: 0.45 },
+        { beat: 4, name: "whoosh", gain: 0.5 },
+        { beat: 4.5, name: "select", gain: 0.6 },
+        { beat: 5, name: "select", gain: 0.6 },
+        { beat: 5.5, name: "select", gain: 0.6 },
+        { beat: 6, name: "slam", gain: 0.8 },
+        { beat: 7.5, name: "whoosh", gain: 0.5 },
+      ],
+    };
+    const { BEAT, beats, range, ease, pop, hit, shake, clamp, lerp } = Stage;
+
+    const $ = (id) => document.getElementById(id);
+    const kicker = $("kicker");
+    const rays = $("rays"), group = $("group"), card = $("card"), headline = $("headline"), flash = $("flash");
+    const bubbles = ["b1", "b2", "b3"].map($);
+    const BUBBLE_ROT = [-4, 4, -4];
+    const minis = ["m0", "m1", "m2"].map($);
+    const chips = ["c0", "c1", "c2"].map($);
+    const CARD = { x: 540, y: 970 };            // card centre
+    const CHIP_X = [220, 540, 860], CHIP_Y = 1620; // chip centres
+
+    window.seek = (t) => {
+      // Slow sunburst spin.
+      rays.style.transform = `rotate(${t * 18}deg)`;
+
+      // Impact shake: card landing at 0, thud at 0.5, headline slam at beat 6, exit punch at 7.5.
+      const amp = 16 * hit(t, 0, 0.2) + 10 * hit(t, beats(0.5), 0.15) + 22 * hit(t, beats(6), 0.22);
+      const sh = shake(t, amp);
+      const exitP = range(t, beats(7.5), beats(8));
+      const exitScale = 1 + 0.16 * ease.inCubic(exitP);
+      group.style.transform = `translate(${sh.x}px, ${sh.y}px) scale(${exitScale})`;
+
+      // Card: transform-only slide-in, base box never moves.
+      const cp = ease.outBack(clamp((t + 0.25) / 0.55), 1.6);
+      const cardY = (1 - cp) * 700;
+      card.style.transform = `translateY(${cardY}px) rotate(-4deg)`;
+
+      // Chat bubbles pop around the card edges.
+      bubbles.forEach((b, i) => {
+        const p = pop(t, beats(2 + 0.5 * i), BEAT * 0.5);
+        b.style.opacity = p > 0 ? 1 : 0;
+        b.style.transform = `rotate(${BUBBLE_ROT[i]}deg) scale(${p})`;
+      });
+
+      // Mini copies arc from the card centre to each chip, then the chip pops.
+      minis.forEach((m, i) => {
+        const s = beats(4 + 0.5 * i), e = s + BEAT * 0.5;
+        const p = range(t, s, e);
+        const live = t >= s && t < e;
+        const ep = ease.outCubic(p);
+        const x = lerp(CARD.x, CHIP_X[i], ep);
+        const y = lerp(CARD.y, CHIP_Y, ep) - Math.sin(Math.PI * p) * 180;
+        const sc = lerp(0.6, 0.42, ep);
+        m.style.opacity = live ? 1 : 0;
+        m.style.transform = `translate(${x - 110}px, ${y - 140}px) scale(${sc}) rotate(${(i - 1) * 8}deg)`;
+      });
+      chips.forEach((c, i) => {
+        const p = pop(t, beats(4.5 + 0.5 * i), BEAT * 0.6);
+        c.style.opacity = p > 0 ? 1 : 0;
+        c.style.transform = `scale(${p})`;
+      });
+
+      // Kicker pops in at b0.5, then is knocked up and out at b6.
+      const kp = pop(t, beats(0.5), BEAT * 0.5);
+      const kk = ease.inCubic(range(t, beats(6), beats(6) + BEAT * 0.4));
+      kicker.style.opacity = kp > 0 ? 1 : 0;
+      kicker.style.transform = `translateY(${-400 * kk}px) scale(${kp * (1 - kk)})`;
+
+      // Headline slams in at beat 6 from 1.25x (peak capped at 1.25) and settles to 1.
+      const hp = range(t, beats(6), beats(6) + BEAT * 0.6);
+      headline.style.opacity = t >= beats(6) ? 1 : 0;
+      headline.style.transform = `scale(${lerp(1.25, 1, ease.outCubic(hp))})`;
+
+      // Flashes: small kick at t=0, big white exit at 7.5.
+      const f = Math.max(0.55 * hit(t, 0, 0.12), ease.inCubic(range(t, beats(7.5) + BEAT * 0.2, beats(8))));
+      flash.style.opacity = f.toFixed(3);
+    };
+  </script>
+</body></html>
