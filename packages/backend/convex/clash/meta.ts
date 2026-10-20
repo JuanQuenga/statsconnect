@@ -422,8 +422,9 @@ export const ingestBattles = internalMutation({
       }
     }
 
-    // Late battles for a day whose card summary already froze reopen it, so
-    // materializeCardDay rebuilds that (mode, day) once on its next tick.
+    // Late battles for a day whose card summary already froze mark it dirty,
+    // once per rebuild cycle, so materializeCardDay rebuilds that (mode, day)
+    // after its refresh window instead of on every late arrival.
     const touched = new Map([...deckDeltas.values()].map((delta) => [`${delta.mode}:${delta.day}`, delta]));
     for (const { mode, day } of touched.values()) {
       if (now < cardSummaryFreezeAt(day)) continue;
@@ -431,7 +432,9 @@ export const ingestBattles = internalMutation({
         .query("cardSummaryRuns")
         .withIndex("by_mode_and_day", (q) => q.eq("mode", mode).eq("day", day))
         .unique();
-      if (marker && marker.computedAt >= cardSummaryFreezeAt(day)) await ctx.db.delete(marker._id);
+      if (marker && marker.dirtySince === undefined && marker.computedAt >= cardSummaryFreezeAt(day)) {
+        await ctx.db.patch(marker._id, { dirtySince: now });
+      }
     }
 
     await bump(ctx, "battlesIngested", fresh.length);
@@ -505,7 +508,7 @@ const deckStatsDoc = v.object({
  */
 export const rankableDecksForDay = internalQuery({
   args: { day: v.number(), mode: metaMode, minUses: v.number(), limit: v.number() },
-  returns: v.object({ rows: v.array(deckStatsDoc), totalUses: v.number() }),
+  returns: v.object({ rows: v.array(deckStatsDoc), totalUses: v.number(), docsRead: v.number() }),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(Math.floor(args.limit), 1), MAX_RANKING_SIZE);
     const top = await ctx.db
@@ -516,6 +519,7 @@ export const rankableDecksForDay = internalQuery({
       .order("desc")
       .take(limit);
     let rows = top.reverse();
+    let docsRead = rows.length;
     if (rows.length === limit) {
       // Descending index order keeps the newest decks within the cutoff use
       // count, but the ranking breaks ties oldest first, so refill that count
@@ -528,6 +532,7 @@ export const rankableDecksForDay = internalQuery({
           q.eq("day", args.day).eq("mode", args.mode).eq("uses", cutoff)
         )
         .take(limit - above.length);
+      docsRead += tied.length;
       rows = [...tied, ...above];
     }
     // Every observation adds one deck use and eight card uses in the same
@@ -537,7 +542,13 @@ export const rankableDecksForDay = internalQuery({
       .query("cardStats")
       .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", args.day).eq("mode", args.mode))
       .take(1_000);
-    return { rows, totalUses: cards.reduce((total, row) => total + row.uses, 0) / 8 };
+    return {
+      rows,
+      totalUses: cards.reduce((total, row) => total + row.uses, 0) / 8,
+      // Every document read, including discarded cutoff candidates and the
+      // cardStats denominator rows, so run logs reflect real read volume.
+      docsRead: docsRead + cards.length
+    };
   }
 });
 

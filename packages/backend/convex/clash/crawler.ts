@@ -483,11 +483,11 @@ async function aggregateToday(ctx: ActionCtx, minUses: number, limit: number) {
   for (const mode of META_MODES) {
     // Annotated to break the TypeScript circularity between this action and
     // the query it calls.
-    const result: { rows: Doc<"deckStats">[]; totalUses: number } = await ctx.runQuery(
+    const result: { rows: Doc<"deckStats">[]; totalUses: number; docsRead: number } = await ctx.runQuery(
       internal.clash.meta.rankableDecksForDay,
       { day, mode, minUses, limit }
     );
-    rowsRead += result.rows.length;
+    rowsRead += result.docsRead;
     const decks = new Map<string, Aggregate>();
     for (const row of result.rows) foldDeckRow(decks, row);
     byMode.set(mode, decks);

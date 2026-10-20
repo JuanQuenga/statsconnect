@@ -27,17 +27,22 @@ declare const process: { env: Record<string, string | undefined> };
 export const cardSummaryPairs = internalQuery({
   args: { days: v.number(), modes: v.array(metaMode), now: v.number() },
   returns: v.array(
-    v.object({ mode: metaMode, day: v.number(), lastComputedAt: v.optional(v.number()) })
+    v.object({
+      mode: metaMode,
+      day: v.number(),
+      lastComputedAt: v.optional(v.number()),
+      dirtySince: v.optional(v.number())
+    })
   ),
   handler: async (ctx, args) => {
-    const pairs: Array<{ mode: MetaMode; day: number; lastComputedAt?: number }> = [];
+    const pairs: Array<{ mode: MetaMode; day: number; lastComputedAt?: number; dirtySince?: number }> = [];
     for (const day of dayKeysBack(Math.min(Math.max(args.days, 1), 30), args.now)) {
       for (const mode of args.modes) {
         const marker = await ctx.db
           .query("cardSummaryRuns")
           .withIndex("by_mode_and_day", (q) => q.eq("mode", mode).eq("day", day))
           .unique();
-        pairs.push({ mode, day, lastComputedAt: marker?.computedAt });
+        pairs.push({ mode, day, lastComputedAt: marker?.computedAt, dirtySince: marker?.dirtySince });
       }
     }
     return pairs;
@@ -54,7 +59,7 @@ export const materializeCardDay = internalMutation({
       .query("cardSummaryRuns")
       .withIndex("by_mode_and_day", (q) => q.eq("mode", args.mode).eq("day", args.day))
       .unique();
-    if (!cardSummaryStale(marker?.computedAt, now, refreshMs, args.day)) {
+    if (!cardSummaryStale(marker?.computedAt, now, refreshMs, args.day, marker?.dirtySince)) {
       return { skipped: true, written: 0, complete: true };
     }
 
@@ -190,9 +195,13 @@ export const materializeCardDay = internalMutation({
 
     // The marker only advances once the pair fully fit in one transaction,
     // so an overflowing pair stays stale and is retried on the next tick.
+    // Clearing dirtySince here is race-free: this transaction read the marker
+    // and the day's aggregates, so a concurrent late-battle ingest that writes
+    // either one conflicts, and whichever commits second re-runs on the
+    // other's result (the ingest then re-marks the rebuilt day dirty).
     if (cardIds.length <= CARD_SUMMARY_WRITE_LIMIT) {
       if (marker) {
-        await ctx.db.patch(marker._id, { computedAt: now });
+        await ctx.db.patch(marker._id, { computedAt: now, dirtySince: undefined });
       } else {
         await ctx.db.insert("cardSummaryRuns", {
           mode: args.mode,

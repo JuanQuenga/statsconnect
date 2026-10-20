@@ -76,17 +76,23 @@ export type CardEvolution = {
 
 /**
  * How stale a summary may be before the cron refreshes it. Passing the day
- * lets a summary computed after that day froze stay fresh forever.
+ * lets a summary computed after that day froze stay fresh until a late
+ * battle marks it dirty, and even then it waits out the same refresh window,
+ * so a frozen day rebuilds at most once per window however many battles land.
  */
 export function cardSummaryStale(
   lastComputedAt: number | undefined,
   now: number,
   refreshMs: number = CARD_SUMMARY_REFRESH_MS,
   day?: number,
+  dirtySince?: number,
 ): boolean {
   if (lastComputedAt === undefined) return true;
-  if (day !== undefined && lastComputedAt >= cardSummaryFreezeAt(day)) return false;
-  return now - lastComputedAt >= Math.max(60_000, refreshMs);
+  const cooledDown = now - lastComputedAt >= Math.max(60_000, refreshMs);
+  if (day !== undefined && lastComputedAt >= cardSummaryFreezeAt(day)) {
+    return dirtySince !== undefined && cooledDown;
+  }
+  return cooledDown;
 }
 
 export function refreshMsFromEnv(env: Record<string, string | undefined>): number {
@@ -98,14 +104,15 @@ export type SummaryPair<M extends string = string> = {
   mode: M;
   day: number;
   lastComputedAt?: number;
+  dirtySince?: number;
 };
 export type PlannedPair<M extends string = string> = SummaryPair<M> & {
   reason: "stale" | "missing";
 };
 
 /**
- * When a day's summary becomes final. Ingesting a battle for that day after
- * this point clears its marker (see ingestBattles) so the day is rebuilt.
+ * When a day's summary becomes final. A battle ingested for that day after
+ * this point marks its summary dirty (see ingestBattles) for a later rebuild.
  */
 export function cardSummaryFreezeAt(day: number): number {
   return dayStartMs(day) + DAY_MS + CARD_SUMMARY_FREEZE_MS;
@@ -119,8 +126,9 @@ export function dayStartMs(day: number): number {
 
 /**
  * Picks the bounded set of (mode, day) pairs one cron tick materialises.
- * Today first, then yesterday, then missing backfill days, so the freshest
- * data lands before historical backfill within one tick's budget.
+ * Today first, then yesterday, then missing and dirty older days, oldest
+ * computation first, so the freshest data lands first and no older dirty day
+ * starves behind the others.
  */
 export function planCardSummaryPairs<M extends string>(
   pairs: SummaryPair<M>[],
@@ -135,7 +143,7 @@ export function planCardSummaryPairs<M extends string>(
     return 2;
   };
   const stale = pairs
-    .filter((pair) => cardSummaryStale(pair.lastComputedAt, now, refreshMs, pair.day))
+    .filter((pair) => cardSummaryStale(pair.lastComputedAt, now, refreshMs, pair.day, pair.dirtySince))
     .map((pair) => ({
       ...pair,
       reason: pair.lastComputedAt === undefined ? ("missing" as const) : ("stale" as const),

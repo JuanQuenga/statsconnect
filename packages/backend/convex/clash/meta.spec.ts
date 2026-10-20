@@ -128,43 +128,56 @@ describe("ingestBattles", () => {
     expect(ranking.totalUses).toBe(deckUses);
   });
 
-  test("a late battle reopens a frozen card summary", async () => {
+  test("late battles mark a frozen summary dirty and rebuild it once per refresh window", async () => {
     const t = convexTest(schema, modules);
     const now = Date.now();
+    const hour = 60 * 60 * 1000;
     const day = dayKey(now - 5 * DAY_MS);
     const battleTime = now - 5 * DAY_MS;
     expect(now).toBeGreaterThanOrEqual(cardSummaryFreezeAt(day));
+    const marker = () =>
+      t.run((ctx) =>
+        ctx.db.query("cardSummaryRuns").withIndex("by_mode_and_day", (q) => q.eq("mode", "ladder").eq("day", day)).unique()
+      );
+    const summaryUses = async () =>
+      (await t.run((ctx) =>
+        ctx.db
+          .query("cardDaySummaries")
+          .withIndex("by_mode_card_and_day", (q) => q.eq("mode", "ladder").eq("cardId", CARDS[0]).eq("day", day))
+          .unique()
+      ))?.uses;
+    const materialize = (at: number) =>
+      t.mutation(internal.clash.summaries.materializeCardDay, { mode: "ladder", day, now: at });
+    const ingest = (fingerprint: string, offset: number) =>
+      t.mutation(internal.clash.meta.ingestBattles, {
+        observations: battle(fingerprint, battleTime + offset),
+        revisitSeconds: 60,
+      });
 
-    await t.mutation(internal.clash.meta.ingestBattles, {
-      observations: battle("early", battleTime),
-      revisitSeconds: 60,
-    });
-    const first = await t.mutation(internal.clash.summaries.materializeCardDay, { mode: "ladder", day, now });
-    expect(first.skipped).toBe(false);
-    const frozen = await t.mutation(internal.clash.summaries.materializeCardDay, {
-      mode: "ladder",
-      day,
-      now: now + 30 * DAY_MS,
-    });
-    expect(frozen.skipped).toBe(true);
+    await ingest("early", 0);
+    expect((await materialize(now)).skipped).toBe(false);
+    expect((await materialize(now + 30 * DAY_MS)).skipped).toBe(true);
 
-    await t.mutation(internal.clash.meta.ingestBattles, {
-      observations: battle("late", battleTime + 1_000),
-      revisitSeconds: 60,
-    });
-    const reopened = await t.mutation(internal.clash.summaries.materializeCardDay, {
-      mode: "ladder",
-      day,
-      now: now + 30 * DAY_MS,
-    });
-    expect(reopened.skipped).toBe(false);
-    const summary = await t.run((ctx) =>
-      ctx.db
-        .query("cardDaySummaries")
-        .withIndex("by_mode_card_and_day", (q) => q.eq("mode", "ladder").eq("cardId", CARDS[0]).eq("day", day))
-        .unique()
-    );
-    expect(summary?.uses).toBe(2);
+    // A late battle marks the frozen day dirty but keeps its computation time.
+    await ingest("late-1", 1_000);
+    const dirty = await marker();
+    expect(dirty?.computedAt).toBe(now);
+    expect(dirty?.dirtySince).toBeDefined();
+
+    // A second late battle inside the window neither re-marks nor rebuilds.
+    await ingest("late-2", 2_000);
+    expect((await marker())?.dirtySince).toBe(dirty?.dirtySince);
+    expect((await materialize(now + hour)).skipped).toBe(true);
+    expect(await summaryUses()).toBe(1);
+
+    // Once the refresh window passes, one rebuild absorbs both battles and
+    // clears the flag, after which the clean frozen day stays put.
+    expect((await materialize(now + 5 * hour)).skipped).toBe(false);
+    expect(await summaryUses()).toBe(3);
+    const rebuilt = await marker();
+    expect(rebuilt?.computedAt).toBe(now + 5 * hour);
+    expect(rebuilt?.dirtySince).toBeUndefined();
+    expect((await materialize(now + 30 * DAY_MS)).skipped).toBe(true);
   });
 });
 

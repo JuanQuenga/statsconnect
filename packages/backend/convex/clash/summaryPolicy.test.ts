@@ -142,7 +142,17 @@ deepEqual(
 // final, so only today, yesterday, and one last pass are ever re-materialised.
 const hour = 60 * 60 * 1000;
 const frozenAt = dayStartMs(20260829) + 2 * 24 * hour;
-equal(cardSummaryStale(frozenAt, frozenAt + 30 * 24 * hour, 4 * hour, 20260829), false, "frozen days never go stale");
+equal(cardSummaryStale(frozenAt, frozenAt + 30 * 24 * hour, 4 * hour, 20260829), false, "clean frozen days never go stale");
+equal(
+  cardSummaryStale(frozenAt, frozenAt + 3 * hour, 4 * hour, 20260829, frozenAt + hour),
+  false,
+  "a dirty frozen day waits out the refresh window",
+);
+equal(
+  cardSummaryStale(frozenAt, frozenAt + 4 * hour, 4 * hour, 20260829, frozenAt + hour),
+  true,
+  "a dirty frozen day rebuilds once the window passes",
+);
 equal(cardSummaryStale(frozenAt - 1, frozenAt + 5 * hour, 4 * hour, 20260829), true, "the last pre-freeze pass is refreshed once more");
 equal(cardSummaryStale(frozenAt, frozenAt + 5 * hour, 4 * hour), true, "without a day the plain refresh window applies");
 deepEqual(
@@ -154,7 +164,20 @@ deepEqual(
     frozenAt + 6 * hour,
   ).map((pair) => pair.day),
   [20260830],
-  "frozen pairs are never planned",
+  "clean frozen pairs are never planned",
+);
+deepEqual(
+  planCardSummaryPairs(
+    [
+      { mode: "ladder", day: 20260827, lastComputedAt: frozenAt - 24 * hour, dirtySince: frozenAt },
+      { mode: "ladder", day: 20260828, lastComputedAt: frozenAt - 48 * hour, dirtySince: frozenAt },
+      { mode: "ladder", day: 20260829, lastComputedAt: frozenAt, dirtySince: frozenAt },
+    ],
+    frozenAt + 6 * hour,
+    2,
+  ).map((pair) => pair.day),
+  [20260828, 20260827],
+  "due dirty days rebuild oldest computation first so none starves",
 );
 
 const stored = summaries[0];

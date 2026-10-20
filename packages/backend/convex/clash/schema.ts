@@ -352,7 +352,9 @@ export const clashTables = {
   cardSummaryRuns: defineTable({
     mode: metaMode,
     day: v.number(),
-    computedAt: v.number()
+    computedAt: v.number(),
+    /** First late battle ingested for this frozen day since the last rebuild. */
+    dirtySince: v.optional(v.number())
   })
     .index("by_mode_and_day", ["mode", "day"])
     .index("by_day", ["day"]),
