@@ -111,6 +111,23 @@ export type PlannedPair<M extends string = string> = SummaryPair<M> & {
 };
 
 /**
+ * Markers written before the freeze policy never recorded late battles, so a
+ * marker without this version counts as dirty since its last computation and
+ * gets exactly one more rebuild, which stamps the version.
+ */
+export const CARD_SUMMARY_POLICY_VERSION = 1;
+
+/** The dirty time the planner and rebuild act on for a stored marker. */
+export function markerDirtySince(marker: {
+  computedAt: number;
+  dirtySince?: number;
+  policyVersion?: number;
+}): number | undefined {
+  if (marker.dirtySince !== undefined) return marker.dirtySince;
+  return marker.policyVersion === CARD_SUMMARY_POLICY_VERSION ? undefined : marker.computedAt;
+}
+
+/**
  * When a day's summary becomes final. A battle ingested for that day after
  * this point marks its summary dirty (see ingestBattles) for a later rebuild.
  */

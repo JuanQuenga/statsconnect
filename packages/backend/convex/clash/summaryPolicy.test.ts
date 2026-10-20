@@ -2,6 +2,7 @@ import {
   CARD_SUMMARY_PAIRS_PER_TICK,
   cardSummaryStale,
   cardSummaryUnchanged,
+  markerDirtySince,
   composeCardCounters,
   composeCardEvolution,
   composeCardPairings,
@@ -179,6 +180,10 @@ deepEqual(
   [20260828, 20260827],
   "due dirty days rebuild oldest computation first so none starves",
 );
+
+equal(markerDirtySince({ computedAt: 5 }), 5, "legacy markers count as dirty since their computation");
+equal(markerDirtySince({ computedAt: 5, policyVersion: 1 }), undefined, "versioned clean markers are clean");
+equal(markerDirtySince({ computedAt: 5, dirtySince: 7, policyVersion: 1 }), 7, "dirty markers keep their dirty time");
 
 const stored = summaries[0];
 equal(cardSummaryUnchanged(stored, { ...stored, pairings: [...stored.pairings] }), true, "identical summaries skip the write");

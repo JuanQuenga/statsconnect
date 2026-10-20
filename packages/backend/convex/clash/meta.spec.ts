@@ -5,7 +5,7 @@ import type { Doc } from "../_generated/dataModel";
 import schema from "../schema";
 import { modules } from "../test.modules";
 import { dayKey, type DeckObservation } from "./lib/battles";
-import { cardSummaryFreezeAt } from "./summaryPolicy";
+import { cardSummaryFreezeAt, planCardSummaryPairs } from "./summaryPolicy";
 
 const DAY_MS = 86_400_000;
 const CARDS = [26000000, 26000001, 26000002, 26000003, 26000004, 26000005, 26000006, 26000007];
@@ -182,6 +182,55 @@ describe("ingestBattles", () => {
 });
 
 describe("materializeCardDay", () => {
+  test("a legacy pre-freeze marker gets one final rebuild, then freezes", async () => {
+    const t = convexTest(schema, modules);
+    const now = Date.now();
+    const hour = 60 * 60 * 1000;
+    const day = dayKey(now - 5 * DAY_MS);
+    const battleTime = now - 5 * DAY_MS;
+    const ingest = (fingerprint: string) =>
+      t.mutation(internal.clash.meta.ingestBattles, { observations: battle(fingerprint, battleTime), revisitSeconds: 60 });
+
+    // Pre-deploy state: the old code computed the summary, then ingested
+    // another battle for the day without recording anything on the marker.
+    await ingest("before-deploy");
+    await t.mutation(internal.clash.summaries.materializeCardDay, { mode: "ladder", day, now });
+    await t.run(async (ctx) => {
+      const marker = await ctx.db
+        .query("cardSummaryRuns")
+        .withIndex("by_mode_and_day", (q) => q.eq("mode", "ladder").eq("day", day))
+        .unique();
+      if (marker) await ctx.db.replace(marker._id, { mode: "ladder", day, computedAt: now });
+    });
+    await t.run(async (ctx) => {
+      const card = await ctx.db
+        .query("cardStats")
+        .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", day).eq("mode", "ladder").eq("cardId", CARDS[0]))
+        .unique();
+      if (card) await ctx.db.patch(card._id, { uses: card.uses + 1, wins: card.wins + 1 });
+    });
+
+    const at = now + 5 * hour;
+    // Other days in the window have no marker at all; only this pair matters.
+    const pairsFor = async () =>
+      (await t.query(internal.clash.summaries.cardSummaryPairs, { days: 7, modes: ["ladder"], now }))
+        .filter((pair) => pair.day === day);
+    const pairs = await pairsFor();
+    expect(planCardSummaryPairs(pairs, at).map((pair) => pair.day)).toEqual([day]);
+    expect((await t.mutation(internal.clash.summaries.materializeCardDay, { mode: "ladder", day, now: at })).skipped).toBe(false);
+
+    const summary = await t.run((ctx) =>
+      ctx.db
+        .query("cardDaySummaries")
+        .withIndex("by_mode_card_and_day", (q) => q.eq("mode", "ladder").eq("cardId", CARDS[0]).eq("day", day))
+        .unique()
+    );
+    expect(summary?.uses).toBe(2);
+    const after = await pairsFor();
+    expect(planCardSummaryPairs(after, now + 30 * DAY_MS)).toEqual([]);
+    expect((await t.mutation(internal.clash.summaries.materializeCardDay, { mode: "ladder", day, now: now + 30 * DAY_MS })).skipped).toBe(true);
+  });
+
   test("skips rewriting summaries whose values did not change", async () => {
     const t = convexTest(schema, modules);
     const now = Date.now();

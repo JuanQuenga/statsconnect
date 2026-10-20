@@ -354,7 +354,9 @@ export const clashTables = {
     day: v.number(),
     computedAt: v.number(),
     /** First late battle ingested for this frozen day since the last rebuild. */
-    dirtySince: v.optional(v.number())
+    dirtySince: v.optional(v.number()),
+    /** Freeze-policy version that wrote this marker; missing means pre-freeze. */
+    policyVersion: v.optional(v.number())
   })
     .index("by_mode_and_day", ["mode", "day"])
     .index("by_day", ["day"]),

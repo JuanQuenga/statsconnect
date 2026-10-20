@@ -8,8 +8,10 @@ import {
   CARD_SUMMARY_WRITE_LIMIT,
   DETAIL_DECK_DAY_LIMIT,
   DETAIL_MATCHUP_DAY_LIMIT,
+  CARD_SUMMARY_POLICY_VERSION,
   cardSummaryStale,
   cardSummaryUnchanged,
+  markerDirtySince,
   refreshMsFromEnv,
   topPartners,
   type SummaryPartner,
@@ -42,7 +44,12 @@ export const cardSummaryPairs = internalQuery({
           .query("cardSummaryRuns")
           .withIndex("by_mode_and_day", (q) => q.eq("mode", mode).eq("day", day))
           .unique();
-        pairs.push({ mode, day, lastComputedAt: marker?.computedAt, dirtySince: marker?.dirtySince });
+        pairs.push({
+          mode,
+          day,
+          lastComputedAt: marker?.computedAt,
+          dirtySince: marker ? markerDirtySince(marker) : undefined
+        });
       }
     }
     return pairs;
@@ -59,7 +66,8 @@ export const materializeCardDay = internalMutation({
       .query("cardSummaryRuns")
       .withIndex("by_mode_and_day", (q) => q.eq("mode", args.mode).eq("day", args.day))
       .unique();
-    if (!cardSummaryStale(marker?.computedAt, now, refreshMs, args.day, marker?.dirtySince)) {
+    const dirtySince = marker ? markerDirtySince(marker) : undefined;
+    if (!cardSummaryStale(marker?.computedAt, now, refreshMs, args.day, dirtySince)) {
       return { skipped: true, written: 0, complete: true };
     }
 
@@ -201,12 +209,17 @@ export const materializeCardDay = internalMutation({
     // other's result (the ingest then re-marks the rebuilt day dirty).
     if (cardIds.length <= CARD_SUMMARY_WRITE_LIMIT) {
       if (marker) {
-        await ctx.db.patch(marker._id, { computedAt: now, dirtySince: undefined });
+        await ctx.db.patch(marker._id, {
+          computedAt: now,
+          dirtySince: undefined,
+          policyVersion: CARD_SUMMARY_POLICY_VERSION,
+        });
       } else {
         await ctx.db.insert("cardSummaryRuns", {
           mode: args.mode,
           day: args.day,
           computedAt: now,
+          policyVersion: CARD_SUMMARY_POLICY_VERSION,
         });
       }
       return { skipped: false, written, complete: true };
