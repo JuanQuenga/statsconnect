@@ -466,6 +466,35 @@ export const deckStatsForDay = internalQuery({
   }
 });
 
+/**
+ * One mode's rankable decks for a single day plus the mode's total deck uses,
+ * so the 1-day ranking skips the long tail of decks seen only a few times.
+ * Rows come back in (uses, _creationTime) order, the same tie order the full
+ * by_day scan feeds into the ranking's stable sort.
+ */
+export const rankableDecksForDay = internalQuery({
+  args: { day: v.number(), mode: metaMode, minUses: v.number(), limit: v.number() },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("deckStats")
+      .withIndex("by_day_and_mode_and_uses", (q) =>
+        q.eq("day", args.day).eq("mode", args.mode).gte("uses", args.minUses)
+      )
+      .order("desc")
+      .take(args.limit);
+    // Every observation adds one deck use and eight card uses in the same
+    // transaction, so summed card uses over eight is the mode's deck-use total.
+    const cards = await ctx.db
+      .query("cardStats")
+      .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", args.day).eq("mode", args.mode))
+      .take(1_000);
+    return {
+      rows: rows.reverse(),
+      totalUses: cards.reduce((total, row) => total + row.uses, 0) / 8
+    };
+  }
+});
+
 export const writeDeckRankings = internalMutation({
   args: {
     windowDays: v.number(),
@@ -585,12 +614,13 @@ export const pruneBatch = internalMutation({
       }
     }
 
-    // A plain query streams oldest-first over the built-in by_creation_time
-    // index, so an age cutoff prunes every profile evenly in bounded batches.
+    // The built-in by_creation_time index bounds the read to expired rows;
+    // filtering after take(256) re-read the 256 oldest live rows every pass.
     const historyCutoff = Date.now() - PROFILE_HISTORY_RETENTION_MS;
-    const staleHistoryRows = (await ctx.db.query("profileHistory").take(256)).filter(
-      (row) => row._creationTime < historyCutoff
-    );
+    const staleHistoryRows = await ctx.db
+      .query("profileHistory")
+      .withIndex("by_creation_time", (q) => q.lt("_creationTime", historyCutoff))
+      .take(256);
     for (const row of staleHistoryRows) await ctx.db.delete(row._id);
     const staleHistory = staleHistoryRows.length;
 

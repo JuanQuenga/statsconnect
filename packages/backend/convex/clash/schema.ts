@@ -252,6 +252,8 @@ export const clashTables = {
   })
     .index("by_day_and_mode_and_deck", ["day", "mode", "deckHash"])
     .index("by_day_and_mode", ["day", "mode"])
+    /** Lets the 1-day ranking read only decks with enough uses to rank. */
+    .index("by_day_and_mode_and_uses", ["day", "mode", "uses"])
     .index("by_day", ["day"]),
 
   /** Per-day ordered deck-vs-deck aggregates, from deckHash's perspective. */

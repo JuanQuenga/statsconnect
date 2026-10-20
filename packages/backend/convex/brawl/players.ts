@@ -5,8 +5,12 @@ import { hourBucket } from "./controls";
 import {
   rosterFingerprint,
   rosterNeedsWrite,
+  rosterRefreshMs,
+  rosterRewriteDue,
   snapshotScalarsChanged,
 } from "./rosterPolicy";
+
+declare const process: { env: Record<string, string | undefined> };
 
 export type PlayerSighting = {
   tag: string;
@@ -276,13 +280,13 @@ export const recordProfile = internalMutation({
     const fingerprint = rosterFingerprint(args.brawlers);
     if (existingSnapshot) {
       const scalarsChanged = snapshotScalarsChanged(existingSnapshot, snapshot);
-      const rosterChanged = rosterNeedsWrite(existingSnapshot.rosterFingerprint, fingerprint);
+      // A throttled change keeps the old fingerprint, so it lands once due.
+      const rosterChanged =
+        rosterNeedsWrite(existingSnapshot.rosterFingerprint, fingerprint) &&
+        rosterRewriteDue(existingSnapshot.rosterRecordedAt, now, rosterRefreshMs(process.env));
       if (!scalarsChanged && !rosterChanged) return { createdSnapshot: false };
-      if (scalarsChanged) {
-        await ctx.db.patch(existingSnapshot._id, { ...snapshot, rosterFingerprint: fingerprint });
-      } else {
-        await ctx.db.patch(existingSnapshot._id, { rosterFingerprint: fingerprint });
-      }
+      const rosterFields = rosterChanged ? { rosterFingerprint: fingerprint, rosterRecordedAt: now } : {};
+      await ctx.db.patch(existingSnapshot._id, scalarsChanged ? { ...snapshot, ...rosterFields } : rosterFields);
       if (rosterChanged) {
         // The roster rewrite is the expensive part, so it only happens when
         // the fingerprint says the roster itself actually changed.
@@ -296,7 +300,13 @@ export const recordProfile = internalMutation({
       }
       return { createdSnapshot: false };
     }
-    await ctx.db.insert("playerSnapshots", { tag, day, ...snapshot, rosterFingerprint: fingerprint });
+    await ctx.db.insert("playerSnapshots", {
+      tag,
+      day,
+      ...snapshot,
+      rosterFingerprint: fingerprint,
+      rosterRecordedAt: now,
+    });
     if (args.brawlers?.length) {
       await ctx.db.insert("playerSnapshotRosters", {
         tag,

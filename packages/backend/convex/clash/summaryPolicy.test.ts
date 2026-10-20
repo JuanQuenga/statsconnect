@@ -1,5 +1,7 @@
 import {
   CARD_SUMMARY_PAIRS_PER_TICK,
+  cardSummaryStale,
+  cardSummaryUnchanged,
   composeCardCounters,
   composeCardEvolution,
   composeCardPairings,
@@ -134,6 +136,34 @@ deepEqual(
     "pathOfLegends:20260831:stale",
   ],
   "today's pairs come first, missing before stale, fresh pairs are skipped",
+);
+
+// Finished days freeze: a summary computed a full day after its day ended is
+// final, so only today, yesterday, and one last pass are ever re-materialised.
+const hour = 60 * 60 * 1000;
+const frozenAt = dayStartMs(20260829) + 2 * 24 * hour;
+equal(cardSummaryStale(frozenAt, frozenAt + 30 * 24 * hour, 4 * hour, 20260829), false, "frozen days never go stale");
+equal(cardSummaryStale(frozenAt - 1, frozenAt + 5 * hour, 4 * hour, 20260829), true, "the last pre-freeze pass is refreshed once more");
+equal(cardSummaryStale(frozenAt, frozenAt + 5 * hour, 4 * hour), true, "without a day the plain refresh window applies");
+deepEqual(
+  planCardSummaryPairs(
+    [
+      { mode: "ladder", day: 20260829, lastComputedAt: frozenAt },
+      { mode: "ladder", day: 20260830, lastComputedAt: frozenAt },
+    ],
+    frozenAt + 6 * hour,
+  ).map((pair) => pair.day),
+  [20260830],
+  "frozen pairs are never planned",
+);
+
+const stored = summaries[0];
+equal(cardSummaryUnchanged(stored, { ...stored, pairings: [...stored.pairings] }), true, "identical summaries skip the write");
+equal(cardSummaryUnchanged(stored, { ...stored, uses: stored.uses + 1 }), false, "a changed count is written");
+equal(
+  cardSummaryUnchanged(stored, { ...stored, counters: [{ cardId: 9, uses: 50, wins: 21 }] }),
+  false,
+  "a changed partner is written",
 );
 
 console.log("ok - card summary composition, bounds, and cron pair planning");

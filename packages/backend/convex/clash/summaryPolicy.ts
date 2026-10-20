@@ -23,6 +23,14 @@ export const SUMMARY_ENTRY_CAP = 128;
 /** Rolling freshness window for volatile (today/yesterday) summaries. */
 export const CARD_SUMMARY_REFRESH_MS = 4 * 60 * 60 * 1000;
 export const CARD_SUMMARY_REFRESH_ENV = "CLASH_CARD_SUMMARY_REFRESH_MS";
+/**
+ * Battles for a finished day stop arriving once every crawl target has been
+ * revisited, so a summary computed this long after its day ended is final and
+ * is never refreshed again. Without this every day in the seven-day window was
+ * re-materialised every refresh window, rewriting ~120 multi-KB docs each time.
+ */
+export const CARD_SUMMARY_FREEZE_MS = 24 * 60 * 60 * 1000;
+const DAY_MS = 86_400_000;
 /** Maximum (mode, day) pairs one rollup tick materialises. */
 export const CARD_SUMMARY_PAIRS_PER_TICK = 3;
 /** How many summary docs one materialisation may write. */
@@ -66,13 +74,20 @@ export type CardEvolution = {
   baseWinRate: number | null;
 };
 
-/** How stale a summary may be before the cron refreshes it. */
+/**
+ * How stale a summary may be before the cron refreshes it. Passing the day
+ * lets a summary computed after that day froze stay fresh forever.
+ */
 export function cardSummaryStale(
   lastComputedAt: number | undefined,
   now: number,
   refreshMs: number = CARD_SUMMARY_REFRESH_MS,
+  day?: number,
 ): boolean {
   if (lastComputedAt === undefined) return true;
+  if (day !== undefined && lastComputedAt >= dayStartMs(day) + DAY_MS + CARD_SUMMARY_FREEZE_MS) {
+    return false;
+  }
   return now - lastComputedAt >= Math.max(60_000, refreshMs);
 }
 
@@ -107,15 +122,14 @@ export function planCardSummaryPairs<M extends string>(
   limit: number = CARD_SUMMARY_PAIRS_PER_TICK,
   refreshMs: number = CARD_SUMMARY_REFRESH_MS,
 ): PlannedPair<M>[] {
-  const dayMs = 86_400_000;
   const rank = (day: number) => {
     const age = now - dayStartMs(day);
-    if (age >= 0 && age < dayMs) return 0;
-    if (age >= dayMs && age < 2 * dayMs) return 1;
+    if (age >= 0 && age < DAY_MS) return 0;
+    if (age >= DAY_MS && age < 2 * DAY_MS) return 1;
     return 2;
   };
   const stale = pairs
-    .filter((pair) => cardSummaryStale(pair.lastComputedAt, now, refreshMs))
+    .filter((pair) => cardSummaryStale(pair.lastComputedAt, now, refreshMs, pair.day))
     .map((pair) => ({
       ...pair,
       reason: pair.lastComputedAt === undefined ? ("missing" as const) : ("stale" as const),
@@ -136,6 +150,30 @@ export function topPartners(
   return [...entries]
     .sort((left, right) => right.uses - left.uses || left.cardId - right.cardId)
     .slice(0, Math.max(0, cap));
+}
+
+function samePartners(left: SummaryPartner[], right: SummaryPartner[]): boolean {
+  return left.length === right.length && left.every((partner, index) =>
+    partner.cardId === right[index].cardId &&
+    partner.uses === right[index].uses &&
+    partner.wins === right[index].wins
+  );
+}
+
+/** True when a stored summary already holds these values, so the write can be skipped. */
+export function cardSummaryUnchanged(stored: CardDaySummary, next: CardDaySummary): boolean {
+  return (
+    stored.uses === next.uses &&
+    stored.wins === next.wins &&
+    stored.decksObserved === next.decksObserved &&
+    stored.evolvedUses === next.evolvedUses &&
+    stored.evolvedWins === next.evolvedWins &&
+    stored.baseUses === next.baseUses &&
+    stored.baseWins === next.baseWins &&
+    stored.truncated === next.truncated &&
+    samePartners(stored.pairings, next.pairings) &&
+    samePartners(stored.counters, next.counters)
+  );
 }
 
 function sumPartners(

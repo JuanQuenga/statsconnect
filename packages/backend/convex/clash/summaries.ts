@@ -9,6 +9,7 @@ import {
   DETAIL_DECK_DAY_LIMIT,
   DETAIL_MATCHUP_DAY_LIMIT,
   cardSummaryStale,
+  cardSummaryUnchanged,
   refreshMsFromEnv,
   topPartners,
   type SummaryPartner,
@@ -53,7 +54,7 @@ export const materializeCardDay = internalMutation({
       .query("cardSummaryRuns")
       .withIndex("by_mode_and_day", (q) => q.eq("mode", args.mode).eq("day", args.day))
       .unique();
-    if (!cardSummaryStale(marker?.computedAt, now, refreshMs)) {
+    if (!cardSummaryStale(marker?.computedAt, now, refreshMs, args.day)) {
       return { skipped: true, written: 0, complete: true };
     }
 
@@ -173,10 +174,13 @@ export const materializeCardDay = internalMutation({
         computedAt: now,
       };
       const existingDoc = existing.get(cardId);
-      if (existingDoc) {
+      if (!existingDoc) {
+        await ctx.db.insert("cardDaySummaries", doc);
+      } else if (!cardSummaryUnchanged(existingDoc, doc)) {
+        // A patch rewrites the whole multi-KB doc, so identical values skip it.
         await ctx.db.patch(existingDoc._id, doc);
       } else {
-        await ctx.db.insert("cardDaySummaries", doc);
+        continue;
       }
       written += 1;
     }
