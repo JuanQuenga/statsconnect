@@ -100,6 +100,8 @@ const historyResult = v.object({
   rankedBest: v.optional(v.number()),
   rankedBestName: v.optional(v.string()),
   brawlers: v.optional(v.array(ownedBrawler)),
+  /** When `brawlers` was captured; may trail `recordedAt` within the day. */
+  rosterRecordedAt: v.optional(v.number()),
 });
 
 const battleResult = v.union(v.literal("victory"), v.literal("defeat"), v.literal("draw"), v.literal("unknown"));
@@ -278,10 +280,18 @@ export const recordProfile = internalMutation({
       rankedBestName: args.rankedBestName,
     };
     const fingerprint = rosterFingerprint(args.brawlers);
+    // Every account owns brawlers, so an omitted or empty list means the
+    // payload carried no roster: it never creates, stamps, or clears one.
+    const hasRoster = (args.brawlers?.length ?? 0) > 0;
     if (existingSnapshot) {
       const scalarsChanged = snapshotScalarsChanged(existingSnapshot, snapshot);
-      // A throttled change keeps the old fingerprint, so it lands once due.
+      // BRAWL_ROSTER_REFRESH_MINUTES (opt-in, unset = rewrite on every change)
+      // samples the day's roster: a change inside the window is skipped and
+      // keeps the stored fingerprint, so the next call after the window writes
+      // the then-current roster. Scalars still update on every call, and
+      // history exposes rosterRecordedAt so consumers can see roster age.
       const rosterChanged =
+        hasRoster &&
         rosterNeedsWrite(existingSnapshot.rosterFingerprint, fingerprint) &&
         rosterRewriteDue(existingSnapshot.rosterRecordedAt, now, rosterRefreshMs(process.env));
       if (!scalarsChanged && !rosterChanged) return { createdSnapshot: false };
@@ -305,9 +315,9 @@ export const recordProfile = internalMutation({
       day,
       ...snapshot,
       rosterFingerprint: fingerprint,
-      rosterRecordedAt: now,
+      ...(hasRoster ? { rosterRecordedAt: now } : {}),
     });
-    if (args.brawlers?.length) {
+    if (hasRoster && args.brawlers) {
       await ctx.db.insert("playerSnapshotRosters", {
         tag,
         day,
@@ -387,12 +397,14 @@ export const history = query({
       // Legacy snapshots carry the roster inline; new snapshots store it
       // separately, so history keeps returning the same shape.
       let brawlers = row.brawlers;
+      let rosterRecordedAt = brawlers === undefined ? undefined : row.recordedAt;
       if (brawlers === undefined) {
         const roster = await ctx.db
           .query("playerSnapshotRosters")
           .withIndex("by_tag_and_day", (q) => q.eq("tag", row.tag).eq("day", row.day))
           .unique();
         brawlers = roster?.brawlers;
+        rosterRecordedAt = roster?.recordedAt;
       }
       return {
         day: row.day,
@@ -416,6 +428,7 @@ export const history = query({
         rankedBest: row.rankedBest,
         rankedBestName: row.rankedBestName,
         brawlers,
+        rosterRecordedAt,
       };
     }));
   },

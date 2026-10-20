@@ -2,8 +2,9 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
-import { crawlSource, metaMode } from "./schema";
+import { clashTables, crawlSource, metaMode } from "./schema";
 import { dayKey, dayKeysBack, type DeckObservation, type MetaMode } from "./lib/battles";
+import { cardSummaryFreezeAt } from "./summaryPolicy";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -201,9 +202,16 @@ export const ingestBattles = internalMutation({
     }
     await bump(ctx, "playerFetches", 1);
 
+    // Aggregates assume eight-card decks (the rankings derive deck totals from
+    // card uses / 8), so a battle with any malformed side is dropped whole.
+    const malformed = new Set(
+      args.observations.filter((item) => !isKnownDeck(item.cardIds)).map((item) => item.fingerprint)
+    );
+    const observations = args.observations.filter((item) => !malformed.has(item.fingerprint));
+
     // One battle produces two observations sharing a fingerprint. Keep the
     // whole battle if it is new, so both decks are counted or neither is.
-    const fingerprints = [...new Set(args.observations.map((item) => item.fingerprint))];
+    const fingerprints = [...new Set(observations.map((item) => item.fingerprint))];
     const fresh: string[] = [];
     for (const fingerprint of fingerprints) {
       const seen = await ctx.db
@@ -215,7 +223,7 @@ export const ingestBattles = internalMutation({
     if (!fresh.length) return { battles: 0, observations: 0 };
 
     const freshSet = new Set(fresh);
-    const accepted = args.observations.filter((item) => freshSet.has(item.fingerprint));
+    const accepted = observations.filter((item) => freshSet.has(item.fingerprint));
 
     for (const fingerprint of fresh) {
       const time = accepted.find((item) => item.fingerprint === fingerprint)?.battleTime ?? now;
@@ -414,6 +422,18 @@ export const ingestBattles = internalMutation({
       }
     }
 
+    // Late battles for a day whose card summary already froze reopen it, so
+    // materializeCardDay rebuilds that (mode, day) once on its next tick.
+    const touched = new Map([...deckDeltas.values()].map((delta) => [`${delta.mode}:${delta.day}`, delta]));
+    for (const { mode, day } of touched.values()) {
+      if (now < cardSummaryFreezeAt(day)) continue;
+      const marker = await ctx.db
+        .query("cardSummaryRuns")
+        .withIndex("by_mode_and_day", (q) => q.eq("mode", mode).eq("day", day))
+        .unique();
+      if (marker && marker.computedAt >= cardSummaryFreezeAt(day)) await ctx.db.delete(marker._id);
+    }
+
     await bump(ctx, "battlesIngested", fresh.length);
     await bump(ctx, "observationsIngested", accepted.length);
 
@@ -466,32 +486,58 @@ export const deckStatsForDay = internalQuery({
   }
 });
 
+/** Hard ceiling for the published deck board and the per-mode ranking read. */
+export const MAX_RANKING_SIZE = 500;
+
+const deckStatsDoc = v.object({
+  _id: v.id("deckStats"),
+  _creationTime: v.number(),
+  ...clashTables.deckStats.validator.fields
+});
+
 /**
- * One mode's rankable decks for a single day plus the mode's total deck uses,
- * so the 1-day ranking skips the long tail of decks seen only a few times.
- * Rows come back in (uses, _creationTime) order, the same tie order the full
- * by_day scan feeds into the ranking's stable sort.
+ * The first `limit` decks of one mode-day in ranking order (uses descending,
+ * oldest first among equal uses) plus the mode's total deck uses, so the
+ * 1-day ranking skips the long tail of decks seen only a few times.
+ *
+ * Rows come back in (uses, _creationTime) ascending order, the same order the
+ * full by_day scan fed into the ranking's stable sort by uses.
  */
 export const rankableDecksForDay = internalQuery({
   args: { day: v.number(), mode: metaMode, minUses: v.number(), limit: v.number() },
+  returns: v.object({ rows: v.array(deckStatsDoc), totalUses: v.number() }),
   handler: async (ctx, args) => {
-    const rows = await ctx.db
+    const limit = Math.min(Math.max(Math.floor(args.limit), 1), MAX_RANKING_SIZE);
+    const top = await ctx.db
       .query("deckStats")
       .withIndex("by_day_and_mode_and_uses", (q) =>
         q.eq("day", args.day).eq("mode", args.mode).gte("uses", args.minUses)
       )
       .order("desc")
-      .take(args.limit);
+      .take(limit);
+    let rows = top.reverse();
+    if (rows.length === limit) {
+      // Descending index order keeps the newest decks within the cutoff use
+      // count, but the ranking breaks ties oldest first, so refill that count
+      // in ascending creation order.
+      const cutoff = rows[0].uses;
+      const above = rows.filter((row) => row.uses > cutoff);
+      const tied = await ctx.db
+        .query("deckStats")
+        .withIndex("by_day_and_mode_and_uses", (q) =>
+          q.eq("day", args.day).eq("mode", args.mode).eq("uses", cutoff)
+        )
+        .take(limit - above.length);
+      rows = [...tied, ...above];
+    }
     // Every observation adds one deck use and eight card uses in the same
-    // transaction, so summed card uses over eight is the mode's deck-use total.
+    // transaction (ingestBattles only accepts eight-card decks), so summed
+    // card uses over eight is the mode's deck-use total.
     const cards = await ctx.db
       .query("cardStats")
       .withIndex("by_day_and_mode_and_card", (q) => q.eq("day", args.day).eq("mode", args.mode))
       .take(1_000);
-    return {
-      rows: rows.reverse(),
-      totalUses: cards.reduce((total, row) => total + row.uses, 0) / 8
-    };
+    return { rows, totalUses: cards.reduce((total, row) => total + row.uses, 0) / 8 };
   }
 });
 

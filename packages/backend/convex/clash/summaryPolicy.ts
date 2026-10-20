@@ -24,10 +24,10 @@ export const SUMMARY_ENTRY_CAP = 128;
 export const CARD_SUMMARY_REFRESH_MS = 4 * 60 * 60 * 1000;
 export const CARD_SUMMARY_REFRESH_ENV = "CLASH_CARD_SUMMARY_REFRESH_MS";
 /**
- * Battles for a finished day stop arriving once every crawl target has been
- * revisited, so a summary computed this long after its day ended is final and
- * is never refreshed again. Without this every day in the seven-day window was
- * re-materialised every refresh window, rewriting ~120 multi-KB docs each time.
+ * A summary computed this long after its day ended is final and is not
+ * refreshed on a timer again; a late battle for that day reopens it instead.
+ * Without this every day in the seven-day window was re-materialised every
+ * refresh window, rewriting ~120 multi-KB docs each time.
  */
 export const CARD_SUMMARY_FREEZE_MS = 24 * 60 * 60 * 1000;
 const DAY_MS = 86_400_000;
@@ -85,9 +85,7 @@ export function cardSummaryStale(
   day?: number,
 ): boolean {
   if (lastComputedAt === undefined) return true;
-  if (day !== undefined && lastComputedAt >= dayStartMs(day) + DAY_MS + CARD_SUMMARY_FREEZE_MS) {
-    return false;
-  }
+  if (day !== undefined && lastComputedAt >= cardSummaryFreezeAt(day)) return false;
   return now - lastComputedAt >= Math.max(60_000, refreshMs);
 }
 
@@ -104,6 +102,14 @@ export type SummaryPair<M extends string = string> = {
 export type PlannedPair<M extends string = string> = SummaryPair<M> & {
   reason: "stale" | "missing";
 };
+
+/**
+ * When a day's summary becomes final. Ingesting a battle for that day after
+ * this point clears its marker (see ingestBattles) so the day is rebuilt.
+ */
+export function cardSummaryFreezeAt(day: number): number {
+  return dayStartMs(day) + DAY_MS + CARD_SUMMARY_FREEZE_MS;
+}
 
 /** UTC midnight of a `YYYYMMDD` day bucket, the inverse of dayKey(). */
 export function dayStartMs(day: number): number {

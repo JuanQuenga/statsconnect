@@ -8,6 +8,7 @@ import { clashUpstream, GLOBAL_LOCATION_ID } from "./clashFetch";
 import { battleObservations, dayKey, META_MODES, playerBattleObservation, type DeckObservation, type MetaMode, type PlayerBattleObservation } from "./lib/battles";
 import { BACKGROUND_CRON_ENV, ROLLUP_ALL_WINDOWS, backgroundCronEnabled } from "../cronPolicy";
 import { planCardSummaryPairs, refreshMsFromEnv } from "./summaryPolicy";
+import { MAX_RANKING_SIZE } from "./meta";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -25,11 +26,6 @@ const LEASE_MS = 5 * 60 * 1000;
 /** Battle logs hold 25 battles, so polling faster than this mostly re-reads old rows. */
 const REVISIT_SECONDS = 45 * 60;
 const MAX_ROLLUP_ROWS = 60_000;
-/**
- * Per-mode cap on today's rankable decks. Rows are read most-used first, so
- * the cap can only drop decks far below the published top-N board.
- */
-const TODAY_RANKABLE_ROWS = 1_000;
 /** Rolling 7-day span card summaries cover; matches cardDetail's max window. */
 const CARD_SUMMARY_DAYS = 7;
 
@@ -473,10 +469,10 @@ function foldDeckRow(decks: Map<string, Aggregate>, row: Doc<"deckStats">) {
 }
 
 /**
- * The 1-day board only ever ranks today's decks with at least `minUses` uses,
- * so it reads just those through the uses index instead of paging every
- * deckStats row of the day (mostly decks seen once or twice) every 30 minutes.
- * The usage-rate denominator comes from the mode's cardStats rows.
+ * The 1-day board only publishes today's top `limit` decks with at least
+ * `minUses` uses, so it reads exactly those through the uses index instead of
+ * paging every deckStats row of the day (mostly decks seen once or twice)
+ * every 30 minutes. The usage-rate denominator comes from cardStats.
  */
 async function aggregateToday(ctx: ActionCtx, minUses: number, limit: number) {
   const byMode = new Map<MetaMode, Map<string, Aggregate>>();
@@ -550,7 +546,8 @@ export const rollup = internalAction({
   handler: async (ctx, args) => {
     const disabled = cronDisabled();
     if (disabled) return disabled;
-    const topN = envNumber("CLASH_RANKING_SIZE", 100);
+    // Integer and bounded: it sizes an index read and the rankings rewrite.
+    const topN = Math.min(Math.max(Math.floor(envNumber("CLASH_RANKING_SIZE", 100)), 1), MAX_RANKING_SIZE);
     const minDeckUses = envNumber("CLASH_MIN_DECK_USES", 5);
     const requested = args.windows ?? [...ROLLUP_ALL_WINDOWS];
     const windows = [...new Set(requested)].filter((windowDays) =>
@@ -564,7 +561,7 @@ export const rollup = internalAction({
 
       for (const windowDays of windows.length ? windows : [...ROLLUP_ALL_WINDOWS]) {
         const { byMode, totals, rowsRead: read, truncated } = windowDays === 1
-          ? await aggregateToday(ctx, minDeckUses, Math.max(topN, TODAY_RANKABLE_ROWS))
+          ? await aggregateToday(ctx, minDeckUses, topN)
           : await aggregateWindow(ctx, windowDays);
         rowsRead += read;
         if (truncated) truncatedWindows.push(windowDays);

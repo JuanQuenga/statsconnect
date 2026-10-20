@@ -11,7 +11,7 @@
     "dev": "convex dev",
     "deploy": "convex deploy",
     "deploy:with-frontend": "convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'pnpm --dir ../.. build:unified'",
-    "test": "node --test test/*.test.ts tests/*.test.mjs convex/*.test.ts convex/brawl/*.test.ts convex/clash/*.test.ts",
+    "test": "node --test test/*.test.ts tests/*.test.mjs convex/*.test.ts convex/brawl/*.test.ts convex/clash/*.test.ts && vitest run",
     "typecheck": "tsc --noEmit -p convex/tsconfig.json"
   },
   "dependencies": {
@@ -20,6 +20,9 @@
     "convex": "^1.43.0"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "@edge-runtime/vm": "^5.0.0",
+    "convex-test": "^0.0.62",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
   }
 }

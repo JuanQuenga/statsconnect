@@ -98,6 +98,8 @@ export type PlayerSnapshot = {
   rankedBest?: number;
   rankedBestName?: string;
   brawlers?: PlayerProfile["brawlers"];
+  /** When `brawlers` was captured; may trail `recordedAt` within the day. */
+  rosterRecordedAt?: number;
 };
 
 export type PlayerBattle = {
