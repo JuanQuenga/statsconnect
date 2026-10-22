@@ -5,8 +5,12 @@ import { hourBucket } from "./controls";
 import {
   rosterFingerprint,
   rosterNeedsWrite,
+  rosterRefreshMs,
+  rosterRewriteDue,
   snapshotScalarsChanged,
 } from "./rosterPolicy";
+
+declare const process: { env: Record<string, string | undefined> };
 
 export type PlayerSighting = {
   tag: string;
@@ -96,6 +100,8 @@ const historyResult = v.object({
   rankedBest: v.optional(v.number()),
   rankedBestName: v.optional(v.string()),
   brawlers: v.optional(v.array(ownedBrawler)),
+  /** When `brawlers` was captured; may trail `recordedAt` within the day. */
+  rosterRecordedAt: v.optional(v.number()),
 });
 
 const battleResult = v.union(v.literal("victory"), v.literal("defeat"), v.literal("draw"), v.literal("unknown"));
@@ -274,15 +280,23 @@ export const recordProfile = internalMutation({
       rankedBestName: args.rankedBestName,
     };
     const fingerprint = rosterFingerprint(args.brawlers);
+    // Every account owns brawlers, so an omitted or empty list means the
+    // payload carried no roster: it never creates, stamps, or clears one.
+    const hasRoster = (args.brawlers?.length ?? 0) > 0;
     if (existingSnapshot) {
       const scalarsChanged = snapshotScalarsChanged(existingSnapshot, snapshot);
-      const rosterChanged = rosterNeedsWrite(existingSnapshot.rosterFingerprint, fingerprint);
+      // BRAWL_ROSTER_REFRESH_MINUTES (opt-in, unset = rewrite on every change)
+      // samples the day's roster: a change inside the window is skipped and
+      // keeps the stored fingerprint, so the next call after the window writes
+      // the then-current roster. Scalars still update on every call, and
+      // history exposes rosterRecordedAt so consumers can see roster age.
+      const rosterChanged =
+        hasRoster &&
+        rosterNeedsWrite(existingSnapshot.rosterFingerprint, fingerprint) &&
+        rosterRewriteDue(existingSnapshot.rosterRecordedAt, now, rosterRefreshMs(process.env));
       if (!scalarsChanged && !rosterChanged) return { createdSnapshot: false };
-      if (scalarsChanged) {
-        await ctx.db.patch(existingSnapshot._id, { ...snapshot, rosterFingerprint: fingerprint });
-      } else {
-        await ctx.db.patch(existingSnapshot._id, { rosterFingerprint: fingerprint });
-      }
+      const rosterFields = rosterChanged ? { rosterFingerprint: fingerprint, rosterRecordedAt: now } : {};
+      await ctx.db.patch(existingSnapshot._id, scalarsChanged ? { ...snapshot, ...rosterFields } : rosterFields);
       if (rosterChanged) {
         // The roster rewrite is the expensive part, so it only happens when
         // the fingerprint says the roster itself actually changed.
@@ -296,8 +310,14 @@ export const recordProfile = internalMutation({
       }
       return { createdSnapshot: false };
     }
-    await ctx.db.insert("playerSnapshots", { tag, day, ...snapshot, rosterFingerprint: fingerprint });
-    if (args.brawlers?.length) {
+    await ctx.db.insert("playerSnapshots", {
+      tag,
+      day,
+      ...snapshot,
+      rosterFingerprint: fingerprint,
+      ...(hasRoster ? { rosterRecordedAt: now } : {}),
+    });
+    if (hasRoster && args.brawlers) {
       await ctx.db.insert("playerSnapshotRosters", {
         tag,
         day,
@@ -375,14 +395,17 @@ export const history = query({
       .take(limit);
     return Promise.all(rows.map(async (row) => {
       // Legacy snapshots carry the roster inline; new snapshots store it
-      // separately, so history keeps returning the same shape.
+      // separately, so history keeps returning the same shape. Inline rosters
+      // have no capture time: row.recordedAt moves with every scalar update.
       let brawlers = row.brawlers;
+      let rosterRecordedAt: number | undefined;
       if (brawlers === undefined) {
         const roster = await ctx.db
           .query("playerSnapshotRosters")
           .withIndex("by_tag_and_day", (q) => q.eq("tag", row.tag).eq("day", row.day))
           .unique();
         brawlers = roster?.brawlers;
+        rosterRecordedAt = roster?.recordedAt;
       }
       return {
         day: row.day,
@@ -406,6 +429,7 @@ export const history = query({
         rankedBest: row.rankedBest,
         rankedBestName: row.rankedBestName,
         brawlers,
+        rosterRecordedAt,
       };
     }));
   },

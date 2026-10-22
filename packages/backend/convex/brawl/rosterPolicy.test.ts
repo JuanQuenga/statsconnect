@@ -1,6 +1,8 @@
 import {
   rosterFingerprint,
   rosterNeedsWrite,
+  rosterRefreshMs,
+  rosterRewriteDue,
   snapshotScalarsChanged,
   type RosterEntryLike,
 } from "./rosterPolicy.ts";
@@ -92,5 +94,14 @@ equal(
   true,
   "a cleared rank is detected",
 );
+
+// Roster refresh spacing is opt-in: unset keeps rewriting on every change.
+equal(rosterRefreshMs({}), 0, "unset refresh spacing keeps the old behaviour");
+equal(rosterRefreshMs({ BRAWL_ROSTER_REFRESH_MINUTES: "abc" }), 0, "invalid spacing is ignored");
+equal(rosterRefreshMs({ BRAWL_ROSTER_REFRESH_MINUTES: "1440" }), 86_400_000, "minutes become milliseconds");
+equal(rosterRewriteDue(1_000, 1_001, 0), true, "no spacing always rewrites");
+equal(rosterRewriteDue(undefined, 1_001, 60_000), true, "rows without a write time rewrite");
+equal(rosterRewriteDue(1_000, 30_000, 60_000), false, "a recent rewrite defers the next one");
+equal(rosterRewriteDue(1_000, 61_000, 60_000), true, "an old rewrite allows the next one");
 
 console.log("ok - roster fingerprints and snapshot scalar comparison");

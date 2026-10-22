@@ -5,9 +5,10 @@ import type { ActionCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { clashUpstream, GLOBAL_LOCATION_ID } from "./clashFetch";
-import { battleObservations, META_MODES, playerBattleObservation, type DeckObservation, type MetaMode, type PlayerBattleObservation } from "./lib/battles";
+import { battleObservations, dayKey, META_MODES, playerBattleObservation, type DeckObservation, type MetaMode, type PlayerBattleObservation } from "./lib/battles";
 import { BACKGROUND_CRON_ENV, ROLLUP_ALL_WINDOWS, backgroundCronEnabled } from "../cronPolicy";
 import { planCardSummaryPairs, refreshMsFromEnv } from "./summaryPolicy";
+import { MAX_RANKING_SIZE } from "./meta";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -446,6 +447,56 @@ type Aggregate = {
   arenaNames: Set<string>;
 };
 
+function foldDeckRow(decks: Map<string, Aggregate>, row: Doc<"deckStats">) {
+  const entry = decks.get(row.deckHash) ?? {
+    deckHash: row.deckHash,
+    cardIds: row.cardIds,
+    evolutionIds: row.evolutionIds,
+    uses: 0,
+    wins: 0,
+    trophySum: 0,
+    trophySamples: 0,
+    arenaIds: new Set<number>(),
+    arenaNames: new Set<string>()
+  };
+  entry.uses += row.uses;
+  entry.wins += row.wins;
+  entry.trophySum += row.trophySum ?? 0;
+  entry.trophySamples += row.trophySamples ?? 0;
+  for (const arenaId of row.arenaIds ?? []) entry.arenaIds.add(arenaId);
+  for (const arenaName of row.arenaNames ?? []) entry.arenaNames.add(arenaName);
+  decks.set(row.deckHash, entry);
+}
+
+/**
+ * The 1-day board only publishes today's top `limit` decks with at least
+ * `minUses` uses, so it reads exactly those through the uses index instead of
+ * paging every deckStats row of the day (mostly decks seen once or twice)
+ * every 30 minutes. The usage-rate denominator comes from cardStats.
+ */
+async function aggregateToday(ctx: ActionCtx, minUses: number, limit: number) {
+  const byMode = new Map<MetaMode, Map<string, Aggregate>>();
+  const totals = new Map<MetaMode, number>();
+  const day = dayKey(Date.now());
+  let rowsRead = 0;
+
+  for (const mode of META_MODES) {
+    // Annotated to break the TypeScript circularity between this action and
+    // the query it calls.
+    const result: { rows: Doc<"deckStats">[]; totalUses: number; docsRead: number } = await ctx.runQuery(
+      internal.clash.meta.rankableDecksForDay,
+      { day, mode, minUses, limit }
+    );
+    rowsRead += result.docsRead;
+    const decks = new Map<string, Aggregate>();
+    for (const row of result.rows) foldDeckRow(decks, row);
+    byMode.set(mode, decks);
+    totals.set(mode, result.totalUses);
+  }
+
+  return { byMode, totals, rowsRead, truncated: false };
+}
+
 async function aggregateWindow(ctx: ActionCtx, days: number) {
   const byMode = new Map<MetaMode, Map<string, Aggregate>>();
   const totals = new Map<MetaMode, number>();
@@ -471,24 +522,7 @@ async function aggregateWindow(ctx: ActionCtx, days: number) {
       for (const row of page.page) {
         const mode = row.mode as MetaMode;
         const decks = byMode.get(mode) ?? new Map<string, Aggregate>();
-        const entry = decks.get(row.deckHash) ?? {
-          deckHash: row.deckHash,
-          cardIds: row.cardIds,
-          evolutionIds: row.evolutionIds,
-          uses: 0,
-          wins: 0,
-          trophySum: 0,
-          trophySamples: 0,
-          arenaIds: new Set<number>(),
-          arenaNames: new Set<string>()
-        };
-        entry.uses += row.uses;
-        entry.wins += row.wins;
-        entry.trophySum += row.trophySum ?? 0;
-        entry.trophySamples += row.trophySamples ?? 0;
-        for (const arenaId of row.arenaIds ?? []) entry.arenaIds.add(arenaId);
-        for (const arenaName of row.arenaNames ?? []) entry.arenaNames.add(arenaName);
-        decks.set(row.deckHash, entry);
+        foldDeckRow(decks, row);
         byMode.set(mode, decks);
         totals.set(mode, (totals.get(mode) ?? 0) + row.uses);
       }
@@ -512,7 +546,9 @@ export const rollup = internalAction({
   handler: async (ctx, args) => {
     const disabled = cronDisabled();
     if (disabled) return disabled;
-    const topN = envNumber("CLASH_RANKING_SIZE", 100);
+    // Integer and bounded: it sizes an index read and the rankings rewrite.
+    const topN = Math.min(Math.max(Math.floor(envNumber("CLASH_RANKING_SIZE", 100)), 1), MAX_RANKING_SIZE);
+    const minDeckUses = envNumber("CLASH_MIN_DECK_USES", 5);
     const requested = args.windows ?? [...ROLLUP_ALL_WINDOWS];
     const windows = [...new Set(requested)].filter((windowDays) =>
       (ROLLUP_ALL_WINDOWS as readonly number[]).includes(windowDays),
@@ -524,7 +560,9 @@ export const rollup = internalAction({
       const truncatedWindows: number[] = [];
 
       for (const windowDays of windows.length ? windows : [...ROLLUP_ALL_WINDOWS]) {
-        const { byMode, totals, rowsRead: read, truncated } = await aggregateWindow(ctx, windowDays);
+        const { byMode, totals, rowsRead: read, truncated } = windowDays === 1
+          ? await aggregateToday(ctx, minDeckUses, topN)
+          : await aggregateWindow(ctx, windowDays);
         rowsRead += read;
         if (truncated) truncatedWindows.push(windowDays);
 
@@ -534,7 +572,7 @@ export const rollup = internalAction({
           const rows = [...(decks?.values() ?? [])]
             // A deck seen once tells us nothing; requiring a floor keeps the
             // board from being dominated by noise on a young dataset.
-            .filter((entry) => entry.uses >= envNumber("CLASH_MIN_DECK_USES", 5))
+            .filter((entry) => entry.uses >= minDeckUses)
             .sort((a, b) => b.uses - a.uses)
             .slice(0, topN)
             .map((entry) => ({

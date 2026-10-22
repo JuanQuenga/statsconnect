@@ -56,6 +56,28 @@ export function rosterNeedsWrite(
   return storedFingerprint !== fingerprint;
 }
 
+/**
+ * Opt-in spacing between roster rewrites for the same daily snapshot. A
+ * roster is ~30-45 KB and changes on nearly every crawl because per-brawler
+ * trophies move, so each rewrite costs a full-doc read plus a full-doc write.
+ * Zero (the default) keeps rewriting on every change.
+ */
+export const ROSTER_REFRESH_ENV = "BRAWL_ROSTER_REFRESH_MINUTES";
+
+export function rosterRefreshMs(env: Record<string, string | undefined>): number {
+  const minutes = Number(env[ROSTER_REFRESH_ENV]);
+  return Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) * 60_000 : 0;
+}
+
+/** True when a changed roster may be rewritten now under the refresh spacing. */
+export function rosterRewriteDue(
+  lastWrittenAt: number | undefined,
+  now: number,
+  refreshMs: number,
+): boolean {
+  return refreshMs <= 0 || lastWrittenAt === undefined || now - lastWrittenAt >= refreshMs;
+}
+
 /** Every snapshot field the daily doc carries besides the roster itself. */
 export type SnapshotScalars = {
   recordedAt: number;

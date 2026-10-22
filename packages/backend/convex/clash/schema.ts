@@ -252,6 +252,8 @@ export const clashTables = {
   })
     .index("by_day_and_mode_and_deck", ["day", "mode", "deckHash"])
     .index("by_day_and_mode", ["day", "mode"])
+    /** Lets the 1-day ranking read only decks with enough uses to rank. */
+    .index("by_day_and_mode_and_uses", ["day", "mode", "uses"])
     .index("by_day", ["day"]),
 
   /** Per-day ordered deck-vs-deck aggregates, from deckHash's perspective. */
@@ -350,7 +352,11 @@ export const clashTables = {
   cardSummaryRuns: defineTable({
     mode: metaMode,
     day: v.number(),
-    computedAt: v.number()
+    computedAt: v.number(),
+    /** First late battle ingested for this frozen day since the last rebuild. */
+    dirtySince: v.optional(v.number()),
+    /** Freeze-policy version that wrote this marker; missing means pre-freeze. */
+    policyVersion: v.optional(v.number())
   })
     .index("by_mode_and_day", ["mode", "day"])
     .index("by_day", ["day"]),

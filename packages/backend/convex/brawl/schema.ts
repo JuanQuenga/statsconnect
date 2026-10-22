@@ -206,6 +206,8 @@ export const brawlTables = {
     brawlers: v.optional(v.array(playerRosterEntry)),
     /** Fingerprint of the roster stored in playerSnapshotRosters for this day. */
     rosterFingerprint: v.optional(v.string()),
+    /** When that roster row was last written; spaces opt-in roster refreshes. */
+    rosterRecordedAt: v.optional(v.number()),
   })
     .index("by_tag_and_day", ["tag", "day"])
     .index("by_recorded_at", ["recordedAt"]),
