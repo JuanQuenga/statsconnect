@@ -395,9 +395,10 @@ export const history = query({
       .take(limit);
     return Promise.all(rows.map(async (row) => {
       // Legacy snapshots carry the roster inline; new snapshots store it
-      // separately, so history keeps returning the same shape.
+      // separately, so history keeps returning the same shape. Inline rosters
+      // have no capture time: row.recordedAt moves with every scalar update.
       let brawlers = row.brawlers;
-      let rosterRecordedAt = brawlers === undefined ? undefined : row.recordedAt;
+      let rosterRecordedAt: number | undefined;
       if (brawlers === undefined) {
         const roster = await ctx.db
           .query("playerSnapshotRosters")

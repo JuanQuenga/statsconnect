@@ -115,4 +115,19 @@ describe("recordProfile roster refresh spacing", () => {
     expect(state.snapshot?.trophies).toBe(501);
     expect(state.roster?.brawlers).toHaveLength(1);
   });
+
+  test("history leaves the capture time unset for legacy inline rosters", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.brawl.players.recordProfile, profile(500, [brawler(16_000_000, 500)]));
+    await t.run(async (ctx) => {
+      const snapshot = await ctx.db.query("playerSnapshots").first();
+      const roster = await ctx.db.query("playerSnapshotRosters").first();
+      if (!snapshot || !roster) throw new Error("expected a snapshot and roster");
+      await ctx.db.patch(snapshot._id, { brawlers: roster.brawlers, rosterRecordedAt: undefined });
+      await ctx.db.delete(roster._id);
+    });
+    const [day] = await t.query(api.brawl.players.history, { tag: "#2PP" });
+    expect(day.brawlers).toHaveLength(1);
+    expect(day.rosterRecordedAt).toBeUndefined();
+  });
 });
