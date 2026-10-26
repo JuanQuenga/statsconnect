@@ -3,11 +3,13 @@ import { AmbientProvider, useAmbient } from "@/components/lobby/ambient";
 import { FooterNotice } from "./FooterNotice";
 import { SiteNav } from "./SiteNav";
 import { CommunityRequest } from "@statsconnect/monetization";
+import { HubDocumentMetadata } from "@/lib/hub-document-metadata";
 
 export function AppShell() {
   return (
     <>
       <HeadContent />
+      <HubDocumentMetadata />
       <AmbientProvider>
         <Stage />
       </AmbientProvider>
