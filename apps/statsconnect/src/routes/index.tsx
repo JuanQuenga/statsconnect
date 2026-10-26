@@ -10,13 +10,7 @@ import { games, type StatsConnectPlusOffer } from "@/lib/contracts";
 export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
-    meta: [
-      { title: "StatsConnect — your games, one home" },
-      {
-        name: "description",
-        content: "Connect your Clash Royale and Brawl Stars player profiles, then find the stats and tools made for each game.",
-      },
-    ],
+    meta: [{ title: "StatsConnect — your games, one home" }],
   }),
 });
 
